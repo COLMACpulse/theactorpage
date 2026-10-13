@@ -142,7 +142,7 @@ small.note{display:block;padding:0 15px 13px;color:var(--faint);font-size:10.5px
 </div>
 <input id="csv" type="file" accept=".csv" class="hide"><input id="qsin" type="file" accept=".html,.htm,.mhtml,.mht" multiple class="hide">
 <input id="artin" type="file" multiple class="hide">
-<input id="bkin" type="file" accept=".zip,application/zip" class="hide"><input id="sidesin" type="file" accept=".txt,.fountain,.fdx,.fdr,.xml,text/plain" class="hide">
+<input id="bkin" type="file" accept=".zip,application/zip" class="hide"><input id="jsonin" type="file" accept=".json,application/json" class="hide"><input id="sidesin" type="file" accept=".txt,.fountain,.fdx,.fdr,.xml,text/plain" class="hide">
 <div class="toast" id="toast"></div>
 <script>
 var restoreReport=null;
@@ -368,116 +368,26 @@ async function zipRead(blob){
   out.push({name,data:buf.slice(ds,ds+sz)});p+=46+nameLen+extra+cmt;}
  return out;}
 
-/* ===== BAKE =====
-   Uploads live in browser storage, which is tied to the exact file you opened.
-   Open a different copy and it is empty - which is why credits show but posters
-   do not. This writes a new HTML with the media embedded inside it, so the file
-   itself carries the work. Open it anywhere, nothing to restore. */
-var SEED=/*SEED_SLOT*/null/*END_SLOT*/;   // replaced by a baked build
+/* ===== THE RECORD =====
+   What stood here was BAKE: a feature that rewrote this entire HTML file with every
+   headshot, poster and clip base64'd into a SEED constant inside it, so the file
+   itself carried the work. It solved a real problem - browser storage is tied to the
+   exact file you opened, so a second copy of the hub opened empty - and it solved it
+   by making the program and the data the same object.
 
-/* Downscale an image before baking. A TMDb w500 poster is ~60KB; the credit card
-   renders at 212px, so 424px covers retina at a quarter the weight. 37 posters go
-   from ~2.9 MB of base64 to ~1.2 MB. */
-function shrinkImage(blob,maxW,q){return new Promise(res=>{
- const img=new Image(); const u=URL.createObjectURL(blob);
- img.onload=()=>{try{
-   if(img.naturalWidth<=maxW){URL.revokeObjectURL(u);return res(blob);}
-   const c=document.createElement('canvas');
-   const w=maxW, h=Math.round(maxW*img.naturalHeight/img.naturalWidth);
-   c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
-   c.toBlob(b=>{URL.revokeObjectURL(u);res(b||blob);},'image/jpeg',q||0.78);
- }catch(e){URL.revokeObjectURL(u);res(blob);}};
- img.onerror=()=>{URL.revokeObjectURL(u);res(blob);};
- img.src=u;});}
-async function bakeHub(){
- const mode=prompt(
-   'Save a loaded copy of your hub.\n\n'
-   +'  1  Images only  - headshots, posters, resume. Small file (~1-2 MB), opens anywhere. RECOMMENDED\n'
-   +'  2  Everything   - includes video. Very large, slow to open.\n\n'
-   +'Type 1 or 2.','1');
- if(mode===null)return;
- const imagesOnly = String(mode).trim()!=='2';
- toast('Saving...');
- try{
-  const items=[],skipped=[];
-  for(const a of ARTS){
-   if(!a.blob)continue;
-   const t=a.type||'';
-   if(imagesOnly && !(t.startsWith('image/')||t.includes('pdf'))){skipped.push(a.label||a.filename);continue;}
-   let blob=a.blob;
-   if(t.startsWith('image/')){
-     const cap = a.category==='headshot' ? 900 : 460;
-     try{blob=await shrinkImage(a.blob,cap,0.80);}catch(e){}
-   }
-   items.push({id:a.id,filename:a.filename,label:a.label,category:a.category,scope:a.scope,
-     type:blob.type||a.type,tag:a.tag,dur:a.dur,thumb:a.thumb,thumbV:a.thumbV,added:a.added,
-     u:await blobToDataURL(blob)});}
-  const seed={v:1,baked:new Date().toISOString(),imagesOnly:imagesOnly,
-              profile:profile,credits:credits,projects:projects,arts:items};
-  const src=document.documentElement.outerHTML;
-  const A='/*SEED_'+'SLOT*/', B='/*END_'+'SLOT*/';
-  const re=new RegExp(A.replace(/[*\/]/g,'\\$&')+'[\\s\\S]*?'+B.replace(/[*\/]/g,'\\$&'));
-  if(!re.test(src))return toast('Could not find the seed slot - tell Claude');
-  const out='<!doctype html>'+src.replace(re,A+JSON.stringify(seed).replace(/<\//g,'<\\/')+B);
-  const blob=new Blob([out],{type:'text/html'});
-  const nm='HUB_'+String(profile.name||'hub').replace(/[^\w]+/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.html';
-  downloadBlob(blob,nm);
-  toast('Saved '+nm+' - '+items.length+' file'+(items.length===1?'':'s')+' inside, '+mb(blob.size)
-        +(skipped.length?'. Video not included ('+skipped.length+' file'+(skipped.length===1?'':'s')+') - it stays in this browser.':'')
-        +' Open that file from now on.');
- }catch(e){toast('Save failed: '+e.message);}}
+   That is what made every new build dangerous. A build was a data carrier, so
+   shipping you a new version meant shipping a file that either carried stale data or
+   wiped what you had. The same defect took eight photographs off your site twice.
 
-function b64ToBlob(u){
- const i=u.indexOf(',');const mime=(u.slice(5,i).split(';')[0])||'application/octet-stream';
- const bin=atob(u.slice(i+1));const arr=new Uint8Array(bin.length);
- for(let k=0;k<bin.length;k++)arr[k]=bin.charCodeAt(k);
- return new Blob([arr],{type:mime});}
-async function loadSeed(){
- if(!SEED||!SEED.arts)return false;
- try{
-  if(SEED.profile&&!(await DB.getMeta('profile')))profile=SEED.profile;
-  // Baked art is scoped to the cid it had when it was pasted. If the seeded
-  // credits are skipped, every poster points at a credit that never loads - which
-  // is exactly what happened: 32 posters, 0 credits showing art.
-  if(SEED.credits&&SEED.credits.length){
-   const byTitle={};
-   const norm=x=>String(x||'').toLowerCase().replace(/[^a-z0-9]/g,'');
-   credits.forEach(c=>{const k=norm(c.title);if(k)byTitle[k]=c;});
-   const out=[]; let addedAny=false;
-   SEED.credits.forEach(sc=>{
-    if(isTombed(sc.title))return;
-    const k=norm(sc.title), cur=byTitle[k];
-    if(cur){ // live values win field by field; only fill what is blank
-     const merged=Object.assign({},sc);
-     Object.keys(cur).forEach(f=>{const v=cur[f];
-       if(v!==undefined&&v!==null&&v!=='')merged[f]=v;});
-     merged.cid=sc.cid;
-     out.push(merged); delete byTitle[k];
-    } else {out.push(sc); addedAny=true;}});
-   Object.keys(byTitle).forEach(k=>{if(!isTombed(byTitle[k].title))out.push(byTitle[k]);});   // credits not in the bake
-   credits=out; ensureCids();}
-  if(SEED.projects&&SEED.projects.length&&!(await DB.getMeta('projects')))projects=SEED.projects;
-  const have=new Set(ARTS.map(a=>a.id));
-  let n=0;
-  for(const it of SEED.arts){
-   if(have.has(it.id))continue;
-   const rec=Object.assign({},it,{blob:b64ToBlob(it.u)});delete rec.u;
-   ARTS.push(rec);if(rec.thumb)THUMBS[rec.id]=rec.thumb;
-   try{await DB.put(rec);}catch(e){}   // browser copy is a cache; the file is the record
-   n++;}
-  if(n)toast('Loaded '+n+' file'+(n===1?'':'s')+' baked into this hub');
-  return n>0;
- }catch(e){return false;}}
-function bakePanel(){
- const vids=ARTS.filter(a=>a.blob).length;
- const bytes=ARTS.reduce((t,a)=>t+(a.blob?a.blob.size:0),0);
- return `<div class="panel" style="border-color:var(--tung)"><h2 style="color:var(--tung)">Save a loaded copy</h2>
-  <small class="note">Right now your uploads live in this browser, attached to this exact file. Open a different copy and it is empty - which is why you keep having to restore.<br><br>This writes you a <b>new HTML with everything already inside it</b>: headshots, clips, posters, credits, audition history. Open that file on any machine and it is just there. Nothing to restore, ever.<br>
-  ${SEED?`<span style="color:var(--good)">This copy already carries your media - baked ${esc(new Date(SEED.baked).toLocaleDateString())} with ${SEED.arts.length} files in it.</span>`:''}</small>
-  <div class="row" style="gap:9px;align-items:center;flex-wrap:wrap">
-   <button class="act" onclick="bakeHub()">&#8681; Save a loaded copy (${vids} file${vids===1?'':'s'})</button>
-   <span class="tag">${mb(bytes)} on file</span>
-  </div></div>`;}
+   The folder vault replaces it, and replaces it properly: media written to a real
+   folder on disk, hub.json alongside it carrying all ten keys, read first at boot.
+   The data outlives the file instead of living inside it. So a build now carries code
+   and nothing else - not by discipline, but because there is no longer a slot to put
+   data in.
+
+   Gone with it: bakeHub, bakePanel, loadSeed, the SEED constant and its slot,
+   shrinkImage and b64ToBlob, which existed only to serve them. Backups are a .zip
+   (exportBackup) or a .json (exportData); both now carry everything. */
 
 /* ===== IMDb IMPORT =====
    IMDb has no public API. TMDb does, it is free, and it indexes by IMDb id -
@@ -589,29 +499,79 @@ function imdbPanel(){
 async function exportBackup(){
  toast('Building full backup...');
  const meta=ARTS.map(a=>({id:a.id,scope:a.scope,category:a.category,label:a.label,filename:a.filename,type:a.type,size:a.size,added:a.added,tag:a.tag,clips:a.clips}));
- const manifest={v:1,exported:new Date().toISOString(),profile,credits,projects,arts:meta};
+ /* Built from vaultPayload so there is exactly one definition of "everything the
+    hub holds". This manifest used to list profile, credits, projects and the media
+    index only - so a backup zip, the thing you take to another machine, quietly
+    left behind every note on every casting office, the credit tombstones, the
+    standup and training logs and the TMDB key. */
+ const manifest=Object.assign(vaultPayload(),{exported:new Date().toISOString(),arts:meta});
  const enc=new TextEncoder();const entries=[{name:'manifest.json',data:enc.encode(JSON.stringify(manifest))}];
  for(const a of ARTS){if(a.blob){try{const u8=new Uint8Array(await a.blob.arrayBuffer());entries.push({name:'media/'+a.id+'__'+(a.filename||'file').replace(/[^\w.\-]/g,'_'),data:u8});}catch(e){}}}
  const zip=await zipStore(entries);downloadBlob(zip,'colmac_hub_backup_'+new Date().toISOString().slice(0,10)+'.zip');
  toast('Full backup saved: data + '+ARTS.length+' media files');}
+/* The ten keys, merged in. Shared by the .zip restore and the .json import so there
+   is one place that decides how incoming data meets what is already here. Nothing
+   replaces wholesale except the profile: credits merge by title, auditions merge by
+   id, and office notes merge per office, because a note you wrote after the backup
+   was taken is not something a restore gets to drop. */
+async function restoreMeta(data){
+ if(!data||typeof data!=='object')return;
+ /* Restoring your own career into a fresh install would otherwise leave Riley Hart's
+    six credits and ten auditions mixed in with yours, and the "clear the demo"
+    banner sitting over your own work. If real data is arriving, the sample goes. */
+ const incomingWork=!!((data.credits&&data.credits.length)
+   ||(data.projects&&data.projects.length)
+   ||String((data.profile||{}).name||'').trim());
+ if(incomingWork&&typeof isDemo==='function'&&isDemo())await dropDemoData();
+ if(data.profile){profile=data.profile;await DB.putMeta('profile',profile);}
+ if(data.credits){const seen=new Set(data.credits.map(c=>(c.title||'').toLowerCase().trim()));
+  const extra=credits.filter(c=>!seen.has((c.title||'').toLowerCase().trim()));
+  credits=data.credits.concat(extra);ensureCids();await DB.putMeta('credits',credits);}
+ if(data.projects){
+  // MERGE. A backup taken before the audition history was wired in would
+  // otherwise wipe all 189 of them - proven by restoring an old zip.
+  const key=p=>p.aaid||p.id||[p.title,p.role,p.deadline].join('|');
+  const have=new Map(projects.map(p=>[key(p),p]));
+  data.projects.forEach(p=>{const k=key(p);
+   if(have.has(k)){Object.assign(have.get(k),p);}   // incoming wins per field
+   else{projects.push(p);have.set(k,p);}});
+  await DB.putMeta('projects',projects);}
+ if(data.creditTombs&&data.creditTombs.length){
+  const t=new Set((CREDIT_TOMBS||[]).concat(data.creditTombs));
+  CREDIT_TOMBS=Array.from(t);await DB.putMeta('creditTombs',CREDIT_TOMBS);}
+ if(data.offmeta){
+  OFFMETA=OFFMETA||{};
+  Object.keys(data.offmeta).forEach(k=>{OFFMETA[k]=Object.assign({},OFFMETA[k]||{},data.offmeta[k]);});
+  await DB.putMeta('offmeta',OFFMETA);}
+ if(data.standup&&data.standup.items){standup=data.standup;await DB.putMeta('standup',standup);}
+ if(data.train&&data.train.log){train=data.train;await DB.putMeta('train',train);}
+ if(data.tmdbkey&&!TMDB_KEY){TMDB_KEY=data.tmdbkey;await DB.putMeta('tmdbkey',TMDB_KEY);}
+ if(data.demoCleared){DEMO_CLEARED=true;await DB.putMeta('demoCleared',true);}
+ try{vaultTouch();}catch(e){}
+}
+
+/* exportData wrote a .json that nothing could read back. This is the other half -
+   and it is the route an older hub's text comes in on, since browser storage is tied
+   to the exact file it was created in and does not travel with a new build. */
+async function importData(file){
+ try{
+  const d=JSON.parse(await file.text());
+  if(!d||typeof d!=='object')return toast('Not a hub .json');
+  const before={cr:credits.length,pr:projects.length,off:Object.keys(OFFMETA||{}).length};
+  await restoreMeta(d);
+  render();
+  const off=Object.keys(OFFMETA||{}).length;
+  toast('Imported: '+credits.length+' credits (+'+(credits.length-before.cr)+'), '
+       +projects.length+' auditions (+'+(projects.length-before.pr)+'), '
+       +off+' office note'+(off===1?'':'s')+' (+'+(off-before.off)+')'
+       +(d.arts?' - media is not in a .json, use the .zip for that':''));
+ }catch(e){toast('Import failed: '+e.message);}}
+
 async function importBackup(file){
  toast('Restoring backup...');
  try{const entries=await zipRead(file);const man=entries.find(e=>e.name==='manifest.json');if(!man)return toast('No manifest - not a hub backup');
   const data=JSON.parse(new TextDecoder().decode(man.data));
-  if(data.profile){profile=data.profile;await DB.putMeta('profile',profile);}
-  if(data.credits){const seen=new Set(data.credits.map(c=>(c.title||'').toLowerCase().trim()));
-   const extra=credits.filter(c=>!seen.has((c.title||'').toLowerCase().trim()));
-   credits=data.credits.concat(extra);ensureCids();await DB.putMeta('credits',credits);}
-  if(data.projects){
-   // MERGE. A backup taken before the audition history was wired in would
-   // otherwise wipe all 189 of them - proven by restoring an old zip.
-   const key=p=>p.aaid||p.id||[p.title,p.role,p.deadline].join('|');
-   const have=new Map(projects.map(p=>[key(p),p]));
-   let addP=0;
-   data.projects.forEach(p=>{const k=key(p);
-    if(have.has(k)){Object.assign(have.get(k),p);}   // incoming wins per field
-    else{projects.push(p);have.set(k,p);addP++;}});
-   await DB.putMeta('projects',projects);}
+  await restoreMeta(data);
   await askPersist();
   // MERGE, do not replace. Anything already here that is not in the zip stays.
   const metaById={};(data.arts||[]).forEach(a=>metaById[a.id]=a);
@@ -715,7 +675,7 @@ function go(t){tab=t;render();}
 
 function who(){const bn=document.getElementById('brandname');if(bn&&profile.name)bn.textContent=profile.name;
  const bs=document.getElementById('brandsub');if(bs)bs.textContent='';
- $('who').innerHTML=`${esc(profile.union)} &middot; ${esc(profile.rep)}<br><button class="act sm" style="margin-top:7px" onclick="exportBackup()" title="Save a .zip of everything (headshots, posters, reel, resume, data). Do this often - it is how your work travels between files.">&#8681; Back up now</button> <button class="ghost act sm" style="margin-top:7px" onclick="$('bkin').click()" title="Restore from a .zip backup. Always available - your media does not travel inside this HTML file.">&#8679; Restore</button> <button class="act sm" style="margin-top:7px" onclick="bakeHub()" title="Write a new HTML with all your media inside it, so it never opens empty again">&#9635; Save loaded copy</button>`;}
+ $('who').innerHTML=`${esc(profile.union)} &middot; ${esc(profile.rep)}<br><button class="act sm" style="margin-top:7px" onclick="exportBackup()" title="Save a .zip of everything (headshots, posters, reel, resume, data). Do this often - it is how your work travels between files.">&#8681; Back up now</button> <button class="ghost act sm" style="margin-top:7px" onclick="$('bkin').click()" title="Restore from a .zip backup. Always available - your media does not travel inside this HTML file.">&#8679; Restore</button>`;}
 
 function deckView(){
  const a=active().sort((x,y)=>readinessScore(x)-readinessScore(y));
@@ -1503,10 +1463,10 @@ function setupSteps(){
    why:'Reel, self-tapes, About Me, monologues. Drop a whole folder if you have one - the hub works out what each file is.',
    act:`<button class="${vid?'ghost act':'act'}" onclick="pickFiles('library','clip')">Choose video</button>`,
    got:vid?vid+' on file':''},
-  {k:'bake',  n:'Save a loaded copy', done:!!(typeof SEED!=='undefined'&&SEED&&SEED.arts&&SEED.arts.length),
-   why:'Do this last, and again any time you add a lot. It writes a new HTML with all your media inside it - so it opens loaded on any machine and you never restore again.',
-   act:`<button class="act" onclick="bakeHub()">Save a loaded copy</button>`,
-   got:(typeof SEED!=='undefined'&&SEED&&SEED.arts)?SEED.arts.length+' files inside this file':''},
+  {k:'vault', n:'Link a folder on disk', done:!!vaultOn,
+   why:'Do this first. It is where your work actually lives - everything you add is written into a real folder on this machine, so a new version of the hub opens with it all already there, and clearing your browser costs you nothing.',
+   act:`<button class="${vaultOn?'ghost act':'act'}" onclick="vaultPick()">${vaultOn?'Linked':'Link a folder'}</button>`,
+   got:vaultOn?('linked'+(vaultStamp?' \u00b7 saved '+vaultStamp.toLocaleTimeString():'')):''},
   {k:'res',   n:'Add your resume', done:res>0,
    why:'PDF or a photo of it.',
    act:`<button class="${res?'ghost act':'act'}" onclick="pickFiles('library','resume')">Choose resume</button>`,
@@ -1542,7 +1502,7 @@ function intakeView(){
 
  h+=`<div id="qs-block">`+quicksheetPanel()+`</div>`;
  h+=`<div id="imdb-block">`+imdbPanel()+`</div>`;
- h+=bakePanel();
+ h+=vaultPanel();   /* the record now, so it leads rather than hiding in a drawer */
 
  h+=`<details class="more"><summary>Other tools</summary>
    <div class="panel"><h2>Backup</h2>
@@ -1560,8 +1520,8 @@ function intakeView(){
    <div class="panel"><h2>Import an auditions CSV</h2>
     <small class="note">Your Actors Access auditions export (Type, Status, Project, Role, Casting). Read in your browser - nothing uploads.</small>
     <div class="row"><button class="ghost act sm" onclick="$('csv').click()">Choose CSV</button>
-     <button class="ghost act sm" onclick="exportData()">Export data (.json)</button></div></div>
-   ${vaultPanel()}
+     <button class="ghost act sm" onclick="exportData()">Export data (.json)</button>
+     <button class="ghost act sm" onclick="$('jsonin').click()" title="Read a hub .json back in - credits, auditions, casting notes. Media comes in through the .zip.">Import data (.json)</button></div></div>
   </details>`;
  $('view').innerHTML=h;
 }
@@ -2588,14 +2548,19 @@ function vaultPanel(){
   return `<div class="panel" style="border-color:var(--tung)"><h2 style="color:var(--tung)">Vault needs one click</h2>
    <small class="note">Your folder is remembered but the browser asks permission again each session. One click and everything loads.</small>
    <div class="row"><button class="act" onclick="vaultReconnect()">&#128274; Reconnect vault</button></div></div>`;
- return `<div class="panel"><h2>Folder vault <span style="color:var(--mut);font-weight:400">&middot; optional</span></h2>
-  <small class="note">For running more than one copy of the hub, or holding video too big for browser storage. Links a folder on this machine that the hub reads and writes alongside its own storage. Most people never need this.</small>
-  <div class="row"><button class="ghost act sm" onclick="vaultPick()">&#128193; Link a folder</button></div></div>`;}
+ /* This used to read "optional - most people never need this", which was true while
+    bake existed as the way your work survived. It is now the only thing standing
+    between you and losing everything to a cleared browser. */
+ return `<div class="panel" style="border-color:var(--tung)"><h2 style="color:var(--tung)">Your work is not backed up</h2>
+  <small class="note">Right now everything you enter lives only in this browser, tied to this one file. Clear your browser and it is gone.<br><br>Link a folder on this machine and the hub writes everything into it as you work - media, credits, auditions, your notes on every casting office. Open a newer version of the hub and it reads that folder and picks up where you left off. Nothing to restore, ever.</small>
+  <div class="row"><button class="act" onclick="vaultPick()">&#128193; Link a folder</button></div></div>`;}
 function restoreReportPanel(){if(!restoreReport)return '';const r=restoreReport;
  const rows=r.failed.slice(0,12).map(f=>`<div class="reelrow"><span class="rl">${esc(f.name)}</span><span class="tag">${mb(f.size)}</span><span class="tag" style="color:var(--bad);border-color:var(--bad)">${esc(f.why)}</span></div>`).join('');
  const q=r.quota?`<br>Browser storage for this file: <b>${mb(r.quota.used)}</b> used of <b>${mb(r.quota.quota)}</b> available.`:'';
  return `<div class="panel" style="border-color:var(--bad)"><h2 style="color:var(--bad)">${r.failed.length} file${r.failed.length>1?'s':''} could not be stored (${mb(r.failedBytes)})<button class="ghost act sm" style="float:right;margin-top:-3px" onclick="restoreReport=null;render()">Dismiss</button></h2>
- <small class="note">${r.ok} files restored fine (${mb(r.okBytes)}). The ones below were rejected by browser storage - almost always because this page is running from a <b>file://</b> path, where the quota is small. They are still safe inside your .zip backup.${q}<br><br><b>Fix:</b> serve the hub over http instead of double-clicking the file. In the folder with this HTML, run <code>python -m http.server 8000</code> then open <code>http://localhost:8000</code>. Storage there is large and persistent, and this restore will hold.</small>
+ <small class="note">${r.ok} files restored fine (${mb(r.okBytes)}). They are still safe inside your .zip backup.${q}<br><br>${location.protocol==='file:'
+   ? `These were rejected because this page is running from a <b>file://</b> path, where the storage quota is small.<br><br><b>Fix:</b> serve the hub over http instead of double-clicking the file. In the folder with this HTML, run <code>python -m http.server 8000</code> then open <code>http://localhost:8000</code>. Storage there is large and persistent, and this restore will hold.`
+   : `This page is already served over ${esc(location.protocol.replace(':',''))}, so the quota is the large one - which means it is genuinely full rather than artificially small.<br><br><b>Fix:</b> link a folder on disk in Setup. Media then lives in that folder instead of browser storage, which has no practical size limit.`}</small>
  <div style="display:grid;gap:6px;padding:11px 13px 13px">${rows}${r.failed.length>12?`<div class="matempty">+ ${r.failed.length-12} more</div>`:''}</div></div>`;}
 function restoreBanner(){if(ARTS.length)return '';
  if(isDemo())return '';                       // the demo explains itself
@@ -3159,17 +3124,24 @@ function demoBanner(){
   <div class="row" style="padding:0;margin-top:10px">
    <button class="act sm" onclick="clearDemo()">Clear the demo data</button></div></div>`;
 }
-async function clearDemo(){
- if(!confirm('Remove the demo actor, the six demo credits and the ten demo auditions?\n\n'
-  +'Anything you have added yourself stays.'))return;
+/* The drop itself, with no prompt, so a restore can use it too. skills and accents
+   are ARRAYS - this reset wrote them as empty strings, which only avoided crashing
+   the Profile tab because '' is falsy and (p.skills||[]) fell through to an array.
+   Anything other than empty would have hit (p.skills||[]).join is not a function. */
+async function dropDemoData(){
  credits=(credits||[]).filter(c=>!c.demo);
  projects=(projects||[]).filter(p=>!(p.aaid&&String(p.aaid).indexOf('D1')===0));
  if(profile&&profile.demo){
-  profile={name:'',union:'',rep:'',phone:'',locals:'',height:'',weight:'',lane:'',skills:'',accents:''};
+  profile={name:'',union:'',rep:'',phone:'',locals:'',height:'',weight:'',lane:'',skills:[],accents:[]};
  }
  DEMO_CLEARED=true;
  try{await DB.putMeta('demoCleared',true);}catch(e){}
  try{await saveCredits();await saveProjects();await saveProfile();}catch(e){}
+}
+async function clearDemo(){
+ if(!confirm('Remove the demo actor, the six demo credits and the ten demo auditions?\n\n'
+  +'Anything you have added yourself stays.'))return;
+ await dropDemoData();
  toast('Demo data cleared');render();
 }
 
@@ -3204,7 +3176,12 @@ function render(){setTimeout(sweepThumbs,60);
 $('qsin').addEventListener('change',e=>{const f=[].slice.call(e.target.files);if(f.length)importQuicksheet(f);e.target.value='';});
 $('csv').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
  r.onload=()=>{const imp=importCSV(r.result);projects=projects.concat(imp);saveProjects();toast('Imported '+imp.length+' auditions');tab='deck';render();};r.readAsText(f);e.target.value='';});
-function exportData(){const b=new Blob([JSON.stringify({v:1,profile,credits,projects},null,2)],{type:'application/json'});downloadBlob(b,'colmac_hub_data.json');toast('Data exported (text only - use Full backup for media)');}
+function exportData(){
+ /* Same ten keys, minus the media index - this one is the text, not the files. */
+ const d=vaultPayload(); delete d.arts;
+ const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});
+ downloadBlob(b,'colmac_hub_data.json');
+ toast('Data exported (text only - use Back up now for media)');}
 let tt;function toast(m){const e=$('toast');e.textContent=m;e.className='toast show';clearTimeout(tt);tt=setTimeout(()=>e.className='toast',1700);}
 
 /* ===== ARTIFACTS: local IndexedDB store (offline, persists, holds big media) ===== */
@@ -3496,6 +3473,7 @@ document.addEventListener('mouseover',onHover);
 document.addEventListener('paste',onPaste);
 $('artin').addEventListener('change',e=>{if(e.target.files.length)ingestFiles([...e.target.files]);e.target.value='';});
 $('bkin').addEventListener('change',e=>{const f=e.target.files[0];if(f)importBackup(f);e.target.value='';});
+$('jsonin').addEventListener('change',e=>{const f=e.target.files[0];if(f)importData(f);e.target.value='';});
 $('sidesin').addEventListener('change',e=>{const f=e.target.files[0];if(f)readSidesFile(f);e.target.value='';});
 
 
@@ -3667,5 +3645,5 @@ function reelRoomView(){
    wrong tombstone list - so the vault was correcting the record instead of being
    it. Now: browser cache, then folder, then the seeding and filtering run on
    whatever won. */
-seed();render();loadArts().then(()=>loadMeta()).then(()=>vaultAuto()).then(()=>{const n=credits.length;credits=credits.filter(c=>!isTombed(c.title));if(credits.length!==n)saveCredits();}).then(()=>seedAuditions()).then(()=>loadSeed()).then(render);
+seed();render();loadArts().then(()=>loadMeta()).then(()=>vaultAuto()).then(()=>{const n=credits.length;credits=credits.filter(c=>!isTombed(c.title));if(credits.length!==n)saveCredits();}).then(()=>seedAuditions()).then(render);
 </script></body></html>
