@@ -223,6 +223,9 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
 .mode.picked b{color:var(--gold)}
 .docchip{display:flex;align-items:center;gap:11px;width:100%;text-align:left;background:var(--p1);border:1px solid var(--line2);border-radius:10px;padding:12px 14px;cursor:pointer;min-height:52px;margin-top:12px}.docchip:hover{border-color:var(--gold)}.docchip svg{width:20px;height:20px;color:var(--gold);flex:0 0 20px}.docchip span{display:flex;flex-direction:column;gap:3px;min-width:0}.docchip b{font-family:var(--mono);font-size:12px;color:var(--ink);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.docchip span span,.docchip span{font-size:11.5px;color:var(--faint)}.sidesbody{font-family:var(--mono);font-size:13px}.sidesbody .sl{white-space:pre-wrap;word-break:break-word;line-height:1.5;margin:0 0 2px}.sidesbody .act{color:var(--mut)}.sidesbody .cue{color:var(--gold);margin:16px 0 3px;letter-spacing:.08em;font-weight:600}.sidesbody .dlg{color:var(--ink);padding-left:14px}.openpdf{width:100%;background:var(--gold);color:#12100c;border:0;border-radius:10px;padding:14px;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.06em;margin:0 0 20px;min-height:48px;cursor:pointer}.closebtn{min-height:46px;min-width:96px;font-weight:700}.openpdf{-webkit-tap-highlight-color:rgba(224,162,60,.3)}.sheetfoot{padding:11px 16px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--bg);position:sticky;bottom:0}.sheetfoot .openpdf{margin:0}.pagebody{flex:1;overflow:auto;padding:12px 12px calc(24px + env(safe-area-inset-bottom));background:#15151a;-webkit-overflow-scrolling:touch}.pdfpage{display:block;width:100%;height:auto;background:#fff;border-radius:4px;margin:0 auto;box-shadow:0 2px 14px rgba(0,0,0,.5)}.pagenum{text-align:center;font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--faint);padding:9px 0 20px}.pagebody{overflow-x:auto}.footnote{font-size:10.5px;color:var(--faint);line-height:1.5;margin-top:9px}.docalt{display:block;width:100%;background:transparent;border:0;color:var(--faint);font-family:var(--mono);font-size:11px;letter-spacing:.04em;padding:11px 4px;cursor:pointer;text-align:left;min-height:40px}.docalt:hover{color:var(--gold)}.pagebody{flex:1;overflow:auto;padding:12px 12px calc(20px + env(safe-area-inset-bottom));background:#15151a;-webkit-overflow-scrolling:touch}.pdfpage{display:block;height:auto;background:#fff;border-radius:4px;margin:0 auto;box-shadow:0 2px 14px rgba(0,0,0,.5)}.pagenum{text-align:center;font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--faint);padding:9px 0 18px}.livedot{position:fixed;top:calc(8px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:9900;background:#d9694e;color:#fff;font:700 10px/1 var(--mono,ui-monospace);letter-spacing:.14em;padding:6px 12px;border-radius:20px;display:none;pointer-events:none;box-shadow:0 2px 12px rgba(0,0,0,.5)}.livedot.on{display:block}.readybox{border:1px solid #5cae7e;background:rgba(92,174,126,.10);border-radius:11px;padding:15px 16px;margin:0 0 11px}.readybox b{display:block;font-size:15px;color:#5cae7e;margin-bottom:5px}.readybox span{display:block;font-size:12.5px;color:var(--mut);line-height:1.55}</style><style>
 /* fixes v5.19: the stage message was drawn on top of the record button */
+.sNext{position:absolute;left:50%;transform:translateX(-50%);top:calc(150px + env(safe-area-inset-top));max-width:min(92vw,620px);padding:9px 14px;border-radius:10px;background:rgba(0,0,0,.62);color:#fff;font-size:14px;line-height:1.4;display:none;z-index:5;pointer-events:none}
+.sNext.on{display:block}
+#stage.on ~ .livedot{top:calc(60px + env(safe-area-inset-top))}   /* was sitting on LISTEN FOR MY CUE */.sNext b{color:#E0A23C;font-weight:600}
 .whyin{width:100%;margin-top:8px;background:transparent;border:1px solid var(--line2,#3a414c);border-radius:8px;color:inherit;padding:9px 11px;min-height:40px;font-size:13px}
 .review .whyin{max-width:640px;margin:10px auto 0;display:block;background:rgba(0,0,0,.45);color:#fff}
 .limitrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:11px}.limitrow label{margin:0}.limitrow input{flex:1;min-width:140px}
@@ -840,10 +843,25 @@ async function rehydrateTakes(){
  if(lost) console.warn(lost+' take(s) have no stored video');
 }
 window.addEventListener('load',()=>{ setTimeout(rehydrateTakes,300); setTimeout(()=>{try{navState();}catch(e){}},420); });
+/* Sides sent from Writer's Blockage on the same site. Taken once, then cleared. */
+window.addEventListener('load',()=>{ setTimeout(()=>{
+ try{
+  const h=JSON.parse(localStorage.getItem('theactorpage_handoff_sides')||'null');
+  if(!h||!h.text) return;
+  localStorage.removeItem('theactorpage_handoff_sides');
+  if(Date.now()-(h.at||0)>10*60*1000) return;          // a stale hand-off is ignored
+  SIDES.me=''; SIDES.script=[]; SIDES.scenes=[]; SIDES.cur=0; SIDES.ready=false; SIDES.omit=[]; SIDES.pick={};
+  window.LAST_PDF=null; window.PDF_LINES=null;
+  loadSides(h.text, h.file||'script.fountain');
+  if(h.title) setJobName(h.title);
+  try{ goTab('prep'); }catch(e){}
+  stageToast('Sides from Writer\u2019s Blockage. Pick your character.');
+ }catch(e){}
+ },380); });
 /* Bring the last sides back, with the role and the scene marks that were on them. */
 window.addEventListener('load',()=>{ setTimeout(()=>{
  try{
-  if(SIDES.script&&SIDES.script.length) return;
+  if((SIDES.script&&SIDES.script.length)||(SIDES.beats&&SIDES.beats.length)) return;
   const last=JSON.parse(localStorage.getItem('actor_os_sides_last')||'null');
   if(!last||!last.text) return;
   if(last.pdfLines){ window.LAST_PDF={lines:last.pdfLines}; window.PDF_LINES=last.pdfLines.map(l=>l.text); window.SIDES_DOC=last.file; }
@@ -2299,6 +2317,17 @@ async function saveAllTakes(){
 
 /* ===== WHY, LIMIT, LINE MARKERS, COMPARE (mined from Tape Cutter) =====
    The actor chooses; the app keeps why. Nothing here scores a take. */
+function setNext(id,v){ const t=(state.takes||[]).find(x=>x.id===id); if(!t)return; t.next=v; try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){} }
+/* The note you left yourself after the last take in this scene, on screen before the
+   next one rolls. Gone the moment you roll: nothing writes on the frame during a take. */
+function showNext(){
+ const el=$('sNext'); if(!el||!el.classList)return;
+ const sc=(typeof curScene==='function')?curScene().name:state.scene;
+ const prev=(state.takes||[]).filter(t=>t.scene===sc&&t.next&&String(t.next).trim()).slice(-1)[0];
+ if(!prev||sRecOn||!MODE){ el.classList.remove('on'); el.textContent=''; return; }
+ el.innerHTML='<b>From take '+prev.n+':</b> '+esc2(prev.next);
+ el.classList.add('on');
+}
 function setWhy(id,v){ const t=(state.takes||[]).find(x=>x.id===id); if(!t)return; t.why=v; try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){} }
 function parseLen(v){ v=String(v||'').trim(); if(!v)return 0; const m=v.match(/^(\d+):(\d{1,2})$/); if(m)return (+m[1])*60+(+m[2]); const n=parseFloat(v); if(!isFinite(n))return 0; return /m/i.test(v)||(!/s/i.test(v)&&n<=10)?n*60:n; }   // "2" or "2m" is minutes, "90" or "90s" is seconds
 function limitSecs(){ return parseLen(state.job&&state.job.limit); }
@@ -2409,7 +2438,7 @@ async function openStage(){
    $('stageVid').srcObject=await navigator.mediaDevices.getUserMedia({video:videoConstraint(),audio:audioConstraint()});
   }
  }catch(e){ alert('Camera unavailable: '+e.message); return exitStage(); }
- drawStage(); liveFlag(true);
+ drawStage(); liveFlag(true); try{ showNext(); }catch(e){}
  try{ refreshInputs(); }catch(e){}
  try{ const r=$('stageRemote'); if(r&&r.style)r.style.display=REMOTE_ON?'':'none'; }catch(e){}
  /* PARTNER is a timing instrument. Without listening you have to reach up and tap
@@ -2767,6 +2796,7 @@ function cancelCountdown(){
 }
 function beginRecording(st,btn){
  sChunks=[];
+ try{ const n=$('sNext'); if(n&&n.classList) n.classList.remove('on'); }catch(e){}
  if(!ROLL){ sRecorder=null; }
  else {
   try{ sRecorder=new MediaRecorder(st,{mimeType:(window.pickRecorderMime?pickRecorderMime():undefined)}); }
@@ -2822,6 +2852,7 @@ function showTakeReview(t, blob){
  w.innerHTML=`<div class="rv">
    <video src="${t.url}" controls playsinline autoplay></video>
    <input class="whyin" placeholder="Why keep it, or why not? Only you see this." oninput="setWhy('${t.id}',this.value)">
+   <input class="whyin nextin" placeholder="Next time: what will you change? Shows before your next take." oninput="setNext('${t.id}',this.value)">
    <div class="rvbar">
      <div><b>Take ${t.n}</b><small>${t.secs}s &middot; ${(t.bytes/1048576).toFixed(1)} MB${(window.ActorCompress&&!ActorCompress.kind(t.type).h264)?' &middot; WebM':''} &middot; <span style="color:#E0A23C">not saved to this ${DEVICE} yet</span></small></div>
      <div class="rvbtns">
@@ -2834,7 +2865,7 @@ function showTakeReview(t, blob){
  w.addEventListener('click',e=>{ if(e.target===w) reviewAgain(); });
  document.body.appendChild(w);
 }
-function closeReview(){ const w=$('takeReview'); if(w&&w.remove) w.remove(); }
+function closeReview(){ const w=$('takeReview'); if(w&&w.remove) w.remove(); try{ showNext(); }catch(e){} }
 function reviewAgain(){ closeReview();
  if(MODE==='PARTNER'||MODE==='PROMPTER'){ SIDES.run=activeScript(); sIdx=0; drawStage(); return; }
  if(MODE&&MODE!=='READER'){ SIDES.run=activeScript(); sIdx=SIDES.run.findIndex(b=>b.mine); if(sIdx<0)sIdx=0; drawStage(); } }
@@ -2901,6 +2932,7 @@ document.addEventListener('keydown',e=>{
     <button class="sBtn" onclick="stageFlip()">FLIP</button>
   </div>
   <div class="sCoach" id="sCoach"></div>
+  <div class="sNext" id="sNext"></div>
   <div class="sBottom">
     <div id="sText"></div>
     <div class="sNav" id="sNav"></div>

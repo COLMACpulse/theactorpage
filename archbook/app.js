@@ -339,7 +339,8 @@
         ${untagged ? `<button class="chip ${lane === 'untagged' ? 'on' : ''}" data-a="lane" data-v="untagged">Untagged ${untagged}</button>` : ''}
         ${keys.map(k => `<button class="chip ${lane === k ? 'on' : ''}" data-a="lane" data-v="${esc(k)}">${esc(tagLabel(k))} ${count(k)}</button>`).join('')}
       </div>` + list.map(m => momentCard(m, { showClip: true })).join('') : `<p class="dim">Nothing marked yet. Open a clip in CLIPS and mark a moment.</p>`}
-      ${L.wants.length ? `<div class="card" style="margin-top:16px"><div class="kicker">Shoot list</div>${L.wants.map(w => `<div class="row" style="justify-content:space-between"><span>${esc(w.text)}</span><button class="iconbtn" data-a="unwant" data-k="${esc(w.key)}" aria-label="Remove">${ICON.close}</button></div>`).join('')}</div>` : ''}`;
+      ${L.wants.length ? `<div class="card" style="margin-top:16px"><div class="kicker">Shoot list</div>${L.wants.map(w => `<div class="row" style="justify-content:space-between;flex-wrap:nowrap"><span style="flex:1;min-width:0">${esc(w.text)}</span><button class="btn ghost" data-a="scene" data-k="${esc(w.key)}" style="min-height:40px">Give me a scene</button><button class="iconbtn" data-a="unwant" data-k="${esc(w.key)}" aria-label="Remove">${ICON.close}</button></div>`).join('')}
+        <p class="faint" style="font-size:13px;margin:10px 0 0">No footage of it yet? Get a scene you can write tonight and tape tomorrow.</p></div>` : ''}`;
   }
 
   // ---------------------------------------------------------------- MATCH (breakdown)
@@ -631,6 +632,26 @@
     sh.innerHTML = `<div class="grab"></div><button class="iconbtn x" data-a="closesheet" aria-label="Close">${ICON.close}</button>` + html;
     requestAnimationFrame(() => { scrim.classList.add('on'); sh.classList.add('on'); });
   }
+  /* A scene to shoot for something on the shoot list. Premise only: who, where, what you want,
+     what's in the way. The writing is yours. */
+  function sceneSheet(key, i) {
+    const w = S.lib.wants.find(x => x.key === key); if (!w || !window.ArchScenes) return;
+    const r = window.ArchScenes.suggest(w.text, 99), list = r.list, p = list[i % list.length];
+    openSheet(`<div class="kicker">A scene for: ${esc(w.text)}</div>
+      ${r.matched ? '' : `<p class="faint" style="font-size:13px;margin:4px 0 10px">Nothing in the library matched those words, so here are scenes to start from.</p>`}
+      <h2 style="font-size:22px;letter-spacing:.04em;margin:6px 0 2px">${esc(p.title)}</h2>
+      <div class="mono faint" style="font-size:13px">${esc(p.where)}</div>
+      <div class="card" style="margin-top:12px">
+        <p style="margin:0 0 8px"><b>You:</b> ${esc(p.you.toLowerCase())}. <b>Across from you:</b> ${esc(p.them.toLowerCase())}.</p>
+        <p style="margin:0 0 8px">${esc(p.situation)}</p>
+        <p style="margin:0 0 4px"><b>You want:</b> ${esc(p.want)}</p>
+        <p style="margin:0"><b>In the way:</b> ${esc(p.way)}</p>
+      </div>
+      <p class="faint" style="font-size:13px">Two people, one room, one phone. Write a page or two; tape it in Actor OS with the other part in your own voice.</p>
+      <div class="row" style="margin-top:10px"><button class="btn pri" data-a="scenewrite" data-k="${esc(key)}" data-id="${esc(p.id)}">Write it</button>
+        <button class="btn" data-a="scenenext" data-k="${esc(key)}" data-i="${i}">Another</button>
+        <span class="faint" style="font-size:13px">${(i % list.length) < r.hits ? 'Match ' + ((i % list.length) + 1) + ' of ' + r.hits : 'From the rest of the library'}</span></div>`);
+  }
   function closeSheet(instant) {
     const scrim = $('.scrim'), sh = $('.sheet'); if (!sh) return;
     scrim.classList.remove('on'); sh.classList.remove('on');
@@ -696,6 +717,17 @@
         break;
       }
       case 'lane': S.lane = ds.v; render(); break;
+      case 'scene': sceneSheet(ds.k, 0); break;
+      case 'scenenext': sceneSheet(ds.k, (+ds.i || 0) + 1); break;
+      case 'scenewrite': {
+        const w = L.wants.find(x => x.key === ds.k), r = window.ArchScenes.suggest(w ? w.text : '', 99), p = r.list.find(x => x.id === ds.id);
+        if (!p) break;
+        try { localStorage.setItem('theactorpage_handoff_premise', JSON.stringify({ from: 'archbook', title: p.title, fountain: window.ArchScenes.fountain(p, w ? w.text : ''), at: Date.now() })); }
+        catch (e) { toast('Could not hand it over: ' + e.message); break; }
+        if (/^https?:$/.test(location.protocol)) location.href = '../write/writers-blockage.html';
+        else toast('Opened from a file, so Writer\'s Blockage is not next door. Open it on theactorpage.com.');
+        break;
+      }
       case 'unwant': L.wants = L.wants.filter(w => w.key !== ds.k); touch(); render(); break;
       // match
       case 'domatch': { const t = $('#bdtext'); L.lastBreakdown = t ? t.value : L.lastBreakdown; touch(true); runMatch(); render(); break; }

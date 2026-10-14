@@ -56,3 +56,6 @@ Videos never leave the device. Copies are kept in the app's own storage (toggle 
 
 ## Delivery
 Drop `archbook/` into the theactorpage repo next to `breakdown/` (e.g. `/act/archbook/`), commit, open on the phone, Add to Home Screen.
+
+## 0.3.3 (2026-10-14): a scene to shoot
+Every item on the shoot list has **Give me a scene**: a premise you can write in an evening and tape in a room. Who you are, who is across from you, the situation, what you want, what is in the way. 36 premises, every role open to any actor, matched to the words on the shoot list (best matches first, then the rest of the library). **Write it** opens Writer's Blockage on the same site with the premise as notes at the top, the place and the first image. No dialogue is written for you.

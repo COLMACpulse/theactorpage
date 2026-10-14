@@ -1,14 +1,14 @@
 {
  "asset": "#9 ARCHBOOK (formerly REEL MAKER)",
- "version": "0.3.2",
+ "version": "0.3.3",
  "files": {
   "README.md": {
-   "bytes": 5629,
-   "sha256": "dd625fdb58b1748da87e45820d1c8b5bda2f9051d26e4db32f18c4ca34b92386"
+   "bytes": 6158,
+   "sha256": "8e7f2c3eeae8ca4f3d0b849dfe2fd2ec6684c27139da81d0adb1776bfae3bc02"
   },
   "app.js": {
-   "bytes": 66121,
-   "sha256": "024c1dba9847ab1af677639a9748b92b0971a0b4dc404c5c8409ea634c1102b6"
+   "bytes": 68994,
+   "sha256": "3cc7db7abcddbc1c75c0c6e378297141044c01540d7caee9831af985337bfab2"
   },
   "engine.js": {
    "bytes": 15118,
@@ -63,16 +63,20 @@
    "sha256": "eacf3f3b08181796f9d754ae0f7c061cdd910f311d2ef0e7c9bfafb92328575b"
   },
   "index.html": {
-   "bytes": 13330,
-   "sha256": "90eee9bbb59ef078b4725b57f60863e67fd58c6f9efd8f17985e8603f62de5eb"
+   "bytes": 13364,
+   "sha256": "165d229145e44485b8a0715ad9b7d6e343f383f81523ac9cbdbca0a8876cb776"
   },
   "manifest.webmanifest": {
    "bytes": 681,
    "sha256": "f8845afc3b9ab4b99ec7bff44b8c5898efd3f9e0768409a6d9fe67e141f6d20a"
   },
+  "scenes.js": {
+   "bytes": 21105,
+   "sha256": "68bac8d2974b25be6e6ce1ac6474b381831b503f23793c55fa99d34e90cea121"
+  },
   "sw.js": {
-   "bytes": 1127,
-   "sha256": "2fe5a7fc6c9278bf1f83cf163d992ee75ea0c4fd7dc9b61f09886e041dd42bef"
+   "bytes": 1140,
+   "sha256": "1c5f6a71c0680444d12db77ccada55f20961a3530a782583b8300240e403e7ca"
   },
   "tests/probe.html": {
    "bytes": 5587,

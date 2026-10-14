@@ -257,6 +257,7 @@ table.rep td.num{text-align:right;font-variant-numeric:tabular-nums;color:#dfe6e
       <button id="xRtf">Rich text (.rtf) &mdash; opens in Word</button>
       <button id="xTxt">Plain text (.txt)</button>
       <button id="xWbs">Working file (.wbs)</button>
+      <button id="xActor">Actor OS &mdash; tape this scene (opens it as your sides)</button>
     </div>
   </div>
   <footer><button data-close>Close</button></footer>
@@ -2796,6 +2797,57 @@ async function switchTo(id){
     toast("Now in " + (doc.title || "Untitled") + ".");
   }catch(e){ toast("That script could not be read."); }
 }
+/* ============================================================
+   THEACTORPAGE HAND-OFFS
+   Same site, so a script can go straight to Actor OS as sides,
+   and a premise from the ARCHBOOK shoot list can start a script.
+   ============================================================ */
+function sidesText(){
+  const out = [];
+  const clean = t => plainOf(String(t || "")).replace(/\[\[[\s\S]*?\]\]/g, "").replace(/\s+/g, " ").trim();
+  doc.blocks.forEach(b => {
+    const t = clean(b.text);
+    if(!t) return;
+    switch(b.type){
+      case "Scene Heading": out.push("", t.toUpperCase(), ""); break;
+      case "Action":        out.push("", t, ""); break;
+      case "Character":     out.push("", t.toUpperCase().replace(/\s*\^$/, "")); break;
+      case "Parenthetical": out.push(t.startsWith("(") ? t : "(" + t + ")"); break;
+      case "Dialogue":      out.push(t); break;
+      case "Transition":    out.push("", t.toUpperCase(), ""); break;
+      default: break;                                   // sections, synopses, page breaks
+    }
+  });
+  return out.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n";
+}
+function sendToActorOS(){
+  syncFromDom(); autosave();
+  const text = sidesText();
+  if(!/\S/.test(text)){ toast("Nothing to send yet."); return; }
+  if(!/^https?:$/.test(location.protocol)){
+    download(slugName() + ".fountain", toFountain(), "text/plain");
+    toast("Opened from a file, so Actor OS is not next door. Saved a Fountain file; load it in Actor OS.");
+    return;
+  }
+  try{
+    localStorage.setItem("theactorpage_handoff_sides", JSON.stringify({
+      from:"writers-blockage", title:doc.title || "Untitled", file:slugName() + ".fountain", text, at:Date.now()}));
+  }catch(e){ toast("Could not hand it over: " + e.message); return; }
+  location.href = "../actor-os/";
+}
+function takePremise(){
+  let h = null;
+  try{ h = JSON.parse(store.get("theactorpage_handoff_premise") || "null"); }catch(e){}
+  if(!h || !h.fountain) return false;
+  store.drop("theactorpage_handoff_premise");
+  if(Date.now() - (h.at || 0) > 10*60*1000) return false;
+  const r = parseFountain(h.fountain);
+  newProject(h.title || "Untitled", {title:h.title || "Untitled", blocks:r.blocks});
+  markDirty(); render(); renderProjectName();
+  setTimeout(() => toast("New script from your shoot list. The premise is in the notes at the top; nothing else is written for you."), 500);
+  return true;
+}
+
 function newProject(title, data){
   if(currentId) autosave();
   currentId = newId();
@@ -3025,6 +3077,7 @@ $("btnFind").onclick = () => openFind();
 $("btnKeys").onclick = () => $("dlgKeys").showModal();
 $("xPdf").onclick = () => { $("dlgExport").close(); exportPdf(); };
 $("xFountain").onclick = () => { $("dlgExport").close(); exportFountain(); };
+$("xActor").onclick = () => { $("dlgExport").close(); sendToActorOS(); };
 $("xFdx").onclick = () => { $("dlgExport").close(); exportFdx(); };
 $("xRtf").onclick = () => { $("dlgExport").close(); syncFromDom();
   download(slugName()+".rtf", toRtf(), "application/rtf"); toast("Exported rich text."); };
@@ -3840,6 +3893,7 @@ setInterval(() => { if(ui.dirty) autosave(); }, 15000);
   render();
   renderProjectName();
   loadStoredPanels();
+  if(takePremise()) note = null;
   if(note) setTimeout(() => toast(note), 400);
   if(!storageReal) setTimeout(() => toast("This browser is not keeping anything between sessions. " +
     "Download the app and open it from your machine, and use Save as for a copy you keep."), 1200);
