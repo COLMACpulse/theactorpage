@@ -57,11 +57,15 @@ A.process=async function(blob,opts){
  /* Sound goes through Web Audio, not video.captureStream: Safari does not have
     captureStream on a video, so on an iPhone the old route made a silent file. */
  let ac=null;
+ let sound=null;
+ if(o.clean){ if(o.onProgress)o.onProgress(0,'Measuring the sound'); sound=await A.measure(blob); }
  try{
   const AC=window.AudioContext||window.webkitAudioContext;
   ac=new AC(); if(ac.state==='suspended') await ac.resume().catch(()=>{});
   const dest=ac.createMediaStreamDestination();
-  ac.createMediaElementSource(v).connect(dest);
+  const srcNode=ac.createMediaElementSource(v);
+  if(o.clean){ const lim=A.limiter(ac); lim.connect(dest); A.chain(ac,srcNode,sound,lim); }
+  else srcNode.connect(dest);
   dest.stream.getAudioTracks().forEach(t=>stream.addTrack(t));
  }catch(e){ ac=null; }
 
@@ -93,7 +97,8 @@ A.process=async function(blob,opts){
  try{ if(ac)ac.close(); }catch(e){}
  return {blob:out, width:outW, height:outH, seconds:Math.round(span*10)/10,
          from:blob.size, to:out.size,
-         saved:Math.round((1-out.size/Math.max(1,blob.size))*100)};
+         saved:Math.round((1-out.size/Math.max(1,blob.size))*100),
+         sound:o.clean?A.soundLine(sound):''};
 };
 /* ===== STITCH =====
    Some offices want every take as its own file; some want one file with the slate
@@ -128,6 +133,15 @@ A.stitch=async function(items,opts){
  const AC=window.AudioContext||window.webkitAudioContext;
  const ac=new AC(); const dest=ac.createMediaStreamDestination();
  dest.stream.getAudioTracks().forEach(t=>stream.addTrack(t));
+ // clean sound: every clip measured on its own and brought to the same level
+ let lim=null;
+ if(o.clean){
+  lim=A.limiter(ac); lim.connect(dest);
+  for(let i=0;i<items.length;i++){
+   if(o.onProgress)o.onProgress(0,'Measuring the sound '+(i+1)+' of '+items.length);
+   vids[i].sound=await A.measure(items[i].blob);
+  }
+ }
 
  const m=A.mime();
  const rec = m ? new MediaRecorder(stream,{mimeType:m,videoBitsPerSecond:Math.round(o.mbps*1000000),audioBitsPerSecond:128000})
@@ -141,7 +155,9 @@ A.stitch=async function(items,opts){
  for(let i=0;i<vids.length;i++){
   const v=vids[i].v;
   let node=null;
-  try{ node=ac.createMediaElementSource(v); node.connect(dest); }catch(e){}
+  let tail=null;
+  try{ node=ac.createMediaElementSource(v);
+       if(lim) tail=A.chain(ac,node,vids[i].sound,lim); else node.connect(dest); }catch(e){}
   v.currentTime=0;
   await new Promise(r=>{ const h=()=>{v.removeEventListener('seeked',h);r();}; v.addEventListener('seeked',h); });
   await v.play().catch(()=>{});
@@ -156,7 +172,7 @@ A.stitch=async function(items,opts){
   });
   try{ v.pause(); }catch(e){}
   elapsed+=isFinite(v.duration)?v.duration:0;
-  try{ if(node)node.disconnect(); }catch(e){}
+  try{ if(node)node.disconnect(); if(tail)tail.disconnect(); }catch(e){}
   // a beat of black between clips, never a dissolve
   if(o.gapMs && i<vids.length-1){
    const t0=performance.now();
@@ -174,8 +190,109 @@ A.stitch=async function(items,opts){
  const out=await done;
  vids.forEach(x=>{ try{URL.revokeObjectURL(x.v.src);}catch(e){} });
  try{ ac.close(); }catch(e){}
- return {blob:out,width:outW,height:outH,seconds:Math.round(total*10)/10,count:items.length};
+ return {blob:out,width:outW,height:outH,seconds:Math.round(total*10)/10,count:items.length,
+         sound:lim?vids.map(x=>({name:x.name,line:A.soundLine(x.sound)})):null};
 };
+/* ===== CLEAN SOUND =====
+   Two things, both plain:
+   1. Cut everything under 80 Hz. That band is air conditioning, traffic, the
+      fridge and mic handling. A voice has almost nothing down there.
+   2. Bring the whole take to one level. The take is measured first, then a single
+      fixed amount of gain is applied to all of it. The quiet moments stay quieter
+      than the loud ones, exactly as played. Nothing rides the volume up and down.
+      A limiter only touches the rare peak that would otherwise distort.
+
+   Measuring means decoding the take's sound, which needs the whole file in memory.
+   Past MEASURE_MAX, or if the phone can't decode it, the rumble cut still runs
+   and the level is left alone, and the result says so. */
+A.TARGET=-18;          // dB, average level of the voice, ignoring silence
+A.MEASURE_MAX=700*1048576;
+A.measure=async function(blob){
+ if(!blob||!blob.size) return null;
+ if(blob.size>A.MEASURE_MAX) return {skipped:'too big to measure here'};
+ let ac=null;
+ try{
+  const ab=await blob.arrayBuffer();
+  const AC=window.AudioContext||window.webkitAudioContext;
+  ac=new AC();
+  const buf=await new Promise((res,rej)=>{ const p=ac.decodeAudioData(ab,res,rej); if(p&&p.then)p.then(res,rej); });
+  const OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+  const off=new OAC(1,buf.length,buf.sampleRate);
+  const s=off.createBufferSource(); s.buffer=buf;
+  const hp=A.rumbleCut(off);
+  s.connect(hp.in); hp.out.connect(off.destination); s.start(0);
+  const r=await new Promise((res,rej)=>{ off.oncomplete=e=>res(e.renderedBuffer); const p=off.startRendering(); if(p&&p.then)p.then(res,rej); });
+  return A.levelOf(r.getChannelData(0),r.sampleRate);
+ }catch(e){ return {skipped:"this phone couldn't read the sound to measure it"}; }
+ finally{ try{ if(ac)ac.close(); }catch(e){} }
+};
+/* Average level of the voice: 400 ms blocks, silence ignored (anything under
+   -60 dB, then anything 10 dB under the average of what's left). Pure, so it
+   runs in Node for the tests. */
+A.levelOf=function(d,rate){
+ const n=Math.max(1,Math.round(rate*0.4)), ms=[]; let peak=0;
+ for(let i=0;i<d.length;i+=n){
+  let sum=0; const e=Math.min(d.length,i+n);
+  for(let j=i;j<e;j++){ const x=d[j]; sum+=x*x; const a=x<0?-x:x; if(a>peak)peak=a; }
+  ms.push(sum/Math.max(1,e-i));
+ }
+ const db=x=>10*Math.log10(Math.max(x,1e-12));
+ let keep=ms.filter(x=>db(x)>-60);
+ if(!keep.length) return {level:null,peak:20*Math.log10(Math.max(peak,1e-6)),silent:true,gain:0};
+ const avg=keep.reduce((a,b)=>a+b,0)/keep.length;
+ const keep2=keep.filter(x=>db(x)>db(avg)-10);
+ const lvl=db(keep2.reduce((a,b)=>a+b,0)/keep2.length);
+ return {level:Math.round(lvl*10)/10, peak:Math.round(20*Math.log10(Math.max(peak,1e-6))*10)/10, gain:A.gainFor(lvl)};
+};
+A.gainFor=function(level){
+ const g=A.TARGET-level;
+ if(Math.abs(g)<1) return 0;                 // already there: leave it alone
+ return Math.round(Math.max(-12,Math.min(24,g))*10)/10;
+};
+/* Two filters in a row: steep below 80 Hz, untouched above about 100 Hz. */
+A.rumbleCut=function(ac){
+ const a=ac.createBiquadFilter(), b=ac.createBiquadFilter();
+ [a,b].forEach(f=>{ f.type='highpass'; f.frequency.value=80; f.Q.value=0.707; });
+ a.connect(b); return {in:a,out:b};
+};
+A.limiter=function(ac){
+ const c=ac.createDynamicsCompressor();
+ c.threshold.value=-2; c.knee.value=0; c.ratio.value=20; c.attack.value=0.002; c.release.value=0.15;
+ return c;
+};
+/* source -> rumble cut -> fixed gain -> into (limiter). Returns the last node. */
+A.chain=function(ac,src,sound,into){
+ const hp=A.rumbleCut(ac);
+ const g=ac.createGain(); g.gain.value=Math.pow(10,((sound&&sound.gain)||0)/20);
+ src.connect(hp.in); hp.out.connect(g); g.connect(into);
+ return g;
+};
+A.soundLine=function(sound){
+ if(!sound) return 'Rumble cut. Level left as it was.';
+ if(sound.skipped) return 'Rumble cut. Level left as it was ('+sound.skipped+').';
+ if(sound.silent) return 'Rumble cut. No voice found to level.';
+ if(!sound.gain) return 'Rumble cut. Level was already right.';
+ return 'Rumble cut. '+(sound.gain>0?'Brought up ':'Brought down ')+Math.round(Math.abs(sound.gain))+' dB.';
+};
+
+/* ===== FIT UNDER A SIZE =====
+   Works back from a size limit to a bitrate. The browser's encoder lands near
+   the bitrate it's asked for, not on it, so this aims 15% under the limit and the
+   result always reports the real size against the limit. */
+A.AUDIO_MBPS=0.128;
+A.MIN_MBPS=0.4;
+A.fit=function(seconds,capMB){
+ const s=Math.max(1,seconds), cap=Number(capMB);
+ if(!(cap>0)) return {ok:false,reason:'Type a size in MB.'};
+ const mbps=(cap*1048576*8/1e6)/s*0.85 - A.AUDIO_MBPS;
+ if(mbps<A.MIN_MBPS){
+  const need=Math.ceil((A.MIN_MBPS+A.AUDIO_MBPS)*s*1e6/8/1048576/0.85);
+  return {ok:false,reason:'Too long to fit under '+cap+' MB and still look like a tape. It needs about '+need+' MB.'};
+ }
+ const m=Math.min(8,Math.round(mbps*100)/100);
+ return {ok:true,mbps:m,h:m>=3?1080:(m>=1.2?720:480)};
+};
+
 /* What the file really is, so the name and the warning tell the truth. */
 A.kind=function(type){
  const t=String(type||'').toLowerCase();

@@ -236,6 +236,12 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
 .limitrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:11px}.limitrow label{margin:0}.limitrow input{flex:1;min-width:140px}
 .cmpgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.cmpgrid video{width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:#000;border-radius:9px;margin-top:6px;display:block}
 .cmpgrid small{display:block;color:var(--faint);font-size:11px;margin-top:4px}
+.cleanbox{font:14px var(--sans);display:flex;gap:11px;align-items:flex-start;margin:14px 0 4px;padding:12px 13px;border:1px solid var(--line);border-radius:10px;background:var(--p2);cursor:pointer;text-transform:none;letter-spacing:0}
+.cleanbox input{width:22px;height:22px;margin:1px 0 0;flex:none;accent-color:var(--gold)}
+.cleanbox b{display:block;color:var(--ink);font-size:14px}.cleanbox small{display:block;color:var(--mut);font-size:12px;margin-top:3px;line-height:1.4;font-weight:400}
+.fitmode{cursor:default}.fitmode input{margin:0}
+.soundline{color:var(--mut);font-size:12.5px;margin-top:8px;line-height:1.5}
+.capline{font-size:13px;margin-top:8px}.capline.ok{color:#5cae7e}.capline.over{color:#d9694e}
 @media(max-width:560px){.cmpgrid{grid-template-columns:1fr}}
 .stoast{bottom:auto!important;top:calc(84px + env(safe-area-inset-top))!important}
 .fmtwarn{margin-top:9px;border-color:#E0A23C!important}
@@ -1333,14 +1339,34 @@ function renderCutWork(){
    <button class="mini ghost" onclick="cutMark('in')">SET FRONT AT PLAYHEAD</button>
    <button class="mini ghost" onclick="cutMark('out')">SET END AT PLAYHEAD</button>
  </div>`;
+ h+=cleanToggleHtml();
  h+=`<label style="margin-top:13px">Size</label><div class="modes" style="gap:8px;margin:0">`;
  ActorCompress.PRESETS.forEach(pr=>{
   const est=ActorCompress.estimate(Math.max(1,(t.secs||10)-CUTIN-CUTOUT),pr.mbps);
   h+=`<button class="mode" onclick="cutRun('${pr.id}')" style="padding:13px 14px">
     <b>${pr.label}</b><span>${pr.note}<br><span style="color:var(--gold)">about ${(est/1048576).toFixed(0)} MB</span></span></button>`;
  });
+ h+=`<div class="mode fitmode" style="padding:13px 14px">
+    <b>Fit under a size</b><span>For an email to your rep, or a site with a limit. Gmail takes 25 MB.</span>
+    <div class="row" style="gap:8px;margin-top:9px;align-items:center">
+     <input id="cutFit" type="number" min="1" step="1" inputmode="numeric" placeholder="25" value="${esc2(fitCap())}" style="width:90px" oninput="setFitCap(this.value)"> <span>MB</span>
+     <button class="mini" onclick="cutRun('FIT')">FIT IT</button></div></div>`;
  h+=`</div><div id="cutOutBox" style="margin-top:11px"></div>`;
  el.innerHTML=h;
+}
+/* Clean sound + fit under a size (5.23). Both remembered on this device. */
+function cleanOn(){ try{ return localStorage.getItem('actor_os_clean')!=='0'; }catch(e){ return true; } }
+function setClean(on){ try{ localStorage.setItem('actor_os_clean',on?'1':'0'); }catch(e){} document.querySelectorAll('.cleanbox input').forEach(i=>i.checked=on); }
+function cleanToggleHtml(){
+ return `<label class="cleanbox"><input type="checkbox" ${cleanOn()?'checked':''} onchange="setClean(this.checked)">
+  <span><b>Clean up the sound</b><small>Cuts the low rumble (air conditioning, traffic) and brings the take to a normal level. One fixed amount for the whole take, so your quiet moments stay quiet.</small></span></label>`;
+}
+function fitCap(){ try{ return localStorage.getItem('actor_os_fitmb')||''; }catch(e){ return ''; } }
+function setFitCap(v){ try{ localStorage.setItem('actor_os_fitmb',String(v||'').trim()); }catch(e){} }
+function capLine(bytes,cap){
+ if(!cap) return '';
+ const mb=bytes/1048576, ok=mb<=cap;
+ return `<div class="capline ${ok?'ok':'over'}">${ok?'Came out '+mb.toFixed(1)+' MB, under your '+cap+' MB.':'Came out '+mb.toFixed(1)+' MB, over your '+cap+' MB. Try '+Math.max(1,Math.floor(cap*cap/mb*0.95))+'.'}</div>`;
 }
 function cutPick(id){ CUTSEL=id; CUTIN=0; CUTOUT=0; renderCutWork(); }
 function cutMark(which){
@@ -1352,13 +1378,19 @@ function cutMark(which){
 async function cutRun(presetId){
  const box=$('cutOutBox'); if(!box)return;
  const t=(state.takes||[]).find(x=>x.id===CUTSEL); if(!t)return;
- const pr=ActorCompress.PRESETS.find(p=>p.id===presetId);
+ let pr=ActorCompress.PRESETS.find(p=>p.id===presetId), cap=0;
+ if(presetId==='FIT'){
+  cap=parseFloat(fitCap());
+  const f=ActorCompress.fit(Math.max(1,(t.secs||10)-CUTIN-CUTOUT),cap);
+  if(!f.ok){ box.innerHTML='<div class="am" style="border-color:#d9694e;margin:0">'+esc2(f.reason)+'</div>'; return; }
+  pr={h:f.h,mbps:f.mbps};
+ }
  box.innerHTML='<div class="am" style="margin:0">Encoding&hellip; this runs in real time, so it takes about as long as the take.</div>';
  try{
   const src=await ActorReader.getTake(t.id);
   if(!src) throw new Error('that take is no longer in storage');
-  const r=await ActorCompress.process(src,{h:pr.h,mbps:pr.mbps,trimStart:CUTIN,trimEnd:CUTOUT,
-    onProgress:u=>{ box.innerHTML='<div class="am" style="margin:0">Encoding&hellip; '+Math.round(u*100)+'%</div>'; }});
+  const r=await ActorCompress.process(src,{h:pr.h,mbps:pr.mbps,trimStart:CUTIN,trimEnd:CUTOUT,clean:cleanOn(),
+    onProgress:(u,msg)=>{ box.innerHTML='<div class="am" style="margin:0">'+(msg?esc2(msg)+'&hellip;':'Encoding&hellip; '+Math.round(u*100)+'%')+'</div>'; }});
   window.__cutOut={r:r,take:t};
   const url=URL.createObjectURL(r.blob);
   box.innerHTML=`<video src="${url}" controls playsinline style="width:100%;border-radius:10px;background:#000"></video>
@@ -1366,7 +1398,7 @@ async function cutRun(presetId){
      <b>${r.width}&times;${r.height} &middot; ${r.seconds}s</b>
      <small>${(r.from/1048576).toFixed(1)} MB &rarr; <span style="color:#5cae7e">${(r.to/1048576).toFixed(1)} MB</span>
      ${r.saved>0?'&middot; '+r.saved+'% smaller':''}</small></div>
-     <span class="pill">${r.to<500*1048576?'UNDER 500 MB':'STILL LARGE'}</span></div>${fmtWarn(r.blob.type)}
+     <span class="pill">${r.to<500*1048576?'UNDER 500 MB':'STILL LARGE'}</span></div>${capLine(r.to,cap)}${r.sound?'<div class="soundline">Sound: '+esc2(r.sound)+'</div>':''}${fmtWarn(r.blob.type)}
    <div class="row" style="gap:8px;margin-top:9px;flex-wrap:wrap">
      <button onclick="cutSave()">&#8681; SAVE THIS TO ${DEVICE.toUpperCase()}</button>
      <button class="ghost" onclick="renderCutWork()">START OVER</button></div>`;
@@ -1747,6 +1779,9 @@ function renderSend(){
     <small>${files.map((t,i)=>isSlate(t)?'Slate':((t.scene&&t.scene!=='Scene 1')?t.scene+' ':'')+'Take '+(i+1)).join('  \u2192  ')}</small></div>
     <span class="pill">${mins?mins+'m ':''}${secs%60}s</span></div>`;
   h+=`<div class="am" style="margin:0 0 11px">Joining re-encodes in real time, so this takes about as long as the footage runs. Hard cuts between clips &mdash; never a cross-fade.</div>`;
+  h+=cleanToggleHtml();
+  h+=`<div class="row" style="gap:8px;align-items:center;margin:4px 0 11px;flex-wrap:wrap"><span style="color:var(--mut)">Keep it under</span>
+    <input id="joinFit" type="number" min="1" step="1" inputmode="numeric" placeholder="no limit" value="${esc2(fitCap())}" style="width:100px" oninput="setFitCap(this.value)"> <span style="color:var(--mut)">MB</span></div>`;
   h+=`<div class="row" style="gap:8px;flex-wrap:wrap"><button onclick="buildJoined()">&#9654; BUILD THE FILE</button></div>`;
   h+=`<div id="joinOut" style="margin-top:11px"></div>`;
   el.innerHTML=h;
@@ -1775,15 +1810,22 @@ async function buildJoined(){
    if(!b) throw new Error((isSlate(t)?'Slate':'Take '+t.n)+' is no longer in storage');
    items.push({blob:b,name:isSlate(t)?'Slate':'Take '+(items.length+1)});
   }
-  const r=await ActorCompress.stitch(items,{h:1080,mbps:8,gapMs:400,
-    onProgress:(u,nm)=>{ out.innerHTML='<div class="am" style="margin:0">Joining&hellip; '+Math.round(u*100)+'%'+(nm?' &middot; '+esc2(nm):'')+'</div>'; }});
+  let h=1080, mbps=8; const cap=parseFloat(fitCap())||0;
+  if(cap){
+   const secs=files.reduce((n,t)=>n+(t.secs||0),0)+0.4*Math.max(0,files.length-1);
+   const f=ActorCompress.fit(secs,cap);
+   if(!f.ok) throw new Error(f.reason);
+   h=f.h; mbps=f.mbps;
+  }
+  const r=await ActorCompress.stitch(items,{h:h,mbps:mbps,gapMs:400,clean:cleanOn(),
+    onProgress:(u,nm)=>{ if(nm&&/^Measuring/.test(nm)){ out.innerHTML='<div class="am" style="margin:0">'+esc2(nm)+'&hellip;</div>'; return; } out.innerHTML='<div class="am" style="margin:0">Joining&hellip; '+Math.round(u*100)+'%'+(nm?' &middot; '+esc2(nm):'')+'</div>'; }});
   window.__joined=r;
   try{ const n=$('sendNote'); if(n&&n.value!==undefined) n.value=n.value.replace(/^  .*_Selftape\.(mp4|webm)$/m,'  '+joinedName()); }catch(e){}
   const url=URL.createObjectURL(r.blob);
   out.innerHTML=`<video src="${url}" controls playsinline style="width:100%;border-radius:10px;background:#000"></video>
    <div class="take" style="margin-top:9px"><div><b>${esc2(joinedName())}</b>
      <small>${r.width}&times;${r.height} &middot; ${r.seconds}s &middot; ${(r.blob.size/1048576).toFixed(1)} MB</small></div>
-     <span class="pill" style="${r.blob.size<500*1048576?'color:#5cae7e;border-color:#5cae7e':''}">${r.blob.size<500*1048576?'UNDER 500 MB':'LARGE'}</span></div>${fmtWarn(r.blob.type)}
+     <span class="pill" style="${r.blob.size<500*1048576?'color:#5cae7e;border-color:#5cae7e':''}">${r.blob.size<500*1048576?'UNDER 500 MB':'LARGE'}</span></div>${capLine(r.blob.size,cap)}${r.sound?'<div class="soundline">'+r.sound.map(x=>'<div>'+esc2(x.name)+': '+esc2(x.line)+'</div>').join('')+'</div>':''}${fmtWarn(r.blob.type)}
    <div class="row" style="gap:8px;margin-top:9px;flex-wrap:wrap">
      <button onclick="saveJoined()">&#8681; SAVE TO MY PHONE</button>
      <button class="ghost" onclick="buildJoined()">REBUILD</button></div>`;

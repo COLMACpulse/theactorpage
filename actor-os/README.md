@@ -130,6 +130,13 @@ This is the part that matters.
 
 ---
 
+## New in 5.23 (2026-10-14): clean sound, fit under a size
+Mined from TAPEFLOW. CUT and SEND only.
+- **Clean up the sound.** On by default, one switch, remembered. It cuts everything under 80 Hz (air conditioning, traffic, mic handling) and brings the take to a normal level. The take is measured first and one fixed amount of gain goes on the whole thing, so quiet moments stay quieter than loud ones, exactly as played. A limiter only touches a peak that would distort. When you join clips, each one is measured on its own, so the slate and every take land at the same level. The result says what it did: "Rumble cut. Brought up 19 dB."
+- **Fit under a size.** Type a limit (25 MB for an email to your rep) and CUT or SEND works out the quality, dropping to 720p or 480p if it has to. The result shows the real size against your limit, and if it ever comes out over, it says by how much and what to try. If it can't fit and still look like a tape, it says how many MB it needs.
+
+Tested in Chrome with a quiet take (voice 21 dB under the loud one) and a loud take, both with heavy 40 Hz rumble: after cleaning, both voices land within 0.1 dB of each other, and the rumble drops by about 24 dB relative to the voice. A 20 s take fit under 3 MB came out 1.8 MB at 480p. Not yet checked on an iPhone, where measuring the sound depends on Safari reading the take's audio (if it can't, the rumble cut still runs and the result says the level was left alone). Takes over 700 MB are not measured.
+
 ## New in 5.22 (2026-10-14): every take tests a choice
 Mined from RIFF WORKBENCH, with the take as the test instead of a tick box.
 - On the review screen, "Next time, change the" objective, tactic, relationship, secret or circumstance, plus your one line. Optional.
