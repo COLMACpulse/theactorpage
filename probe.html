@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CPS Device Probe</title>
+<style>
+:root{--bg:#121110;--ink:#ece7dc;--dim:#a39c8e;--good:#8fbf8a;--bad:#e0785f;--tung:#e0a23c}
+body{margin:0;padding:16px;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,sans-serif}
+h1{font-size:22px;letter-spacing:.08em;margin:0 0 4px}p{color:var(--dim);margin:0 0 16px}
+table{width:100%;border-collapse:collapse;font-size:15px}td{padding:10px 4px;border-bottom:1px solid #2f2b26;vertical-align:top}
+td.v{text-align:right;font-weight:600}.y{color:var(--good)}.n{color:var(--bad)}
+button{min-height:48px;padding:0 18px;border-radius:10px;border:0;background:var(--tung);color:#1a1206;font:600 16px system-ui;margin:12px 0}
+audio{width:100%}
+</style></head><body>
+<h1>CPS PROBE</h1>
+<p>Open this on your phone from the same site as CPS. Tap the button and say a sentence for 5 seconds. It checks the mic records raw, plays back, and can be measured.</p>
+<table id="t"></table>
+<button id="go">Record 5 seconds</button>
+<audio id="a" controls></audio>
+<script src="../engine.js"></script>
+<script>
+const T = document.getElementById('t');
+const row = (k, v, good) => { T.insertAdjacentHTML('beforeend', `<tr><td>${k}</td><td class="v ${good === undefined ? '' : good ? 'y' : 'n'}">${v}</td></tr>`); };
+row('Secure page (needed for the mic)', isSecureContext ? 'yes' : 'no', isSecureContext);
+row('Microphone API', navigator.mediaDevices && navigator.mediaDevices.getUserMedia ? 'yes' : 'no', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+row('Recorder', window.MediaRecorder ? 'yes' : 'no', !!window.MediaRecorder);
+const mimes = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm', 'audio/ogg;codecs=opus'].filter(m => window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m));
+row('Records as', mimes[0] || 'browser default', true);
+row('Plays voice memos (m4a/AAC)', document.createElement('audio').canPlayType('audio/mp4; codecs="mp4a.40.2"') || 'no', !!document.createElement('audio').canPlayType('audio/mp4; codecs="mp4a.40.2"'));
+(async () => { try { const p = navigator.storage && navigator.storage.persisted ? await navigator.storage.persisted() : null; row('Storage kept (not cleared by the browser)', p === null ? 'unknown' : p ? 'yes' : 'not yet (add to Home Screen helps)', p === null ? undefined : p); } catch (e) { } })();
+document.getElementById('go').onclick = async () => {
+  try {
+    const constraints = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
+    const s = await navigator.mediaDevices.getUserMedia({ audio: constraints });
+    const set = s.getAudioTracks()[0].getSettings();
+    row('Raw mic: auto gain off', set.autoGainControl === false ? 'yes' : set.autoGainControl === undefined ? 'not reported' : 'no', set.autoGainControl === undefined ? undefined : set.autoGainControl === false);
+    row('Raw mic: noise removal off', set.noiseSuppression === false ? 'yes' : set.noiseSuppression === undefined ? 'not reported' : 'no', set.noiseSuppression === undefined ? undefined : set.noiseSuppression === false);
+    const mr = new MediaRecorder(s, mimes[0] ? { mimeType: mimes[0] } : undefined), ch = [];
+    mr.ondataavailable = e => e.data.size && ch.push(e.data); mr.start(250);
+    await new Promise(r => setTimeout(r, 5000)); await new Promise(r => { mr.onstop = r; mr.stop(); }); s.getTracks().forEach(t => t.stop());
+    const b = new Blob(ch, { type: mr.mimeType }); document.getElementById('a').src = URL.createObjectURL(b);
+    row('Recorded', (b.size / 1024).toFixed(0) + ' KB, ' + (mr.mimeType || '?'), b.size > 1000);
+    const C = new (window.AudioContext || window.webkitAudioContext)(), ab = await b.arrayBuffer();
+    const buf = await new Promise((res, rej) => { const p = C.decodeAudioData(ab, res, rej); if (p && p.then) p.then(res, rej); });
+    const ch2 = []; for (let i = 0; i < buf.numberOfChannels; i++) ch2.push(buf.getChannelData(i));
+    const a = CPSEngine.analyse(ch2, buf.sampleRate);
+    row('Can be measured', a.pitchHz ? `pitch ${CPSEngine.noteName(a.pitchHz)} (${Math.round(a.pitchHz)} Hz), ${a.spanSec} s of talk` : 'no voice heard', !!a.pitchHz);
+  } catch (e) { row('Test failed', String(e.message || e), false); }
+};
+</script></body></html>

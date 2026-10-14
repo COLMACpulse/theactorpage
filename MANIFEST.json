@@ -1,0 +1,90 @@
+{
+ "asset": "CHARACTER PRESERVATION SYSTEM (CPS)",
+ "version": "0.2.0",
+ "files": {
+  "README.md": {
+   "bytes": 5334,
+   "sha256": "d467c96f4637c129ed63c9a6bebe19ea1daa1067915e1fc7f420df8c3d9ff2ac"
+  },
+  "app.js": {
+   "bytes": 37583,
+   "sha256": "29f87dcb8da45e355423e7b70cbab697457010fbcb538bc5465cc1893184cac3"
+  },
+  "engine.js": {
+   "bytes": 12141,
+   "sha256": "c6f015bb5db3f61530fd074907d693c2d070ccc6112eb478ac1052668cd8524c"
+  },
+  "fonts/LICENSE_CourierPrime_OFL.txt": {
+   "bytes": 4783,
+   "sha256": "195bfcfb42f32343efc8475e902c3c4936cda7a9c435c39634e03c1e85fa862b"
+  },
+  "fonts/LICENSE_Jost_OFL.txt": {
+   "bytes": 4497,
+   "sha256": "536533cad95838e13777663c4109b802aa662ef1ef285337f0c7f51d35682fdc"
+  },
+  "fonts/courier-prime-latin-400-italic.woff2": {
+   "bytes": 21556,
+   "sha256": "84f91615090e8b84f5adfb7e5826a8ad137c7a13e3687e4bfa85c275149df60f"
+  },
+  "fonts/courier-prime-latin-400-normal.woff2": {
+   "bytes": 18640,
+   "sha256": "f09844e1f4fe9e67df2cc77474519e68756d559b4648278b9dd4f03c8ac9c31f"
+  },
+  "fonts/courier-prime-latin-700-normal.woff2": {
+   "bytes": 19348,
+   "sha256": "5c7ae1cc9aae183453565c836b74a1b988f5f2e52b65098decb909b3930957ec"
+  },
+  "fonts/jost-latin-400-normal.woff2": {
+   "bytes": 9404,
+   "sha256": "f94cffda16515fbb1667a2662d6b46f5610a942fd02fe88d67ff98f776288962"
+  },
+  "fonts/jost-latin-500-normal.woff2": {
+   "bytes": 10476,
+   "sha256": "98dce4f076fe71a123a7cd44470e6f05e969cb6d7c9b2717766ad103e3597297"
+  },
+  "fonts/jost-latin-600-normal.woff2": {
+   "bytes": 10480,
+   "sha256": "d0487d684596edca7f495d2495ee77a55448740930023c305e8a683b1daefda2"
+  },
+  "icons/apple-touch-icon.png": {
+   "bytes": 8235,
+   "sha256": "0c4cd8d707cb4d808908a7b3466254a767efe5de15246142eba85b9b4726aabc"
+  },
+  "icons/icon-192.png": {
+   "bytes": 11062,
+   "sha256": "27cbf0b90ce1e6395b91b2003da734f128c969e9e6528956aaeffcac5bb944c1"
+  },
+  "icons/icon-512.png": {
+   "bytes": 29100,
+   "sha256": "540c08c012201e1d25536232b8e78a2facf6a0dc17364d53f98687dfd5b84b86"
+  },
+  "icons/icon-maskable-512.png": {
+   "bytes": 18063,
+   "sha256": "6933f514c720131fef5f45a13ebf1a330d8a7a46f890c77ef07ce54169252a22"
+  },
+  "index.html": {
+   "bytes": 16572,
+   "sha256": "01654825aa8b655263c9e38f88aaa6e4faec63fc1294c4223a0eddb21b85a8c6"
+  },
+  "manifest.webmanifest": {
+   "bytes": 623,
+   "sha256": "51b10d06df5318b61375cae59ede842331b65930baa4f3a09c176fdb8ec6918d"
+  },
+  "sw.js": {
+   "bytes": 1072,
+   "sha256": "d5e602856ba4dc9e674ed3ba6d03e5e7a5d50cf1933749d4d8a7df8efb13a342"
+  },
+  "tests/e2e.js": {
+   "bytes": 14978,
+   "sha256": "e6c074d32acca7e625678258cb142624d19b503b8399cf80424b85a3ba724cd6"
+  },
+  "tests/probe.html": {
+   "bytes": 4373,
+   "sha256": "bdc351966607a2fc1c825fb97453478a555f1ac75175513f56afd665b1ab41ff"
+  },
+  "tests/run_tests.js": {
+   "bytes": 5988,
+   "sha256": "47c027473a13f9afa3c8c0fd0b55c4a6f747815f7a9531d5c33fda62e44da9ac"
+  }
+ }
+}
