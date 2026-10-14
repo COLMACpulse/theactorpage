@@ -293,6 +293,105 @@ A.fit=function(seconds,capMB){
  return {ok:true,mbps:m,h:m>=3?1080:(m>=1.2?720:480)};
 };
 
+/* ===== BEFORE YOU SEND =====
+   Mined from ACTOR CUTROOM, which trusted the file name and called a silent track
+   "audio measured". Everything here is read from the file itself:
+   - the container and codecs from the file's own bytes (not its name)
+   - sound from the decoded audio level (a silent track is caught, not just a missing one)
+   - length, picture size and bytes from the file
+   It reports. It never says "ready". */
+async function bytesAt(blob,start,len){ try{ return new Uint8Array(await blob.slice(start,start+len).arrayBuffer()); }catch(e){ return new Uint8Array(0); } }
+function has(u8,str){ const n=str.length; outer: for(let i=0;i+n<=u8.length;i++){ for(let j=0;j<n;j++) if(u8[i+j]!==str.charCodeAt(j)) continue outer; return true; } return false; }
+A.sniff=async function(blob){
+ const head=await bytesAt(blob,0,262144);
+ const tail=blob.size>524288?await bytesAt(blob,blob.size-262144,262144):new Uint8Array(0);
+ const any=str=>has(head,str)||has(tail,str);
+ const out={container:'unknown',video:'',audio:''};
+ if(head[0]===0x1A&&head[1]===0x45&&head[2]===0xDF&&head[3]===0xA3){
+  out.container='WebM';
+  out.video=any('V_VP9')?'VP9':any('V_VP8')?'VP8':any('V_AV1')?'AV1':any('V_MPEG4/ISO/AVC')?'H.264':'';
+  out.audio=any('A_OPUS')?'Opus':any('A_VORBIS')?'Vorbis':any('A_AAC')?'AAC':'';
+ } else if(head.length>11&&String.fromCharCode(head[4],head[5],head[6],head[7])==='ftyp'){
+  const brand=String.fromCharCode(head[8],head[9],head[10],head[11]);
+  out.container=brand==='qt  '?'MOV':'MP4';
+  // moov can be at the end of the file (phones often put it there)
+  out.video=any('avc1')||any('avc3')?'H.264':(any('hvc1')||any('hev1'))?'HEVC':any('vp09')?'VP9':any('av01')?'AV1':'';
+  out.audio=any('mp4a')?'AAC':any('Opus')?'Opus':any('ac-3')?'AC-3':'';
+  // length and picture size straight from the boxes, for when this browser can't open the video
+  const box=(u8,name)=>{ const n=name.length; for(let i=4;i+n<=u8.length;i++){ let k=0; while(k<n&&u8[i+k]===name.charCodeAt(k))k++; if(k===n) return i; } return -1; };
+  const u32=(u8,i)=>((u8[i]<<24)>>>0)+(u8[i+1]<<16)+(u8[i+2]<<8)+u8[i+3];
+  for(const u8 of [head,tail]){
+   const mv=box(u8,'mvhd'); if(mv>0&&!out.secs){ const v=u8[mv+4], b=mv+8;
+    const ts=v===1?u32(u8,b+16):u32(u8,b+8), du=v===1?(u32(u8,b+20)*4294967296+u32(u8,b+24)):u32(u8,b+12);
+    if(ts>0&&du>0) out.secs=du/ts; }
+   let at=0; while(!out.w){ const i=box(u8.subarray(at),'tkhd'); if(i<0)break; const t=at+i, v=u8[t+4], b=t+8+(v===1?84:72);
+    const w=u32(u8,b)/65536, h=u32(u8,b+4)/65536; if(w>0&&h>0){ out.w=Math.round(w); out.h=Math.round(h); } at=t+4; }
+  }
+ }
+ return out;
+};
+function meta(blob){
+ return new Promise(res=>{
+  const v=document.createElement('video'); v.preload='metadata'; v.muted=true;
+  const url=URL.createObjectURL(blob); let done=false;
+  const fin=r=>{ if(done)return; done=true; try{URL.revokeObjectURL(url);}catch(e){} res(r); };
+  v.onloadedmetadata=()=>{
+   const out={w:v.videoWidth,h:v.videoHeight,secs:isFinite(v.duration)?v.duration:0};
+   if(out.secs) return fin(out);
+   // recordings from Chrome report no length until you seek to the end
+   v.ontimeupdate=()=>{ v.ontimeupdate=null; out.secs=isFinite(v.duration)?v.duration:0; fin(out); };
+   try{ v.currentTime=1e9; }catch(e){ fin(out); }
+   setTimeout(()=>fin(out),3000);
+  };
+  v.onerror=()=>fin({w:0,h:0,secs:0});
+  v.src=url; setTimeout(()=>fin({w:0,h:0,secs:0}),8000);
+ });
+}
+A.check=async function(blob,opts){
+ const o=opts||{};
+ const [fmt,m,snd]=await Promise.all([A.sniff(blob),meta(blob),A.measure(blob)]);
+ const secs=m.secs||fmt.secs||o.secs||0;
+ return {fmt:fmt,secs:secs,w:m.w||fmt.w||0,h:m.h||fmt.h||0,bytes:blob.size,sound:snd,limit:o.limit||0};
+};
+/* the list, in plain words. bad = something you'd want to fix before sending */
+A.checkLines=function(c){
+ const L=[], mm=s=>Math.floor(s/60)+':'+String(Math.round(s%60)).padStart(2,'0');
+ // sound
+ const sd=c.sound, f0=c.fmt||{};
+ if(f0.container!=='unknown'&&!f0.audio&&(!sd||sd.skipped)) L.push({ok:false,t:'No sound track in this file.'});
+ else if(!sd||sd.skipped) L.push({ok:null,t:"Sound: couldn't check it on this "+((sd&&/too big/.test(sd.skipped||''))?'file (too big to measure here)':'phone')+'. Play it through once before you send.'});
+ else if(sd.silent) L.push({ok:false,t:'No sound in this file. The track is there but it\'s silent.'});
+ else if(sd.level!=null&&sd.level<-42) L.push({ok:false,t:'Sound is very quiet ('+Math.round(sd.level)+' dB). Check it before you send.'});
+ else L.push({ok:true,t:'Sound: yes'+(sd.level!=null?' (voice around '+Math.round(sd.level)+' dB)':'')+'.'});
+ // format
+ const f=c.fmt||{};
+ if(f.container==='unknown') L.push({ok:null,t:"Format: couldn't read it from the file."});
+ else {
+  const desc=f.container+(f.video?', '+f.video:'')+(f.audio?' / '+f.audio:'');
+  if(f.container==='WebM') L.push({ok:false,t:desc+'. iPhones, Macs and some casting sites may not play WebM.'});
+  else if(f.video==='HEVC') L.push({ok:false,t:desc+'. HEVC (H.265) won\'t play on some computers. H.264 is the safe one.'});
+  else if(f.video&&f.video!=='H.264') L.push({ok:false,t:desc+'. Casting sites expect H.264.'});
+  else L.push({ok:true,t:desc+'.'});
+ }
+ // length
+ if(c.secs){
+  if(c.limit&&c.secs>c.limit+0.5) L.push({ok:false,t:'Length '+mm(c.secs)+', over your '+mm(c.limit)+' limit by '+Math.round(c.secs-c.limit)+' s.'});
+  else L.push({ok:true,t:'Length '+mm(c.secs)+(c.limit?', under your '+mm(c.limit)+' limit.':'.')});
+ } else L.push({ok:null,t:"Length: couldn't read it."});
+ // picture + size
+ if(c.w&&c.h) L.push({ok:c.h>=720||c.w>=720?true:null,t:'Picture '+c.w+'\u00d7'+c.h+(c.h<720&&c.w<720?'. Small for a self-tape.':'.')});
+ const mb=c.bytes/1048576;
+ L.push({ok:mb<500,t:mb.toFixed(1)+' MB'+(mb<500?', under 500 MB.':'. Over 500 MB: most sites will refuse it. Use CUT to make it smaller.')});
+ return L;
+};
+A.checkHtml=function(c,title){
+ const e=x=>String(x).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+ const L=A.checkLines(c), bad=L.filter(x=>x.ok===false).length;
+ return '<div class="sendcheck">'+(title?'<div class="sch">'+e(title)+'</div>':'')+
+  '<div class="schs">'+(bad?bad+' thing'+(bad===1?'':'s')+' to look at before you send.':'Nothing wrong found in the file.')+'</div>'+
+  L.map(x=>'<div class="sc '+(x.ok===false?'bad':x.ok?'ok':'unk')+'"><i></i>'+e(x.t)+'</div>').join('')+'</div>';
+};
+
 /* What the file really is, so the name and the warning tell the truth. */
 A.kind=function(type){
  const t=String(type||'').toLowerCase();

@@ -243,6 +243,12 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
 .soundline{color:var(--mut);font-size:12.5px;margin-top:8px;line-height:1.5}
 .capline{font-size:13px;margin-top:8px}
 .dailyhead{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.dailyhead b{font-size:17px;margin-right:4px}
+.sendcheck{margin-top:11px;padding:11px 12px;border:1px solid var(--line);border-radius:9px;background:var(--p2)}
+.sendcheck .sch{font:11px var(--mono);color:var(--ink);word-break:break-all;margin-bottom:4px}
+.sendcheck .schs{font-size:12.5px;color:var(--mut);margin-bottom:6px}
+.sendcheck .sc{display:flex;gap:9px;align-items:flex-start;font-size:13px;line-height:1.45;padding:3px 0}
+.sendcheck .sc i{flex:none;width:9px;height:9px;border-radius:50%;margin-top:5px;background:var(--faint)}
+.sendcheck .sc.ok i{background:#5cae7e}.sendcheck .sc.bad{color:#e8a08f}.sendcheck .sc.bad i{background:#d9694e}
 .voicebox{margin:4px 0 12px;padding:11px 12px;border:1px solid var(--line);border-radius:9px;background:var(--p2)}
 .voicebox .vh{font:9.5px var(--mono);letter-spacing:.14em;color:var(--faint);margin-bottom:6px}
 .voicebox .vrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:5px 0}
@@ -1454,7 +1460,8 @@ async function cutRun(presetId){
      <span class="pill">${r.to<500*1048576?'UNDER 500 MB':'STILL LARGE'}</span></div>${capLine(r.to,cap)}${r.sound?'<div class="soundline">Sound: '+esc2(r.sound)+'</div>':''}${fmtWarn(r.blob.type)}
    <div class="row" style="gap:8px;margin-top:9px;flex-wrap:wrap">
      <button onclick="cutSave()">&#8681; SAVE THIS TO ${DEVICE.toUpperCase()}</button>
-     <button class="ghost" onclick="renderCutWork()">START OVER</button></div>`;
+     <button class="ghost" onclick="renderCutWork()">START OVER</button></div><div id="cutCheck"><div class="sendcheck"><div class="schs">Checking the file&hellip;</div></div></div>`;
+  runCheck(r.blob,'cutCheck','Before you send',r.seconds);
  }catch(e){
   box.innerHTML='<div class="am" style="border-color:#d9694e;margin:0"><b>Could not encode.</b><br>'+esc2(e.message)+'</div>';
  }
@@ -1824,6 +1831,7 @@ function renderSend(){
   });
   h+='</div>';
   if(missing)h+=`<div class="row" style="margin-top:11px"><button onclick="saveAllTakes()">SAVE THE REST TO MY PHONE</button></div>`;
+  h+=`<div class="row" style="margin-top:11px"><button class="ghost" onclick="checkSendFiles()">CHECK THE FILES BEFORE YOU SEND</button></div><div id="sendFilesCheck"></div>`;
   el.innerHTML=h;
  } else {
   const secs=files.reduce((n,t)=>n+(t.secs||0),0);
@@ -1844,6 +1852,25 @@ function renderSend(){
   const who=actorName()||'', role=currentRole()||'';
   const names = sendMode()==='SEPARATE' ? files.map(t=>'  '+takeFilename(t)) : ['  '+joinedName()];
   note.value=[`${who}${role?' \u2014 '+role:''}`,'','Files attached:',...names,'','Thanks for the look.',who].join('\n');
+ }
+}
+/* ===== BEFORE YOU SEND (5.28) ===== read from the file itself; see compress.js */
+async function runCheck(blob,boxId,title,secs){
+ try{
+  const c=await ActorCompress.check(blob,{secs:secs,limit:limitSecs()||0});
+  const el=document.getElementById(boxId); if(el) el.innerHTML=ActorCompress.checkHtml(c,title);
+  return c;
+ }catch(e){ const el=document.getElementById(boxId); if(el) el.innerHTML='<div class="sendcheck"><div class="schs">Couldn\'t check this file: '+esc2(e.message)+'</div></div>'; }
+}
+async function checkSendFiles(){
+ const box=document.getElementById('sendFilesCheck'); if(!box)return;
+ const files=orderedForSend(); box.innerHTML='';
+ for(let i=0;i<files.length;i++){
+  const t=files[i], id='sfc_'+i;
+  box.insertAdjacentHTML('beforeend','<div id="'+id+'"><div class="sendcheck"><div class="sch">'+esc2(takeFilename(t))+'</div><div class="schs">Checking&hellip;</div></div></div>');
+  const b=await ActorReader.getTake(t.id);
+  if(!b){ document.getElementById(id).innerHTML='<div class="sendcheck"><div class="sch">'+esc2(takeFilename(t))+'</div><div class="sc bad"><i></i>Not in storage any more.</div></div>'; continue; }
+  await runCheck(b,id,takeFilename(t),t.secs);
  }
 }
 function joinedName(){
@@ -1881,7 +1908,8 @@ async function buildJoined(){
      <span class="pill" style="${r.blob.size<500*1048576?'color:#5cae7e;border-color:#5cae7e':''}">${r.blob.size<500*1048576?'UNDER 500 MB':'LARGE'}</span></div>${capLine(r.blob.size,cap)}${r.sound?'<div class="soundline">'+r.sound.map(x=>'<div>'+esc2(x.name)+': '+esc2(x.line)+'</div>').join('')+'</div>':''}${fmtWarn(r.blob.type)}
    <div class="row" style="gap:8px;margin-top:9px;flex-wrap:wrap">
      <button onclick="saveJoined()">&#8681; SAVE TO MY PHONE</button>
-     <button class="ghost" onclick="buildJoined()">REBUILD</button></div>`;
+     <button class="ghost" onclick="buildJoined()">REBUILD</button></div><div id="joinCheck"><div class="sendcheck"><div class="schs">Checking the file&hellip;</div></div></div>`;
+  runCheck(r.blob,'joinCheck','Before you send',r.seconds);
  }catch(e){
   out.innerHTML='<div class="am" style="border-color:#d9694e;margin:0"><b>Could not join.</b><br>'+esc2(e.message)+'</div>';
  }

@@ -130,6 +130,14 @@ This is the part that matters.
 
 ---
 
+## New in 5.28 (2026-10-14): before you send
+Mined from ACTOR CUTROOM, which read the format from the file name and called a silent track "audio measured". Here everything is read from the file itself. A plain list, no "ready": you decide.
+- **Sound:** measured from the decoded audio. Catches a silent track, a missing track, and very quiet sound. If this phone can't decode the sound, it says so instead of guessing.
+- **Format:** read from the file's own bytes: MP4 / MOV / WebM and H.264 / HEVC / VP9, AAC / Opus. A WebM renamed .mp4 is still WebM. HEVC (iPhone's default) is flagged because some computers won't play it.
+- **Length** against your office limit, **picture size**, and **size** against 500 MB. Length and picture size come from the MP4's own boxes when the browser can't open the video.
+- Shown under every CUT result and every joined file, and in SEND with CHECK THE FILES BEFORE YOU SEND for separate files.
+Tested on 8 real files (sound, silent track, no track, very quiet, WebM renamed .mp4, H.264 MP4 with the index at the start and at the end, HEVC MOV): 13/13.
+
 ## New in 5.27 (2026-10-14): how each voice sounds
 Mined from READER VOICE LIBRARY. You read every other part yourself; now each character can have its own sound so they don't all sound like you in one room.
 - In the reader booth: **How each voice sounds**, one pick per character: As recorded, Phone, Radio, Next room, Far, Close. A play button to hear it on your own take.
