@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Device Probe</title>
+<style>
+:root{--bg:#121110;--ink:#ece7dc;--dim:#a39c8e;--good:#8fbf8a;--bad:#e0785f;--tung:#e0a23c}
+body{margin:0;padding:16px;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,sans-serif}
+h1{font-size:22px;letter-spacing:.08em;margin:0 0 4px}p{color:var(--dim);margin:0 0 16px}
+table{width:100%;border-collapse:collapse;font-size:15px}td{padding:10px 4px;border-bottom:1px solid #2f2b26;vertical-align:top}
+td.v{text-align:right;font-weight:600;white-space:nowrap}.y{color:var(--good)}.n{color:var(--bad)}
+button{min-height:48px;padding:0 18px;border-radius:10px;border:0;background:var(--tung);color:#1a1206;font:600 16px system-ui;margin:12px 0}
+pre{white-space:pre-wrap;font-size:12px;color:var(--dim)}
+</style></head><body>
+<h1>DEVICE PROBE</h1>
+<p>Open this on the phone you'll use. It checks what the ACT tools need. Tap the button to run the 3-second recording test.</p>
+<table id="t"></table>
+<button id="go">Run recording test</button>
+<pre id="raw"></pre>
+<script>
+const rows = [];
+const add = (k, v, note) => rows.push([k, v, note || '']);
+const yes = v => v ? '<span class="y">yes</span>' : '<span class="n">no</span>';
+function draw() { document.getElementById('t').innerHTML = rows.map(r => `<tr><td>${r[0]}${r[2] ? '<br><small style="color:var(--dim)">' + r[2] + '</small>' : ''}</td><td class="v">${typeof r[1] === 'boolean' ? yes(r[1]) : r[1]}</td></tr>`).join(''); }
+add('Browser', navigator.userAgent.replace(/^Mozilla\/5\.0 /, '').slice(0, 60));
+add('Secure context (https)', isSecureContext);
+add('Installed to home screen', matchMedia('(display-mode: standalone)').matches || navigator.standalone === true, 'iOS keeps storage longer when installed');
+add('IndexedDB', 'indexedDB' in window);
+add('Service worker (offline)', 'serviceWorker' in navigator);
+add('Folder picker', 'showDirectoryPicker' in window, 'desktop Chrome only, expected no on phones');
+add('Wake lock', 'wakeLock' in navigator);
+add('Share files', !!(navigator.canShare && navigator.canShare({ files: [new File(['x'], 'x.txt', { type: 'text/plain' })] })));
+add('MediaRecorder', typeof MediaRecorder !== 'undefined');
+const types = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm'];
+types.forEach(t => add('  records ' + t, typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(t)));
+add('Canvas capture', !!HTMLCanvasElement.prototype.captureStream);
+add('Web Audio', !!(window.AudioContext || window.webkitAudioContext));
+const v = document.createElement('video');
+[['H.264 / MP4', 'video/mp4; codecs="avc1.42E01E"'], ['HEVC (iPhone footage)', 'video/mp4; codecs="hvc1.1.6.L93.B0"'], ['VP9 / WebM', 'video/webm; codecs="vp9"']].forEach(([k, t]) => add('Plays ' + k, v.canPlayType(t) || 'no'));
+(async () => {
+  try { const e = await navigator.storage.estimate(); add('Storage quota', (e.quota / 1073741824).toFixed(1) + ' GB'); } catch (e) { add('Storage quota', 'unknown'); }
+  try { add('Persistent storage granted', await navigator.storage.persist()); } catch (e) { add('Persistent storage granted', false); }
+  draw();
+})();
+draw();
+document.getElementById('go').onclick = async () => {
+  const out = document.getElementById('raw');
+  try {
+    const c = document.createElement('canvas'); c.width = 640; c.height = 360; const x = c.getContext('2d');
+    const AC = window.AudioContext || window.webkitAudioContext, ac = new AC(); await ac.resume();
+    const osc = ac.createOscillator(), dest = ac.createMediaStreamDestination(); osc.connect(dest); osc.start();
+    const st = c.captureStream(30); dest.stream.getAudioTracks().forEach(t => st.addTrack(t));
+    const mime = types.find(t => MediaRecorder.isTypeSupported(t)) || '';
+    const rec = new MediaRecorder(st, mime ? { mimeType: mime } : {}); const ch = [];
+    rec.ondataavailable = e => e.data.size && ch.push(e.data);
+    let f = 0, run = true; (function loop() { if (!run) return; x.fillStyle = `hsl(${f * 4 % 360},70%,50%)`; x.fillRect(0, 0, 640, 360); x.fillStyle = '#fff'; x.font = '48px system-ui'; x.fillText('frame ' + f++, 40, 200); requestAnimationFrame(loop); })();
+    rec.start(250); await new Promise(r => setTimeout(r, 3000)); run = false;
+    await new Promise(r => { rec.onstop = r; rec.stop(); }); osc.stop(); ac.close();
+    const blob = new Blob(ch, { type: (rec.mimeType || mime || 'video/webm').split(';')[0] });
+    const b = new Uint8Array(await blob.slice(0, Math.min(blob.size, 1048576)).arrayBuffer()); let s = ''; for (const k of b) s += k > 31 && k < 127 ? String.fromCharCode(k) : '.';
+    const codec = /avc1|avc3/.test(s) ? 'H.264' : /hvc1|hev1/.test(s) ? 'HEVC' : /vp09|V_VP9/.test(s) ? 'VP9' : /vp08|V_VP8/.test(s) ? 'VP8' : 'unknown';
+    rows.push(['Recording test', blob.size > 1000 ? '<span class="y">worked</span>' : '<span class="n">empty</span>', `${(blob.size / 1024).toFixed(0)} KB, ${rec.mimeType || mime}, video codec ${codec}${codec === 'H.264' ? ', plays everywhere' : ', not H.264'}`]);
+    draw();
+    const vv = document.createElement('video'); vv.controls = true; vv.playsInline = true; vv.src = URL.createObjectURL(blob); vv.style.width = '100%'; out.before(vv);
+  } catch (e) { rows.push(['Recording test', '<span class="n">failed</span>', e.message]); draw(); }
+  out.textContent = rows.map(r => r[0].trim() + ': ' + String(r[1]).replace(/<[^>]+>/g, '') + (r[2] ? ' (' + r[2] + ')' : '')).join('\n');
+};
+</script></body></html>
