@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MEMORIZER · Off book</title>
+<meta name="description" content="Say your lines, check them, and the ones you drop come back first.">
+<meta name="theme-color" content="#121110">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MEMORIZER">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+@font-face{font-family:Jost;font-weight:400;font-display:swap;src:url(fonts/jost-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:Jost;font-weight:500;font-display:swap;src:url(fonts/jost-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:Jost;font-weight:600;font-display:swap;src:url(fonts/jost-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Courier Prime';font-weight:400;font-display:swap;src:url(fonts/courier-prime-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Courier Prime';font-weight:700;font-display:swap;src:url(fonts/courier-prime-latin-700-normal.woff2) format('woff2')}
+:root{
+  --bg:#121110; --panel:#1b1916; --panel2:#24211d; --ink:#ece7dc; --dim:#a39c8e; --faint:#6e675c; --line:#2f2b26;
+  --tung:#e0a23c; --tung-ink:#1a1206; --tung-soft:rgba(224,162,60,.14); --tung-text:#e9b25a;
+  --bad:#e0785f; --good:#8fbf8a; --blue:#7fa6d6;
+  --sans:Jost,system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"Courier Prime","Courier New",Courier,monospace;
+  --r:12px; --tap:44px; --nav:64px; color-scheme:dark;
+}
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){
+  --bg:#ece7dc; --panel:#f6f2ea; --panel2:#e3dccd; --ink:#1d1a15; --dim:#5f584b; --faint:#8a8273; --line:#d3cab8;
+  --tung-soft:rgba(224,162,60,.22); --tung-text:#8a5a08; --bad:#a8432c; --good:#3d7a3a; --blue:#2f5f99; color-scheme:light;
+}}
+:root[data-theme="light"]{
+  --bg:#ece7dc; --panel:#f6f2ea; --panel2:#e3dccd; --ink:#1d1a15; --dim:#5f584b; --faint:#8a8273; --line:#d3cab8;
+  --tung-soft:rgba(224,162,60,.22); --tung-text:#8a5a08; --bad:#a8432c; --good:#3d7a3a; --blue:#2f5f99; color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--sans);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+h1,h2,h3{font-weight:600;letter-spacing:.02em;margin:0}
+.dim{color:var(--dim)} .faint{color:var(--faint)} .hide{display:none!important}
+.btn{min-height:var(--tap);padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:500;text-align:center}
+.btn:active{transform:translateY(1px)}
+.btn.pri{background:var(--tung);color:var(--tung-ink);border-color:var(--tung)}
+.btn.ghost{background:transparent} .btn.block{width:100%} .btn.sm{padding:0 12px;font-size:14px}
+.btn.big{min-height:60px;font-size:17px}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{min-height:var(--tap);padding:0 14px;border-radius:999px;border:1px solid var(--line);background:transparent;display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--dim)}
+.chip.on{background:var(--tung);color:var(--tung-ink);border-color:var(--tung)}
+.chip i{font-style:normal;font-size:12px;opacity:.75}
+.kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 8px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.msg{padding:12px 14px;border-radius:10px;background:var(--panel2);border-left:3px solid var(--tung);margin:12px 0;font-size:14px}
+.msg.bad{border-left-color:var(--bad)}
+.field{width:100%;border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:10px 12px;font-size:16px;min-height:var(--tap)}
+textarea.field{min-height:120px;resize:vertical;font-size:15px}
+select.field{appearance:auto}
+
+.shell{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
+.top{position:sticky;top:0;z-index:20;padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top .k{font-size:11px;letter-spacing:.22em;color:var(--faint)}
+.top b{display:block;font-size:16px;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .count{font-size:13px;color:var(--tung-text);margin-top:1px}
+main{flex:1;min-width:0;padding:16px 16px calc(var(--nav) + 24px + env(safe-area-inset-bottom));max-width:720px;width:100%;margin:0 auto}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(4,1fr);background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs button{min-height:var(--nav);border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;letter-spacing:.12em;color:var(--faint)}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button.on{color:var(--tung-text)}
+
+/* drill */
+.cue{border-left:3px solid var(--faint);padding:2px 0 2px 12px;margin:2px 0 14px}
+.cue .who{font-size:12px;letter-spacing:.14em;color:var(--faint)}
+.cue .t{color:var(--dim);font-size:16px}
+.play{display:inline-block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);border:1px solid var(--blue);border-radius:6px;padding:2px 8px;margin-bottom:10px}
+.levels{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 12px}
+.levels button{min-height:40px;border-radius:8px;border:1px solid var(--line);background:transparent;font-size:12.5px;color:var(--dim);padding:0 4px}
+.levels button.on{background:var(--panel2);color:var(--ink);border-color:var(--faint)}
+.line{min-height:110px;display:flex;align-items:center;justify-content:center;text-align:center;border-radius:14px;background:var(--panel2);padding:20px 16px;font:700 22px/1.45 var(--mono);letter-spacing:.06em;color:var(--tung-text);margin-bottom:12px;word-break:break-word}
+.line.whole{font:500 19px/1.5 var(--sans);letter-spacing:0;color:var(--ink)}
+.line.none{color:var(--faint);font-size:16px;letter-spacing:.3em}
+.beatrow{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:-2px 0 12px}
+.beatrow span{font-size:12px;letter-spacing:.12em;color:var(--faint);margin-right:2px}
+.beatrow .chip{min-height:36px;padding:0 12px}
+.saybar{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.heard{min-height:24px;font-size:15px;color:var(--dim);margin:10px 0 0;font-style:italic}
+.listening{color:var(--bad)}
+.reveal{margin-top:14px}
+.reveal .full{font-size:19px;line-height:1.5;margin-bottom:8px}
+.w.miss{color:var(--bad);text-decoration:underline wavy;text-underline-offset:4px}
+.w.extra{color:var(--blue);text-decoration:line-through;opacity:.8}
+.w.ok{color:var(--ink)}
+.result{font-size:14px;color:var(--dim);margin-bottom:12px}
+.marks{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.marks .btn{min-height:56px;flex-direction:column;gap:0;line-height:1.2}
+.marks .btn small{font-size:11px;opacity:.75;font-weight:400}
+.marks .got{border-color:var(--good)} .marks .got.hint{background:var(--good);color:#0e140d}
+.marks .miss{border-color:var(--bad)}
+.typebox{margin-top:10px}
+.toast{position:fixed;left:50%;bottom:calc(var(--nav) + 18px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(10px);background:var(--panel2);border:1px solid var(--tung);color:var(--ink);padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:.2s;pointer-events:none;z-index:50;max-width:90vw;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* scene */
+.sl{padding:9px 12px;border-radius:10px;margin-bottom:6px;font-size:15px}
+.sl .who{display:block;font-size:11px;letter-spacing:.14em;color:var(--faint)}
+.sl.other{color:var(--dim)}
+.sl.mine{background:var(--panel);border:1px solid var(--line)}
+.sl.mine.now{border-color:var(--tung)}
+.sl.mine.dropped{border-color:var(--bad)}
+.sl .hid{font:700 17px/1.4 var(--mono);color:var(--tung-text);letter-spacing:.06em}
+
+/* lines */
+.li{border-bottom:1px solid var(--line);padding:12px 0}
+.li .h{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:12px;letter-spacing:.1em;color:var(--faint)}
+.pill{font-size:11px;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--line);border-radius:999px;padding:2px 9px;white-space:nowrap}
+.pill.new{color:var(--dim)} .pill.work{color:var(--bad);border-color:var(--bad)} .pill.solid{color:var(--good);border-color:var(--good)} .pill.getting{color:var(--tung-text);border-color:var(--tung)}
+.li .t{margin:4px 0 2px}
+.li .fl{font:14px var(--mono);color:var(--faint);letter-spacing:.06em}
+.li select{min-height:36px;padding:4px 8px;margin-top:6px;width:auto;font-size:14px}
+
+/* sides */
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;min-height:140px;border:2px dashed var(--faint);border-radius:16px;padding:20px;margin:8px 0 12px}
+.drop.over{border-color:var(--tung);background:var(--tung-soft)}
+.drop b{font-size:18px;letter-spacing:.06em}
+.from{border-color:var(--tung)}
+.scriptrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.scriptrow div{min-width:0}.scriptrow b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scriptrow small{color:var(--faint)}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="top">
+    <div class="k">MEMORIZER</div>
+    <b id="title">Off book</b>
+    <div class="count" id="count"></div>
+  </header>
+  <main id="main"></main>
+</div>
+<nav class="tabs" id="tabs">
+  <button data-t="drill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg><span>DRILL</span></button>
+  <button data-t="scene"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h16"/></svg><span>SCENE</span></button>
+  <button data-t="lines"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="18" r="1.2"/></svg><span>LINES</span></button>
+  <button data-t="sides"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5"/></svg><span>SIDES</span></button>
+</nav>
+<div class="toast" id="toast"></div>
+<input type="file" id="file" accept=".pdf,.txt,.fountain,text/plain,application/pdf" class="hide">
+<script src="../actor-os/sides.js"></script>
+<script src="../actor-os/pdf.js"></script>
+<script src="engine.js"></script>
+<script src="app.js"></script>
+<script>if('serviceWorker' in navigator && location.protocol!=='file:') navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
+</body>
+</html>

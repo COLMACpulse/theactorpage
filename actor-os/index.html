@@ -830,7 +830,7 @@ function renderSides(){
   h+=`<div class="take" style="margin-top:12px"><div><b>${mine.length} line${mine.length===1?'':'s'} &middot; ${words} words</b>
    <small>about ${mins?mins+'m ':''}${secs%60}s of speaking${rangeActive()?' &middot; scene marked':''}</small></div>
    <span class="pill">${esc2(SIDES.me)}</span></div>`;
-  h+=`<div class="row" style="gap:8px;margin-top:9px"><button class="mini ghost" onclick="letterSheet()">FIRST-LETTER SHEET</button>
+  h+=`<div class="row" style="gap:8px;margin-top:9px"><button class="mini ghost" onclick="letterSheet()">FIRST-LETTER SHEET</button><a class="mini ghost" href="../memorizer/" style="text-decoration:none;display:inline-flex;align-items:center;border:1px solid var(--line2);border-radius:10px;padding:8px 11px;font-weight:700;font-size:12px;color:var(--ink)">DRILL IN MEMORIZER</a>
    <span style="color:var(--faint);font-size:12px">Your lines as first letters, with the cue before each. Print it or keep it on your phone.</span></div>`;
 
   h+=sceneTabs();
