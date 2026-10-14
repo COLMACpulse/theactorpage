@@ -5,7 +5,7 @@
 */
 (function () {
   'use strict';
-  const VERSION = '0.3.1';
+  const VERSION = '0.3.2';
   const SCHEMA = 'ACT.BREAKDOWN/0.3';
   const P = window.BDParser;
 
@@ -324,15 +324,48 @@
     return { src, name };
   }
 
-  async function intake(fileOrText, name) {
-    S.homeMsg = null;
+  // ---------------------------------------------------------------- sides shelf (../shared/shelf.js)
+  // Sides dropped here go on the shelf for every ACT tool; sides dropped elsewhere open here.
+  const SH = window.Shelf || null;
+  function shelfText(d) {
+    const items = []; let sp = null;
+    d.elements.forEach(e => {
+      if (e.type === 'cue') {
+        if (e.hidden && sp) return;                 // CONT'D over a page break: same speech
+        const ext = (e.ext || []).filter(x => x !== "CONT'D");
+        sp = { type: 'speech', who: e.who + ext.map(x => ' (' + x + ')').join(''), lines: [] }; items.push(sp); return;
+      }
+      if (e.type === 'dialogue' || e.type === 'paren') { if (sp) sp.lines.push(e.text); return; }
+      sp = null;
+      items.push({ type: e.type === 'heading' ? 'heading' : 'action', text: e.text });
+    });
+    return SH.toText(items.map(x => x.type === 'speech' ? { type: 'speech', who: x.who, text: x.lines.join('\n') } : x));
+  }
+
+  async function intake(fileOrText, name, opts) {
+    S.homeMsg = null; opts = opts || {};
     try {
       const r = typeof fileOrText === 'string' ? { src: P.fromText(fileOrText), name: name || 'pasted text' } : await readFile(fileOrText);
       const doc = P.parse(r.src, {});
       if (!doc.speeches.length) throw new Error('No dialogue found. If this is a script, open "Check how it was read" after import and fix a cue or two.');
-      const p = newProject(r.src, r.name);
+      const p = newProject(r.src, opts.shelfName || r.name);
       S.project = p; S.viewPass = null; S.tab = 'me'; S.sc = 0;
       reparse();
+      if (SH) {
+        try {
+          let it = null;
+          if (opts.shelfId) { it = SH.get(opts.shelfId); SH.markSeen('breakdown', opts.shelfId); }
+          else {
+            const file = typeof fileOrText === 'string' ? null : fileOrText;
+            it = SH.put({ text: shelfText(S.doc), file: r.name, fileSig: file ? SH.sig(file) : '', from: 'BREAKDOWN', tool: 'breakdown' });
+            if (it && file) SH.putFile(it.id, file);
+          }
+          if (it) {
+            p.shelf = it.id;
+            if (it.me && S.doc.characters[it.me]) { p.me = [it.me]; S.me = computeMe(); }
+          }
+        } catch (e) { }
+      }
       try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { }
       await DB.put(p);
       render();
@@ -1059,7 +1092,7 @@
         break;
       }
       case 'openproj': $('#projin').click(); break;
-      case 'openrecent': { const pr = await DB.get(ds.id); S.tab = 'me'; openProject(pr); break; }
+      case 'openrecent': { const pr = await DB.get(ds.id); S.tab = 'me'; openProject(pr); if (SH && pr && pr.shelf) try { SH.use(pr.shelf, 'breakdown'); } catch (e) { } break; }
       case 'delrecent': { if (confirm('Delete this project from this device? A saved project file is not affected.')) { await DB.del(ds.id); render(); } break; }
       case 'home': S.project = null; S.doc = null; S.me = null; S.viewPass = null; S.parseView = false; S.pair = null; render(); break;
       // pick
@@ -1067,6 +1100,7 @@
         const n = ds.n;
         if (S.addingRole) { if (!p.me.includes(n)) p.me.push(n); S.addingRole = false; }
         else p.me = [n];
+        if (SH && p.shelf) try { SH.setMe(p.shelf, p.me[0], 'breakdown'); } catch (e) { }
         touch(); S.me = computeMe(); S.tab = 'me'; S.run.i = 0; render(); break;
       }
       case 'changerole': p.me = []; S.addingRole = false; S.me = null; render(); break;
@@ -1257,6 +1291,22 @@
   const SAMPLE_FALLBACK = "INT. ROOM - DAY\n\nANNA\nAre you staying?\n\nBEN\nI never said that.\n";
 
   // debug/test hook (harmless)
-  window.BREAKDOWN = { S, act, intake, sha256, verifyChain, diffWork, computeMe: () => computeMe(), version: VERSION };
-  render();
+  window.BREAKDOWN = { S, act, intake, sha256, verifyChain, diffWork, computeMe: () => computeMe(), shelfText: d => shelfText(d), version: VERSION };
+  /* boot: new sides on the shelf from another tool open straight to your role */
+  (async function boot() {
+    const pend = SH && SH.pending('breakdown');
+    if (!pend) { render(); return; }
+    try {
+      const have = (await DB.all()).find(x => x.shelf === pend.id);
+      if (have) {
+        await openProject(have);
+        if (pend.me && S.doc.characters[pend.me] && have.me[0] !== pend.me) { S.project.me = [pend.me]; S.me = computeMe(); touch(); render(); }
+        SH.markSeen('breakdown', pend.id);
+      } else {
+        const f = await SH.getFile(pend.id);
+        await intake(f || pend.text, pend.file, { shelfId: pend.id, shelfName: pend.file });
+      }
+      setTimeout(() => toast('New sides: ' + SH.label(pend) + '.' + (S.project && S.project.me.length ? '' : ' Pick your role.')), 200);
+    } catch (e) { render(); }
+  })();
 })();

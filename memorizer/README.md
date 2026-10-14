@@ -1,4 +1,4 @@
-# MEMORIZER 0.4 · Off book
+# MEMORIZER 0.4.1 · Off book
 
 *Say it. Check it. The ones you drop come back first.*
 
@@ -23,6 +23,9 @@
 **Same line read the same way everywhere.** Sides go through Actor OS's own reader (`../actor-os/sides.js`, `../actor-os/pdf.js`). A fix there reaches here.
 
 **Saying it vs the page:** "10" and "ten" are the same line. "Gonna" and "going to" are not, and it says so ("Missed: gonna. Added: going, to"), because casting hears it.
+
+## New in 0.4.1: fed by the system
+Sides you drop in any ACT tool (Actor OS, BREAKDOWN, here) are on the sides shelf. Open MEMORIZER and it goes straight to DRILL on the newest sides, with your character, and says "New sides: RENNIE, LAST BUS sides." No upload, no tap. If no character is picked yet, it asks once. SIDES lists anything else on the shelf to open. Your marks stay with each script. See `../shared/README.md`.
 
 ## v0.3 → 0.4
 | v0.3 | Now |

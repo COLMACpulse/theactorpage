@@ -1,14 +1,14 @@
 {
  "asset": "#5 BREAKDOWN",
- "version": "0.3.1",
+ "version": "0.3.2",
  "files": {
   "README.md": {
-   "bytes": 6682,
-   "sha256": "ebc702d845ff586cb05fa38af118a98ce94cb6ad68b8e31f91cddc0bca3aad6c"
+   "bytes": 7387,
+   "sha256": "785880f46c0b7cfd90965cfb984e24e4dc0f7c22e5d3fdc4d423ff5addfbcc57"
   },
   "app.js": {
-   "bytes": 95659,
-   "sha256": "65d9cde8d53dbc1def835af8714e4ae20d678e852d2c50f40927d96aeac09d1d"
+   "bytes": 98349,
+   "sha256": "2927b115e7d857aa4795edb3e8db478aa700e55bc552456338f475d0b7534159"
   },
   "fonts/LICENSE_CourierPrime_OFL.txt": {
    "bytes": 4783,
@@ -59,16 +59,16 @@
    "sha256": "9f94a30d5febd6054fdde0a80516c5d740297e720c45eb0e7fb6851a78e7e4fb"
   },
   "index.html": {
-   "bytes": 22607,
-   "sha256": "effecbadb111101105b6aab8c9545c9bc8339187358918774cc5c10e15aea60f"
+   "bytes": 22650,
+   "sha256": "e0832dd91c2218747ce6e9e8a39c0c035c76a953bd1d6eea950576f45a8a1417"
   },
   "manifest.webmanifest": {
    "bytes": 629,
    "sha256": "eb808547cbfb5361be58369048ec114de9e6e55362c9c8b1c3800a78458f9a87"
   },
   "parser.js": {
-   "bytes": 20977,
-   "sha256": "dc50487350fff5d94a18b1bae11742c66ba99c97d101ee1dcb3a5cab6b3bf3af"
+   "bytes": 21446,
+   "sha256": "6a496fd7b01e598a9c1e6abc45f473996d6bcd5de1f42fbd04bcd7829229d13d"
   },
   "samples/LAST_BUS_sides.fdx": {
    "bytes": 6574,
@@ -87,8 +87,8 @@
    "sha256": "7e1e3c1ff2ce2110fecd3675fd21b199af58e2a8e11cdf7001988bada3b219b4"
   },
   "sw.js": {
-   "bytes": 1191,
-   "sha256": "6365d56d61c82a39fd6919bc7e84d3220a2e6b60720cf970b4eeabecdf09bf16"
+   "bytes": 1213,
+   "sha256": "7e004df105f1a2014f1059941f2c72e9c3fc6e4cf95d34cd1878e0dff2fff9d2"
   },
   "tests/harness.html": {
    "bytes": 1680,

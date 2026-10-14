@@ -23,16 +23,43 @@ function build(){
  SCRIPT=sc; ITEMS=E.items(sc); ITEMS.forEach(it=>{ BYAT[it.at]=it; });
  SC.states=SC.states||{}; SC.verbs=SC.verbs||{};
 }
-function scriptId(text,me,range){ return E.hash(text)+'|'+me+'|'+(range?range.join('-'):'all'); }
+/* one Memorizer script per sides + character; the marked scene can change without losing your marks */
+function scriptId(text,me){ return E.hash(text)+'|'+me; }
 function addScript(o){
- const id=scriptId(o.text,o.me,o.range);
- if(!DB.scripts[id]) DB.scripts[id]={id:id,file:o.file||'Pasted sides',text:o.text,me:o.me,range:o.range||null,from:o.from||'',states:{},verbs:{},added:Date.now()};
+ const id=scriptId(o.text,o.me);
+ if(!DB.scripts[id]) DB.scripts[id]={id:id,file:o.file||'Pasted sides',text:o.text,me:o.me,range:o.range||null,from:o.from||'',shelf:o.shelf||'',states:{},verbs:{},added:Date.now()};
+ else { DB.scripts[id].range=o.range||null; if(o.shelf) DB.scripts[id].shelf=o.shelf; }
  DB.cur=id; save(); build(); resetDrill();
+}
+/* ---------- the sides shelf (../shared/shelf.js) ---------- */
+const SH=window.Shelf||null;
+function shelfPut(text,file,f){
+ if(!SH) return '';
+ const it=SH.put({text:text,file:file,fileSig:f?SH.sig(f):'',from:'MEMORIZER',tool:'memorizer'});
+ if(it&&f) SH.putFile(it.id,f);
+ return it?it.id:'';
+}
+/* Sides that arrived on the shelf since Memorizer last looked: open them. */
+function adoptShelf(){
+ if(!SH) return false;
+ const p=SH.pending('memorizer'); if(!p) return false;
+ SH.markSeen('memorizer',p.id);
+ const speakers=S.speakers(S.parse(p.text)).map(x=>x.name);
+ if(p.me&&speakers.indexOf(p.me)>=0){
+  addScript({text:p.text,file:p.file,me:p.me,range:p.range,from:p.from,shelf:p.id});
+  DB.tab='drill'; save();
+  setTimeout(()=>toast('New sides: '+SH.label(p)+'.'),300);
+  return true;
+ }
+ PENDING={text:p.text,file:p.file,shelf:p.id}; DB.tab='sides'; save();
+ setTimeout(()=>toast('New sides: '+SH.label(p)+'. Pick your character.'),300);
+ return true;
 }
 function shortFile(f){ return String(f||'').replace(/\.(pdf|txt|fountain)$/i,'').replace(/_/g,' '); }
 
 /* ---------- Actor OS hand-over (same site, nothing typed) ---------- */
 function fromActorOS(){
+ if(SH&&SH.all().length) return null;   // the shelf has it; this is only for sides from before the shelf
  try{
   const last=JSON.parse(localStorage.getItem('actor_os_sides_last')||'null');
   if(!last||!last.text) return null;
@@ -303,6 +330,15 @@ function renderSides(){
  } else if(ao&&!ao.me&&!SC){
   h+=`<div class="msg">Actor OS has sides (${esc(shortFile(ao.file))}) but no character picked. <button class="btn sm" onclick="MEM.takeAO()">USE THEM</button></div>`;
  }
+ if(SH){
+  const mine=new Set(Object.values(DB.scripts).map(x=>x.shelf).filter(Boolean));
+  const others=SH.all().filter(x=>!mine.has(x.id));
+  if(others.length){
+   h+=`<h3 class="kicker">ON THE SHELF</h3><p class="faint" style="font-size:13px;margin:-4px 0 6px">Sides you brought into any ACT tool on this phone.</p>`;
+   others.forEach(x=>{ h+=`<div class="scriptrow"><div><b>${esc(SH.label(x))}</b><small>from ${esc(x.from||'another tool')}</small></div><button class="btn sm" onclick="MEM.fromShelf('${x.id}')">OPEN</button></div>`; });
+   h+='<div style="height:14px"></div>';
+  }
+ }
  if(PENDING){
   const sp=S.speakers(S.parse(PENDING.text));
   h+=`<div class="card"><div class="kicker">${esc(shortFile(PENDING.file))}</div><h2 style="font-size:20px">Which character are you?</h2>
@@ -335,34 +371,48 @@ $('file').addEventListener('change',e=>{ const f=e.target.files[0]; e.target.val
 async function readFile(f){
  PDFMSG=''; PENDING=null;
  const isPDF=/\.pdf$/i.test(f.name)||f.type==='application/pdf';
- if(!isPDF){ const t=await f.text(); takeText(t,f.name); return; }
+ if(!isPDF){ const t=await f.text(); takeText(t,f.name,f); return; }
  $('main').insertAdjacentHTML('afterbegin','<div class="msg">Reading '+esc(f.name)+'…</div>');
  try{
   const ex=await window.ActorPDF.extract(await f.arrayBuffer());
   if(ex.encrypted&&!ex.chars){ PDFMSG='<b>That PDF is protected.</b> The text can’t be read out of it. Open it, select all, copy, and paste it below.'; renderSides(); return; }
   if(!ex.chars){ PDFMSG='<b>No text in that PDF.</b> It’s pictures of pages. Paste the lines below instead.'; renderSides(); return; }
   if(ex.printable!==undefined&&ex.printable<0.6){ PDFMSG='<b>The text came out unreadable.</b> Paste the lines below instead.'; renderSides(); return; }
-  takeText(window.ActorPDF.toSides(ex.lines),f.name);
+  takeText(window.ActorPDF.toSides(ex.lines),f.name,f);
  }catch(err){ PDFMSG='<b>Could not read that PDF.</b> '+esc(err.message); renderSides(); }
 }
-function takeText(t,file){
+function takeText(t,file,f){
  const beats=S.parse(t);
  if(!S.speakers(beats).length){ PDFMSG='<b>No character names found.</b> Names usually sit on their own line above the dialogue.'; PENDING=null; renderSides(); return; }
- PENDING={text:t,file:file||'Pasted sides'}; renderSides(); window.scrollTo(0,0);
+ const sid=shelfPut(t,file||'Pasted sides',f);
+ // the same file was already on the shelf with another reading: use that one, so every tool reads the same
+ const shelved=SH&&sid?SH.get(sid):null;
+ PENDING={text:shelved?shelved.text:t,file:file||'Pasted sides',shelf:sid};
+ if(shelved&&shelved.me&&S.speakers(S.parse(shelved.text)).some(x=>x.name===shelved.me)){ pickMe(shelved.me); return; }
+ renderSides(); window.scrollTo(0,0);
 }
 function pickMe(i){
  if(!PENDING) return;
  const sp=S.speakers(S.parse(PENDING.text)); const name=typeof i==='number'?(sp[i]&&sp[i].name):i; if(!name) return;
- addScript({text:PENDING.text,file:PENDING.file,me:name,range:null});
+ addScript({text:PENDING.text,file:PENDING.file,me:name,range:null,shelf:PENDING.shelf||''});
+ if(SH&&PENDING.shelf) SH.setMe(PENDING.shelf,name,'memorizer');
  PENDING=null; toast(name+': '+ITEMS.length+' speech'+(ITEMS.length===1?'':'es')+'. Go.'); tab('drill');
 }
 function takeAO(){
  const ao=fromActorOS(); if(!ao) return;
+ ao.shelf=shelfPut(ao.text,ao.file,null); if(SH&&ao.shelf&&ao.me) SH.setMe(ao.shelf,ao.me,'memorizer');
  if(!ao.me){ PENDING={text:ao.text,file:ao.file}; renderSides(); return; }
  addScript(ao); toast(ao.me+': '+ITEMS.length+' speech'+(ITEMS.length===1?'':'es')+'. Go.'); tab('drill');
 }
 function pasteIt(){ const t=($('paste')||{}).value||''; if(!t.trim()){ toast('Paste the sides first.'); return; } takeText(t,'Pasted sides'); }
-function openScript(id){ DB.cur=id; save(); build(); resetDrill(); R.on=false; tab('drill'); }
+function openScript(id){ DB.cur=id; save(); build(); resetDrill(); R.on=false; if(SH&&SC&&SC.shelf) SH.use(SC.shelf,'memorizer'); tab('drill'); }
+function fromShelf(id){
+ const x=SH&&SH.get(id); if(!x) return;
+ SH.use(id,'memorizer');
+ const speakers=S.speakers(S.parse(x.text)).map(n=>n.name);
+ if(x.me&&speakers.indexOf(x.me)>=0){ addScript({text:x.text,file:x.file,me:x.me,range:x.range,from:x.from,shelf:x.id}); R.on=false; tab('drill'); return; }
+ PENDING={text:x.text,file:x.file,shelf:x.id}; renderSides(); window.scrollTo(0,0);
+}
 function removeScript(id){
  if(!confirm('Remove this script and its marks from this phone?')) return;
  delete DB.scripts[id]; if(DB.cur===id){ DB.cur=Object.keys(DB.scripts)[0]||''; build(); resetDrill(); R.on=false; }
@@ -372,9 +422,10 @@ function removeScript(id){
 /* ---------- boot ---------- */
 window.MEM={tab:tab,level:setLevel,beat:setBeat,again:again,reveal:reveal,typing:typing,checkTyped:checkTyped,mark:mark,anyway:anyway,
  listen:listen,scene:sceneStart,sceneShow:sceneShow,sceneMark:sceneMark,sceneRetry:sceneRetry,verb:setVerb,resetProgress:resetProgress,
- pickMe:pickMe,takeAO:takeAO,paste:pasteIt,open:openScript,remove:removeScript,
+ pickMe:pickMe,takeAO:takeAO,paste:pasteIt,open:openScript,remove:removeScript,fromShelf:fromShelf,
  _db:()=>DB,_items:()=>ITEMS,_script:()=>SCRIPT,_state:()=>({D:D,R:R})};
 build();
-if(!SC) DB.tab='sides';
+adoptShelf();
+if(!SC&&!PENDING) DB.tab='sides';
 tab(DB.tab||'drill');
 })();

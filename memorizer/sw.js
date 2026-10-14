@@ -1,7 +1,7 @@
 /* MEMORIZER offline shell. Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='memorizer-0.4.0';
+const CACHE='memorizer-0.4.1';
 const FILES=['./','index.html','app.js','engine.js','manifest.webmanifest',
- '../actor-os/sides.js','../actor-os/pdf.js',
+ '../shared/shelf.js','../actor-os/sides.js','../actor-os/pdf.js',
  'fonts/jost-latin-400-normal.woff2','fonts/jost-latin-500-normal.woff2','fonts/jost-latin-600-normal.woff2',
  'fonts/courier-prime-latin-400-normal.woff2','fonts/courier-prime-latin-700-normal.woff2',
  'icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];
@@ -11,7 +11,7 @@ self.addEventListener('activate',e=>{ e.waitUntil(caches.keys().then(ks=>Promise
 self.addEventListener('fetch',e=>{
  const u=new URL(e.request.url);
  if(e.request.method!=='GET'||u.origin!==location.origin) return;
- if(/\/actor-os\/(sides|pdf)\.js$/.test(u.pathname)){
+ if(/\/(actor-os\/(sides|pdf)|shared\/shelf)\.js$/.test(u.pathname)){
   e.respondWith(fetch(e.request).then(r=>{ const cp=r.clone(); caches.open(CACHE).then(c=>c.put(e.request,cp)); return r; }).catch(()=>caches.match(e.request,{ignoreSearch:true})));
   return;
  }

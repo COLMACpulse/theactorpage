@@ -163,7 +163,7 @@
         <p class="dim" style="margin:8px 0 0;max-width:36em">You found the voice in rehearsal. Weeks later, the callback. Record it now, as you, in your own voice. Add the look and the line that drops you back in. When you come back, hear yourself and see what moved.</p></div>`}
       <button class="btn pri big block" data-a="quickrec" style="margin:12px 0 8px">Record a character now</button>
       <div class="row" style="margin-bottom:14px"><button class="btn" data-a="quickmemo">Start from a voice memo</button><button class="btn ghost" data-a="newchar">Start with just a name</button></div>
-      ${bdNew.length ? `<div class="kicker">From BREAKDOWN</div><div class="row" style="margin-bottom:14px">${bdNew.map(r => `<button class="chip" data-a="frombd" data-pid="${esc(r.pid)}" data-role="${esc(r.role)}">${esc(r.role)} · ${esc(r.title)}</button>`).join('')}</div>` : ''}
+      ${bdNew.length ? `<div class="kicker">From your sides</div><div class="row" style="margin-bottom:14px">${bdNew.map(r => `<button class="chip" data-a="frombd" data-pid="${esc(r.pid)}" data-role="${esc(r.role)}">${esc(r.role)} · ${esc(r.title)}</button>`).join('')}</div>` : ''}
       ${L.chars.length ? `<div class="kicker">${L.chars.length} ${L.chars.length === 1 ? 'character' : 'characters'}</div>` + L.chars.slice().sort((a, b) => (b.updated || '').localeCompare(a.updated || '')).map(c => {
         const m = E.missing(c);
         return `<button class="char" data-a="open" data-id="${c.id}">${avatar(c)}<span class="b"><b>${esc(c.name || 'Unnamed character')}</b><span class="faint" style="font-size:13px">${esc(c.project || 'No project')} · last visit ${ago(c.lastVisit || c.updated)}</span><br>${stateChip(c)}${m.length ? `<span class="faint" style="font-size:12px;margin-left:6px">Still to keep: ${esc(m.join(', '))}</span>` : ''}</span></button>`;
@@ -315,10 +315,15 @@
 
   // ---------------------------------------------------------------- BREAKDOWN (read only)
   async function scanBreakdown() {
+    S.bd = [];
+    const clean = t => String(t || 'Script').replace(/\.[a-z0-9]+$/i, '').replace(/_/g, ' ');
+    const key = t => t.toLowerCase().replace(/[^a-z0-9]+/g, '');
+    const add = r => { if (!S.bd.some(x => x.role === r.role && key(x.title) === key(r.title))) S.bd.push(r); };
+    // the sides shelf: your character from any ACT tool (Actor OS, BREAKDOWN, MEMORIZER)
+    try { if (window.Shelf) Shelf.all().forEach(x => { if (x.me) add({ pid: 'shelf:' + x.id, title: clean(x.file), role: x.me }); }); } catch (e) { }
     const db = await peek('breakdown_v03'); if (!db) return;
     const ps = await peekAll(db, 'projects'); db.close();
-    S.bd = [];
-    ps.forEach(p => { const title = p.title || (p.source && (p.source.title || p.source.name)) || 'Script'; (p.me || []).forEach(role => S.bd.push({ pid: p.id, title: String(title).replace(/\.[a-z0-9]+$/i, ''), role })); });
+    ps.forEach(p => { const title = p.title || (p.source && (p.source.title || p.source.name)) || 'Script'; (p.me || []).forEach(role => add({ pid: p.id, title: clean(title), role })); });
   }
 
   // ---------------------------------------------------------------- actions

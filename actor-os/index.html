@@ -361,7 +361,7 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
 </div>
 <div id="pasteWrap" style="display:none;margin-top:10px">
   <textarea id="sidesText" rows="8" placeholder="JULIE&#10;Nobody here saw anything.&#10;&#10;BO&#10;I don't know what you're talking about."></textarea>
-  <button class="mini" onclick="loadSides($('sidesText').value)">READ IT</button>
+  <button class="mini" onclick="loadSides($('sidesText').value,'Pasted sides')">READ IT</button>
 </div>
 <div id="sidesDoc"></div>
 <div id="sidesOut" style="margin-top:12px"></div>
@@ -640,6 +640,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 });
 </script>
 </script>
+<script src="../shared/shelf.js"></script>
 <script src="sides.js"></script>
 <script src="pdf.js"></script>
 <script src="reader.js"></script>
@@ -674,6 +675,7 @@ function toggleAdv(){const b=$('advBody');b.style.display=b.style.display==='non
 $('sidesFile').addEventListener('change',async e=>{
  const f=e.target.files[0]; if(!f) return; e.target.value='';
  const isPDF = /\.pdf$/i.test(f.name) || f.type==='application/pdf';
+ window.__sidesFile=f;
  if(!isPDF){ const r=new FileReader(); r.onload=()=>loadSides(r.result,f.name); r.readAsText(f); return; }
  $('sidesOut').innerHTML='<div class="am">Reading '+esc2(f.name)+'&hellip;</div>';
  try{
@@ -767,8 +769,21 @@ function guessMe(fname,speakers){
  });
  return score>=50?best:'';
 }
-function loadSides(text,fname){
+/* The sides shelf (../shared/shelf.js): sides dropped here go on the shelf for every
+   ACT tool; sides dropped in another tool open here next time. opts.shelf = the id
+   when the sides came from the shelf (so they are not put back). */
+window.SHELF_ID='';
+function shelfIn(text,fname){
+ try{
+  if(!window.Shelf||!text||!text.trim())return;
+  const f=window.__sidesFile||null; window.__sidesFile=null;
+  const it=Shelf.put({text:text,file:fname||SIDES.file||'Pasted sides',fileSig:f?Shelf.sig(f):'',from:'Actor OS',tool:'actor-os'});
+  if(it){ SHELF_ID=it.id; if(f) Shelf.putFile(it.id,f); }
+ }catch(e){}
+}
+function loadSides(text,fname,opts){
  if(fname)SIDES.file=fname;
+ if(opts&&opts.shelf){ SHELF_ID=opts.shelf; } else shelfIn(text,fname);
  /* keep the text so the sides are still here next time the app opens */
  try{ if(text&&text.trim()) localStorage.setItem('actor_os_sides_last',JSON.stringify({file:SIDES.file||'',text:text,
    pdfLines:(window.LAST_PDF&&LAST_PDF.lines&&fname&&/\.pdf$/i.test(fname))?LAST_PDF.lines.map(l=>({x:l.x,y:l.y,text:l.text})):null})); }catch(e){}
@@ -794,6 +809,7 @@ function pickMe(n){
   const near=SIDES.script.findIndex(b=>b.mine);
   curScene().start=near>=0?near:0;
  }
+ try{ if(window.Shelf&&SHELF_ID) Shelf.setMe(SHELF_ID,n,'actor-os'); }catch(e){}
  saveRange();   // remember who you are, even before a scene is marked
  renderSides(); boothRefresh(); try{namePreview();paintJob();}catch(e){}
 }
@@ -896,6 +912,17 @@ window.addEventListener('load',()=>{ setTimeout(()=>{
 window.addEventListener('load',()=>{ setTimeout(()=>{
  try{
   if((SIDES.script&&SIDES.script.length)||(SIDES.beats&&SIDES.beats.length)) return;
+  /* new sides on the shelf from another tool: open them, with the character if picked */
+  const pend=window.Shelf&&Shelf.pending('actor-os');
+  if(pend){
+   SIDES.me=''; SIDES.script=[]; SIDES.scenes=[]; SIDES.cur=0; SIDES.ready=false; SIDES.omit=[]; SIDES.pick={};
+   window.LAST_PDF=null; window.PDF_LINES=null;
+   loadSides(pend.text,pend.file,{shelf:pend.id});
+   if(pend.me&&SIDES.speakers&&SIDES.speakers.some(x=>x.name===pend.me)&&SIDES.me!==pend.me) pickMe(pend.me);
+   Shelf.markSeen('actor-os',pend.id);
+   stageToast('New sides: '+Shelf.label(pend)+'.'+(SIDES.me?'':' Pick your character.'));
+   return;
+  }
   const last=JSON.parse(localStorage.getItem('actor_os_sides_last')||'null');
   if(!last||!last.text) return;
   if(last.pdfLines){ window.LAST_PDF={lines:last.pdfLines}; window.PDF_LINES=last.pdfLines.map(l=>l.text); window.SIDES_DOC=last.file; }
@@ -943,6 +970,7 @@ window.addEventListener('load',()=>{
 
 
 function saveRange(){
+ try{ if(window.Shelf&&SHELF_ID&&SIDES.me){ const c=curScene(); Shelf.setRange(SHELF_ID,[c.start,c.end],'actor-os'); } }catch(e){}
  try{ localStorage.setItem('actor_os_range_'+(SIDES.file||'x'),
    JSON.stringify({me:SIDES.me,om:SIDES.omit||[],rdy:!!SIDES.ready,pk:SIDES.pick||{},sc:SIDES.scenes||[],cur:SIDES.cur||0})); }catch(e){}
 }

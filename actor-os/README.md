@@ -130,6 +130,12 @@ This is the part that matters.
 
 ---
 
+## New in 5.25 (2026-10-14): the sides shelf
+- Sides you drop, paste or get from Writer's Blockage go on the site's sides shelf, with your character and the scene you mark. BREAKDOWN, MEMORIZER and CPS have them without another upload.
+- Sides dropped in BREAKDOWN or MEMORIZER open here next time, with the character picked: "New sides: RENNIE, LAST BUS sides."
+- Pasted sides are named "Pasted sides" instead of keeping the last file's name.
+See `../shared/README.md`.
+
 ## New in 5.24 (2026-10-14): learn the lines
 Mined from AUDITION LAUNCHPAD's memorizer sheet, built on this app's own sides reader.
 - **How much you see, on SHOOT.** Under Teleprompter: Whole line, First few words, First letters, Nothing. It used to sit in a hidden panel with labels like FIRST_PHRASE. Remembered.

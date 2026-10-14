@@ -1,7 +1,11 @@
-# BREAKDOWN v0.3.1 · Actor Edition
+# BREAKDOWN v0.3.2 · Actor Edition
 
 **Asset #5.** Merges SCRIPT BREAKDOWN v0.2, SCENE BREAKDOWN v0.2 and CHARACTER BREAKDOWN v0.2 into one tool.
 Drop your sides, pick your role. Every line, cue and note stays tied to the page. Offline, no account.
+
+## New in 0.3.2 (2026-10-14)
+- **The sides shelf.** Sides you drop here are on the shelf for Actor OS and MEMORIZER, with your role. Sides dropped in another tool open here straight to your role, with "New sides: …". The original PDF travels with them, so the page view still works. See `../shared/README.md`.
+- **Fix: speeches lost at page breaks.** A character name at the top or bottom of a page was taken for a running header when it showed up at page edges on most pages, and its speech went missing. On the flipped test PDF, 4 speeches were lost (CAL 9 of 11, RENNIE 8 of 10). A name followed by dialogue is never a header now. LAST BUS checks pass on both PDF directions (32/32 in the browser).
 
 ## The flow
 1. **Drop** a PDF, Final Draft `.fdx`, Fountain or TXT. Or paste. No form, no project name.

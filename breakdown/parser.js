@@ -144,7 +144,14 @@
     const repeated = new Set(Object.keys(counts).filter(k => nPages >= 2 && counts[k] >= Math.max(2, Math.ceil(nPages * 0.5)) && !/^#\.?$/.test(k)));
 
     const lines = [];
-    perPage.forEach(rows => {
+    // A character name sits at a page edge all the time ("CAL" at the top of a page,
+    // its speech below). It repeats, but it is not a running header: a header is not
+    // followed by dialogue. Without this, short sides lost speeches at page breaks.
+    const speaksNext = (pi, i) => {
+      const nx = perPage[pi][i + 1] || (perPage[pi + 1] && perPage[pi + 1][0]);
+      return !!nx && /[a-z]/.test(nx.t);
+    };
+    perPage.forEach((rows, pi) => {
       // typical line spacing on this page
       const gaps = [];
       for (let i = 1; i < rows.length; i++) gaps.push(rows[i - 1].y - rows[i].y);
@@ -156,7 +163,7 @@
           if (g > step * 1.6) lines.push({ t: '', ind: 0, pg: r.pg });
         }
         const isEdge = i < 2 || i >= rows.length - 2;
-        if (isEdge && repeated.has(sig(r.t))) { lines.push({ t: r.t, ind: r.ind, pg: r.pg, hdr: true }); return; }
+        if (isEdge && repeated.has(sig(r.t)) && !(isCapsCue(r.t) && speaksNext(pi, i))) { lines.push({ t: r.t, ind: r.ind, pg: r.pg, hdr: true }); return; }
         lines.push({ t: r.t, ind: r.ind, pg: r.pg });
       });
       lines.push({ t: '', ind: 0, pg: rows.length ? rows[0].pg : 1, pb: true });
