@@ -130,6 +130,19 @@ This is the part that matters.
 
 ---
 
+## New in 5.24 (2026-10-14): learn the lines
+Mined from AUDITION LAUNCHPAD's memorizer sheet, built on this app's own sides reader.
+- **How much you see, on SHOOT.** Under Teleprompter: Whole line, First few words, First letters, Nothing. It used to sit in a hidden panel with labels like FIRST_PHRASE. Remembered.
+- **Learn it.** Each Teleprompter take shows one step less, down to nothing. The other lines always show in full.
+- **First-letter sheet.** In PREP once you pick your character: the cue in grey, your line as first letters, and the full lines at the end to check yourself. Print it or keep it open on the phone.
+- **Due date** is back in PREP, said plainly: "Due Fri, Oct 16 · 2 days".
+
+Fixes found while building it:
+- A shouted line in caps right under a name ("NOW." or "I SAID GET IN THE TRUCK.") was read as another name, and the line was lost. In the LAST BUS sides, Cal's "I SAID GET IN THE TRUCK." was missing from his speech. Now kept.
+- Picking your character wasn't remembered after reopening unless you had also marked a scene. Now it is.
+
+Tested in Chrome: 13/13 (sheet, levels, learn steps down over three takes, due date, all survive a reload). Not yet checked on an iPhone, where the sheet opens in a new tab.
+
 ## New in 5.23 (2026-10-14): clean sound, fit under a size
 Mined from TAPEFLOW. CUT and SEND only.
 - **Clean up the sound.** On by default, one switch, remembered. It cuts everything under 80 Hz (air conditioning, traffic, mic handling) and brings the take to a normal level. The take is measured first and one fixed amount of gain goes on the whole thing, so quiet moments stay quieter than loud ones, exactly as played. A limiter only touches a peak that would distort. When you join clips, each one is measured on its own, so the slate and every take land at the same level. The result says what it did: "Rumble cut. Brought up 19 dB."

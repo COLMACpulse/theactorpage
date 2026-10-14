@@ -14,6 +14,10 @@ const PAREN=/^\s*\(.*\)\s*$/;
 const NAMEC=/^\s*([A-Z][A-Z0-9 .'’\-]{1,32})\s*:\s*(.+)$/;     // BO: line
 const NAMEL=/^\s*([A-Z][A-Z0-9 .'’\-]{1,32})(\s*\([^)]*\))?\s*$/; // BO  /  BO (CONT'D)
 
+/* A name never ends like a sentence. Without this, shouted dialogue such as
+   "NOW." or "NO." right under a name was read as a second name and the
+   speech was lost. */
+function isName(t){ return NAMEL.test(t) && t===t.toUpperCase() && !/[.!?,\u2026]$/.test(t); }
 function cleanName(n){
   return String(n||'').replace(/\s*\([^)]*\)\s*/g,'').replace(/[:\s]+$/,'').trim().toUpperCase();
 }
@@ -32,13 +36,13 @@ A.parse=function(text){
 
     // a bare capitalised line followed by dialogue is a speaker cue
     m=t.match(NAMEL);
-    if(m && t===t.toUpperCase() && raw[i+1] && raw[i+1].trim() && !NAMEL.test(raw[i+1].trim())){
+    if(m && isName(t) && raw[i+1] && raw[i+1].trim() && !isName(raw[i+1].trim())){
       const who=cleanName(m[1]);
       let j=i+1, buf=[];
       let inParen=false;
       while(j<raw.length){
         const nx=raw[j].trim();
-        if(!nx||NAMEL.test(nx)&&nx===nx.toUpperCase()||SLUG.test(nx))break;
+        if(!nx||isName(nx)||SLUG.test(nx))break;
         if(inParen){ if(/\)\s*$/.test(nx))inParen=false; j++; continue; }
         if(/^\(/.test(nx)&&!/\)\s*$/.test(nx)){ inParen=true; j++; continue; }   // (on his phone,
         if(!PAREN.test(nx))buf.push(nx);
