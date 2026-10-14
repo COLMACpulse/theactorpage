@@ -634,7 +634,7 @@
   }
   /* A scene to shoot for something on the shoot list. Premise only: who, where, what you want,
      what's in the way. The writing is yours. */
-  function sceneSheet(key, i) {
+  function sceneSheet(key, i, focus) {
     const w = S.lib.wants.find(x => x.key === key); if (!w || !window.ArchScenes) return;
     const r = window.ArchScenes.suggest(w.text, 99), list = r.list, p = list[i % list.length];
     openSheet(`<div class="kicker">A scene for: ${esc(w.text)}</div>
@@ -647,10 +647,20 @@
         <p style="margin:0 0 4px"><b>You want:</b> ${esc(p.want)}</p>
         <p style="margin:0"><b>In the way:</b> ${esc(p.way)}</p>
       </div>
+      ${(() => { const id = key + '|' + p.id, adds = (S.sceneAdds || {})[id] || {}, open = (S.sceneOpen || {})[id] || {};
+        const shown = window.ArchScenes.ADDS.filter(a => open[a.k] || (adds[a.k] || '').trim());
+        const rest = window.ArchScenes.ADDS.filter(a => !shown.includes(a));
+        return `<div class="kicker" style="margin-top:14px">Make it yours</div>
+          ${shown.map(a => `<label class="lab" for="add_${a.k}">${esc(a.q)}</label><input class="field" id="add_${a.k}" data-add="${a.k}" value="${esc(adds[a.k] || '')}">`).join('')}
+          ${rest.length ? `<div class="row" style="gap:6px;margin-top:8px">${rest.map(a => `<button class="chip" data-a="sceneadd" data-k="${esc(key)}" data-id="${esc(p.id)}" data-i="${i}" data-f="${a.k}">+ ${esc(a.label)}</button>`).join('')}</div>` : ''}
+          <p class="faint" style="font-size:13px;margin:8px 0 0">Anything you add goes into the notes at the top of the script. All of it is optional.</p>`; })()}
       <p class="faint" style="font-size:13px">Two people, one room, one phone. Write a page or two; tape it in Actor OS with the other part in your own voice.</p>
       <div class="row" style="margin-top:10px"><button class="btn pri" data-a="scenewrite" data-k="${esc(key)}" data-id="${esc(p.id)}">Write it</button>
         <button class="btn" data-a="scenenext" data-k="${esc(key)}" data-i="${i}">Another</button>
         <span class="faint" style="font-size:13px">${(i % list.length) < r.hits ? 'Match ' + ((i % list.length) + 1) + ' of ' + r.hits : 'From the rest of the library'}</span></div>`);
+      const id = key + '|' + p.id;
+    document.querySelectorAll('.sheet [data-add]').forEach(el => el.addEventListener('input', () => { S.sceneAdds = S.sceneAdds || {}; (S.sceneAdds[id] = S.sceneAdds[id] || {})[el.dataset.add] = el.value; }));
+    if (focus) { const f = document.querySelector('.sheet [data-add="' + focus + '"]'); if (f) setTimeout(() => f.focus(), 60); }
   }
   function closeSheet(instant) {
     const scrim = $('.scrim'), sh = $('.sheet'); if (!sh) return;
@@ -719,10 +729,12 @@
       case 'lane': S.lane = ds.v; render(); break;
       case 'scene': sceneSheet(ds.k, 0); break;
       case 'scenenext': sceneSheet(ds.k, (+ds.i || 0) + 1); break;
+      case 'sceneadd': { const id = ds.k + '|' + ds.id; S.sceneAdds = S.sceneAdds || {}; S.sceneOpen = S.sceneOpen || {}; (S.sceneOpen[id] = S.sceneOpen[id] || {})[ds.f] = true; sceneSheet(ds.k, +ds.i || 0, ds.f); break; }
       case 'scenewrite': {
         const w = L.wants.find(x => x.key === ds.k), r = window.ArchScenes.suggest(w ? w.text : '', 99), p = r.list.find(x => x.id === ds.id);
         if (!p) break;
-        try { localStorage.setItem('theactorpage_handoff_premise', JSON.stringify({ from: 'archbook', title: p.title, fountain: window.ArchScenes.fountain(p, w ? w.text : ''), at: Date.now() })); }
+        const adds = (S.sceneAdds || {})[ds.k + '|' + p.id] || {};
+        try { localStorage.setItem('theactorpage_handoff_premise', JSON.stringify({ from: 'archbook', title: p.title, fountain: window.ArchScenes.fountain(p, w ? w.text : '', adds), at: Date.now() })); }
         catch (e) { toast('Could not hand it over: ' + e.message); break; }
         if (/^https?:$/.test(location.protocol)) location.href = '../write/writers-blockage.html';
         else toast('Opened from a file, so Writer\'s Blockage is not next door. Open it on theactorpage.com.');

@@ -1,5 +1,5 @@
 /* ARCHBOOK service worker: the app opens with no signal. Your videos never touch the network. */
-const CACHE = 'archbook-0.3.3';
+const CACHE = 'archbook-0.3.4';
 const FILES = ['./', 'index.html', 'app.js', 'engine.js', 'scenes.js', 'manifest.webmanifest',
   'fonts/jost-latin-400-normal.woff2', 'fonts/jost-latin-500-normal.woff2', 'fonts/jost-latin-600-normal.woff2',
   'fonts/courier-prime-latin-400-normal.woff2', 'fonts/courier-prime-latin-700-normal.woff2',

@@ -1,14 +1,14 @@
 {
  "asset": "#9 ARCHBOOK (formerly REEL MAKER)",
- "version": "0.3.3",
+ "version": "0.3.4",
  "files": {
   "README.md": {
-   "bytes": 6158,
-   "sha256": "8e7f2c3eeae8ca4f3d0b849dfe2fd2ec6684c27139da81d0adb1776bfae3bc02"
+   "bytes": 6552,
+   "sha256": "db7e1b0280f8700fb94518d315f469db1cad15a4301b969df039aff5c3f2add6"
   },
   "app.js": {
-   "bytes": 68994,
-   "sha256": "3cc7db7abcddbc1c75c0c6e378297141044c01540d7caee9831af985337bfab2"
+   "bytes": 70651,
+   "sha256": "4c65fc678e1f0becdf72650c97d221c78ffbb2c05b3e52112ead01a336959c5c"
   },
   "engine.js": {
    "bytes": 15118,
@@ -71,12 +71,12 @@
    "sha256": "f8845afc3b9ab4b99ec7bff44b8c5898efd3f9e0768409a6d9fe67e141f6d20a"
   },
   "scenes.js": {
-   "bytes": 21105,
-   "sha256": "68bac8d2974b25be6e6ce1ac6474b381831b503f23793c55fa99d34e90cea121"
+   "bytes": 21968,
+   "sha256": "fd03034da668c2cb218ca2a271796ca3e05a00dda8160abecfe9f1700dccefeb"
   },
   "sw.js": {
    "bytes": 1140,
-   "sha256": "1c5f6a71c0680444d12db77ccada55f20961a3530a782583b8300240e403e7ca"
+   "sha256": "5bb1b39127a00f16db542d559c240ffb04b7206950438faf0111885b1e5d0f97"
   },
   "tests/probe.html": {
    "bytes": 5587,

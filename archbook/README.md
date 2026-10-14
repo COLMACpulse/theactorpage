@@ -59,3 +59,6 @@ Drop `archbook/` into the theactorpage repo next to `breakdown/` (e.g. `/act/arc
 
 ## 0.3.3 (2026-10-14): a scene to shoot
 Every item on the shoot list has **Give me a scene**: a premise you can write in an evening and tape in a room. Who you are, who is across from you, the situation, what you want, what is in the way. 36 premises, every role open to any actor, matched to the words on the shoot list (best matches first, then the rest of the library). **Write it** opens Writer's Blockage on the same site with the premise as notes at the top, the place and the first image. No dialogue is written for you.
+
+## 0.3.4 (2026-10-14): make it yours
+The scene sheet has **Make it yours**: tap to add a secret, the history between the two, higher stakes, another obstacle or a reveal. One line each, all optional, nothing shown until you tap. Whatever you add goes into the notes at the top of the script in Writer's Blockage. Mined from the Contribution Graph: the premise starts something, you add to it.

@@ -210,18 +210,29 @@
     return { matched: hits > 0, hits, list: scored.map(x => x.p).slice(0, n || S.length) };
   }
   /* The starting page for Writer's Blockage: the premise as notes, the place, the first image. No dialogue. */
-  function fountain(p, wantText) {
+  /* Make it yours: the premise starts something, you add to it. One line each, all optional. */
+  const ADDS = [
+    { k: 'secret', label: 'A secret', q: 'What does your character know that the other one does not?' },
+    { k: 'history', label: 'Their history', q: 'What happened between these two before today?' },
+    { k: 'stakes', label: 'Raise the stakes', q: 'What happens if you do not get what you want?' },
+    { k: 'obstacle', label: 'Another obstacle', q: 'What else is in the way, right there in the room?' },
+    { k: 'reveal', label: 'A reveal', q: 'What comes out halfway through that changes the scene?' }
+  ];
+  function fountain(p, wantText, adds) {
+    const extra = ADDS.filter(a => adds && String(adds[a.k] || '').trim())
+      .map(a => '[[' + a.label.toUpperCase() + ': ' + String(adds[a.k]).trim().replace(/\]\]/g, ']') + ']]');
     return [
       'Title: ' + p.title, '',
       '[[From your ARCHBOOK shoot list: "' + String(wantText || '').replace(/"/g, "'") + '"]]', '',
       '[[YOU: ' + p.you + '. ACROSS FROM YOU: ' + p.them + '.]]', '',
       '[[' + p.situation + ']]', '',
       '[[YOU WANT: ' + p.want + ' IN THE WAY: ' + p.way + ']]', '',
+      ...extra.flatMap(x => [x, '']),
       p.where, '',
       p.start, ''
     ].join('\n');
   }
-  const api = { all: S, suggest, fountain };
+  const api = { all: S, suggest, fountain, ADDS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.ArchScenes = api;
 })(typeof window !== 'undefined' ? window : globalThis);
