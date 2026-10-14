@@ -243,6 +243,14 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
 .soundline{color:var(--mut);font-size:12.5px;margin-top:8px;line-height:1.5}
 .capline{font-size:13px;margin-top:8px}
 .dailyhead{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.dailyhead b{font-size:17px;margin-right:4px}
+.lightbox{margin:10px 0 2px}
+.lightline{display:flex;gap:9px;align-items:center;flex-wrap:wrap;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:var(--p2);font-size:13px}
+.lightline i{font:700 9.5px var(--mono);letter-spacing:.12em;font-style:normal;padding:2px 6px;border-radius:4px;background:var(--line)}
+.lightline.fix{border-color:#d9694e}.lightline.fix i{background:#d9694e;color:#fff}
+.lightline.check{border-color:#E0A23C}.lightline.check i{background:#E0A23C;color:#171005}
+.lightline.ok i{background:#2e4a39;color:#9fd3b3}.lightline small{color:var(--faint)}
+.lightmem{margin-top:7px;font-size:12.5px;color:var(--mut)}.lightmem.same b{color:#5cae7e}.lightmem.diff b{color:#E0A23C}
+.lightpick{width:auto;padding:7px 8px;font-size:12px}
 .sendcheck{margin-top:11px;padding:11px 12px;border:1px solid var(--line);border-radius:9px;background:var(--p2)}
 .sendcheck .sch{font:11px var(--mono);color:var(--ink);word-break:break-all;margin-bottom:4px}
 .sendcheck .schs{font-size:12.5px;color:var(--mut);margin-bottom:6px}
@@ -440,6 +448,7 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
     </div>
     <div class="prevbar" id="prevBar"></div>
   </div>
+  <div id="lightBox" class="lightbox" style="display:none"></div>
   <div class="row" style="gap:8px;flex-wrap:wrap;margin:11px 0 4px">
     <select id="captureFormat" style="flex:1;min-width:180px" onchange="applyFrame(this.value);previewFormat()">
       <option value="CASTING">CASTING &middot; 16:9 landscape</option>
@@ -1605,6 +1614,7 @@ async function startPreview(){
   const off=$('prevOff'); if(off&&off.style)off.style.display='none';
   liveFlag(true);
   previewFormat();
+  lightTick();
  }catch(e){ alert('Camera unavailable: '+e.message); }
 }
 function previewFormat(){
@@ -1618,6 +1628,47 @@ async function previewFlip(){
  await startPreview();
 }
 let prevCoachT=null;
+/* ===== LIGHT CHECK IN THE LIVE PREVIEW (5.29) =====
+   The light and background check was only wired to the old hidden screen. Now it
+   runs under the preview you actually use: one line, only when something is off,
+   plus "save this light" and a comparison with the light you saved. */
+function lightsGet(){ try{ return JSON.parse(localStorage.getItem('actor_os_lights')||'[]'); }catch(e){ return []; } }
+function lightsPut(a){ try{ localStorage.setItem('actor_os_lights',JSON.stringify(a.slice(0,12))); }catch(e){} }
+function lightSel(){ try{ return localStorage.getItem('actor_os_light_sel')||''; }catch(e){ return ''; } }
+let LIGHT_NOW=null;
+function lightTick(){
+ clearTimeout(prevCoachT);
+ const box=document.getElementById('lightBox'), PCa=window.PC;
+ if(!box||!PCa||!PCa.stream||!PCa.lightRead){ if(box) box.style.display='none'; return; }
+ const r=PCa.lightRead(); if(r) LIGHT_NOW=r;
+ renderLight();
+ prevCoachT=setTimeout(lightTick,900);
+}
+function renderLight(){
+ const box=document.getElementById('lightBox'); if(!box||!window.PC) return;
+ const r=LIGHT_NOW; box.style.display='';
+ const notes=(PC.lightNotes&&PC.lightNotes(r))||[];
+ const show=notes.filter(n=>n[0]!=='INFO');
+ const top=show.find(n=>n[0]==='FIX')||show[0]||notes[0];
+ let h=top?`<div class="lightline ${top[0].toLowerCase()}"><i>${top[0]==='FIX'?'FIX':top[0]==='CHECK'?'CHECK':'NOTE'}</i><span>${esc2(top[1])}</span>${show.length>1?`<small>+${show.length-1} more</small>`:''}</div>`
+          :`<div class="lightline ok"><i>LIGHT</i><span>Nothing needs your attention.</span></div>`;
+ const L=lightsGet(), sel=L.find(x=>x.name===lightSel())||L[0];
+ if(sel&&r){ const c=PC.lightCompare(r,sel.sig);
+  h+=`<div class="lightmem ${c.same?'same':'diff'}"><b>${c.text} “${esc2(sel.name)}”</b>${c.detail?' · '+esc2(c.detail):''}</div>`; }
+ h+=`<div class="row" style="gap:7px;margin-top:8px;flex-wrap:wrap">
+   <button class="mini ghost" onclick="lightSave()">SAVE THIS LIGHT</button>
+   ${L.length>1?`<select class="lightpick" onchange="try{localStorage.setItem('actor_os_light_sel',this.value)}catch(e){};renderLight()">${L.map(x=>`<option ${sel&&x.name===sel.name?'selected':''}>${esc2(x.name)}</option>`).join('')}</select>`:''}
+   ${show.length>1?`<button class="mini ghost" onclick="lightAll()">ALL NOTES</button>`:''}</div>`;
+ box.innerHTML=h;
+}
+function lightSave(){
+ if(!LIGHT_NOW){ stageToast('Turn on the camera first.'); return; }
+ const name=(prompt('Name this light (where you are, time of day)','Kitchen wall, evening')||'').trim(); if(!name) return;
+ const L=lightsGet().filter(x=>x.name!==name); L.unshift({name:name,sig:LIGHT_NOW,at:Date.now()}); lightsPut(L);
+ try{ localStorage.setItem('actor_os_light_sel',name); }catch(e){}
+ renderLight(); stageToast('Saved “'+name+'”. Next time the preview tells you if the light has changed.');
+}
+function lightAll(){ const n=(PC.lightNotes&&PC.lightNotes(LIGHT_NOW))||[]; alert(n.map(x=>x[0]+': '+x[1]).join('\n')); }
 
 /* Nothing holds the camera or the microphone unless a stage is actually open.
    When either is live the app says so, because a recording light that is not

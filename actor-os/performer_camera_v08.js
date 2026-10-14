@@ -105,6 +105,60 @@ const P={
           colourCast:Math.round(cast*10)/10,
           separation:Math.round(separation*10)/10};
  },
+ /* ===== LIGHT, MEASURED ON YOU (5.29) =====
+    Mined from CAMERA COACH. Exposure is read on the middle of the frame, where you
+    are, not averaged over the room: a lit face on a dark wall is a look, not an
+    underexposed frame. The wall is read on its own, and a coloured wall is called a
+    coloured wall, never a white-balance problem. src: optional canvas/image (tests). */
+ lightRead(src){
+  const v=src||this.video; if(!v) return null;
+  const vw=v.videoWidth||v.width, vh=v.videoHeight||v.height; if(!vw||!vh) return null;
+  if(!this.canvas){ this.canvas=document.createElement('canvas'); }
+  if(!this.ctx) this.ctx=this.canvas.getContext('2d',{willReadFrequently:true});
+  const W=160, H=Math.max(60,Math.round(W*vh/vw)); this.canvas.width=W; this.canvas.height=H;
+  let d; try{ this.ctx.drawImage(v,0,0,W,H); d=this.ctx.getImageData(0,0,W,H).data; }catch(e){ return null; }
+  const L=i=>0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2];
+  let sN=0,sS=0,sClip=0,sCrush=0, wN=0,wS=0,wS2=0,wr=0,wg=0,wb=0, edge=0;
+  for(let y=1;y<H-1;y++) for(let x=1;x<W-1;x++){
+   const i=(y*W+x)*4, l=L(i), fx=x/W, fy=y/H;
+   if(fx>0.32&&fx<0.68&&fy>0.12&&fy<0.88){ sN++; sS+=l; if(l>245)sClip++; if(l<16)sCrush++; }
+   else if(fx<0.18||fx>0.82||fy<0.10){ wN++; wS+=l; wS2+=l*l; wr+=d[i]; wg+=d[i+1]; wb+=d[i+2];
+    const gx=Math.abs(L(i+4)-L(i-4)), gy=Math.abs(L(i+W*4)-L(i-W*4)); if(gx+gy>26) edge++; }
+  }
+  if(!sN||!wN) return null;
+  const subject=sS/sN, wall=wS/wN, sd=Math.sqrt(Math.max(0,wS2/wN-wall*wall));
+  wr/=wN; wg/=wN; wb/=wN;
+  return {subject:Math.round(subject), wall:Math.round(wall), clip:+(sClip/sN).toFixed(3), crush:+(sCrush/sN).toFixed(3),
+   separation:Math.round(Math.abs(subject-wall)), evenness:Math.round(sd), busy:+(edge/wN).toFixed(3),
+   wallColour:Math.round(Math.max(wr,wg,wb)-Math.min(wr,wg,wb))};
+ },
+ lightNotes(r){
+  if(!r) return [];
+  const n=[];
+  if(r.subject<60) n.push(['FIX','You read dark. Add light on yourself, or turn toward your light.']);
+  else if(r.subject>220||r.clip>0.10) n.push(['FIX','Part of you is blowing out to white. Ease the light on you.']);
+  if(r.separation<14) n.push(['FIX','You blend into the wall. Light yourself more than the wall, or step forward.']);
+  if(r.wall>228) n.push(['CHECK','The wall behind you is blown out. A window or lamp in frame?']);
+  if(r.busy>0.085) n.push(['CHECK','Busy background. Casting wants plain. Check what is in frame.']);
+  else if(r.evenness>40) n.push(['CHECK','The wall is lit unevenly behind you.']);
+  if(r.wallColour>46) n.push(['CHECK','The wall is a strong colour. Neutral reads better on tape.']);
+  if(r.wall<30&&r.subject>=60) n.push(['INFO','Dark wall behind you. Fine if that is the look; it can go murky on a small screen.']);
+  return n;
+ },
+ /* Lighting memory: is it the same light as last time? Compares you, the wall, and the
+    gap between them. Phones adjust their own exposure, so the gap is the steadiest sign. */
+ lightCompare(cur,saved){
+  if(!cur||!saved) return null;
+  const pct=(a,b)=>b>0?Math.round((a-b)/b*100):0;
+  const dS=pct(cur.subject,saved.subject), dW=pct(cur.wall,saved.wall);
+  const gap=c=>(c.subject+1)/(c.wall+1), dG=pct(gap(cur),gap(saved));
+  const same=Math.abs(dS)<12&&Math.abs(dW)<15&&Math.abs(dG)<15;
+  const parts=[];
+  if(Math.abs(dS)>=12) parts.push('you are '+(dS<0?'darker':'brighter')+' ('+(dS>0?'+':'')+dS+'%)');
+  if(Math.abs(dW)>=15) parts.push('the wall is '+(dW<0?'darker':'brighter')+' ('+(dW>0?'+':'')+dW+'%)');
+  if(!parts.length&&Math.abs(dG)>=15) parts.push('the balance between you and the wall has changed');
+  return {same:same, dSubject:dS, dWall:dW, dGap:dG, text:same?'Same light as':'Different from', detail:parts.join(', ')};
+ },
  backgroundNotes(bg){
   if(!bg)return [];
   const n=[];

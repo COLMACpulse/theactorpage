@@ -130,6 +130,13 @@ This is the part that matters.
 
 ---
 
+## New in 5.29 (2026-10-14): the light check, switched on
+Actor OS already measured light and background, but only on the old hidden screen. Now it runs under the live SHOOT preview. Mined from CAMERA COACH.
+- **One line, only when something is off:** you read dark, part of you is blowing out, you blend into the wall, the wall is blown out, busy background, unevenly lit wall, strong wall colour. Otherwise "Nothing needs your attention."
+- **Measured on you, not the room.** Exposure is read on the middle of the frame where you are. A lit face on a dark wall is a look, not "underexposed" (Camera Coach called it underexposed). A coloured wall is called a coloured wall, never a white-balance problem.
+- **Save this light.** Name your setup ("Kitchen wall, evening"). Next time the preview says "Same light as Kitchen wall" or "Different from Kitchen wall: you are darker (-23%)". Keeps a callback matching the first tape. It never says where to put a lamp.
+- Phones adjust their own exposure, so the comparison also watches the balance between you and the wall, which auto-exposure doesn't hide.
+
 ## New in 5.28 (2026-10-14): before you send
 Mined from ACTOR CUTROOM, which read the format from the file name and called a silent track "audio measured". Here everything is read from the file itself. A plain list, no "ready": you decide.
 - **Sound:** measured from the decoded audio. Catches a silent track, a missing track, and very quiet sound. If this phone can't decode the sound, it says so instead of guessing.
