@@ -130,6 +130,13 @@ This is the part that matters.
 
 ---
 
+## New in 5.22 (2026-10-14): every take tests a choice
+Mined from RIFF WORKBENCH, with the take as the test instead of a tick box.
+- On the review screen, "Next time, change the" objective, tactic, relationship, secret or circumstance, plus your one line. Optional.
+- The next take in that scene carries it as what it is trying. The stage shows the plan before you roll.
+- CUT shows on each take what it tried, next to the why; Compare shows it under both videos.
+- CUT lists what has not been tried yet in each scene. A nudge, never a score.
+
 ## New in 5.21 (2026-10-14)
 - **Next time.** Under the why on the review screen: what you will change. It shows on the stage before your next take in that scene and disappears the moment you roll.
 - **Sides from Writer's Blockage.** Export, then "Actor OS: tape this scene" opens the script here as your sides. Notes, sections and the title page stay behind.

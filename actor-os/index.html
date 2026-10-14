@@ -225,6 +225,11 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
 /* fixes v5.19: the stage message was drawn on top of the record button */
 .sNext{position:absolute;left:50%;transform:translateX(-50%);top:calc(150px + env(safe-area-inset-top));max-width:min(92vw,620px);padding:9px 14px;border-radius:10px;background:rgba(0,0,0,.62);color:#fff;font-size:14px;line-height:1.4;display:none;z-index:5;pointer-events:none}
 .sNext.on{display:block}
+.choicerow{max-width:640px;margin:10px auto 0;display:flex;flex-wrap:wrap;gap:6px;align-items:center;color:#cfd3d8;font-size:12px}
+.choicerow .chc{min-height:36px;padding:0 11px;border-radius:18px;border:1px solid rgba(255,255,255,.28);background:rgba(0,0,0,.45);color:#fff;font-size:12px}
+.choicerow .chc.on{background:#E0A23C;border-color:#E0A23C;color:#1a1206}
+.tried{font-size:12px;color:#E0A23C;margin-top:5px}
+.untried{font-size:12px;color:var(--faint,#646b75);margin:4px 0 8px;letter-spacing:.02em}
 #stage.on ~ .livedot{top:calc(60px + env(safe-area-inset-top))}   /* was sitting on LISTEN FOR MY CUE */.sNext b{color:#E0A23C;font-weight:600}
 .whyin{width:100%;margin-top:8px;background:transparent;border:1px solid var(--line2,#3a414c);border-radius:8px;color:inherit;padding:9px 11px;min-height:40px;font-size:13px}
 .review .whyin{max-width:640px;margin:10px auto 0;display:block;background:rgba(0,0,0,.45);color:#fff}
@@ -563,15 +568,25 @@ if($('recBtn'))$('recBtn').onclick=()=>{if(!stream)return alert('Start camera fi
 if($('stopBtn'))$('stopBtn').onclick=()=>{if(rec&&rec.state!=='inactive')rec.stop();$('recState').textContent='READY';$('recBtn').disabled=false;$('stopBtn').disabled=true};
 function renderTakes(){$('takeCount').textContent=state.takes.length;try{unsavedBanner();renderSave();navState();}catch(e){}$('takeList').innerHTML=state.takes.slice().reverse().map(t=>`<div class="take ${t.status==='SURVIVOR'?'survivor':''}"><div><b>SCENE ${t.scene} · TAKE ${t.n}</b><small>${t.status} · ${(t.bytes/1048576).toFixed(1)} MB · ${t.savedToDevice?'<span style="color:#5cae7e">saved to ${DEVICE}</span>':'<span style="color:#E0A23C">browser only</span>'}</small></div><div class="row"><button class="mini" onclick="saveTakeToDevice('${t.id}')" style="border-color:#E0A23C;color:#E0A23C">&#8681; SAVE</button><button class="mini" onclick="setTake('${t.id}','DROP')">DROP</button><button class="mini" onclick="setTake('${t.id}','HOLD')">HOLD</button><button class="mini" onclick="setTake('${t.id}','SURVIVOR')">SURVIVOR</button></div></div>`).join('')}
 function setTake(id,s){let t=state.takes.find(x=>x.id===id);if(!t)return;if(s==='SURVIVOR')state.takes.filter(x=>x.scene===t.scene).forEach(x=>{if(x.id!==id&&x.status==='SURVIVOR')x.status='HOLD'});t.status=s;localStorage.setItem(KEY,JSON.stringify(state));renderTakes();renderCut()}window.setTake=setTake;
+/* Under the first take of each scene that has tried a change: what has not been tried yet. A nudge, never a score. */
+function untriedFor(t,takes){
+ const sc=takes.filter(x=>x.scene===t.scene);
+ if(sc[0]!==t) return '';
+ const tried=new Set(sc.map(x=>x.trying&&x.trying.kind).filter(Boolean));
+ if(!tried.size) return '';
+ const left=CHOICES.filter(c=>!tried.has(c));
+ return `<div class="untried">${esc2(String(t.scene||''))}: ${left.length?'not tried yet: '+left.join(', '):'every kind of change tried'}</div>`;
+}
 function renderCut(){
  const takes=(state.takes||[]).filter(t=>t.status!=='DROP');
  const lim=limitSecs();
  $('cutTakes').innerHTML=takes.length?takes.map(t=>{
   const len=t.secs||0, over=lim&&len>lim;
   const mine=(t.marks||[]).filter(m=>m.mine).length;
-  return `<div class="take ${t.status==='SURVIVOR'?'survivor':''}"><div style="flex:1;min-width:0">
+  return `${untriedFor(t,takes)}<div class="take ${t.status==='SURVIVOR'?'survivor':''}"><div style="flex:1;min-width:0">
    <b>${t.isSlate?'Slate':(t.imported?'Imported':'Take '+t.n)} &middot; ${esc2(String(t.scene||''))}</b>
    <small>${t.status} &middot; <span style="color:${over?'#d9694e':(lim?'#5cae7e':'inherit')}">${fmtLen(len)}${lim?(over?' &middot; '+fmtLen(len-lim)+' over':' &middot; under the limit'):''}</span>${mine?' &middot; '+mine+' line'+(mine===1?'':'s')+' marked':''}</small>
+   ${t.trying?`<div class="tried">Tried: ${esc2(tryingLine(t))}</div>`:''}
    <input class="whyin" value="${esc2(t.why||'')}" placeholder="Why? Only you see this." oninput="setWhy('${t.id}',this.value)"></div>
    <div><button class="mini" onclick="setTake('${t.id}','SURVIVOR')">USE</button></div></div>`;}).join(''):'No takes yet.';
  let surv=state.takes.filter(t=>t.status==='SURVIVOR');state.sequence=surv.map(t=>t.id);
@@ -2317,15 +2332,36 @@ async function saveAllTakes(){
 
 /* ===== WHY, LIMIT, LINE MARKERS, COMPARE (mined from Tape Cutter) =====
    The actor chooses; the app keeps why. Nothing here scores a take. */
+/* Riffs, tested on camera. The note you leave after a take (and the thing you said
+   you'd change) becomes what the next take is trying. Mined from Riff Workbench. */
+const CHOICES=['objective','tactic','relationship','secret','circumstance'];
+function setNextChoice(id,c,el){
+ const t=(state.takes||[]).find(x=>x.id===id); if(!t)return;
+ t.nextChoice=(t.nextChoice===c)?'':c;
+ try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}
+ const row=el&&el.closest?el.closest('.choicerow'):null;
+ if(row) row.querySelectorAll('.chc').forEach(b=>b.classList.toggle('on',b.dataset.c===t.nextChoice));
+}
+function tryingFor(scene){
+ const prev=(state.takes||[]).filter(t=>t.scene===scene).slice(-1)[0];
+ if(!prev) return null;
+ const text=String(prev.next||'').trim(), kind=prev.nextChoice||'';
+ return (text||kind)?{kind, text, from:prev.n}:null;
+}
+function tryingLine(t){
+ const tr=t&&t.trying; if(!tr)return '';
+ return (tr.kind?'new '+tr.kind:'')+(tr.kind&&tr.text?': ':'')+(tr.text||'');
+}
 function setNext(id,v){ const t=(state.takes||[]).find(x=>x.id===id); if(!t)return; t.next=v; try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){} }
 /* The note you left yourself after the last take in this scene, on screen before the
    next one rolls. Gone the moment you roll: nothing writes on the frame during a take. */
 function showNext(){
  const el=$('sNext'); if(!el||!el.classList)return;
  const sc=(typeof curScene==='function')?curScene().name:state.scene;
- const prev=(state.takes||[]).filter(t=>t.scene===sc&&t.next&&String(t.next).trim()).slice(-1)[0];
+ const last=(state.takes||[]).filter(t=>t.scene===sc).slice(-1)[0];
+ const prev=(last&&((last.next&&String(last.next).trim())||last.nextChoice))?last:null;
  if(!prev||sRecOn||!MODE){ el.classList.remove('on'); el.textContent=''; return; }
- el.innerHTML='<b>From take '+prev.n+':</b> '+esc2(prev.next);
+ el.innerHTML='<b>From take '+prev.n+(prev.nextChoice?' \u00b7 new '+esc2(prev.nextChoice):'')+':</b> '+esc2(prev.next||'');
  el.classList.add('on');
 }
 function setWhy(id,v){ const t=(state.takes||[]).find(x=>x.id===id); if(!t)return; t.why=v; try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){} }
@@ -2389,8 +2425,8 @@ function renderCompare(){
    <button onclick="playEvery('button')">&#9654; EVERY BUTTON</button></div>
    <div class="am" style="margin:0 0 12px">Your first line, then your last, from each take in a row. Marked as you shot.</div>`;
  h+=`<div class="cmpgrid">
-   <div><select onchange="CMP.a=this.value;renderCompare()">${opt(CMP.a)}</select><video id="cmpA" src="${ta.url}" playsinline controls ${CMP.sound==='a'?'':'muted'}></video><small>${esc2(ta.why||'')}</small></div>
-   <div><select onchange="CMP.b=this.value;renderCompare()">${opt(CMP.b)}</select><video id="cmpB" src="${tb.url}" playsinline controls ${CMP.sound==='b'?'':'muted'}></video><small>${esc2(tb.why||'')}</small></div></div>
+   <div><select onchange="CMP.a=this.value;renderCompare()">${opt(CMP.a)}</select><video id="cmpA" src="${ta.url}" playsinline controls ${CMP.sound==='a'?'':'muted'}></video><small>${ta.trying?'Tried: '+esc2(tryingLine(ta))+(ta.why?' \u00b7 ':''):''}${esc2(ta.why||'')}</small></div>
+   <div><select onchange="CMP.b=this.value;renderCompare()">${opt(CMP.b)}</select><video id="cmpB" src="${tb.url}" playsinline controls ${CMP.sound==='b'?'':'muted'}></video><small>${tb.trying?'Tried: '+esc2(tryingLine(tb))+(tb.why?' \u00b7 ':''):''}${esc2(tb.why||'')}</small></div></div>
   <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:10px">
    ${mineLines.length?`<select style="flex:1;min-width:160px" onchange="CMP.line=this.value">${['open','button'].map(k=>`<option value="${k}"${CMP.line===k?' selected':''}>${k==='open'?'From your first line':'From your last line'}</option>`).join('')}${mineLines.map(m=>`<option value="${m.i}"${String(CMP.line)===String(m.i)?' selected':''}>&ldquo;${esc2(m.text.slice(0,40))}&rdquo;</option>`).join('')}</select>`:''}
    <button onclick="cmpPlay()">&#9654; PLAY BOTH</button>
@@ -2815,7 +2851,7 @@ function beginRecording(st,btn){
             /* Wall clock at both ends. This is what lets a file shot on the phone be
                matched to the take this device rolled at the same moment. */
             startedAt:sT0, endedAt:Date.now(), angle:'REFERENCE',
-            marks:(sMarks||[]).slice(), why:'',
+            marks:(sMarks||[]).slice(), why:'', trying:tryingFor((typeof curScene==='function')?curScene().name:state.scene),
             secs:Math.round((Date.now()-sT0)/1000), mode:MODE };
   state.takes.push(t);
   try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){}
@@ -2852,6 +2888,7 @@ function showTakeReview(t, blob){
  w.innerHTML=`<div class="rv">
    <video src="${t.url}" controls playsinline autoplay></video>
    <input class="whyin" placeholder="Why keep it, or why not? Only you see this." oninput="setWhy('${t.id}',this.value)">
+   <div class="choicerow" data-take="${t.id}"><span>Next time, change the</span>${CHOICES.map(c=>`<button class="chc" data-c="${c}" onclick="setNextChoice('${t.id}','${c}',this)">${c}</button>`).join('')}</div>
    <input class="whyin nextin" placeholder="Next time: what will you change? Shows before your next take." oninput="setNext('${t.id}',this.value)">
    <div class="rvbar">
      <div><b>Take ${t.n}</b><small>${t.secs}s &middot; ${(t.bytes/1048576).toFixed(1)} MB${(window.ActorCompress&&!ActorCompress.kind(t.type).h264)?' &middot; WebM':''} &middot; <span style="color:#E0A23C">not saved to this ${DEVICE} yet</span></small></div>
