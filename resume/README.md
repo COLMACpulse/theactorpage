@@ -68,3 +68,11 @@ MANIFEST.json           bytes + sha256 per file
 
 ## Delivery
 Drop `resume/` next to `breakdown/`, `archbook/` and `slate/` (e.g. `/act/resume/`). It must share their origin to bring in your clips and kit.
+
+## 0.4 (2026-10-14): who it's for
+Mined from SHOWCASE: one body of work, a different page per person. SEND asks **Who's it for?**
+- **Casting:** headshot, slate (a piece set to Slate), your 3 best clips for the role, résumé, contact. Name the role and paste the breakdown, and the clips that fit it come first, with what they matched on.
+- **Agent or manager:** your range, clips grouped by type (the tags you gave them in ARCHBOOK come across, or type them on the piece), credits and links. Optionally what you're shooting next.
+- **Director:** the scene work, best match first, character named. No stats block, no slate.
+- **Anyone:** the page as before.
+The zip is named for who it's for and carries only the clips on that page. "Copy the email note" gives a short note to match. A clip only matches a role on what it actually carries (its types, title, character, its line); an empty field matches nothing. Private prep (Actor OS why and next-time notes, CPS) never goes on a page.

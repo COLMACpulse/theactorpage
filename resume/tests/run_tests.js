@@ -50,6 +50,38 @@ ok('page: credits come before clips', ord.indexOf('m/short.mp4') < ord.indexOf('
 ok('page: hidden piece stays off', !/media\/x\.mp4/.test(html));
 ok('page: escapes user text', !/<script>/.test(E.pageHTML(Object.assign({}, m, { name: '<script>x</script>' }), [], {})));
 
+
+// ---------------------------------------------------------------- who it's for (mined from SHOWCASE)
+{
+  const P = (id, o) => Object.assign({ id, type: 'scene', title: '', character: '', note: '', media: 'm/' + id + '.mp4', onPage: true }, o);
+  const ps = [
+    P('home', { title: 'Coming Home', types: 'warmth' }),
+    P('blank', { title: 'Untitled clip' }),                                     // no types, no character: must match nothing
+    P('gate', { title: 'Bad News at the Gate', character: 'Deputy', types: 'authority, small town' }),
+    P('slate', { type: 'slate', title: 'Slate' }),
+    P('room', { title: 'The Quiet Room', character: 'Detective', types: 'authority, restraint' }),
+    P('bit', { title: 'The Ticket', types: 'comedy' })
+  ];
+  const bd = 'DEPUTY COLLINS, 40s. Weathered small-town lawman with quiet authority. Restrained, never raises his voice.';
+  const fit = new Map(E.roleMatch(bd, ps).map(x => [x.p.id, x.score]));
+  ok('match: empty fields match nothing (Showcase matched every blank clip)', fit.get('blank') === 0 && fit.get('home') === 0 && fit.get('bit') === 0, [...fit]);
+  ok('match: word roots ("authority" in the breakdown finds the authority clips; "restrained" finds "restraint")', fit.get('gate') >= 2 && fit.get('room') >= 2);
+  const cast = E.orderFor('casting', ps, { breakdown: bd }).map(p => p.id);
+  ok('casting: slate first, then the 3 best for the role, nothing else', cast.length === 4 && cast[0] === 'slate' && cast.slice(1, 3).sort().join() === 'gate,room', cast);
+  const dir = E.orderFor('director', ps, { breakdown: bd }).map(p => p.id);
+  ok('director: no slate, best match first', !dir.includes('slate') && ['gate', 'room'].includes(dir[0]) && dir.length === 5, dir);
+  const me = { name: 'Jordan Reyes', email: 'j@x.com', height: "5'10\"", links: 'jordanreyes.com' };
+  const m = E.resumeModel(me, [], [], ['Boxing']);
+  const rep = E.pageHTML(m, ps, { audience: 'rep', shootNext: ['weathered small town sheriff'] });
+  ok('rep: clips grouped by type, biggest group first, untyped under Other work last', rep.indexOf('<h2>authority</h2>') < rep.indexOf('<h2>comedy</h2>') && rep.lastIndexOf('<h2>Other work</h2>') > rep.indexOf('<h2>comedy</h2>'));
+  ok('rep: links and the shoot list (only when asked)', /jordanreyes\.com/.test(rep) && /Shooting next/.test(rep) && !/Shooting next/.test(E.pageHTML(m, ps, { audience: 'rep' })));
+  const castHtml = E.pageHTML(m, ps, { audience: 'casting', role: 'Deputy Collins', breakdown: bd });
+  ok('casting page: names the role, carries only the chosen clips', /For Deputy Collins/.test(castHtml) && !/m\/bit\.mp4/.test(castHtml) && /m\/gate\.mp4/.test(castHtml));
+  const dirHtml = E.pageHTML(m, ps, { audience: 'director', role: 'Deputy Collins' });
+  ok('director page: no stats or skills block, no slate', !/Height/.test(dirHtml) && !/Special skills/.test(dirHtml) && !/m\/slate\.mp4/.test(dirHtml));
+  ok('notes are plain and fit who it goes to', /for Deputy Collins\. Slate, 3 clips/.test(E.sendNote(m, 'casting', 'Deputy Collins', 3)) && /grouped by type/.test(E.sendNote(m, 'rep', '', 0)));
+}
+
 // zip
 const z = E.makeZip([{ name: 'page/index.html', bytes: E.enc(html) }, { name: 'page/media/a.bin', bytes: new Uint8Array([1, 2, 3]) }]);
 fs.writeFileSync(path.join(__dirname, '_out.zip'), Buffer.from(z));

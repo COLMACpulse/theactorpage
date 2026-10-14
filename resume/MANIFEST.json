@@ -1,18 +1,18 @@
 {
  "asset": "#10 VIRTUAL RESUME",
- "version": "0.3.0",
+ "version": "0.4.0",
  "files": {
   "README.md": {
-   "bytes": 5682,
-   "sha256": "b7f9dd0f874e549116d4abc0e0e52b409662cd23d5ec8da4c415a5cd0b108472"
+   "bytes": 6671,
+   "sha256": "df8d2def24ada450e8d176c78c14985841cd7b1f4ceefee364536c9d726c9daf"
   },
   "app.js": {
-   "bytes": 36830,
-   "sha256": "1e94a4b3bf09c201d37fea46f6ea17b7a3303ef8d3a2a5776d8aaedd9379b2b6"
+   "bytes": 41916,
+   "sha256": "803f5c77d52d8f37b16d3ac9e8257cedbbb490e4fbf50eeb560e1b688fc9052c"
   },
   "engine.js": {
-   "bytes": 12334,
-   "sha256": "fc66585b51fc97062bbb9133ef1ac6844d45e4a0593e611700d734cc4fc4eb81"
+   "bytes": 18127,
+   "sha256": "1e030910a428af1b65f19bcad7a1355aca2d124fa71014b99c9104ae5d0df7d4"
   },
   "fonts/LICENSE_CourierPrime_OFL.txt": {
    "bytes": 4783,
@@ -63,8 +63,8 @@
    "sha256": "da2979534f710ac2fed308fa3345a6ca8ab922a02da31b982acc84b49bea491e"
   },
   "index.html": {
-   "bytes": 16431,
-   "sha256": "c464bec8a17a787c86b8752fda26582d425fc377abfe87e63e66ee41f5ab5570"
+   "bytes": 16586,
+   "sha256": "dac660725ce0cb2aa86ecb3758bd03d56063e2cf224f38720dfd0d821fce2aac"
   },
   "manifest.webmanifest": {
    "bytes": 602,
@@ -72,15 +72,19 @@
   },
   "sw.js": {
    "bytes": 1085,
-   "sha256": "68dc74c2e959c6f38c0f580a763863ad84e48c4e956f1ae3340a229c6d7ca791"
+   "sha256": "457be23eb3d517ee2a031e72143da531da474172f49c81e6f189c2877244008c"
+  },
+  "tests/_out.zip": {
+   "bytes": 2367,
+   "sha256": "3d8a113681359f95d2ea47ce9e0a3f1e8f0e1f7d6455b4f64263346297d18901"
   },
   "tests/probe.html": {
    "bytes": 5578,
    "sha256": "41b8c7fed6bd3d55debcd86b418e5d1e52f5cf3d2710d3d3a70f4fd20f7dfa0f"
   },
   "tests/run_tests.js": {
-   "bytes": 5297,
-   "sha256": "feecc6df5afb2bec6bee5fd25ed108a936b23d2b3ae0e46f427271600404997c"
+   "bytes": 8405,
+   "sha256": "6d66eaf6de2d565644af822301db200fb25b88a6906749bb61a14259a85c4cbe"
   }
  }
 }

@@ -6,7 +6,7 @@
 */
 (function () {
   'use strict';
-  const VERSION = '0.3.0';
+  const VERSION = '0.4.0';
   const SCHEMA = 'ACT.RESUME/0.3';
   const E = window.ResumeEngine;
 
@@ -124,6 +124,7 @@
       ${film ? `<label class="lab" for="p_link">Where people can watch it</label><input class="field" id="p_link" data-p="link" value="${esc(p.link)}" placeholder="YouTube or Vimeo link" inputmode="url">
         <input class="field" style="margin-top:6px" id="p_shown" data-p="shownAt" value="${esc(p.shownAt)}" placeholder="or: festival or screening name">` : `<label class="lab" for="p_link">Link (optional)</label><input class="field" id="p_link" data-p="link" value="${esc(p.link)}" placeholder="YouTube or Vimeo link" inputmode="url">`}
       ${c.section !== 'clip' ? `<div class="card" style="margin-top:12px" id="steps">${stepsHtml(p)}</div>` : ''}
+      <label class="lab" for="p_types">What character does it show? (comma between them)</label><input class="field" id="p_types" data-p="types" value="${esc(E.typesOf(p).join(', '))}" placeholder="e.g. authority, small town, warmth">
       <label class="lab" for="p_note">A line about it for your page (optional)</label><input class="field" id="p_note" data-p="note" value="${esc(p.note)}" placeholder="e.g. Shot in one afternoon with two friends">
       <div class="row" style="margin-top:12px">
         <button class="flag ${p.onPage !== false ? 'on' : ''}" data-a="ponpage">On your page</button>
@@ -190,7 +191,21 @@
   }
   function vSend() {
     const m = model(), L = S.lib;
+    const snd = sendCfg(), aud = E.AUDIENCES[snd.aud] ? snd.aud : 'anyone';
+    const pieces = S.lib.pieces.filter(p => p.onPage !== false && (S.blobs[p.id] || p.link)).map(p => Object.assign({}, p, { media: S.blobs[p.id] ? 'x' : '' }));
+    const order = E.orderFor(aud, pieces, { breakdown: snd.breakdown });
+    const fit = new Map(E.roleMatch(snd.breakdown, pieces).map(x => [x.p.id, x.hits]));
+    const shoot = (S.shootList || []).map(w => w.text);
+    const whoCard = `<div class="card"><div class="kicker">Who's it for?</div>
+      <div class="row" style="gap:6px">${Object.entries(E.AUDIENCES).map(([k, v]) => `<button class="chip ${aud === k ? 'on' : ''}" data-a="aud" data-v="${k}">${esc(v.label)}</button>`).join('')}</div>
+      <p class="dim" style="font-size:14px;margin:8px 0 0">${esc(E.AUDIENCES[aud].note)}</p>
+      ${aud === 'casting' || aud === 'director' ? `<label class="lab" for="s_role">The role</label><input class="field" id="s_role" data-s="role" value="${esc(snd.role)}" placeholder="e.g. Deputy Collins">
+        <label class="lab" for="s_bd">Paste the breakdown (optional)</label><textarea class="field" id="s_bd" data-s="breakdown" rows="3" placeholder="DEPUTY COLLINS. 40s. Weathered small-town lawman, quiet authority...">${esc(snd.breakdown)}</textarea>` : ''}
+      ${aud === 'rep' && shoot.length ? `<button class="flag ${snd.shootNext ? 'on' : ''}" data-a="shootnext" style="margin-top:10px">Include what I'm shooting next (${shoot.length})</button>` : ''}
+      <div class="kicker" style="margin-top:14px">On the page, in this order</div>
+      <div id="sendorder">${sendOrderHtml(aud, order, fit)}</div></div>`;
     return `<div class="kicker">Send</div><h1 style="font-size:24px;margin-bottom:8px">Your résumé and your page</h1>
+      ${whoCard}
       <div class="row"><span class="dim" style="font-size:14px">Paper</span>${[['8x10', '8×10 (back of headshot)'], ['letter', 'Letter']].map(([k, l]) => `<button class="chip ${L.paper === k ? 'on' : ''}" data-a="paper" data-v="${k}">${l}</button>`).join('')}
         <button class="flag ${L.headTop ? 'on' : ''}" data-a="headtop" ${S.headUrl ? '' : 'disabled'}>Headshot at the top</button></div>
       <div class="paperwrap" id="pw"><div class="paper" id="paper" style="height:${L.paper === 'letter' ? 1056 : 960}px;overflow:hidden">${paperHtml(m)}</div></div>
@@ -199,7 +214,8 @@
       <div class="card"><div class="row">
         <button class="btn pri" data-a="print">Print / Save PDF</button>
         <button class="btn" data-a="copytext">Copy as text</button>
-        <button class="btn" data-a="pagezip">Your page (.zip)</button></div>
+        <button class="btn" data-a="pagezip">Your page for ${esc(E.AUDIENCES[aud].label.toLowerCase())} (.zip)</button>
+        <button class="btn ghost" data-a="copynote">Copy the email note</button></div>
         <p class="faint" style="font-size:13px;margin:8px 0 0">Text is for casting-site forms. Your page is a folder you can host anywhere: open index.html to see it.</p></div>
       <div class="card"><b>Library file</b><p class="dim" style="font-size:14px;margin:4px 0 10px">${L.lastSaved ? 'Last saved ' + new Date(L.lastSaved).toLocaleString() + '.' : '<b style="color:var(--tung-text)">Never saved to a file.</b>'} Holds everything but the videos.</p>
         <div class="row"><button class="btn" data-a="savelib">Save library file</button><button class="btn ghost" data-a="openlib">Open a library file</button></div></div>
@@ -223,21 +239,32 @@
     const rz = $('#print .rz'); if (rz && S.fontPt) { rz.style.fontSize = S.fontPt + 'pt'; rz.querySelectorAll('.nm').forEach(n => n.style.fontSize = (S.fontPt * 2.2) + 'pt'); }
     setTimeout(() => window.print(), 60);
   }
+  function sendCfg() { S.lib.send = S.lib.send || { aud: 'anyone', role: '', breakdown: '', shootNext: false }; return S.lib.send; }
+  function sendOrderHtml(aud, order, fit) {
+    if (!order.length) return '<p class="faint" style="font-size:14px;margin:4px 0 0">Nothing with a video or a link yet. Add work in WORK.</p>';
+    if (aud === 'rep') {
+      return E.groupByType(order).map(g => `<div class="ord"><b>${esc(g.label)}</b><span>${esc(g.items.map(p => p.title || 'Untitled').join(', '))}</span></div>`).join('') +
+        (order.some(p => !E.typesOf(p).length) ? '<p class="faint" style="font-size:13px;margin:6px 0 0">Tap a piece in WORK and say what character it shows, and it moves into a group.</p>' : '');
+    }
+    return order.map((p, i) => { const h = fit.get(p.id) || []; return `<div class="ord"><b>${i + 1}. ${esc(p.title || 'Untitled')}</b><span>${esc((E.TYPES[p.type] || {}).label || '')}${h.length ? ' · matches: ' + esc(h.join(', ')) : ''}</span></div>`; }).join('');
+  }
   async function pageZip() {
-    const m = model(), entries = [], base = slug(m.name || 'my') + '_page/';
+    const m = model(), entries = [], snd0 = sendCfg(), base = slug(m.name || 'my') + (snd0.aud && snd0.aud !== 'anyone' ? '_' + snd0.aud : '') + '_page/';
+    const keep = new Set(E.orderFor(snd0.aud, S.lib.pieces.filter(p => p.onPage !== false && (S.blobs[p.id] || p.link)).map(p => Object.assign({}, p, { media: S.blobs[p.id] ? 'x' : '' })), { breakdown: snd0.breakdown }).map(p => p.id));
     let head = null;
     if (S.lib.headshot && S.blobs.__head) { const ext = (S.lib.headshot.name.match(/\.[a-z0-9]+$/i) || ['.jpg'])[0]; head = 'media/headshot' + ext; entries.push({ name: base + head, bytes: new Uint8Array(await S.blobs.__head.arrayBuffer()) }); }
     const pieces = [];
     for (const p of S.lib.pieces) {
-      if (p.onPage === false) continue;
+      if (p.onPage === false || !keep.has(p.id)) continue;
       const q = Object.assign({}, p);
       if (S.blobs[p.id]) { const ext = ((p.clip && p.clip.name) || '').match(/\.[a-z0-9]+$/i); q.media = 'media/' + slug(p.title || p.id) + '_' + p.id.slice(-4) + (ext ? ext[0].toLowerCase() : '.mp4'); entries.push({ name: base + q.media, bytes: new Uint8Array(await S.blobs[p.id].arrayBuffer()) }); }
       if (p.clip && p.clip.thumb && q.media) q.poster = p.clip.thumb;
       pieces.push(q);
     }
-    entries.unshift({ name: base + 'index.html', bytes: E.enc(E.pageHTML(m, pieces, { headshot: head })) });
+    const snd = sendCfg();
+    entries.unshift({ name: base + 'index.html', bytes: E.enc(E.pageHTML(m, pieces, { headshot: head, audience: snd.aud, role: snd.role, breakdown: snd.breakdown, shootNext: snd.aud === 'rep' && snd.shootNext ? (S.shootList || []).map(w => w.text) : null })) });
     entries.push({ name: base + 'resume.txt', bytes: E.enc(E.resumeText(m)) });
-    deliver(new Blob([E.makeZip(entries)], { type: 'application/zip' }), slug(m.name || 'my') + '_page.zip');
+    deliver(new Blob([E.makeZip(entries)], { type: 'application/zip' }), base.replace(/\/$/, '') + '.zip');
   }
   async function deliver(blob, name) {
     try { const f = new File([blob], name, { type: blob.type }); if (isPhone() && navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: name }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
@@ -262,7 +289,10 @@
     const blob = await peekGet(A.db, 'media', id);
     if (!blob) { toast("ARCHBOOK doesn't keep a copy of that clip on this device. Drop the file here instead."); return; }
     const f = new File([blob], c.name, { type: blob.type || c.type || 'video/mp4' });
-    await pieceFromBlob(f, c.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' '));
+    const np = await pieceFromBlob(f, c.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' '));
+    const lbl = k => (A.lib.tags && A.lib.tags[k] && A.lib.tags[k].label) || k;
+    const tags = []; (A.lib.moments || []).filter(m => m.clip === id).forEach(m => (m.tags || []).forEach(k => { const l = lbl(k); if (!tags.includes(l)) tags.push(l); }));
+    if (np && tags.length) np.types = tags.join(', ');
     touch(); el.remove(); toast('Added. Tap it to say what it is.');
   }
   async function fromSlate() {
@@ -322,6 +352,10 @@
       case 'print': printNow(); break;
       case 'copytext': { const t = E.resumeText(model()); try { await navigator.clipboard.writeText(t); toast('Résumé copied as text.'); } catch (e) { openSheet(`<div class="kicker">Copy this</div><textarea class="field" style="min-height:50vh;font-family:var(--mono);font-size:13px">${esc(t)}</textarea>`); } break; }
       case 'pagezip': pageZip(); break;
+      case 'aud': sendCfg().aud = ds.v; touch(); render(); break;
+      case 'shootnext': sendCfg().shootNext = !sendCfg().shootNext; touch(); render(); break;
+      case 'copynote': { const snd = sendCfg(), m = model(); const n = E.orderFor(snd.aud, S.lib.pieces.filter(p => p.onPage !== false && (S.blobs[p.id] || p.link)).map(p => Object.assign({}, p, { media: S.blobs[p.id] ? 'x' : '' })), { breakdown: snd.breakdown }).filter(p => p.type !== 'slate').length;
+        const t = E.sendNote(m, snd.aud, snd.role, n); try { await navigator.clipboard.writeText(t); toast('Email note copied.'); } catch (e) { openSheet(`<div class="kicker">Copy this</div><textarea class="field" style="min-height:40vh">${esc(t)}</textarea>`); } break; }
       case 'savelib': L.lastSaved = now(); L.dirty = 0; await DB.putLib(L); deliver(new Blob([JSON.stringify(Object.assign({}, L, { note: 'Videos and headshot are not inside this file.' }))], { type: 'application/json' }), slug(L.me.name || 'my') + '_virtual_resume.json'); render(); break;
       case 'openlib': $('#libin').click(); break;
       case 'noop': break;
@@ -333,6 +367,7 @@
   document.addEventListener('input', e => {
     const t = e.target, L = S.lib;
     if (t.dataset.p && S.editing) { const p = piece(S.editing); p[t.dataset.p] = t.value; touch(); const st = $('#steps'); if (st) st.innerHTML = stepsHtml(p); return; }
+    if (t.dataset.s !== undefined && t.dataset.s) { sendCfg()[t.dataset.s] = t.value; touch(); const o = $('#sendorder'); if (o) { const snd = sendCfg(), pieces = S.lib.pieces.filter(p => p.onPage !== false && (S.blobs[p.id] || p.link)).map(p => Object.assign({}, p, { media: S.blobs[p.id] ? 'x' : '' })); o.innerHTML = sendOrderHtml(snd.aud, E.orderFor(snd.aud, pieces, { breakdown: snd.breakdown }), new Map(E.roleMatch(snd.breakdown, pieces).map(x => [x.p.id, x.hits]))); } return; }
     if (t.dataset.m) { L.me[t.dataset.m] = t.value; touch(); if (t.dataset.m === 'name') { const s = document.querySelector('.top .title span'); if (s) s.textContent = t.value || 'Make the work. It becomes the résumé.'; } return; }
     if (t.dataset.t !== undefined && t.dataset.k) { L.training[+t.dataset.t][t.dataset.k] = t.value; touch(); return; }
   });
