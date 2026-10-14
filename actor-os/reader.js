@@ -135,7 +135,48 @@ A.peak=async function(blob){
   return pk||0;
  }catch(e){ return 0; }
 };
-A.play=async function(blob,onended){
+/* --- how a reader character sounds ---
+   You record every other part yourself, in one room, in one voice. A sound per
+   character tells them apart and puts the phone call on a phone. Real filters on
+   your own recording; the speed and pitch are never touched. */
+A.SOUNDS=[
+ {id:'room',  label:'As recorded'},
+ {id:'phone', label:'Phone'},
+ {id:'radio', label:'Radio'},
+ {id:'next',  label:'Next room'},
+ {id:'far',   label:'Far'},
+ {id:'close', label:'Close'}
+];
+function bq(c,type,f,q,g){ const b=c.createBiquadFilter(); b.type=type; b.frequency.value=f; if(q!=null)b.Q.value=q; if(g!=null)b.gain.value=g; return b; }
+function series(nodes){ for(let i=0;i<nodes.length-1;i++) nodes[i].connect(nodes[i+1]); return {in:nodes[0],out:nodes[nodes.length-1]}; }
+A.soundChain=function(c,id){
+ if(id==='phone'){   // a phone line: nothing under 300 Hz or over 3.4 kHz, a bit of honk
+  return series([bq(c,'highpass',300,0.7),bq(c,'highpass',300,0.7),bq(c,'lowpass',3400,0.7),bq(c,'lowpass',3400,0.7),bq(c,'peaking',1500,1,6)]);
+ }
+ if(id==='radio'){   // narrower than a phone, and a little crunch
+  const sh=c.createWaveShaper(), n=1024, cv=new Float32Array(n);
+  for(let i=0;i<n;i++){ const x=i/(n-1)*2-1; cv[i]=Math.tanh(2.2*x)/Math.tanh(2.2); }
+  sh.curve=cv;
+  return series([bq(c,'highpass',500,0.7),bq(c,'highpass',500,0.7),bq(c,'lowpass',3000,0.7),bq(c,'lowpass',3000,0.7),sh,(()=>{const g=c.createGain();g.gain.value=0.8;return g;})()]);
+ }
+ if(id==='next'){    // through a wall: the highs gone, quieter
+  const g=c.createGain(); g.gain.value=0.5;
+  return series([bq(c,'lowpass',700,0.7),bq(c,'lowpass',700,0.7),g]);
+ }
+ if(id==='far'){     // across a room: thinner, quieter, a short echo off the walls
+  const inG=c.createGain(), out=c.createGain(), dry=c.createGain(), wet=c.createGain(), dl=c.createDelay(0.5), fb=c.createGain(), hp=bq(c,'highpass',180,0.7), lp=bq(c,'lowpass',3500,0.7);
+  dry.gain.value=0.55; wet.gain.value=0.3; dl.delayTime.value=0.075; fb.gain.value=0.32; out.gain.value=0.9;
+  inG.connect(hp); hp.connect(lp); lp.connect(dry); dry.connect(out);
+  lp.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(wet); wet.connect(out);
+  return {in:inG,out:out};
+ }
+ if(id==='close'){   // right in your ear: a little more body, a little more level
+  const g=c.createGain(); g.gain.value=1.12;
+  return series([bq(c,'lowshelf',220,null,4),g]);
+ }
+ return null;
+};
+A.play=async function(blob,onended,opts){
  A.stopPlay();
  // the mic holds the route to the earpiece on iOS - let it go before playing
  try{ if(mic && !A.recording()) A.disarm(); }catch(e){}
@@ -153,7 +194,9 @@ A.play=async function(blob,onended){
   const comp=c.createDynamicsCompressor();
   comp.threshold.value=-18; comp.knee.value=12; comp.ratio.value=3;
   comp.attack.value=0.004; comp.release.value=0.18;
-  src.connect(g); g.connect(comp); comp.connect(c.destination);
+  src.connect(g); g.connect(comp);
+  const ch=(opts&&opts.sound)?A.soundChain(c,opts.sound):null;
+  if(ch){ comp.connect(ch.in); ch.out.connect(c.destination); } else comp.connect(c.destination);
   src.onended=()=>{ curSrc=null; curPos=null; if(onended)onended(); };
   src.start(0);
   curSrc=src; curGain=g;

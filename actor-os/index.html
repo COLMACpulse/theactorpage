@@ -243,6 +243,12 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
 .soundline{color:var(--mut);font-size:12.5px;margin-top:8px;line-height:1.5}
 .capline{font-size:13px;margin-top:8px}
 .dailyhead{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.dailyhead b{font-size:17px;margin-right:4px}
+.voicebox{margin:4px 0 12px;padding:11px 12px;border:1px solid var(--line);border-radius:9px;background:var(--p2)}
+.voicebox .vh{font:9.5px var(--mono);letter-spacing:.14em;color:var(--faint);margin-bottom:6px}
+.voicebox .vrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:5px 0}
+.voicebox .vrow b{font-size:12px;letter-spacing:.08em;color:var(--gold);min-width:70px}
+.voicebox .vrow select{width:auto;min-width:130px;padding:7px 8px}
+.voicebox .vrow small{color:var(--faint);font-size:11px}
 .dailyset{color:var(--mut);font-size:13.5px;line-height:1.5;margin-top:6px}
 .levelbox{margin:12px 0 4px;padding:12px 13px;border:1px solid var(--line);border-radius:10px;background:var(--p2)}
 .lvh{font-size:12.5px;color:var(--mut);margin-bottom:8px}
@@ -787,6 +793,7 @@ function shelfIn(text,fname){
 }
 function loadSides(text,fname,opts){
  if(fname)SIDES.file=fname;
+ if(text&&text.trim()) window.SIDES_RAW=text;
  if(opts&&opts.shelf){ SHELF_ID=opts.shelf; } else shelfIn(text,fname);
  /* keep the text so the sides are still here next time the app opens */
  try{ if(text&&text.trim()) localStorage.setItem('actor_os_sides_last',JSON.stringify({file:SIDES.file||'',text:text,
@@ -977,11 +984,11 @@ window.addEventListener('load',()=>{
 function saveRange(){
  try{ if(window.Shelf&&SHELF_ID&&SIDES.me){ const c=curScene(); Shelf.setRange(SHELF_ID,[c.start,c.end],'actor-os'); } }catch(e){}
  try{ localStorage.setItem('actor_os_range_'+(SIDES.file||'x'),
-   JSON.stringify({me:SIDES.me,om:SIDES.omit||[],rdy:!!SIDES.ready,pk:SIDES.pick||{},sc:SIDES.scenes||[],cur:SIDES.cur||0})); }catch(e){}
+   JSON.stringify({me:SIDES.me,om:SIDES.omit||[],rdy:!!SIDES.ready,pk:SIDES.pick||{},sc:SIDES.scenes||[],cur:SIDES.cur||0,vo:SIDES.voice||{}})); }catch(e){}
 }
 function loadRange(){
  try{ const r=JSON.parse(localStorage.getItem('actor_os_range_'+(SIDES.file||'x'))||'null');
-   if(r){ SIDES.omit=r.om||[]; SIDES.ready=!!r.rdy; SIDES.pick=r.pk||{}; SIDES.scenes=r.sc||[]; SIDES.cur=r.cur||0; } }catch(e){}
+   if(r){ SIDES.omit=r.om||[]; SIDES.ready=!!r.rdy; SIDES.pick=r.pk||{}; SIDES.scenes=r.sc||[]; SIDES.cur=r.cur||0; SIDES.voice=r.vo||{}; } }catch(e){}
 }
 /* the script the take actually runs on */
 
@@ -2179,6 +2186,52 @@ function closeSides(){
 let BOOTH={}, TAKESBY={}, boothBusy=null, boothQueue=[], boothSeq=false;
 function boothKey(b){ return ActorReader.keyFor((SIDES.file||'sides')+'|'+sceneKey(), b.who, b.text); }
 
+/* ===== HOW EACH VOICE SOUNDS (5.27) =====
+   Mined from READER VOICE LIBRARY. You read every other part yourself; a sound per
+   character tells them apart. Suggested from the script: a phone or (V.O.) speaker
+   gets Phone, (O.S.) gets Next room, a radio or walkie gets Radio, a whisper gets
+   Close. Yours to change. Real filters, same speed, same pitch. */
+function suggestSounds(raw){
+ const out={}, L=String(raw||'').replace(/\r/g,'').split('\n');
+ for(let i=0;i<L.length;i++){
+  const m=L[i].trim().match(/^([A-Z][A-Z0-9 .'\u2019\-]{1,32}?)\s*((?:\([^)]*\)\s*)+)$/)||L[i].trim().match(/^([A-Z][A-Z0-9 .'\u2019\-]{1,32})$/);
+  if(!m) continue;
+  const who=m[1].trim(), ext=(m[2]||'').toUpperCase();
+  const near=(ext+' '+(L[i+1]||'')+' '+(L[i+2]||'')).toLowerCase();
+  let s='';
+  if(/phone|speaker|on the line|cell/.test(near)) s='phone';
+  else if(/radio|walkie|intercom|scanner|cb\b/.test(near)) s='radio';
+  else if(/\(o\.?\s?s\.?\)|\(o\.?\s?c\.?\)|off.?screen|other room|through the (door|wall)/.test(near)) s='next';
+  else if(/whisper/.test(near)) s='close';
+  if(s && !out[who]) out[who]=s;
+ }
+ return out;
+}
+function voiceFor(who){
+ SIDES.voice=SIDES.voice||{};
+ if(SIDES.voice[who]) return SIDES.voice[who];
+ const sg=suggestSounds(window.SIDES_RAW); return sg[who]||'room';
+}
+function setVoice(who,id){ SIDES.voice=SIDES.voice||{}; SIDES.voice[who]=id; saveRange(); boothRefresh(); }
+async function voicePreview(who){
+ const om=SIDES.omit||[];
+ const b=activeScript().find(x=>!x.mine&&x.who===who&&om.indexOf(x.who)<0); if(!b) return;
+ const k=boothKey(b), all=await ActorReader.all();
+ const arr=all.filter(c=>c.line===k).sort((a,c2)=>a.at-c2.at);
+ const c=(SIDES.pick&&SIDES.pick[k]?arr.find(x=>x.id===SIDES.pick[k]):null)||arr[arr.length-1];
+ if(c) ActorReader.play(c.blob,null,{sound:voiceFor(who)}); else stageToast('Record a line for '+who+' first.');
+}
+function voiceRows(others){
+ const sg=suggestSounds(window.SIDES_RAW), who=[];
+ others.forEach(b=>{ if(who.indexOf(b.who)<0) who.push(b.who); });
+ return `<div class="voicebox"><div class="vh">HOW EACH VOICE SOUNDS</div>`+who.map(w=>{
+  const cur=voiceFor(w), set=SIDES.voice&&SIDES.voice[w];
+  return `<div class="vrow"><b>${esc2(w)}</b>
+   <select onchange="setVoice('${w.replace(/'/g,"\\'")}',this.value)">${ActorReader.SOUNDS.map(o=>`<option value="${o.id}" ${o.id===cur?'selected':''}>${o.label}</option>`).join('')}</select>
+   <button class="mini ghost" onclick="voicePreview('${w.replace(/'/g,"\\'")}')" title="hear it">&#9654;</button>
+   ${!set&&sg[w]?'<small>from the script</small>':''}</div>`;
+ }).join('')+`</div>`;
+}
 async function boothRefresh(){
  if(!SIDES.me||!SIDES.script.length){ $('boothWrap').style.display='none'; return; }
  const om=SIDES.omit||[];
@@ -2229,6 +2282,7 @@ async function boothRefresh(){
        oninput="ActorReader.setGain(parseFloat(this.value));document.getElementById('gainVal').textContent=parseFloat(this.value).toFixed(1)+'x'">
      <b id="gainVal">1.6x</b></span>
 </div>`;
+ h+=voiceRows(others);
 
  h+='<div style="display:grid;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:9px;overflow:hidden">';
  others.forEach((b,i)=>{
@@ -2247,7 +2301,7 @@ async function boothRefresh(){
    arr.forEach((c,n)=>{
     const on=sel&&sel.id===c.id;
     h+=`<span class="tpill${on?' on':''}">
-      <button onclick="boothPlayId('${c.id}')" title="listen">&#9654;</button>
+      <button onclick="boothPlayId('${c.id}','${b.who.replace(/'/g,"\\'")}')" title="listen">&#9654;</button>
       <button onclick="boothPick('${k}','${c.id}')">Take ${n+1}${c.dur?' &middot; '+c.dur.toFixed(1)+'s':''}</button>
       <button onclick="boothDrop('${k}','${c.id}')" title="delete">&times;</button></span>`;
    });
@@ -2273,9 +2327,9 @@ function micFlag(on){
 function boothReady(){ SIDES.ready=true; saveRange(); boothRefresh(); }
 function boothUnready(){ SIDES.ready=false; saveRange(); boothRefresh(); }
 function boothPick(k,id){ SIDES.pick=SIDES.pick||{}; SIDES.pick[k]=id; saveRange(); boothRefresh(); }
-async function boothPlayId(id){
+async function boothPlayId(id,who){
  const all=await ActorReader.all(); const c=all.find(x=>x.id===id);
- if(c)ActorReader.play(c.blob);
+ if(c)ActorReader.play(c.blob,null,who?{sound:voiceFor(who)}:null);
 }
 async function boothDrop(k,id){
  await ActorReader.del(id);
@@ -2291,11 +2345,11 @@ async function boothStitch(){
  others.forEach(b=>{
   const k=boothKey(b), arr=all.filter(c=>c.line===k).sort((a,b2)=>a.at-b2.at);
   const sel=(SIDES.pick&&SIDES.pick[k]) ? arr.find(c=>c.id===SIDES.pick[k]) : arr[arr.length-1];
-  if(sel)seq.push(sel);
+  if(sel)seq.push({c:sel,who:b.who});
  });
  if(!seq.length)return;
  let i=0;
- const next=()=>{ if(i>=seq.length)return; ActorReader.play(seq[i++].blob,next); };
+ const next=()=>{ if(i>=seq.length)return; const x=seq[i++]; ActorReader.play(x.c.blob,next,{sound:voiceFor(x.who)}); };
  next();
 }
 
@@ -2809,7 +2863,7 @@ function speakPartner(){
   listenGate(LISTEN_SETTLE);
   listenHeard='';
   if(MODE==='PARTNER'||MODE==='PROMPTER') stageStep(1);
- });
+ },{sound:voiceFor(b.who)});
 }
 /* Three seconds to get set. You press record, the count runs on screen, then it
    rolls. Nothing is captured during the count - the take starts clean at zero. */

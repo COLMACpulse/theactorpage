@@ -130,6 +130,13 @@ This is the part that matters.
 
 ---
 
+## New in 5.27 (2026-10-14): how each voice sounds
+Mined from READER VOICE LIBRARY. You read every other part yourself; now each character can have its own sound so they don't all sound like you in one room.
+- In the reader booth: **How each voice sounds**, one pick per character: As recorded, Phone, Radio, Next room, Far, Close. A play button to hear it on your own take.
+- **Suggested from the script:** a speaker on a phone (LAST BUS: MOM (V.O.) "on his phone, speaker") gets Phone; (O.S.) gets Next room; radio or walkie gets Radio; whispering gets Close. Marked "from the script". Yours to change, remembered per sides.
+- Used everywhere the reader plays: Scene partner, Teleprompter, the take buttons and HEAR THE WHOLE READ.
+- Real filters on your own recording. Speed and pitch never change. Measured with test tones (100 Hz / 1.2 kHz / 8 kHz, as recorded -15/-15/-15 dB): Phone -52/-8/-46, Radio -65/-8/-46, Next room -21/-37/-109, Far -36/-17/-33, Close -10/-14/-14.
+
 ## New in 5.26 (2026-10-14): today's scene
 - **Today's scene** in PREP: an original two-hander a day (30 to start, written for this site). Pick your part, TAPE IT, and it's loaded with your character picked. MAKE IT YOURS opens it in Writer's Blockage. ANOTHER ONE moves on. Keeping a take marks it done. It leans toward the choice you've tried least.
 - It goes on the sides shelf, so MEMORIZER and BREAKDOWN have it too. Also on the landing page.
