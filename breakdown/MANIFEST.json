@@ -1,0 +1,114 @@
+{
+ "asset": "#5 BREAKDOWN",
+ "version": "0.3.1",
+ "files": {
+  "README.md": {
+   "bytes": 6682,
+   "sha256": "ebc702d845ff586cb05fa38af118a98ce94cb6ad68b8e31f91cddc0bca3aad6c"
+  },
+  "app.js": {
+   "bytes": 95659,
+   "sha256": "65d9cde8d53dbc1def835af8714e4ae20d678e852d2c50f40927d96aeac09d1d"
+  },
+  "fonts/LICENSE_CourierPrime_OFL.txt": {
+   "bytes": 4783,
+   "sha256": "195bfcfb42f32343efc8475e902c3c4936cda7a9c435c39634e03c1e85fa862b"
+  },
+  "fonts/LICENSE_Jost_OFL.txt": {
+   "bytes": 4497,
+   "sha256": "536533cad95838e13777663c4109b802aa662ef1ef285337f0c7f51d35682fdc"
+  },
+  "fonts/courier-prime-latin-400-italic.woff2": {
+   "bytes": 21556,
+   "sha256": "84f91615090e8b84f5adfb7e5826a8ad137c7a13e3687e4bfa85c275149df60f"
+  },
+  "fonts/courier-prime-latin-400-normal.woff2": {
+   "bytes": 18640,
+   "sha256": "f09844e1f4fe9e67df2cc77474519e68756d559b4648278b9dd4f03c8ac9c31f"
+  },
+  "fonts/courier-prime-latin-700-normal.woff2": {
+   "bytes": 19348,
+   "sha256": "5c7ae1cc9aae183453565c836b74a1b988f5f2e52b65098decb909b3930957ec"
+  },
+  "fonts/jost-latin-400-normal.woff2": {
+   "bytes": 9404,
+   "sha256": "f94cffda16515fbb1667a2662d6b46f5610a942fd02fe88d67ff98f776288962"
+  },
+  "fonts/jost-latin-500-normal.woff2": {
+   "bytes": 10476,
+   "sha256": "98dce4f076fe71a123a7cd44470e6f05e969cb6d7c9b2717766ad103e3597297"
+  },
+  "fonts/jost-latin-600-normal.woff2": {
+   "bytes": 10480,
+   "sha256": "d0487d684596edca7f495d2495ee77a55448740930023c305e8a683b1daefda2"
+  },
+  "icons/apple-touch-icon.png": {
+   "bytes": 3498,
+   "sha256": "efbee95846e692d43b3628b5b13fab053b2b59eaf410330faf7328d8fb2fab13"
+  },
+  "icons/icon-192.png": {
+   "bytes": 6233,
+   "sha256": "347ba0d573fb51c63266bcc90679aa496db0ab9fa1bac9690b632bfb40761371"
+  },
+  "icons/icon-512.png": {
+   "bytes": 17373,
+   "sha256": "dd8123fbef288b75d54db5e1ebf42082abdfc01e5e01769cb7c2f44c87b03cb0"
+  },
+  "icons/icon-maskable-512.png": {
+   "bytes": 9018,
+   "sha256": "9f94a30d5febd6054fdde0a80516c5d740297e720c45eb0e7fb6851a78e7e4fb"
+  },
+  "index.html": {
+   "bytes": 22607,
+   "sha256": "effecbadb111101105b6aab8c9545c9bc8339187358918774cc5c10e15aea60f"
+  },
+  "manifest.webmanifest": {
+   "bytes": 629,
+   "sha256": "eb808547cbfb5361be58369048ec114de9e6e55362c9c8b1c3800a78458f9a87"
+  },
+  "parser.js": {
+   "bytes": 20977,
+   "sha256": "dc50487350fff5d94a18b1bae11742c66ba99c97d101ee1dcb3a5cab6b3bf3af"
+  },
+  "samples/LAST_BUS_sides.fdx": {
+   "bytes": 6574,
+   "sha256": "7ab397c5e7a44ad1271b58a9273fe5a246e3f757ccf43f8b0b4b91eddb93b1a2"
+  },
+  "samples/LAST_BUS_sides.pdf": {
+   "bytes": 5467,
+   "sha256": "7b6e6ccc7b997fd664af1f1c3a0933fa6a5e1f53393418937cda0d37160412ad"
+  },
+  "samples/LAST_BUS_sides.txt": {
+   "bytes": 4696,
+   "sha256": "f1ddb0e9af6ebaa307dcdd35ac48b9e9f4fc5a9ac0b9545a00dd859646b15fd1"
+  },
+  "samples/v02_diner_sample.txt": {
+   "bytes": 444,
+   "sha256": "7e1e3c1ff2ce2110fecd3675fd21b199af58e2a8e11cdf7001988bada3b219b4"
+  },
+  "sw.js": {
+   "bytes": 1191,
+   "sha256": "6365d56d61c82a39fd6919bc7e84d3220a2e6b60720cf970b4eeabecdf09bf16"
+  },
+  "tests/harness.html": {
+   "bytes": 1680,
+   "sha256": "612607518a9aa0e62c713aeb5f3099c041af8be3949fa0ba5335e1ed20bcc6da"
+  },
+  "tests/run_tests.js": {
+   "bytes": 7554,
+   "sha256": "b1488e4446821e51b40832089516923a076a7bd5435530a05798e09e03fc4cf7"
+  },
+  "vendor/PDFJS_LICENSE.txt": {
+   "bytes": 10174,
+   "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+  },
+  "vendor/pdf.min.js": {
+   "bytes": 320004,
+   "sha256": "5b5799e6f8c680663207ac5b42ee14eed2a406fa7af48f50c154f0c0b1566946"
+  },
+  "vendor/pdf.worker.min.js": {
+   "bytes": 1087212,
+   "sha256": "feabdf309770ed24bba31a5467836cdc8cf639c705af27d52b585b041bb8527b"
+  }
+ }
+}

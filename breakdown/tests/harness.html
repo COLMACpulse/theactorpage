@@ -1,0 +1,22 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>BREAKDOWN Harness</title>
+<style>body{font:15px/1.5 system-ui;background:#121110;color:#ece7dc;padding:16px}.p{color:#8fbf8a}.f{color:#e0785f}</style></head>
+<body><h1>BREAKDOWN 0.3 parser harness</h1><p>Runs on this device's browser. Open from the hosted site (it fetches the samples).</p><div id="r"></div>
+<script src="../parser.js"></script>
+<script>
+(async () => {
+  const P = window.BDParser, out = [];
+  const ok = (n, c) => out.push(`<div class="${c ? 'p' : 'f'}">${c ? 'PASS' : 'FAIL'} ${n}</div>`);
+  const txt = await (await fetch('../samples/LAST_BUS_sides.txt')).text();
+  const fdx = await (await fetch('../samples/LAST_BUS_sides.fdx')).text();
+  for (const [tag, d] of [['txt', P.parse(P.fromText(txt))], ['fdx', P.parse(P.fromFdx(fdx))], ['paste', P.parse(P.fromText(txt.split('\n').map(l => l.trim()).join('\n')))]]) {
+    ok(tag + ': 3 scenes', d.scenes.length === 3);
+    ok(tag + ': characters CAL, MOM, RENNIE', Object.keys(d.characters).sort().join() === 'CAL,MOM,RENNIE');
+    ok(tag + ': shouted line stays dialogue', d.elements.some(e => e.type === 'dialogue' && /I SAID GET IN THE TRUCK/.test(e.text)));
+    ok(tag + ': RENNIE 10 speeches', d.speeches.filter(s => s.who === 'RENNIE').length === 10);
+  }
+  const d = P.parse(P.fromText("INT. KITCHEN - DAY\n\nSARAH\nI got the part.\n\nTOM\nWhich one?\n\nSARAH\nI'M TELLING YOU NOW\n"));
+  ok('v0.2 bug: caps shout is not a character', Object.keys(d.characters).sort().join() === 'SARAH,TOM');
+  document.getElementById('r').innerHTML = out.join('');
+})();
+</script></body></html>

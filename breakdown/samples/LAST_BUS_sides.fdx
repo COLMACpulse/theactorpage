@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<FinalDraft DocumentType="Script" Template="No" Version="5">
+  <Content>
+    <Paragraph Type="Scene Heading" Number="1">
+      <Text>EXT. COUNTY ROAD BUS SHELTER - NIGHT</Text>
+    </Paragraph>
+    <Paragraph Type="Action">
+      <Text>Rain on a tin roof. One bulb. RENNIE (40s), wet coat, a duffel she has packed too carefully, sits alone on the bench. She checks a paper ticket. Checks it again.</Text>
+    </Paragraph>
+    <Paragraph Type="Action">
+      <Text>Headlights. A pickup rolls in and idles. CAL (30s), her younger brother, gets out without killing the engine.</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>CAL</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>You weren't going to call.</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>RENNIE</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>I left a note.</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>CAL</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>On the fridge. Under the magnet from Mom's church. Where nobody looks.</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>RENNIE</Text>
+    </Paragraph>
+    <Paragraph Type="Parenthetical">
+      <Text>(not looking at him)</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>Then why are you here?</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>CAL</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>Because you always do this. Get in the truck, Ren.</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>RENNIE</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>I'm not angry, Cal. I'm just done.</Text>
+    </Paragraph>
+    <Paragraph Type="Action">
+      <Text>She tears the ticket in half. Then in half again. Lets the pieces fall into the rain.</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>CAL</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>That looked angry.</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>MOM (V.O.)</Text>
+    </Paragraph>
+    <Paragraph Type="Parenthetical">
+      <Text>(on his phone, speaker)</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>Calvin, did you find her? Is she eating?</Text>
+    </Paragraph>
+    <Paragraph Type="Action">
+      <Text>Cal kills the call. Rennie almost laughs.</Text>
+    </Paragraph>
+    <Paragraph Type="Scene Heading" Number="2">
+      <Text>INT. CAL'S PICKUP - MOVING - CONTINUOUS</Text>
+    </Paragraph>
+    <Paragraph Type="Action">
+      <Text>Wipers. The heater roars and does nothing. Rennie holds the duffel on her lap like it might leave without her.</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>CAL</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>Where were you going to go?</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>RENNIE</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>Does it matter?</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>CAL</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>It matters to the guy who just drove forty minutes in this.</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>RENNIE</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>Tucson. There's a woman there who rents rooms over a bakery. You wake up and the whole place smells like bread. I read about it. I read about it for two years, Cal. Every night after Dad's pills, after the dishes, after you went home to your actual life, I read about a room over a bakery in Tucson and I thought, one day. One day I'm going to be a person who wakes up somewhere that smells like bread.</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>CAL</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>You never said anything.</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>RENNIE</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>I'm saying it now.</Text>
+    </Paragraph>
+    <Paragraph Type="Transition">
+      <Text>CUT TO:</Text>
+    </Paragraph>
+    <Paragraph Type="Scene Heading" Number="3">
+      <Text>EXT. TRUCK STOP MOTEL - PARKING LOT - DAWN</Text>
+    </Paragraph>
+    <Paragraph Type="Action">
+      <Text>Gray light. The pickup is parked crooked across two spaces. Rennie is outside it, duffel on her shoulder. Cal stands at the open driver's door.</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>CAL</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>The house. Tell me you didn't.</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>RENNIE</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>Signed it Thursday.</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>CAL</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>That's Dad's house.</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>RENNIE</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>Dad's been gone eleven months. It's a house.</Text>
+    </Paragraph>
+    <Paragraph Type="Action">
+      <Text>Cal slams the truck door. Rennie doesn't flinch. She's been waiting for that sound.</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>CAL</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>Get back in the truck.</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>RENNIE</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>No.</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>CAL</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>Ren, I swear to God.</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>I SAID GET IN THE TRUCK.</Text>
+    </Paragraph>
+    <Paragraph Type="Character">
+      <Text>RENNIE</Text>
+    </Paragraph>
+    <Paragraph Type="Parenthetical">
+      <Text>(quiet)</Text>
+    </Paragraph>
+    <Paragraph Type="Dialogue">
+      <Text>Half of it's yours. It's already in your account. I'm not running away from you, Cal. I'm just not taking care of anybody anymore.</Text>
+    </Paragraph>
+    <Paragraph Type="Action">
+      <Text>She walks toward the highway. Cal watches her go. He doesn't follow.</Text>
+    </Paragraph>
+  </Content>
+</FinalDraft>
