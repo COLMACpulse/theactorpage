@@ -130,6 +130,18 @@ This is the part that matters.
 
 ---
 
+## New in 5.20 (2026-10-14): picking the take
+
+Mined from TAPE CUTTER. The actor chooses; the app keeps why. Nothing scores a take.
+
+- **Every line is marked as you shoot.** In Scene partner and Teleprompter the app notes the moment each line comes up during the take. No typing.
+- **Every opening, every button.** In CUT, play your first line from each take back to back, then your last line.
+- **Compare two takes side by side,** lined up on the same line, with the sound from one side.
+- **Why.** One line on each take, typed on the review screen or in CUT. Only you see it; it never goes in a file name or the email note.
+- **Office length limit.** Type the limit from the breakdown (2:00, 90s) and every take shows how far under or over it is.
+
+The marks come from the moment the scene moved on (your tap, your clicker or the cue listener), so they are as accurate as that moment. Takes shot with Solo or imported from the phone have no marks.
+
 ## Fixes in 5.19 (2026-10-14)
 
 - **Shares the site.** The offline cache only clears its own old copies now. Before, an update wiped every other tool's offline copy on the same site.

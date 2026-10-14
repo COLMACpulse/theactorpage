@@ -223,6 +223,12 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
 .mode.picked b{color:var(--gold)}
 .docchip{display:flex;align-items:center;gap:11px;width:100%;text-align:left;background:var(--p1);border:1px solid var(--line2);border-radius:10px;padding:12px 14px;cursor:pointer;min-height:52px;margin-top:12px}.docchip:hover{border-color:var(--gold)}.docchip svg{width:20px;height:20px;color:var(--gold);flex:0 0 20px}.docchip span{display:flex;flex-direction:column;gap:3px;min-width:0}.docchip b{font-family:var(--mono);font-size:12px;color:var(--ink);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.docchip span span,.docchip span{font-size:11.5px;color:var(--faint)}.sidesbody{font-family:var(--mono);font-size:13px}.sidesbody .sl{white-space:pre-wrap;word-break:break-word;line-height:1.5;margin:0 0 2px}.sidesbody .act{color:var(--mut)}.sidesbody .cue{color:var(--gold);margin:16px 0 3px;letter-spacing:.08em;font-weight:600}.sidesbody .dlg{color:var(--ink);padding-left:14px}.openpdf{width:100%;background:var(--gold);color:#12100c;border:0;border-radius:10px;padding:14px;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.06em;margin:0 0 20px;min-height:48px;cursor:pointer}.closebtn{min-height:46px;min-width:96px;font-weight:700}.openpdf{-webkit-tap-highlight-color:rgba(224,162,60,.3)}.sheetfoot{padding:11px 16px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--bg);position:sticky;bottom:0}.sheetfoot .openpdf{margin:0}.pagebody{flex:1;overflow:auto;padding:12px 12px calc(24px + env(safe-area-inset-bottom));background:#15151a;-webkit-overflow-scrolling:touch}.pdfpage{display:block;width:100%;height:auto;background:#fff;border-radius:4px;margin:0 auto;box-shadow:0 2px 14px rgba(0,0,0,.5)}.pagenum{text-align:center;font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--faint);padding:9px 0 20px}.pagebody{overflow-x:auto}.footnote{font-size:10.5px;color:var(--faint);line-height:1.5;margin-top:9px}.docalt{display:block;width:100%;background:transparent;border:0;color:var(--faint);font-family:var(--mono);font-size:11px;letter-spacing:.04em;padding:11px 4px;cursor:pointer;text-align:left;min-height:40px}.docalt:hover{color:var(--gold)}.pagebody{flex:1;overflow:auto;padding:12px 12px calc(20px + env(safe-area-inset-bottom));background:#15151a;-webkit-overflow-scrolling:touch}.pdfpage{display:block;height:auto;background:#fff;border-radius:4px;margin:0 auto;box-shadow:0 2px 14px rgba(0,0,0,.5)}.pagenum{text-align:center;font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--faint);padding:9px 0 18px}.livedot{position:fixed;top:calc(8px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:9900;background:#d9694e;color:#fff;font:700 10px/1 var(--mono,ui-monospace);letter-spacing:.14em;padding:6px 12px;border-radius:20px;display:none;pointer-events:none;box-shadow:0 2px 12px rgba(0,0,0,.5)}.livedot.on{display:block}.readybox{border:1px solid #5cae7e;background:rgba(92,174,126,.10);border-radius:11px;padding:15px 16px;margin:0 0 11px}.readybox b{display:block;font-size:15px;color:#5cae7e;margin-bottom:5px}.readybox span{display:block;font-size:12.5px;color:var(--mut);line-height:1.55}</style><style>
 /* fixes v5.19: the stage message was drawn on top of the record button */
+.whyin{width:100%;margin-top:8px;background:transparent;border:1px solid var(--line2,#3a414c);border-radius:8px;color:inherit;padding:9px 11px;min-height:40px;font-size:13px}
+.review .whyin{max-width:640px;margin:10px auto 0;display:block;background:rgba(0,0,0,.45);color:#fff}
+.limitrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:11px}.limitrow label{margin:0}.limitrow input{flex:1;min-width:140px}
+.cmpgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.cmpgrid video{width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:#000;border-radius:9px;margin-top:6px;display:block}
+.cmpgrid small{display:block;color:var(--faint);font-size:11px;margin-top:4px}
+@media(max-width:560px){.cmpgrid{grid-template-columns:1fr}}
 .stoast{bottom:auto!important;top:calc(84px + env(safe-area-inset-top))!important}
 .fmtwarn{margin-top:9px;border-color:#E0A23C!important}
 </style>
@@ -425,7 +431,10 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
 </div>
 </section>
 <section id="cut" class="panel"><div class="am">Actor Cut Room rules: DROP / HOLD / SURVIVOR. One survivor per scene. The software does not score acting.</div><div id="unsavedBar" class="unsaved"></div>
-<div class="section"><h3>Takes</h3><div class="inside" id="cutTakes"></div></div>
+<div class="section"><h3>Takes</h3><div class="inside">
+ <div class="limitrow"><label for="officeLimit">Office length limit</label><input id="officeLimit" inputmode="numeric" placeholder="from the breakdown, e.g. 2:00" oninput="setLimit(this.value)"></div>
+ <div id="cutTakes"></div></div></div>
+<div class="section" id="cmpSec"><h3>Compare takes</h3><div class="inside" id="cutCompare"></div></div>
 <div class="section"><h3>Trim and compress</h3><div class="inside">
   <div id="cutWork"></div>
 </div></div><div class="section"><h3>Submission Sequence</h3><div class="inside"><div class="timeline" id="timeline"></div><div class="grid2"><div><label>Trim in (sec)</label><input id="trimIn" type="number" step=".1" value="0"></div><div><label>Trim out (sec)</label><input id="trimOut" type="number" step=".1" value="0"></div></div><div class="row"><button onclick="applyTrim()">APPLY TO SURVIVOR</button><button onclick="addSlate()">+ SLATE</button></div></div></div></section>
@@ -551,7 +560,22 @@ if($('recBtn'))$('recBtn').onclick=()=>{if(!stream)return alert('Start camera fi
 if($('stopBtn'))$('stopBtn').onclick=()=>{if(rec&&rec.state!=='inactive')rec.stop();$('recState').textContent='READY';$('recBtn').disabled=false;$('stopBtn').disabled=true};
 function renderTakes(){$('takeCount').textContent=state.takes.length;try{unsavedBanner();renderSave();navState();}catch(e){}$('takeList').innerHTML=state.takes.slice().reverse().map(t=>`<div class="take ${t.status==='SURVIVOR'?'survivor':''}"><div><b>SCENE ${t.scene} · TAKE ${t.n}</b><small>${t.status} · ${(t.bytes/1048576).toFixed(1)} MB · ${t.savedToDevice?'<span style="color:#5cae7e">saved to ${DEVICE}</span>':'<span style="color:#E0A23C">browser only</span>'}</small></div><div class="row"><button class="mini" onclick="saveTakeToDevice('${t.id}')" style="border-color:#E0A23C;color:#E0A23C">&#8681; SAVE</button><button class="mini" onclick="setTake('${t.id}','DROP')">DROP</button><button class="mini" onclick="setTake('${t.id}','HOLD')">HOLD</button><button class="mini" onclick="setTake('${t.id}','SURVIVOR')">SURVIVOR</button></div></div>`).join('')}
 function setTake(id,s){let t=state.takes.find(x=>x.id===id);if(!t)return;if(s==='SURVIVOR')state.takes.filter(x=>x.scene===t.scene).forEach(x=>{if(x.id!==id&&x.status==='SURVIVOR')x.status='HOLD'});t.status=s;localStorage.setItem(KEY,JSON.stringify(state));renderTakes();renderCut()}window.setTake=setTake;
-function renderCut(){$('cutTakes').innerHTML=state.takes.length?state.takes.map(t=>`<div class="take ${t.status==='SURVIVOR'?'survivor':''}"><div><b>Scene ${t.scene} · Take ${t.n}</b><small>${t.savedToDevice?'<span style="color:#5cae7e">saved to ${DEVICE}</span>':'<span style="color:#E0A23C">browser only</span>'} · ${t.status} · trim ${t.trimIn||0} / ${t.trimOut||0}</small></div><div><button class="mini" onclick="setTake('${t.id}','SURVIVOR')">USE</button></div></div>`).join(''):'No takes yet.';let surv=state.takes.filter(t=>t.status==='SURVIVOR');state.sequence=surv.map(t=>t.id);$('timeline').innerHTML=surv.map(t=>`<div class=clip><b>SCENE ${t.scene}</b><small>TAKE ${t.n} · SURVIVOR</small></div>`).join('')||'<span class=pill>No survivor selected.</span>';}
+function renderCut(){
+ const takes=(state.takes||[]).filter(t=>t.status!=='DROP');
+ const lim=limitSecs();
+ $('cutTakes').innerHTML=takes.length?takes.map(t=>{
+  const len=t.secs||0, over=lim&&len>lim;
+  const mine=(t.marks||[]).filter(m=>m.mine).length;
+  return `<div class="take ${t.status==='SURVIVOR'?'survivor':''}"><div style="flex:1;min-width:0">
+   <b>${t.isSlate?'Slate':(t.imported?'Imported':'Take '+t.n)} &middot; ${esc2(String(t.scene||''))}</b>
+   <small>${t.status} &middot; <span style="color:${over?'#d9694e':(lim?'#5cae7e':'inherit')}">${fmtLen(len)}${lim?(over?' &middot; '+fmtLen(len-lim)+' over':' &middot; under the limit'):''}</span>${mine?' &middot; '+mine+' line'+(mine===1?'':'s')+' marked':''}</small>
+   <input class="whyin" value="${esc2(t.why||'')}" placeholder="Why? Only you see this." oninput="setWhy('${t.id}',this.value)"></div>
+   <div><button class="mini" onclick="setTake('${t.id}','SURVIVOR')">USE</button></div></div>`;}).join(''):'No takes yet.';
+ let surv=state.takes.filter(t=>t.status==='SURVIVOR');state.sequence=surv.map(t=>t.id);
+ $('timeline').innerHTML=surv.map(t=>`<div class=clip><b>SCENE ${esc2(String(t.scene))}</b><small>TAKE ${t.n} · SURVIVOR</small></div>`).join('')||'<span class=pill>No survivor selected.</span>';
+ try{ const li=$('officeLimit'); if(li&&li.value!==undefined&&document.activeElement!==li) li.value=state.job&&state.job.limit||''; }catch(e){}
+ try{ renderCompare(); }catch(e){}
+}
 function applyTrim(){let t=state.takes.find(t=>t.status==='SURVIVOR');if(!t)return alert('Select a survivor first.');t.trimIn=+$('trimIn').value||0;t.trimOut=+$('trimOut').value||0;localStorage.setItem(KEY,JSON.stringify(state));renderCut()}function addSlate(){state.sequence.push('SLATE');$('timeline').insertAdjacentHTML('beforeend','<div class=clip><b>SLATE</b><small>office-specific / actor-selected</small></div>')}
 function slatePreview(){const pts=[];for(let i=0;i<=10;i++){let u=i/10;let y=u<.4?.2+(.75-.2)*(3*(u/.4)**2-2*(u/.4)**3):u<.55?.75:.75+(.25-.75)*(3*((u-.55)/.45)**2-2*((u-.55)/.45)**3);pts.push(y.toFixed(2))}$('slateState').textContent='PAN Y · '+pts.join(' → ')}
 const profiles={ACTORS_ACCESS:['Actors Access','Browser upload handoff'],REPRESENTATION:['Agent / Manager','Native share / transfer'],SOCIAL_VERTICAL:['Social · Vertical','9:16 derivative'],SOCIAL_LANDSCAPE:['Social · Landscape','16:9 derivative'],SAVE_MASTER:['Save Master','Full-quality source']};
@@ -2273,6 +2297,88 @@ async function saveAllTakes(){
  unsavedBanner();
 }
 
+/* ===== WHY, LIMIT, LINE MARKERS, COMPARE (mined from Tape Cutter) =====
+   The actor chooses; the app keeps why. Nothing here scores a take. */
+function setWhy(id,v){ const t=(state.takes||[]).find(x=>x.id===id); if(!t)return; t.why=v; try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){} }
+function parseLen(v){ v=String(v||'').trim(); if(!v)return 0; const m=v.match(/^(\d+):(\d{1,2})$/); if(m)return (+m[1])*60+(+m[2]); const n=parseFloat(v); if(!isFinite(n))return 0; return /m/i.test(v)||(!/s/i.test(v)&&n<=10)?n*60:n; }   // "2" or "2m" is minutes, "90" or "90s" is seconds
+function limitSecs(){ return parseLen(state.job&&state.job.limit); }
+function setLimit(v){ state.job=state.job||{}; state.job.limit=v; try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){} renderCut(); try{renderSend();}catch(e){} }
+function fmtLen(s){ s=Math.max(0,Math.round(s||0)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+
+/* where your line starts and ends inside a take, from the markers */
+function segFor(t,which){
+ const ms=(t.marks||[]); if(!ms.length)return null;
+ let k=-1;
+ if(which==='open') k=ms.findIndex(m=>m.mine);
+ else if(which==='button'){ for(let j=ms.length-1;j>=0;j--) if(ms[j].mine){k=j;break;} }
+ else k=ms.findIndex(m=>m.i===which);
+ if(k<0)return null;
+ const start=Math.max(0,ms[k].at-0.4);
+ const end=(ms[k+1]?ms[k+1].at+0.3:(t.secs||start+15));
+ return {start, end:Math.min(end,start+30), line:ms[k]};
+}
+function markedTakes(){ return (state.takes||[]).filter(t=>t.status!=='DROP'&&t.url&&(t.marks||[]).some(m=>m.mine)); }
+
+/* play the same moment from every take, back to back */
+function playEvery(which){
+ const list=markedTakes().map(t=>({t,seg:segFor(t,which)})).filter(x=>x.seg);
+ if(!list.length) return alert('No marked takes yet. Shoot in Scene partner or Teleprompter and every line gets marked as you go.');
+ const w=document.createElement('div'); w.className='review'; w.id='huntView';
+ w.innerHTML=`<div class="rv"><video id="huntVid" playsinline autoplay></video>
+   <div class="rvbar"><div><b id="huntLab"></b><small id="huntSub"></small></div>
+   <div class="rvbtns"><button class="sBtn" onclick="huntNext()">NEXT &#9654;</button><button class="sBtn" onclick="huntClose()">CLOSE</button></div></div></div>`;
+ document.body.appendChild(w);
+ window.__hunt={list,i:-1}; huntNext();
+}
+function huntNext(){
+ const H=window.__hunt; if(!H)return; H.i++;
+ if(H.i>=H.list.length){ huntClose(); return; }
+ const {t,seg}=H.list[H.i], v=$('huntVid');
+ $('huntLab').textContent='Take '+t.n+' · '+(H.i+1)+' of '+H.list.length;
+ $('huntSub').textContent=(t.why?t.why+' · ':'')+fmtLen(seg.start)+' in';
+ v.ontimeupdate=()=>{ if(v.currentTime>=seg.end){ v.ontimeupdate=null; v.pause(); setTimeout(huntNext,350); } };
+ v.onloadedmetadata=()=>{ v.currentTime=seg.start; v.play().catch(()=>{}); };
+ v.src=t.url;
+}
+function huntClose(){ const w=$('huntView'); if(w&&w.remove)w.remove(); window.__hunt=null; }
+
+/* two takes side by side, lined up on the same line */
+let CMP={a:null,b:null,line:'open',sound:'a'};
+function renderCompare(){
+ const el=$('cutCompare'); if(!el||el===_NULLEL)return;
+ const takes=(state.takes||[]).filter(t=>t.status!=='DROP'&&t.url);
+ const marked=markedTakes();
+ if(takes.length<2){ el.innerHTML='<div class="am" style="margin:0">Shoot a second take and they line up here, side by side.</div>'; return; }
+ if(!takes.some(t=>t.id===CMP.a)) CMP.a=takes[takes.length-2].id;
+ if(!takes.some(t=>t.id===CMP.b)||CMP.b===CMP.a) CMP.b=takes[takes.length-1].id;
+ const opt=sel=>takes.map(t=>`<option value="${t.id}"${t.id===sel?' selected':''}>${t.isSlate?'Slate':'Take '+t.n}${t.status==='SURVIVOR'?' ★':''}</option>`).join('');
+ const ta=takes.find(t=>t.id===CMP.a), tb=takes.find(t=>t.id===CMP.b);
+ const mineLines=[]; (ta.marks||[]).forEach(m=>{ if(m.mine&&(tb.marks||[]).some(x=>x.i===m.i)) mineLines.push(m); });
+ let h='';
+ if(marked.length) h+=`<div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:12px">
+   <button onclick="playEvery('open')">&#9654; EVERY OPENING</button>
+   <button onclick="playEvery('button')">&#9654; EVERY BUTTON</button></div>
+   <div class="am" style="margin:0 0 12px">Your first line, then your last, from each take in a row. Marked as you shot.</div>`;
+ h+=`<div class="cmpgrid">
+   <div><select onchange="CMP.a=this.value;renderCompare()">${opt(CMP.a)}</select><video id="cmpA" src="${ta.url}" playsinline controls ${CMP.sound==='a'?'':'muted'}></video><small>${esc2(ta.why||'')}</small></div>
+   <div><select onchange="CMP.b=this.value;renderCompare()">${opt(CMP.b)}</select><video id="cmpB" src="${tb.url}" playsinline controls ${CMP.sound==='b'?'':'muted'}></video><small>${esc2(tb.why||'')}</small></div></div>
+  <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:10px">
+   ${mineLines.length?`<select style="flex:1;min-width:160px" onchange="CMP.line=this.value">${['open','button'].map(k=>`<option value="${k}"${CMP.line===k?' selected':''}>${k==='open'?'From your first line':'From your last line'}</option>`).join('')}${mineLines.map(m=>`<option value="${m.i}"${String(CMP.line)===String(m.i)?' selected':''}>&ldquo;${esc2(m.text.slice(0,40))}&rdquo;</option>`).join('')}</select>`:''}
+   <button onclick="cmpPlay()">&#9654; PLAY BOTH</button>
+   <button class="ghost" onclick="CMP.sound=CMP.sound==='a'?'b':'a';renderCompare()">SOUND: ${CMP.sound==='a'?'LEFT':'RIGHT'}</button></div>
+  ${mineLines.length?'':'<div class="am" style="margin-top:10px">These two have no shared line marks, so both start from the top.</div>'}`;
+ el.innerHTML=h;
+}
+function cmpPlay(){
+ const ta=(state.takes||[]).find(t=>t.id===CMP.a), tb=(state.takes||[]).find(t=>t.id===CMP.b);
+ const va=$('cmpA'), vb=$('cmpB'); if(!ta||!tb||!va.play)return;
+ const key=(CMP.line==='open'||CMP.line==='button')?CMP.line:+CMP.line;
+ const sa=segFor(ta,key), sb=segFor(tb,key);
+ va.muted=CMP.sound!=='a'; vb.muted=CMP.sound!=='b';
+ try{ va.currentTime=sa?sa.start:0; vb.currentTime=sb?sb.start:0; }catch(e){}
+ va.play().catch(()=>{}); vb.play().catch(()=>{});
+}
+
 /* ---------- the stage ---------- */
 
 function startMode(m){
@@ -2369,10 +2475,21 @@ function drawStage(){
    <button class="sBtn" onclick="stageStep(1)">&#9654;</button>
    ${MODE==='PARTNER'?`<button class="sBtn" onclick="speakPartner()">&#9835; READ</button>`:''}`;
 }
+/* Every time the scene moves on during a take, note when. That is a free marker
+   on every line: no typing, and it is what lets CUT play every opening back to back. */
+let sMarks=[];
+function markLine(){
+ if(!sRecOn||!(MODE==='PARTNER'||MODE==='PROMPTER'))return;
+ const run=(SIDES.run||SIDES.script), b=run[sIdx]; if(!b)return;
+ const at=Math.max(0,(Date.now()-sT0)/1000);
+ const last=sMarks[sMarks.length-1]; if(last&&last.i===sIdx)return;
+ sMarks.push({i:sIdx, at:Math.round(at*10)/10, mine:!!b.mine, who:b.who, text:String(b.text||'').slice(0,80)});
+}
 function stageStep(d){
  listenHeard='';
  const run=(SIDES.run||SIDES.script), was=sIdx;
  sIdx=Math.max(0,Math.min(run.length-1,sIdx+d));
+ if(sIdx!==was) markLine();
  drawStage();
  /* If we did not actually move we are parked on the last line. Speaking again from
     the playback callback would replay it forever, so the step has to have landed
@@ -2668,6 +2785,7 @@ function beginRecording(st,btn){
             /* Wall clock at both ends. This is what lets a file shot on the phone be
                matched to the take this device rolled at the same moment. */
             startedAt:sT0, endedAt:Date.now(), angle:'REFERENCE',
+            marks:(sMarks||[]).slice(), why:'',
             secs:Math.round((Date.now()-sT0)/1000), mode:MODE };
   state.takes.push(t);
   try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){}
@@ -2679,6 +2797,7 @@ function beginRecording(st,btn){
   sRecorder.start();
  }
  sRecOn=true; btn.classList.add('rec'); sT0=Date.now();
+ sMarks=[]; markLine();
  sTimer=setInterval(()=>{ const t=Math.floor((Date.now()-sT0)/1000);
   $('sTC').textContent=String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0'); },250);
  /* ACTION is the cue for the scene, not just for the camera. If the line we are
@@ -2702,6 +2821,7 @@ function showTakeReview(t, blob){
  const w=document.createElement('div'); w.id='takeReview'; w.className='review';
  w.innerHTML=`<div class="rv">
    <video src="${t.url}" controls playsinline autoplay></video>
+   <input class="whyin" placeholder="Why keep it, or why not? Only you see this." oninput="setWhy('${t.id}',this.value)">
    <div class="rvbar">
      <div><b>Take ${t.n}</b><small>${t.secs}s &middot; ${(t.bytes/1048576).toFixed(1)} MB${(window.ActorCompress&&!ActorCompress.kind(t.type).h264)?' &middot; WebM':''} &middot; <span style="color:#E0A23C">not saved to this ${DEVICE} yet</span></small></div>
      <div class="rvbtns">
