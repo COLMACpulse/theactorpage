@@ -74,10 +74,6 @@
    "bytes": 1085,
    "sha256": "457be23eb3d517ee2a031e72143da531da474172f49c81e6f189c2877244008c"
   },
-  "tests/_out.zip": {
-   "bytes": 2367,
-   "sha256": "3d8a113681359f95d2ea47ce9e0a3f1e8f0e1f7d6455b4f64263346297d18901"
-  },
   "tests/probe.html": {
    "bytes": 5578,
    "sha256": "41b8c7fed6bd3d55debcd86b418e5d1e52f5cf3d2710d3d3a70f4fd20f7dfa0f"
