@@ -130,6 +130,11 @@ This is the part that matters.
 
 ---
 
+## New in 5.26 (2026-10-14): today's scene
+- **Today's scene** in PREP: an original two-hander a day (30 to start, written for this site). Pick your part, TAPE IT, and it's loaded with your character picked. MAKE IT YOURS opens it in Writer's Blockage. ANOTHER ONE moves on. Keeping a take marks it done. It leans toward the choice you've tried least.
+- It goes on the sides shelf, so MEMORIZER and BREAKDOWN have it too. Also on the landing page.
+See `../shared/README.md`.
+
 ## New in 5.25 (2026-10-14): the sides shelf
 - Sides you drop, paste or get from Writer's Blockage go on the site's sides shelf, with your character and the scene you mark. BREAKDOWN, MEMORIZER and CPS have them without another upload.
 - Sides dropped in BREAKDOWN or MEMORIZER open here next time, with the character picked: "New sides: RENNIE, LAST BUS sides."

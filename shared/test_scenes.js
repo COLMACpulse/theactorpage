@@ -1,0 +1,40 @@
+/* node shared/test_scenes.js — every scene reads cleanly in both readers on the site */
+const fs=require('fs'),path=require('path');
+const store={}; global.localStorage={getItem:k=>k in store?store[k]:null,setItem:(k,v)=>{store[k]=String(v)}};
+const D=require('./scenes.js');
+const g={}; new Function('window',fs.readFileSync(path.join(__dirname,'../actor-os/sides.js'),'utf8'))(g); const AS=g.ActorSides;
+const P=require('../breakdown/parser.js');
+let pass=0,fail=0; const ok=(n,c,x)=>{ if(c){pass++;}else{fail++;console.log('FAIL',n,x===undefined?'':JSON.stringify(x))} };
+const all=D.all();
+ok('30 scenes', all.length===30, all.length);
+ok('ids unique', new Set(all.map(s=>s.id)).size===all.length);
+all.forEach(s=>{
+ const t=s.id;
+ ok(t+': no em or en dashes', !/[—–]/.test(s.text+s.setup+s.title));
+ const parts=D.parts(s);
+ ok(t+': two parts', parts.length===2, parts);
+ ok(t+': "you" is one of them', parts.indexOf(s.you)>=0, [s.you,parts]);
+ const be=AS.parse(s.text), sp=AS.speakers(be).map(x=>x.name).sort();
+ ok(t+': Actor OS reads exactly the two parts', JSON.stringify(sp)===JSON.stringify(parts.slice().sort()), sp);
+ ok(t+': no empty or stray speech', be.every(b=>b.action||b.text.trim().length>1));
+ ok(t+': no character name read as action', !be.some(b=>b.action&&parts.indexOf(b.text.trim())>=0), be.filter(b=>b.action).map(b=>b.text));
+ const d=P.parse(P.fromText(s.text));
+ ok(t+': BREAKDOWN reads the same two parts', JSON.stringify(Object.keys(d.characters).sort())===JSON.stringify(parts.slice().sort()), Object.keys(d.characters));
+ const asCount={}; be.filter(b=>!b.action).forEach(b=>asCount[b.who]=(asCount[b.who]||0)+1);
+ const bdCount={}; d.speeches.forEach(x=>bdCount[x.who]=(bdCount[x.who]||0)+1);
+ ok(t+': both readers count the same speeches', JSON.stringify(asCount)===JSON.stringify(Object.fromEntries(Object.keys(asCount).map(k=>[k,bdCount[k]]))), [asCount,bdCount]);
+ const mine=be.filter(b=>b.who===s.you).length;
+ ok(t+': your part has at least 6 speeches', mine>=6, mine);
+ ok(t+': has a heading', /^(INT|EXT)\./m.test(s.text));
+ ok(t+': has trains + tags', s.trains && s.tags.indexOf(s.trains)>=0);
+});
+// picking
+const day1=new Date(2026,9,14,9).getTime(), day1late=new Date(2026,9,14,23,30).getTime(), day2=new Date(2026,9,15,7).getTime();
+const a=D.today({now:day1,lean:[]}); ok('same scene all day (local date)', D.today({now:day1late,lean:[]}).id===a.id);
+D.markDone(a.id,day1);
+const b=D.today({now:day2,lean:[]}); ok('next day: a different scene, never one you did', b.id!==a.id && !D.isDone(b.id) || false, [a.id,b.id]);
+const c=D.today({now:day2,another:true,lean:[]}); ok('another one moves on', c.id!==b.id, [b.id,c.id]);
+const sec=D.today({now:new Date(2026,9,20).getTime(),lean:['secret','objective']}); ok('leans toward what you haven\'t tried', sec.tags.indexOf('secret')>=0, sec.tags);
+const counts={}; all.forEach(s=>s.tags.forEach(x=>counts[x]=(counts[x]||0)+1)); console.log('tags:',JSON.stringify(counts));
+ok('every Actor OS choice has scenes', ['objective','tactic','relationship','secret','circumstance'].every(k=>counts[k]>=3), counts);
+console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail?1:0);
