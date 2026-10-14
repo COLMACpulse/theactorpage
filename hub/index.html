@@ -134,6 +134,9 @@ small.note{display:block;padding:0 15px 13px;color:var(--faint);font-size:10.5px
 .hrow .ocb{grid-column:2/-1;margin:0}
 .orTR{display:none}
 @media(max-width:640px){.orTR{display:inline;color:var(--tung);font-size:11.5px}}
+.ofi{display:block;font:10px var(--mono);color:var(--mut);margin-top:2px}
+.whyin2{width:100%;background:var(--p2);border:1px solid var(--line2);border-radius:7px;color:var(--ink);padding:8px 10px;font:inherit;font-size:13px}
+.repTxt{width:100%;min-height:60vh;background:var(--p2);border:1px solid var(--line2);border-radius:8px;color:var(--ink);padding:12px;font:12.5px/1.55 var(--mono);white-space:pre}
 .ofo{display:block;font:10px var(--mono);color:var(--tung);margin-top:2px}
 </style></head><body>
 <div class="bar"></div>
@@ -147,9 +150,9 @@ small.note{display:block;padding:0 15px 13px;color:var(--faint);font-size:10.5px
 <div id="view"></div>
 <div class="foot"><div class="sig" style="width:34px;height:34px;flex:0 0 34px"></div>
  <div class="e">Prior Proper Planning. The machine shows you what's not ready.</div>
- <div class="r2">COLMAC TOOLWORKS<br>PROJECT HUB &middot; v0.9 &middot; built for the operator</div></div>
+ <div class="r2">COLMAC TOOLWORKS<br>PROJECT HUB &middot; v0.9.1 &middot; built for the operator</div></div>
 </div>
-<input id="csv" type="file" accept=".csv" class="hide"><input id="qsin" type="file" accept=".html,.htm,.mhtml,.mht" multiple class="hide">
+<input id="csv" type="file" accept=".csv" class="hide"><input id="qsin" type="file" accept=".html,.htm,.mhtml,.mht" multiple class="hide"><input id="tgin" type="file" accept=".json,application/json" class="hide">
 <input id="artin" type="file" multiple class="hide">
 <input id="bkin" type="file" accept=".zip,application/zip" class="hide"><input id="jsonin" type="file" accept=".json,application/json" class="hide"><input id="sidesin" type="file" accept=".txt,.fountain,.fdx,.fdr,.xml,text/plain" class="hide">
 <div class="toast" id="toast"></div>
@@ -1739,11 +1742,46 @@ function offHide(name){
  if(!confirm('Remove '+name+' from your casting list?\n\nThe individual reads stay in Auditions - this just takes the office off this page.'))return;
  const k=officeKey(name);OFFMETA[k]=OFFMETA[k]||{};OFFMETA[k].hidden=true;saveOffMeta();closeOffice();render();}
 function offUnhideAll(){Object.keys(OFFMETA).forEach(k=>{if(OFFMETA[k])OFFMETA[k].hidden=false;});saveOffMeta();render();}
+/* v0.9.1: adding an office used to add a fake "(added by hand)" read, so an office you
+   had never read for showed "1 time". Now it is an office with no reads: Want to reach. */
 function offNew(){
- const name=prompt('Casting office name');if(!name)return;
- projects.push(newProject({aaid:'man'+Date.now().toString(36),title:'(added by hand)',role:'',
-  casting:name.trim(),office:name.trim(),kind:'audition',state:'archived',status:'',when:''}));
- saveProjects();toast(name.trim()+' added');render();}
+ const name=(prompt('Casting office you want to reach')||'').trim();if(!name)return;
+ const why=(prompt('Why them? One line, optional (e.g. they cast the shows I fit)')||'').trim();
+ const k=officeKey(name);OFFMETA[k]=Object.assign({},OFFMETA[k]||{},{name:name,gate:(OFFMETA[k]&&OFFMETA[k].gate)||'want',why:why||((OFFMETA[k]||{}).why||''),hidden:false});
+ saveOffMeta();toast(name+' added to Want to reach');render();}
+/* One sheet for your rep. Plain, grouped by where you stand, no scores. */
+function repSheetText(){
+ const idx=officeIndex(), name=(profile&&profile.name)||'';
+ const line=o=>{ const last=o.reads.slice(-1)[0];
+  return '- '+o.name+(o.reads.length?' ('+o.inroom+' confirmed, '+o.reads.length+' total'+(o.callbacks?', '+o.callbacks+' callback'+(o.callbacks===1?'':'s'):'')+(o.booked?', '+o.booked+' booked':'')+')':'')
+   +(last&&last.title?' - last: '+last.title+(last.role?' / '+last.role:''):'')+(o.why?' - why: '+o.why:''); };
+ const G=[['worked_with','Worked with'],['warm','Warm: they have had me in'],['seen_you','Has seen me: 3+ tapes, not in yet'],['want','Want to reach']];
+ let t='Casting offices'+(name?' - '+name:'')+'\n'+new Date().toLocaleDateString()+'\n';
+ G.forEach(([g,l])=>{ const L=idx.filter(o=>officeGate(o.name)===g); if(!L.length) return; t+='\n'+l+' ('+L.length+')\n'+L.map(line).join('\n')+'\n'; });
+ return t; }
+function repSheet(){
+ const t=repSheetText();
+ const old=document.getElementById('ow');if(old)old.remove();
+ const el=document.createElement('div');el.id='ow';el.className='lb';
+ el.innerHTML=`<div class="lbbar"><span class="lbtitle">For your rep</span><span style="flex:1"></span>
+   <button class="act sm" onclick="copyText(document.getElementById('repTxt').value);toast('Copied')">Copy</button>
+   <button class="ghost act sm" onclick="document.getElementById('ow').remove()">&times; Close</button></div>
+  <div class="wsbody" style="grid-template-columns:1fr"><div class="wsmain" style="max-width:860px">
+   <textarea id="repTxt" class="repTxt" spellcheck="false">${esc(t)}</textarea></div></div>`;
+ document.body.appendChild(el);}
+function offWhy(name,v){const k=officeKey(name);OFFMETA[k]=OFFMETA[k]||{};OFFMETA[k].why=v;saveOffMeta();}
+/* Researched offices (a .json you bring in): [{office, why, cast:["Show (year)"], sources:[{label,url}]}].
+   Merged as Want to reach unless the office already has a real relationship. */
+async function importTargets(file){
+ try{
+  const arr=JSON.parse(await file.text()); if(!Array.isArray(arr)) return toast('Not a list of offices');
+  let n=0;
+  arr.forEach(t=>{ if(!t||!t.office) return; const k=officeKey(t.office); const m=OFFMETA[k]||{};
+   OFFMETA[k]=Object.assign({},m,{name:m.name||t.office,why:m.why||t.why||'',cast:t.cast||m.cast||[],sources:t.sources||m.sources||[],researched:t.checked||m.researched||''});
+   if(!m.gate){ const o=officeFor(t.office); if(!o||!(o.booked||o.inroom||o.total>=3)) OFFMETA[k].gate='want'; }
+   n++; });
+  saveOffMeta(); toast('Brought in '+n+' office'+(n===1?'':'s')); go('offices');
+ }catch(e){ toast('Could not read that file: '+e.message); }}
 function offAddRead(name){
  const proj=prompt('Project you read for at '+name);if(proj===null)return;
  const role=prompt('Role')||'';
@@ -1840,9 +1878,9 @@ function ownerGap(p){
 
 /* ===== RELATIONSHIP GATE =====
    From the Destination Board, attached to the 92 offices the hub already indexes. */
-const GATES=['worked_with','warm','seen_you','rep_only','cold','do_not_contact'];
-const GATE_LABEL={worked_with:'Worked with',warm:'Warm',seen_you:'Has seen you',rep_only:'Rep only',cold:'Cold',do_not_contact:'Do not contact'};
-const GATE_COLOR={worked_with:'var(--good)',warm:'var(--tung)',seen_you:'#8FB3D9',rep_only:'var(--dim)',cold:'var(--mut)',do_not_contact:'var(--bad)'};
+const GATES=['worked_with','warm','seen_you','want','rep_only','cold','do_not_contact'];
+const GATE_LABEL={worked_with:'Worked with',warm:'Warm',seen_you:'Has seen you',want:'Want to reach',rep_only:'Rep only',cold:'Cold',do_not_contact:'Do not contact'};
+const GATE_COLOR={worked_with:'var(--good)',warm:'var(--tung)',seen_you:'#8FB3D9',want:'#c9a3e0',rep_only:'var(--dim)',cold:'var(--mut)',do_not_contact:'var(--bad)'};
 function officeGate(name){
  const k=officeKey(name), m=OFFMETA[k];
  if(m&&m.gate)return m.gate;
@@ -1879,9 +1917,11 @@ function officeIndex(){
   const off=c.casting;
   if(!off)return;
   put(off,{kind:'credit',title:c.title||'',role:c.character||c.role||'',who:'',cid:c.cid,when:c.year||''});});
+ Object.keys(OFFMETA||{}).forEach(k=>{ const m=OFFMETA[k]; if(m&&m.name&&!idx[k]) idx[k]={name:m.name,reads:[],credits:[],people:new Set()}; });
  return Object.keys(idx).filter(k=>!(OFFMETA[k]&&OFFMETA[k].hidden)).map(k=>{const o=idx[k];
    (OFFMETA[k]&&OFFMETA[k].people||[]).forEach(x=>o.people.add(x));
    o.note=(OFFMETA[k]&&OFFMETA[k].note)||'';
+   o.why=(OFFMETA[k]&&OFFMETA[k].why)||''; o.cast=(OFFMETA[k]&&OFFMETA[k].cast)||[]; o.sources=(OFFMETA[k]&&OFFMETA[k].sources)||[]; o.researched=(OFFMETA[k]&&OFFMETA[k].researched)||'';
    o.people=Array.from(o.people).filter(Boolean);
    o.total=o.reads.length+o.credits.length;
    o.booked=o.credits.length+o.reads.filter(r=>r.outcome&&r.outcome.booked).length;
@@ -1889,6 +1929,7 @@ function officeIndex(){
    o.pinned=o.reads.filter(r=>r.outcome&&r.outcome.pinned).length;
    o.briefs=o.reads.filter(r=>r.brief).length;
    o.inroom=o.reads.filter(r=>r.inroom).length;
+   o.tapes=o.reads.length-o.inroom;
    o.rate=o.total?Math.round(100*o.booked/o.total):0;
    o.last=o.reads.map(r=>r.when).filter(Boolean).sort().slice(-1)[0]||'';
    return o;})
@@ -1920,7 +1961,7 @@ function drawOffice(){
  const all=o.credits.map(c=>Object.assign({},c,{when:c.when||''})).concat(o.reads.slice().reverse());
  el.innerHTML=`<div class="lbbar">
    <span class="lbtitle">${esc(o.name)}</span>
-   <span class="tag">${o.total} time${o.total===1?'':'s'}</span>
+   <span class="tag">${o.inroom} confirmed &middot; ${o.reads.length} total</span>
    ${o.callbacks?`<span class="tag" style="color:var(--tung);border-color:var(--tung)">${o.callbacks} callback${o.callbacks===1?'':'s'}</span>`:''}
    ${o.pinned?`<span class="tag" style="color:#8FB3D9;border-color:#8FB3D9">${o.pinned} pinned</span>`:''}
    ${o.booked?`<span class="tag" style="color:var(--good);border-color:var(--good)">${o.booked} booked</span>`:''}
@@ -1930,6 +1971,11 @@ function drawOffice(){
    <button class="ghost act sm" onclick="closeOffice()">&times; Close</button></div>
   <div class="wsbody" style="grid-template-columns:1fr">
    <div class="wsmain" style="max-width:860px">
+    ${(officeGate(o.name)==='want'||o.why||o.cast.length)?`<div class="wsgrp"><div class="wsh">Why them</div>
+      <input class="whyin2" value="${esc(o.why)}" placeholder="One line: why this office" onchange="offWhy('${esc2(o.name)}',this.value)">
+      ${o.cast.length?`<div class="note" style="margin:8px 0 0;color:var(--ink)"><b style="color:var(--mut);font-weight:400">What they cast:</b> ${o.cast.map(esc).join(' &middot; ')}</div>`:''}
+      ${o.sources.length?`<div class="note" style="margin:6px 0 0">Sources${o.researched?' (checked '+esc(o.researched)+')':''}: ${o.sources.map(x=>`<a href="${esc(x.url)}" target="_blank" rel="noopener" style="color:var(--tung)">${esc(x.label||x.url)}</a>`).join(' &middot; ')}</div>`:''}
+    </div>`:''}
     <div class="wsgrp"><div class="wsh">What you have been in on
       <span class="note" style="display:block;margin:4px 0 0;font-weight:400;text-transform:none;letter-spacing:0;color:var(--mut);font-size:12px">${o.reads.length?(o.briefs?o.briefs+' of '+o.reads.length+' with the breakdown on file':'No breakdowns on file. Paste one when the next audition comes in and you\'ll see what they call you in for.'):''}</span>
       <button class="act sm" style="float:right;margin-top:-4px" onclick="offAddRead('${esc2(o.name)}')">+ Add</button></div>
@@ -1960,10 +2006,12 @@ function officesPanel(){
    <small class="note">Nothing here yet. Import your Actors Access history and every office you have read for shows up.</small>
    <div class="row"><button class="act sm" onclick="jumpTo('qs-block')">Import from Actors Access</button></div></div>`;
  return `<div class="panel"><h2>Casting offices <span style="color:var(--mut);font-weight:400">&middot; ${idx.length}</span>
-   <button class="act sm" style="float:right;margin-top:-3px" onclick="offNew()">+ Add office</button>
+   <button class="act sm" style="float:right;margin-top:-3px" onclick="offNew()">+ Want to reach</button>
+   <button class="ghost act sm" style="float:right;margin:-3px 8px 0 0" onclick="repSheet()">For your rep</button>
    ${Object.keys(OFFMETA).some(k=>OFFMETA[k]&&OFFMETA[k].hidden)?`<button class="ghost act sm" style="float:right;margin:-3px 8px 0 0" onclick="offUnhideAll()">Show removed</button>`:''}</h2>
+  <small class="note">Confirmed = they confirmed an appointment (in the room or a live session). Total = every read, tapes included. Add researched offices: <button class="ghost act sm" onclick="$('tgin').click()">Bring in a list (.json)</button></small>
   <div class="offlist">
-   ${idx.map(o=>`<button class="offrow" onclick="openOffice('${esc(o.name).replace(/'/g,"\\\\'")}')"><span class="gdot" style="background:${GATE_COLOR[officeGate(o.name)]}" title="${GATE_LABEL[officeGate(o.name)]}"></span><span class="ofn">${esc(o.name)}${o.callbacks||o.booked?`<small class="ofo">${o.callbacks?o.callbacks+' CB':''}${o.callbacks&&o.booked?' &middot; ':''}${o.booked?o.booked+' booked':''}</small>`:''}</span><span class="ofc">${o.total}</span></button>`).join('')}
+   ${idx.map(o=>`<button class="offrow" onclick="openOffice('${esc(o.name).replace(/'/g,"\\\\'")}')"><span class="gdot" style="background:${GATE_COLOR[officeGate(o.name)]}" title="${GATE_LABEL[officeGate(o.name)]}"></span><span class="ofn">${esc(o.name)}<small class="ofi">${o.reads.length?(o.inroom?o.inroom+' confirmed &middot; ':'0 confirmed &middot; ')+o.reads.length+' total':(officeGate(o.name)==='want'?'want to reach':'no reads yet')}</small>${o.callbacks||o.booked?`<small class="ofo">${o.callbacks?o.callbacks+' CB':''}${o.callbacks&&o.booked?' &middot; ':''}${o.booked?o.booked+' booked':''}</small>`:''}</span><span class="ofc">${o.total}</span></button>`).join('')}
   </div></div>`;}
 
 
@@ -3221,6 +3269,7 @@ function render(){setTimeout(sweepThumbs,60);
  if(tab==='train')tab='profile';renderNav();who();
  if(tab==='deck')deckView();else if(tab==='road')auditionView();else if(tab==='intake')intakeView();else if(tab==='keyart')keyArtView();else if(tab==='offices'){$('view').innerHTML=officesPanel();}else if(tab==='reels')reelRoomView();else if(tab==='package')packageView();else if(tab==='train')trainView();else if(tab==='profile')profileView();}
 
+$('tgin').addEventListener('change',e=>{const f=e.target.files[0];if(f)importTargets(f);e.target.value='';});
 $('qsin').addEventListener('change',e=>{const f=[].slice.call(e.target.files);if(f.length)importQuicksheet(f);e.target.value='';});
 $('csv').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
  r.onload=()=>{const imp=importCSV(r.result);projects=projects.concat(imp);saveProjects();toast('Imported '+imp.length+' audition'+(imp.length===1?'':'s')+(importCSV.skipped?' - skipped '+importCSV.skipped+' already here':''));go('offices');};r.readAsText(f);e.target.value='';});
