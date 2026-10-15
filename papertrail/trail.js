@@ -199,6 +199,43 @@ T.cuts=function(drafts){
   lines:lines.filter(x=>{ const h=T.lineHash(x.text); if(now.has(h)||seen.has(h)) return false; seen.add(h); return true; })};
 };
 
+/* ---------- setups and payoffs, secrets and who learns them ----------
+   A thread points at scenes by their key (heading + which time it comes up), so it carries across drafts.
+   thread: {id, kind:'setup'|'secret', what, plant:{key,heading}, payoff:{key,heading}|null, learns:[{who,key,heading}]}
+   It only says what it finds. You decide what matters. */
+T.threadStatus=function(th,scenes,keys){
+ keys=keys||T.keys(scenes);
+ const at=r=>r?keys.indexOf(r.key):-1, sc=i=>'SC '+(i+1);
+ const P=at(th.plant), out={plant:P,problems:[],notes:[]};
+ if(th.plant&&P<0) out.problems.push('The scene it starts in ('+th.plant.heading+') isn\'t in this draft.');
+ if(th.kind==='setup'){
+  const Q=at(th.payoff); out.payoff=Q;
+  if(!th.payoff) out.open=true;
+  else if(Q<0){ out.open=true; out.problems.push('Its payoff scene ('+th.payoff.heading+') isn\'t in this draft.'); }
+  else if(P>=0&&Q<P) out.problems.push('Pays off in '+sc(Q)+', before it\'s set up in '+sc(P)+'.');
+  else if(P>=0&&Q===P) out.notes.push('Set up and paid off in the same scene.');
+ } else {
+  out.learns=(th.learns||[]).map(l=>{ const i=at(l); const r={who:l.who,i:i,heading:l.heading};
+   if(i<0) out.problems.push(l.who+' learns it in '+l.heading+', which isn\'t in this draft.');
+   else { if(P>=0&&i<P) out.problems.push(l.who+' learns it in '+sc(i)+', before it starts in '+sc(P)+'.');
+    const s=scenes[i], here=new Set([...(s.cast||[]),...(s.voices||[]),...((s.lines||[]).map(x=>x.name))].map(T.norm));
+    if(!here.has(T.norm(l.who))) out.notes.push(l.who+' isn\'t in '+sc(i)+' in this draft (learns it off the page?).'); }
+   return r; });
+  const knows=new Set((th.learns||[]).map(l=>T.norm(l.who)));
+  const all=new Set(); scenes.forEach(s=>(s.lines||[]).forEach(x=>all.add(x.name)));
+  out.unaware=[...all].filter(n=>!knows.has(T.norm(n)));
+ }
+ return out;
+};
+/* the threads that touch one scene */
+T.threadsAt=function(threads,key){
+ return (threads||[]).map(th=>{ const r=[];
+  if(th.plant&&th.plant.key===key) r.push(th.kind==='setup'?'set up here':'starts here');
+  if(th.payoff&&th.payoff.key===key) r.push('pays off here');
+  (th.learns||[]).filter(l=>l.key===key).forEach(l=>r.push(l.who+' learns it here'));
+  return r.length?{th:th,roles:r}:null; }).filter(Boolean);
+};
+
 if(typeof module!=='undefined') module.exports=T;
 g.PaperTrail=T;
 })(typeof window!=='undefined'?window:globalThis);

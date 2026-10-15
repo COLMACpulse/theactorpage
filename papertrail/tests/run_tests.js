@@ -75,6 +75,20 @@ const c12=T.cuts([{label:'D1',scenes:b1},{label:"D2",scenes:b2}]);
 ok('boneyard: the diner scene cut in D2, and the rewritten line', c12.scenes.length===1&&c12.scenes[0].heading==='INT. DINER - DAY'&&c12.scenes[0].cutIn==='D2'&&c12.lines.length===1&&c12.lines[0].text==='RENNIE: I left a note.', c12);
 const c123=T.cuts([{label:'D1',scenes:b1},{label:"D2",scenes:b2},{label:"D3",scenes:b3}]);
 ok('a line put back in a later draft leaves the boneyard', c123.lines.every(x=>x.text!=='RENNIE: I left a note.'), c123.lines);
+// setups and secrets
+const SC=[{heading:'EXT. ROAD - NIGHT',cast:['RENNIE','CAL'],lines:[{name:'CAL',lines:2},{name:'RENNIE',lines:2}]},{heading:'INT. TRUCK - NIGHT',cast:['RENNIE','CAL'],lines:[{name:'CAL',lines:1}]},{heading:'EXT. MOTEL - DAWN',cast:['RENNIE'],lines:[{name:'RENNIE',lines:1},{name:'MOM',lines:1}]}];
+const K=T.keys(SC), ref=i=>({key:K[i],heading:SC[i].heading});
+const st1=T.threadStatus({kind:'setup',what:'ticket',plant:ref(0),payoff:ref(2)},SC);
+ok('setup paid off later: no problems', st1.payoff===2&&!st1.open&&!st1.problems.length, st1);
+ok('setup with no payoff: open', T.threadStatus({kind:'setup',what:'x',plant:ref(0),payoff:null},SC).open);
+ok('payoff before setup is said', /before it's set up/.test(T.threadStatus({kind:'setup',what:'x',plant:ref(2),payoff:ref(0)},SC).problems[0]||''));
+const cutDraft=SC.slice(0,2);
+const st2=T.threadStatus({kind:'setup',what:'ticket',plant:ref(0),payoff:ref(2)},cutDraft);
+ok('payoff scene cut: open again, and says so', st2.open&&/isn't in this draft/.test(st2.problems[0]||''), st2);
+const st3=T.threadStatus({kind:'secret',what:'bought it',plant:ref(0),learns:[{who:'CAL',...ref(1)},{who:'CAL2',...ref(2)}]},SC);
+ok('secret: who learns, who is not in that scene, who is not marked as knowing', st3.learns.length===2&&st3.notes.some(n=>/CAL2 isn't in SC 3/.test(n))&&st3.unaware.sort().join()==='MOM,RENNIE', st3);
+ok('learns before it starts is said', /before it starts/.test(T.threadStatus({kind:'secret',what:'s',plant:ref(1),learns:[{who:'CAL',...ref(0)}]},SC).problems[0]||''));
+ok('threads at a scene', T.threadsAt([{kind:'setup',what:'t',plant:ref(0),payoff:ref(2)}],K[2])[0].roles[0]==='pays off here');
 const lb=process.argv[2];
 if(lb&&fs.existsSync(lb)){
  const raw=fs.readFileSync(lb,'utf8');

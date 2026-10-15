@@ -130,7 +130,7 @@ async function docxText(buf){
 function tabs(){
  const p=VIEW.p&&DB.projects[VIEW.p];
  const t=[['projects','Projects'],['add','Add drafts']];
- if(p) t.push(['scenes','Scenes'],['read','Table read'],['bones','Boneyard'],['drafts','Drafts'],['characters','Characters']);
+ if(p) t.push(['scenes','Scenes'],['read','Table read'],['bones','Boneyard'],['threads','Setups'],['drafts','Drafts'],['characters','Characters']);
  $('tabs').innerHTML=t.map(([k,l])=>'<button data-tab="'+k+'" class="'+(VIEW.tab===k?'on':'')+'">'+l+'</button>').join('');
  $('crumb').innerHTML='<a data-go="projects">Paper Trail</a>'+(p?' &nbsp;/&nbsp; <a data-go="scenes">'+esc(p.title)+'</a>':'')+(VIEW.scene!=null&&p?' &nbsp;/&nbsp; scene':'');
 }
@@ -144,6 +144,7 @@ function render(){
  else if(VIEW.tab==='characters') m.innerHTML=vChars(p);
  else if(VIEW.tab==='read') m.innerHTML=vRead(p);
  else if(VIEW.tab==='bones') m.innerHTML=vBones(p);
+ else if(VIEW.tab==='threads') m.innerHTML=vThreads(p);
  wire();
 }
 function vProjects(){
@@ -203,7 +204,7 @@ function vScene(p,i){
  h+='<div class="eyebrow">FX</div>'+(sb&&sb.fx?'<p style="margin:0 0 6px">'+esc(sb.fx)+' <span class="note">(storyboard)</span></p>':'')+'<input class="field" data-card="fx" value="'+esc(cd.fx)+'" placeholder="Effects, stunts, practical gags">';
  h+='<div class="eyebrow">Notes</div>'+(sb&&sb.notes?'<p style="margin:0 0 6px">'+esc(sb.notes)+' <span class="note">(storyboard)</span></p>':'')+'<textarea class="field" data-card="notes" placeholder="Your notes">'+esc(cd.notes)+'</textarea>';
  h+='<div class="eyebrow">Decisions</div><div class="list">'+(cd.decisions||[]).map(x=>'<div class="li"><div class="w">'+esc(x.text)+'<small>'+esc(day(x.at))+'</small></div></div>').join('')+'</div>'
-  +'<div class="row" style="margin-top:8px"><input class="field" id="dec" placeholder="What you decided, e.g. cut the last two lines" style="flex:1"><button class="btn" id="decb">LOG IT</button></div><p class="note">Logged decisions stay. They are never edited after the fact.</p></div>';
+  +'<div class="row" style="margin-top:8px"><input class="field" id="dec" placeholder="What you decided, e.g. cut the last two lines" style="flex:1"><button class="btn" id="decb">LOG IT</button></div><p class="note">Logged decisions stay. They are never edited after the fact.</p>'+threadBox(p,s,i,keys)+'</div>';
  // right: on file / missing / drafts / story studio
  const M=T.missing(s,cd,sb,st);
  h+='<div><div class="eyebrow" style="margin-top:0">On file, and missing</div><div class="panel"><div class="hm">'+M.map(x=>'<i class="'+(x.have?'y':'n')+'">'+(x.have?'✓':'○')+'</i><div>'+esc(x.what)+(x.from?'<br><small>'+esc(x.from)+'</small>':'')+'</div>').join('')+'</div></div>';
@@ -279,6 +280,44 @@ function vBones(p){
  h+='<p class="note">A line that comes back in a later draft leaves the boneyard by itself.</p>';
  return h;
 }
+/* setups and secrets on one scene */
+function threadBox(p,s,i,keys){
+ p.threads=p.threads||[]; const k=keys[i], here=T.threadsAt(p.threads,k), cur=current(p), base=cur||board(p), sc=scenesOf(base);
+ let h='<div class="eyebrow">Setups and secrets</div>';
+ h+=here.length?'<div class="list">'+here.map(x=>{ const st=T.threadStatus(x.th,sc,keys);
+  const acts=[]; if(x.th.payoff&&x.th.payoff.key===k) acts.push('<a data-unpay="'+x.th.id+'">unlink payoff</a>');
+  (x.th.learns||[]).filter(l=>l.key===k).forEach(l=>acts.push('<a data-unlearn="'+x.th.id+'|'+esc(l.who)+'">unmark '+esc(l.who)+'</a>'));
+  if(x.th.plant&&x.th.plant.key===k) acts.push('<a data-thdel="'+x.th.id+'">remove</a>');
+  return '<div class="li"><div class="w"><b>'+esc(x.th.what)+'</b> <span class="tag">'+(x.th.kind==='setup'?'setup':'secret')+'</span><small>'+esc(x.roles.join(' · '))+'</small>'
+   +(x.th.kind==='setup'&&x.th.plant&&x.th.plant.key===k?'<small>'+(st.payoff>=0?'Pays off in SC '+(st.payoff+1):'Not paid off yet')+'</small>':'')
+   +st.problems.map(m=>'<small style="color:var(--grease)">'+esc(m)+'</small>').join('')+'<small>'+acts.join(' · ')+'</small></div></div>'; }).join('')+'</div>':'<p class="note" style="margin-top:0">Nothing set up or kept secret in this scene yet.</p>';
+ h+='<div class="row" style="margin-top:8px"><button class="btn sm" id="thsetup">+ SET SOMETHING UP HERE</button><button class="btn sm" id="thsecret">+ A SECRET STARTS HERE</button></div>';
+ const open=p.threads.filter(x=>x.kind==='setup'&&!(x.plant&&x.plant.key===k)&&!(x.payoff&&x.payoff.key===k));
+ if(open.length) h+='<div class="row" style="margin-top:8px"><select class="field" id="paysel" style="flex:1">'+open.map(x=>'<option value="'+x.id+'">'+esc(x.what)+(x.payoff?' (now pays off in '+esc(x.payoff.heading)+')':'')+'</option>').join('')+'</select><button class="btn sm" id="payb">PAYS OFF HERE</button></div>';
+ const secrets=p.threads.filter(x=>x.kind==='secret');
+ if(secrets.length){ const names=[...new Set([...(s.cast||[]),...T.characters([{id:'x',scenes:sc}]).map(c=>c.name)])];
+  h+='<div class="row" style="margin-top:8px"><select class="field" id="secsel" style="flex:1">'+secrets.map(x=>'<option value="'+x.id+'">'+esc(x.what)+'</option>').join('')+'</select><select class="field" id="whosel" style="flex:0 1 160px">'+names.map(n=>'<option>'+esc(n)+'</option>').join('')+'</select><button class="btn sm" id="learnb">LEARNS IT HERE</button></div>'; }
+ return h+'<p class="note">Marks stay with the scene from draft to draft. Cut the scene and the list says so.</p>';
+}
+function lastHad(p,key){ const ds=draftsOf(p.id).filter(d=>d.kind==='script'&&!d.retired).reverse(); for(const d of ds){ if(T.keys(scenesOf(d)).includes(key)) return d.label; } return ''; }
+function vThreads(p){
+ p.threads=p.threads||[]; const c=current(p);
+ if(!c) return '<div class="panel">Setups and secrets need a script draft. <button class="btn sm" data-tab="add">ADD DRAFTS</button></div>';
+ const sc=scenesOf(c), keys=T.keys(sc), at=i=>i>=0?'<a data-goscene="'+i+'">SC '+(i+1)+'</a> '+esc(sc[i].heading):'';
+ const S=p.threads.filter(x=>x.kind==='setup').map(x=>({x:x,st:T.threadStatus(x,sc,keys)})), Z=p.threads.filter(x=>x.kind==='secret').map(x=>({x:x,st:T.threadStatus(x,sc,keys)}));
+ S.sort((a,b)=>(b.st.open?1:0)-(a.st.open?1:0)||a.st.plant-b.st.plant);
+ let h='<p class="note">Reading <b>'+esc(c.label)+'</b>. Mark these on a scene page. This list only says what it finds.</p>';
+ h+='<div class="stats"><div><b>'+S.length+'</b><span>set up</span></div><div><b>'+S.filter(r=>r.st.open).length+'</b><span>not paid off</span></div><div><b>'+Z.length+'</b><span>secrets</span></div><div><b>'+[...S,...Z].filter(r=>r.st.problems.length).length+'</b><span>to look at</span></div></div>';
+ h+='<div class="eyebrow">Setups</div><div class="list">'+(S.length?S.map(({x,st})=>'<div class="li"><div class="w"><b>'+esc(x.what)+'</b>'+(st.open?' <span class="tag red">not paid off</span>':'')
+  +'<small>Set up: '+(st.plant>=0?at(st.plant):esc(x.plant.heading)+' (not in this draft)')+'</small>'
+  +'<small>Pays off: '+(st.payoff>=0?at(st.payoff):x.payoff?esc(x.payoff.heading)+' (not in this draft'+(lastHad(p,x.payoff.key)?'; last in '+esc(lastHad(p,x.payoff.key)):'')+')':'not marked')+'</small>'
+  +st.problems.map(m=>'<small style="color:var(--grease)">'+esc(m)+'</small>').join('')+st.notes.map(m=>'<small>'+esc(m)+'</small>').join('')+'</div></div>').join(''):'<div class="li"><div class="w note">Nothing set up yet. On a scene page: + SET SOMETHING UP HERE.</div></div>')+'</div>';
+ h+='<div class="eyebrow">Secrets</div><div class="list">'+(Z.length?Z.map(({x,st})=>'<div class="li"><div class="w"><b>'+esc(x.what)+'</b><small>Starts: '+(st.plant>=0?at(st.plant):esc(x.plant.heading)+' (not in this draft)')+'</small>'
+  +(st.learns.length?st.learns.map(l=>'<small>'+esc(l.who)+' learns it: '+(l.i>=0?at(l.i):esc(l.heading)+' (not in this draft)')+'</small>').join(''):'<small>Nobody learns it yet.</small>')
+  +(st.unaware.length?'<small>Not marked as knowing: '+esc(st.unaware.join(', '))+'</small>':'')
+  +st.problems.map(m=>'<small style="color:var(--grease)">'+esc(m)+'</small>').join('')+st.notes.map(m=>'<small>'+esc(m)+'</small>').join('')+'</div></div>').join(''):'<div class="li"><div class="w note">No secrets yet. On a scene page: + A SECRET STARTS HERE.</div></div>')+'</div>';
+ return h;
+}
 function vDrafts(p){
  const ds=draftsOf(p.id), c=current(p);
  let h='<p class="note">Every draft you brought in, oldest first. None is ever replaced. The current draft is the one Scenes reads.</p><div class="list">';
@@ -308,12 +347,13 @@ function vChars(p){
 }
 
 /* ---------- wiring ---------- */
-function go(tab){ VIEW.tab=tab; if(tab!=='scenes') VIEW.scene=null; render(); window.scrollTo(0,0); }
+function go(tab){ VIEW.tab=tab; VIEW.scene=null; render(); window.scrollTo(0,0); }
 function wire(){
  document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>go(b.dataset.tab));
  document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ if(b.dataset.go==='projects'){ VIEW.p=null; } VIEW.scene=null; go(b.dataset.go); });
  document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{ VIEW.p=b.dataset.open; VIEW.scene=null; go('scenes'); });
  document.querySelectorAll('[data-scene]').forEach(b=>b.onclick=()=>{ VIEW.scene=Number(b.dataset.scene); render(); window.scrollTo(0,0); });
+ document.querySelectorAll('[data-goscene]').forEach(b=>b.onclick=()=>{ VIEW.tab='scenes'; VIEW.scene=Number(b.dataset.goscene); render(); window.scrollTo(0,0); });
  document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>{ VIEW.scene=null; render(); });
  const d=$('drop');
  if(d){ d.onclick=()=>$('file').click(); d.ondragover=e=>{e.preventDefault();d.classList.add('over');}; d.ondragleave=()=>d.classList.remove('over');
@@ -327,6 +367,15 @@ function wire(){
   document.querySelectorAll('[data-addto]').forEach(b=>b.onclick=()=>{ const v=prompt(b.dataset.addto==='cast'?'Add to the cast':'Add a prop'); if(!v||!v.trim()) return; cd[b.dataset.addto]=(cd[b.dataset.addto]||[]).concat([v.trim()]); save(); render(); });
   document.querySelectorAll('[data-rm]').forEach(a=>a.onclick=()=>{ cd[a.dataset.rm].splice(Number(a.dataset.j),1); save(); render(); });
   const db=$('decb'); if(db) db.onclick=()=>{ const v=$('dec').value.trim(); if(!v) return; cd.decisions=(cd.decisions||[]).concat([{at:Date.now(),text:v}]); p.updated=Date.now(); save(); render(); toast('Logged.'); };
+  const ref={key:k,heading:scenesOf(c)[VIEW.scene].heading}; p.threads=p.threads||[];
+  const th=(kind,q)=>{ const v=prompt(q); if(!v||!v.trim()) return; p.threads.push({id:rid('t'),kind:kind,what:v.trim(),at:Date.now(),plant:ref,payoff:null,learns:[]}); p.updated=Date.now(); save(); render(); };
+  const a1=$('thsetup'); if(a1) a1.onclick=()=>th('setup','What gets set up here? e.g. the paper ticket, Mom\'s pills');
+  const a2=$('thsecret'); if(a2) a2.onclick=()=>th('secret','What is the secret? e.g. Rennie already bought the ticket');
+  const pb=$('payb'); if(pb) pb.onclick=()=>{ const x=p.threads.find(y=>y.id===$('paysel').value); if(!x) return; x.payoff=ref; p.updated=Date.now(); save(); render(); toast('Pays off here.'); };
+  const lb=$('learnb'); if(lb) lb.onclick=()=>{ const x=p.threads.find(y=>y.id===$('secsel').value), who=$('whosel').value; if(!x||!who) return; x.learns=(x.learns||[]).filter(l=>T.norm(l.who)!==T.norm(who)).concat([{who:who,key:ref.key,heading:ref.heading}]); p.updated=Date.now(); save(); render(); toast(who+' learns it here.'); };
+  document.querySelectorAll('[data-unpay]').forEach(a=>a.onclick=()=>{ const x=p.threads.find(y=>y.id===a.dataset.unpay); if(x){ x.payoff=null; save(); render(); } });
+  document.querySelectorAll('[data-unlearn]').forEach(a=>a.onclick=()=>{ const [id,who]=a.dataset.unlearn.split('|'); const x=p.threads.find(y=>y.id===id); if(x){ x.learns=x.learns.filter(l=>l.who!==who); save(); render(); } });
+  document.querySelectorAll('[data-thdel]').forEach(a=>a.onclick=()=>{ if(!confirm('Remove this? Its payoff and who learns it go too.')) return; p.threads=p.threads.filter(y=>y.id!==a.dataset.thdel); save(); render(); });
   const so=$('studio'); if(so) so.onclick=()=>{ const cur=current(p); if(!cur||!SH) return; const it=SH.put({text:TEXT[cur.id],file:p.title+(cur.label?' '+cur.label:'')+'.fountain',from:'Paper Trail',tool:TOOL}); if(it){ cur.shelfId=it.id; save(); } location.href='../film/'; };
  }
  document.querySelectorAll('[data-cur]').forEach(b=>b.onclick=()=>{ p.current=b.dataset.cur; p.pinned=true; p.updated=Date.now(); save(); render(); toast('Current draft: '+DB.drafts[p.current].label+'.'); });
@@ -370,6 +419,7 @@ $('imp').addEventListener('change',async e=>{
   for(const p of Object.values(d.projects)){
    if(!DB.projects[p.id]){ DB.projects[p.id]=p; np++; continue; }
    const mine=DB.projects[p.id]; mine.cards=mine.cards||{};
+   (p.threads||[]).forEach(x=>{ mine.threads=mine.threads||[]; const m=mine.threads.find(y=>y.id===x.id); if(!m){ mine.threads.push(x); nc++; return; } if(!m.payoff&&x.payoff){ m.payoff=x.payoff; nc++; } (x.learns||[]).forEach(l=>{ if(!(m.learns||[]).some(y=>T.norm(y.who)===T.norm(l.who))){ m.learns=(m.learns||[]).concat([l]); nc++; } }); });
    (p.bones||[]).forEach(b=>{ mine.bones=mine.bones||[]; if(!mine.bones.some(x=>x.id===b.id)){ mine.bones.push(b); nc++; } });
    Object.keys(p.cards||{}).forEach(k=>{ const a=mine.cards[k], b=p.cards[k];
     if(!a){ mine.cards[k]=b; nc++; return; }
