@@ -317,6 +317,64 @@ F.movieLength=async function(read,size){
  return 0;
 };
 
+/* ---------- footage check: the takes you logged against the files in front of you ----------
+   Matches by file name only (case, spaces, dashes and underscores ignored; extension ignored).
+   Not here never means never shot. Nothing is guessed from pixels. */
+F.MEDIA=['mov','mp4','m4v','mxf','mts','m2ts','avi','mkv','webm','3gp','braw','r3d','insv','mpg','mpeg','wmv','wav','aif','aiff','mp3','m4a'];
+F.isMedia=name=>F.MEDIA.includes(String(name||'').split('.').pop().toLowerCase())&&/\./.test(String(name||''));
+F.nameKey=name=>String(name||'').split(/[\\/]/).pop().replace(/\.[^.]*$/,'').toUpperCase().replace(/[^A-Z0-9]+/g,'');
+/* takes: [{scene, id, name, size}]  files: [{name, size, path}]
+   -> {have:[{take,file,sizeDiffers}], empty:[{take?,file}], missing:[take], extra:[file], twice:[{take,files}], skipped:n} */
+F.footageCheck=function(takes,files){
+ const media=[], out={have:[],empty:[],missing:[],extra:[],twice:[],skipped:0};
+ (files||[]).forEach(f=>{ if(F.isMedia(f.name)) media.push(f); else out.skipped++; });
+ const by={}; media.forEach(f=>{ (by[F.nameKey(f.name)]=by[F.nameKey(f.name)]||[]).push(f); });
+ const used=new Set();
+ (takes||[]).forEach(t=>{ const hits=by[F.nameKey(t.name)]||[];
+  hits.forEach(f=>used.add(f));
+  if(!hits.length){ out.missing.push(t); return; }
+  if(hits.length>1){ out.twice.push({take:t,files:hits}); return; }
+  const f=hits[0];
+  if(!f.size){ out.empty.push({take:t,file:f}); return; }
+  out.have.push({take:t,file:f,sizeDiffers:!!(t.size&&f.size!==t.size)}); });
+ media.forEach(f=>{ if(used.has(f)) return; if(!f.size) out.empty.push({file:f}); else out.extra.push(f); });
+ return out;
+};
+
+/* ---------- editor brief: what the editor needs from you, in your words. No scores. ---------- */
+F.FREEDOM=[
+ {id:'locked',name:'Locked',say:'Cut it the way it is marked. Change it only if it will not work technically.'},
+ {id:'tight',name:'Tight',say:'Trims, timing, reaction choice and continuity fixes. Nothing bigger.'},
+ {id:'guided',name:'Guided',say:'Rearrange inside the scene if you need to. Keep what the scene is for.'},
+ {id:'yours',name:'Your call',say:'Build the best version from what is here. Keep the story facts.'},
+ {id:'find',name:'Find it',say:'What we planned did not come together. Find the scene in the footage. Keep the story facts.'}
+];
+/* scenes: [{n, heading, brief:{free,keep,missing,ask,note}, takes:[{name,in,out,use,mark}], shots:{d,t}|null}] */
+F.brief=function(title,scenes,fps){
+ const L=['EDITOR BRIEF: '+String(title||'Untitled'),''], ln=s=>String(s||'').split(/\n+/).map(x=>x.trim()).filter(Boolean);
+ const tcr=t=>F.tc(t.in,fps)+' to '+F.tc(t.out,fps)+' ('+F.mmss(Math.max(0,t.out-t.in))+')';
+ const asks=[];
+ (scenes||[]).forEach(sc=>{
+  const b=sc.brief||{}, T=sc.takes||[], fr=F.FREEDOM.find(x=>x.id===b.free);
+  const use=T.filter(t=>t.use&&t.out>t.in), back=T.filter(t=>t.mark==='backup'&&!t.use), never=T.filter(t=>t.mark==='never');
+  if(!T.length&&!b.free&&!ln(b.keep).length&&!ln(b.missing).length&&!ln(b.ask).length&&!ln(b.note).length) return;
+  L.push('SCENE '+sc.n+'. '+String(sc.heading||''));
+  L.push('  Freedom: '+(fr?fr.name+'. '+fr.say:'not set. Ask the director.'));
+  if(ln(b.keep).length){ L.push('  Must keep:'); ln(b.keep).forEach(x=>L.push('   - '+x)); }
+  L.push('  Use:'+(use.length?'':' no take picked yet.')); use.forEach(t=>L.push('   - '+t.name+'  '+tcr(t)));
+  if(back.length){ L.push('  Backup:'); back.forEach(t=>L.push('   - '+t.name)); }
+  if(never.length){ L.push('  Never use:'); never.forEach(t=>L.push('   - '+t.name)); }
+  const miss=ln(b.missing); if(sc.shots&&sc.shots.t&&sc.shots.d<sc.shots.t) miss.push('Shot list: '+sc.shots.d+' of '+sc.shots.t+' shots marked done.');
+  if(miss.length){ L.push('  Missing:'); miss.forEach(x=>L.push('   - '+x)); }
+  if(ln(b.ask).length){ L.push('  Ask me first if:'); ln(b.ask).forEach(x=>{ L.push('   - '+x); asks.push('Scene '+sc.n+': '+x); }); }
+  if(ln(b.note).length){ L.push('  Notes:'); ln(b.note).forEach(x=>L.push('   - '+x)); }
+  L.push('');
+ });
+ if(asks.length){ L.push('ASK ME FIRST, ALL SCENES'); asks.forEach(x=>L.push(' - '+x)); L.push(''); }
+ L.push('Times count from the start of each file. The director has the final say.');
+ return L.join('\n');
+};
+
 if(typeof module!=='undefined') module.exports=F;
 g.FilmOS=F;
 })(typeof window!=='undefined'?window:globalThis);

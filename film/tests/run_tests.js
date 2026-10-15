@@ -103,4 +103,25 @@ const E=F.edl('Last Bus',PC,'30');
 ok('EDL: two events, record runs on from 01:00:00:00, clip names kept', /^001  IMG_4512 AA\/V  C        00:00:02:00 00:00:14:15 01:00:00:00 01:00:12:15$/m.test(E)&&/^002  IMG_4520 AA\/V  C        00:00:00:00 00:00:31:00 01:00:12:15 01:00:43:15$/m.test(E)&&/FROM CLIP NAME: IMG_4512.MOV/.test(E)&&!/^003/m.test(E), E);
 require('fs').writeFileSync(process.env.EDL_OUT||'/dev/null',E);
 ok('CSV: order, start times', F.cutCsv(PC).split('\n')[2].endsWith(',0:12.5'));
+// ---------- footage check ----------
+const TK=[{scene:1,id:'a',name:'IMG_4512.MOV',size:100},{scene:1,id:'b',name:'A001_C002.mov',size:50},{scene:2,id:'c',name:'IMG_4520.MOV',size:80},{scene:3,id:'d',name:'C0013.MP4',size:70},{scene:3,id:'e',name:'C0014.MP4',size:70}];
+const FL=[{name:'img_4512.mov',size:100},{name:'A001-C002.MOV',size:51},{name:'IMG_4520.MOV',size:0},{name:'C0013.MP4',size:70},{name:'C0013.MOV',size:900},{name:'IMG_9000.webm',size:5},{name:'IMG_9001.mkv',size:5},{name:'notes.txt',size:9},{name:'IMG_9002.MOV',size:0}];
+const FC=F.footageCheck(TK,FL);
+ok('footage: matches ignore case, dashes, underscores', FC.have.map(x=>x.take.id).join()==='a,b', FC.have);
+ok('footage: a different size is flagged, same size is not', FC.have[0].sizeDiffers===false&&FC.have[1].sizeDiffers===true);
+ok('footage: an empty file is never counted as having it', FC.empty.some(x=>x.take&&x.take.id==='c')&&!FC.have.some(x=>x.take.id==='c'));
+ok('footage: an empty file nobody logged is still shown', FC.empty.some(x=>!x.take&&x.file.name==='IMG_9002.MOV'));
+ok('footage: two files for one take are shown, not picked', FC.twice.length===1&&FC.twice[0].take.id==='d'&&FC.twice[0].files.length===2);
+ok('footage: logged but not here', FC.missing.map(x=>x.id).join()==='e');
+ok('footage: webm and mkv are seen as unlogged, text files skipped', FC.extra.map(x=>x.name).sort().join()==='IMG_9000.webm,IMG_9001.mkv'&&FC.skipped===1, FC.extra);
+// ---------- editor brief ----------
+const BR=F.brief('Last Bus',[
+ {n:1,heading:'EXT. ROAD - NIGHT',brief:{free:'tight',keep:'Cal sees the bus leave\nHe does not run',ask:'You want to drop the wave',note:''},takes:[{name:'IMG_4512.MOV',in:2,out:14.5,use:true},{name:'IMG_4513.MOV',in:0,out:9,mark:'backup'},{name:'IMG_4514.MOV',in:0,out:9,mark:'never'}],shots:{d:3,t:5}},
+ {n:2,heading:'INT. TRUCK - NIGHT',brief:{},takes:[],shots:null},
+ {n:3,heading:'EXT. MOTEL - DAWN',brief:{missing:'No wide of the lot'},takes:[{name:'C0013.MP4',in:0,out:0,use:true}],shots:{d:4,t:4}}],'30');
+ok('brief: freedom in plain words', /Freedom: Tight\. Trims, timing/.test(BR), BR);
+ok('brief: must keep, use with times, backup, never use', /Must keep:\n   - Cal sees the bus leave\n   - He does not run/.test(BR)&&/IMG_4512\.MOV  00:00:02:00 to 00:00:14:15 \(0:12\.5\)/.test(BR)&&/Backup:\n   - IMG_4513/.test(BR)&&/Never use:\n   - IMG_4514/.test(BR));
+ok('brief: shot list gap shows as missing; full list does not', /Shot list: 3 of 5 shots marked done/.test(BR)&&!/4 of 4/.test(BR));
+ok('brief: empty scene left out; zero-length take is not a pick', !/SCENE 2\./.test(BR)&&/SCENE 3\.[^\n]*\n  Freedom: not set\. Ask the director\.\n  Use: no take picked yet\./.test(BR));
+ok('brief: ask-me-first gathered at the end; no scores or percents', /ASK ME FIRST, ALL SCENES\n - Scene 1: You want to drop the wave/.test(BR)&&!/%|score/i.test(BR));
 console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail?1:0);

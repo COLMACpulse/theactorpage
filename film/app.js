@@ -301,21 +301,50 @@ function vCut(){
  let h='<p class="kicker">Cut to length</p><p class="dim" style="font-size:14px;margin:-2px 0 12px">Add the takes you shot, keep the one you want for each scene, set where it starts and ends. They line up in script order. Then hand the list to your editor.</p>';
  h+='<div class="card"><div class="row"><label class="faint" style="font-size:13px">Aim for</label><input class="field" id="ctarget" value="'+esc(F.mmss(k.target))+'" style="flex:0 1 90px"><label class="faint" style="font-size:13px">Frame rate</label><select class="field" id="cfps" style="flex:0 1 110px">'+Object.keys(F.FPS).map(x=>'<option'+(x===k.fps?' selected':'')+'>'+x+'</option>').join('')+'</select></div>'
   +'<div class="runtime"><b>'+F.mmss(len)+'</b><span>'+(P.length?(Math.abs(diff)<0.05?'right on '+F.mmss(k.target):diff>0?F.mmss(diff)+' to go to '+F.mmss(k.target):F.mmss(-diff)+' over '+F.mmss(k.target)):'nothing in the cut yet')+' · '+P.length+' piece'+(P.length===1?'':'s')+'</span></div></div>';
+ h+=footBox();
  SCENES.forEach(sc=>{
   const T=k.takes[sc.n]||[];
   h+='<div class="card"><div class="hd" style="font:700 14px/1.35 var(--mono)">'+sc.n+'. '+esc(sc.heading)+'</div>';
   h+=T.map(t=>{ const f=FILES[t.id];
-   return '<div class="take'+(t.use?' on':'')+'"><div class="row" style="justify-content:space-between"><label class="row" style="gap:8px"><input type="checkbox" data-tuse="'+sc.n+'|'+t.id+'"'+(t.use?' checked':'')+'><b style="font-size:14px;word-break:break-all">'+esc(t.name)+'</b></label><span class="faint" style="font-size:13px">'+(t.dur?F.mmss(t.dur):'length?')+'</span><button class="x" data-tdel="'+sc.n+'|'+t.id+'" aria-label="Remove">×</button></div>'
+   return '<div class="take'+(t.use?' on':'')+(t.mark==='never'?' never':'')+'"><div class="row" style="justify-content:space-between"><label class="row" style="gap:8px"><input type="checkbox" data-tuse="'+sc.n+'|'+t.id+'"'+(t.use?' checked':'')+(t.mark==='never'?' disabled':'')+'><b style="font-size:14px;word-break:break-all">'+esc(t.name)+'</b></label><span class="faint" style="font-size:13px">'+(t.dur?F.mmss(t.dur):'length?')+'</span><select class="field mark" data-tmark="'+sc.n+'|'+t.id+'" aria-label="Mark this take">'+[['','—'],['backup','backup'],['never','never use']].map(o=>'<option value="'+o[0]+'"'+((t.mark||'')===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select><button class="x" data-tdel="'+sc.n+'|'+t.id+'" aria-label="Remove">×</button></div>'
     +(f?'<video class="tprev" data-tvid="'+t.id+'" playsinline controls preload="metadata"></video>':'')
     +'<div class="row" style="margin-top:6px"><label class="faint" style="font-size:12px">In</label><input class="field" data-tin="'+sc.n+'|'+t.id+'" value="'+F.mmss(t.in)+'" style="flex:1 1 70px">'+(f?'<button class="btn sm" data-tsetin="'+sc.n+'|'+t.id+'">HERE</button>':'')
     +'<label class="faint" style="font-size:12px">Out</label><input class="field" data-tout="'+sc.n+'|'+t.id+'" value="'+F.mmss(t.out)+'" style="flex:1 1 70px">'+(f?'<button class="btn sm" data-tsetout="'+sc.n+'|'+t.id+'">HERE</button>':'')+'</div>'
     +'<div class="faint" style="font-size:12px;margin-top:4px">'+F.mmss(Math.max(0,t.out-t.in))+' used'+(f?'':' · pick the file again to preview it')+'</div></div>'; }).join('');
-  h+='<label class="btn sm block" style="margin-top:8px"><input type="file" accept="video/*,.mov,.mp4,.m4v" multiple class="hide" data-tadd="'+sc.n+'">+ ADD TAKES</label></div>';
+  h+='<label class="btn sm block" style="margin-top:8px"><input type="file" accept="video/*,.mov,.mp4,.m4v" multiple class="hide" data-tadd="'+sc.n+'">+ ADD TAKES</label>'+briefBox(sc)+'</div>';
  });
  h+='<div class="card"><p class="kicker">Hand it to your editor</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">An EDL opens in DaVinci Resolve, Premiere and Avid. Point it at your footage and it relinks by file name. In and out count from the start of each file.</p>'
-  +'<div class="row"><button class="btn pri" id="cedl"'+(P.length?'':' disabled')+'>EDIT LIST (.EDL)</button><button class="btn" id="ccsv"'+(P.length?'':' disabled')+'>LIST (.CSV)</button></div></div>';
+  +'<div class="row"><button class="btn pri" id="cedl"'+(P.length?'':' disabled')+'>EDIT LIST (.EDL)</button><button class="btn" id="ccsv"'+(P.length?'':' disabled')+'>LIST (.CSV)</button><button class="btn" id="cbrief">EDITOR BRIEF (.TXT)</button></div>'
+  +'<p class="faint" style="font-size:13px;margin:8px 0 0">The brief says, scene by scene, how much freedom the editor has, what must stay, which take to use, backups, never-use takes, what is missing and when to ask you first.</p></div>';
  return h;
 }
+function briefOf(n){ const k=cutOf(); k.brief=k.brief||{}; k.brief[n]=k.brief[n]||{}; return k.brief[n]; }
+function briefBox(sc){ const b=(cutOf().brief||{})[sc.n]||{}, set=['free','keep','missing','ask','note'].filter(x=>b[x]).length;
+ const ta=(key,label,ph)=>'<label class="faint" style="font-size:12px;display:block;margin-top:8px">'+label+'</label><textarea class="field" rows="2" data-brief="'+sc.n+'|'+key+'" placeholder="'+ph+'">'+esc(b[key]||'')+'</textarea>';
+ return '<details class="brief"'+(BOPEN[sc.n]?' open':'')+' data-bopen="'+sc.n+'"><summary>Notes for the editor'+(set?' · '+set+' of 5 filled':'')+'</summary>'
+  +'<label class="faint" style="font-size:12px;display:block;margin-top:8px">How much freedom</label><select class="field" data-brief="'+sc.n+'|free"><option value="">Not set</option>'+F.FREEDOM.map(f=>'<option value="'+f.id+'"'+(b.free===f.id?' selected':'')+'>'+f.name+'</option>').join('')+'</select>'
+  +(b.free?'<div class="faint" style="font-size:12px;margin-top:4px">'+esc(F.FREEDOM.find(f=>f.id===b.free).say)+'</div>':'')
+  +ta('keep','Must keep (one per line)','He sees the bus leave')+ta('missing','What is missing','No wide of the lot')+ta('ask','Ask me first if','You want to drop a line')+ta('note','Anything else','')+'</details>'; }
+const BOPEN={};
+let FOOT=null;   // this session's footage check: {files:[File], res}
+function takeList(){ const k=cutOf(), L=[]; SCENES.forEach(sc=>(k.takes[sc.n]||[]).forEach(t=>L.push(Object.assign({scene:sc.n},t)))); return L; }
+function runFoot(files){ FOOT={files:files,res:F.footageCheck(takeList(),files.map(f=>({name:f.name,size:f.size,path:f.webkitRelativePath||f.name,f:f})))};
+ FOOT.res.have.forEach(x=>{ FILES[x.take.id]=x.file.f; }); }
+function footBox(){
+ let h='<div class="card"><p class="kicker">Footage check</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">Pick your footage folder, or the clips. It matches file names to the takes you logged. Not here never means never shot. Nothing leaves this device.</p>'
+  +'<div class="row"><label class="btn sm"><input type="file" webkitdirectory multiple class="hide" id="ffold">PICK FOLDER</label><label class="btn sm"><input type="file" multiple class="hide" id="ffiles">PICK FILES</label></div>';
+ if(FOOT){ const r=FOOT.res, nm=f=>esc(f.path||f.name), sz=b=>b>=1e9?(b/1e9).toFixed(1)+' GB':b>=1e6?Math.round(b/1e6)+' MB':Math.round(b/1e3)+' KB';
+  const sec=(t,n,body)=>n?'<div class="fsec"><b>'+t+' · '+n+'</b>'+body+'</div>':'';
+  h+='<div class="fsum">'+FOOT.files.length+' files looked at · '+r.have.length+' takes found · '+r.missing.length+' not here · '+r.extra.length+' not logged · '+r.empty.length+' empty'+(r.twice.length?' · '+r.twice.length+' with two files':'')+(r.skipped?' · '+r.skipped+' not video or sound, skipped':'')+'</div>';
+  h+=sec('Empty files',r.empty.length,r.empty.map(x=>'<div class="fl bad">'+nm(x.file)+' is 0 bytes'+(x.take?' (scene '+x.take.scene+' take)':'')+'. Copy it again from the card.</div>').join(''));
+  h+=sec('Two files for one take',r.twice.length,r.twice.map(x=>'<div class="fl">Scene '+x.take.scene+' '+esc(x.take.name)+': '+x.files.map(f=>nm(f)+' ('+sz(f.size)+')').join(', ')+'. Proxy and original? Your editor picks.</div>').join(''));
+  h+=sec('Logged but not here',r.missing.length,r.missing.map(t=>'<div class="fl">Scene '+t.scene+' · '+esc(t.name)+'</div>').join(''));
+  h+=sec('Here but not logged',r.extra.length,r.extra.map((f,i)=>'<div class="fl row" style="justify-content:space-between"><span style="word-break:break-all">'+nm(f)+' ('+sz(f.size)+')</span><select class="field" data-fadd="'+i+'" style="flex:0 1 150px"><option value="">Add to scene…</option>'+SCENES.map(sc=>'<option value="'+sc.n+'">'+sc.n+'. '+esc(sc.heading.slice(0,28))+'</option>').join('')+'</select></div>').join(''));
+  h+=sec('Found',r.have.length,r.have.map(x=>'<div class="fl ok">Scene '+x.take.scene+' · '+esc(x.take.name)+(x.sizeDiffers?' · different size than when you logged it. Re-exported?':'')+'</div>').join(''));
+  const sh=SCENES.map(sc=>({sc:sc,dn:doneOf(sc),n:(cutOf().takes[sc.n]||[]).length})).filter(x=>(x.dn&&x.dn.d&&!x.n));
+  h+=sec('Shots marked done, no takes logged',sh.length,sh.map(x=>'<div class="fl">Scene '+x.sc.n+': '+x.dn.d+' of '+x.dn.t+' shots done, no takes here yet.</div>').join(''));
+ }
+ return h+'</div>'; }
 async function clipLength(file){
  try{ const d=await F.movieLength((o,l)=>file.slice(o,o+l).arrayBuffer(),file.size); if(d>0) return d; }catch(e){}
  return clipLengthPlayer(file); }
@@ -343,6 +372,14 @@ function wireCut(){
  const name=()=>String(cur().file||'cut').replace(/\.[a-z]+$/i,'').replace(/[^\w ]+/g,' ').trim()||'cut';
  const e=$('cedl'); if(e) e.onclick=()=>dl(name()+' cut.edl',F.edl(name(),pieces(),k.fps),'text/plain');
  const cv=$('ccsv'); if(cv) cv.onclick=()=>dl(name()+' cut.csv',F.cutCsv(pieces()),'text/csv');
+ const cb=$('cbrief'); if(cb) cb.onclick=()=>dl(name()+' editor brief.txt',F.brief(name(),SCENES.map(sc=>({n:sc.n,heading:sc.heading,brief:(k.brief||{})[sc.n]||{},takes:k.takes[sc.n]||[],shots:doneOf(sc)})),k.fps),'text/plain');
+ document.querySelectorAll('[data-tmark]').forEach(b=>b.onchange=()=>{ const r=findT(b.dataset.tmark); if(!r.t) return; if(b.value) r.t.mark=b.value; else delete r.t.mark; if(b.value==='never') r.t.use=false; save(); render(); });
+ document.querySelectorAll('[data-brief]').forEach(i=>{ const ev=i.tagName==='SELECT'?'onchange':'oninput'; i[ev]=()=>{ const [n,key]=i.dataset.brief.split('|'); const b=briefOf(+n); if(i.value) b[key]=i.value; else delete b[key]; save(); if(key==='free') render(); }; });
+ document.querySelectorAll('[data-bopen]').forEach(d=>d.ontoggle=()=>{ BOPEN[d.dataset.bopen]=d.open; });
+ ['ffold','ffiles'].forEach(id=>{ const i=$(id); if(i) i.onchange=()=>{ const fl=[...i.files]; if(!fl.length) return; runFoot(fl); render(); toast(fl.length+' files checked.'); }; });
+ document.querySelectorAll('[data-fadd]').forEach(sel=>sel.onchange=async()=>{ const n=+sel.value; if(!n||!FOOT) return; const f=FOOT.res.extra[+sel.dataset.fadd].f; k.takes[n]=k.takes[n]||[];
+   const id=rid('t'); FILES[id]=f; const d=await clipLength(f); k.takes[n].push({id:id,name:f.name,size:f.size,dur:Math.round(d*100)/100,in:0,out:Math.round(d*100)/100,use:!k.takes[n].some(x=>x.use)});
+   save(); runFoot(FOOT.files); render(); toast(f.name+' added to scene '+n+'.'); });
 }
 
 /* ---------- wiring ---------- */
