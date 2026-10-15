@@ -13,6 +13,7 @@ const perf=()=>'<div class="perf">'+'<i></i>'.repeat(11)+'</div>';
 
 let DB=load(); DB.marks=DB.marks||{};
 let READER=(()=>{ try{ return localStorage.getItem('paper_trail_reader')||''; }catch(e){ return ''; } })();
+let SR=window.SpeechRecognition||window.webkitSpeechRecognition||null, REC=null, LISTEN=false, SAID=false;
 let TEXT={}, VIEW={tab:'projects',p:null,scene:null}, MSG='', ADDED=[], SHOWRET=false;
 const CACHE={};   // draft id -> scenes
 function load(){ try{ const d=JSON.parse(localStorage.getItem(KEY)||'null'); if(d&&d.projects) return d; }catch(e){} return {projects:{},drafts:{}}; }
@@ -129,7 +130,7 @@ async function docxText(buf){
 function tabs(){
  const p=VIEW.p&&DB.projects[VIEW.p];
  const t=[['projects','Projects'],['add','Add drafts']];
- if(p) t.push(['scenes','Scenes'],['read','Table read'],['drafts','Drafts'],['characters','Characters']);
+ if(p) t.push(['scenes','Scenes'],['read','Table read'],['bones','Boneyard'],['drafts','Drafts'],['characters','Characters']);
  $('tabs').innerHTML=t.map(([k,l])=>'<button data-tab="'+k+'" class="'+(VIEW.tab===k?'on':'')+'">'+l+'</button>').join('');
  $('crumb').innerHTML='<a data-go="projects">Paper Trail</a>'+(p?' &nbsp;/&nbsp; <a data-go="scenes">'+esc(p.title)+'</a>':'')+(VIEW.scene!=null&&p?' &nbsp;/&nbsp; scene':'');
 }
@@ -142,6 +143,7 @@ function render(){
  else if(VIEW.tab==='drafts') m.innerHTML=vDrafts(p);
  else if(VIEW.tab==='characters') m.innerHTML=vChars(p);
  else if(VIEW.tab==='read') m.innerHTML=vRead(p);
+ else if(VIEW.tab==='bones') m.innerHTML=vBones(p);
  wire();
 }
 function vProjects(){
@@ -220,7 +222,14 @@ function vScene(p,i){
   h+='<div class="eyebrow">Story Studio</div><div class="panel">'+(st&&st.way?'<b>'+esc(st.way)+'</b> · '+st.done+' of '+st.total+' shots done':'Not in Story Studio yet.')
    +'<div class="row" style="margin-top:10px"><button class="btn" id="studio">'+(st?'OPEN IN STORY STUDIO':'SHOOT IT IN STORY STUDIO')+'</button></div><p class="note">Sends the current draft to the sides shelf and opens Story Studio on it.</p></div>';
  }
- if(s.text) h+='<details><summary class="eyebrow" style="cursor:pointer">Read the scene</summary><div class="read">'+esc(s.text)+'</div></details>';
+ if(s.text){
+  const pv=c?prevScript(p,c):null, pS=pv?scenesOf(pv):null, pj=pS?T.keys(pS).indexOf(keys[i]):-1;
+  if(pv&&pj>=0){
+   const df=T.lineDiff(T.linesOf(pS[pj]),T.linesOf(s)), n=T.lineCounts(df);
+   h+='<div class="eyebrow">Since '+esc(pv.label)+'</div><p class="note" style="margin-top:0">'+(n.added||n.cut?n.added+' line'+(n.added===1?'':'s')+' new or rewritten, '+n.cut+' cut. Marked * in the margin; cut lines struck through.':'Not a word changed.')+'</p>';
+   h+='<div class="read rev">'+df.map(x=>'<div class="rl '+x.t+'"><span class="rmk">'+(x.t==='new'?'*':x.t==='cut'?'–':'')+'</span>'+esc(x.text)+'</div>').join('')+'</div>';
+  } else h+='<details><summary class="eyebrow" style="cursor:pointer">Read the scene</summary><div class="read">'+esc(s.text)+'</div></details>'+(pv?'<p class="note">New in this draft: not in '+esc(pv.label)+'.</p>':'');
+ }
  h+='</div></div>';
  return h;
 }
@@ -253,13 +262,31 @@ function vRead(p){
  });
  return h;
 }
+function vBones(p){
+ p.bones=p.bones||[];
+ const ds=draftsOf(p.id).filter(d=>d.kind==='script'&&!d.retired), C=T.cuts(ds.map(d=>({id:d.id,label:d.label,scenes:scenesOf(d)})));
+ const q=(VIEW.bq||'').trim().toLowerCase(), hit=s=>!q||String(s).toLowerCase().includes(q);
+ const F=p.bones.filter(b=>hit(b.text)).slice().reverse(), S=C.scenes.filter(x=>hit(x.heading+' '+x.text)), L=C.lines.filter(x=>hit(x.text+' '+x.heading));
+ let h='<p class="note">Nothing you cut is gone. Scenes and lines cut between drafts land here by themselves. Catch new bits here too, before they get away.</p>';
+ h+='<div class="panel"><div class="eyebrow" style="margin-top:0">Catch it</div><textarea class="field" id="bone" placeholder="A line, a name, a beat, a scene you can see but can\'t place yet"></textarea>'
+  +'<div class="row" style="margin-top:8px"><button class="btn pri" id="boneb">KEEP IT</button>'+(SR?'<button class="btn" id="mic">'+(LISTEN?'STOP':'SAY IT')+'</button>':'')+'</div>'
+  +(SR?'<p class="note">SAY IT types what you say. Your words, as heard: check it before you keep it.</p>':'<p class="note">On a phone, the mic on your keyboard types what you say.</p>')+'</div>';
+ h+='<div class="row"><input class="field" id="bq" placeholder="Find anything in the boneyard" value="'+esc(VIEW.bq||'')+'" style="max-width:420px"></div>';
+ h+='<div class="stats" style="margin-top:14px"><div><b>'+p.bones.length+'</b><span>caught</span></div><div><b>'+C.scenes.length+'</b><span>scenes cut</span></div><div><b>'+C.lines.length+'</b><span>lines cut</span></div></div>';
+ h+='<div class="eyebrow">Caught</div><div class="list">'+(F.length?F.map(b=>'<div class="li"><div class="w" style="white-space:pre-wrap">'+esc(b.text)+'<small>'+esc(day(b.at))+(b.said?' · said':'')+'</small></div><div class="row"><button class="btn sm" data-copy="'+esc(b.text)+'">COPY</button><button class="btn sm ghost" data-unbone="'+b.id+'">REMOVE</button></div></div>').join(''):'<div class="li"><div class="w note">'+(q?'Nothing caught matches.':'Nothing caught yet.')+'</div></div>')+'</div>';
+ h+='<div class="eyebrow">Scenes cut</div><div class="list">'+(S.length?S.map(x=>'<div class="li"><div class="w"><b>'+esc(x.heading)+'</b><small>In '+esc(x.from)+', cut in '+esc(x.cutIn)+'</small><details><summary class="note" style="cursor:pointer">Read it</summary><div class="read">'+esc(x.text)+'</div></details></div><button class="btn sm" data-copy="'+esc(x.heading+'\n\n'+x.text)+'">COPY</button></div>').join(''):'<div class="li"><div class="w note">'+(ds.length<2?'Cut scenes show up once there are two drafts.':q?'No cut scene matches.':'No scene has been cut.')+'</div></div>')+'</div>';
+ h+='<div class="eyebrow">Lines cut</div><div class="list">'+(L.length?L.map(x=>'<div class="li"><div class="w">'+esc(x.text)+'<small>'+esc(x.heading)+' · in '+esc(x.from)+', cut in '+esc(x.cutIn)+'</small></div><button class="btn sm" data-copy="'+esc(x.text)+'">COPY</button></div>').join(''):'<div class="li"><div class="w note">'+(ds.length<2?'Cut lines show up once there are two drafts.':q?'No cut line matches.':'No line has been cut.')+'</div></div>')+'</div>';
+ h+='<p class="note">A line that comes back in a later draft leaves the boneyard by itself.</p>';
+ return h;
+}
 function vDrafts(p){
  const ds=draftsOf(p.id), c=current(p);
  let h='<p class="note">Every draft you brought in, oldest first. None is ever replaced. The current draft is the one Scenes reads.</p><div class="list">';
  let prev=null;
  ds.forEach(d=>{
   let cmp='';
-  if(d.kind==='script'&&prev){ const r=T.compare(scenesOf(prev),scenesOf(d)); cmp='vs '+esc(prev.label)+': '+[r.changed.length+' changed',r.added.length+' added',r.removed.length+' cut',r.same.length+' the same'].join(', ')
+  if(d.kind==='script'&&prev){ const r=T.compare(scenesOf(prev),scenesOf(d)); const pS=scenesOf(prev), pK=T.keys(pS), cK=T.keys(scenesOf(d)); let la=0,lc=0; r.changed.forEach(s=>{ const k=cK[scenesOf(d).indexOf(s)], q=pS[pK.indexOf(k)]; if(!q) return; const n=T.lineCounts(T.lineDiff(T.linesOf(q),T.linesOf(s))); la+=n.added; lc+=n.cut; });
+   cmp='vs '+esc(prev.label)+': '+[r.changed.length+' changed',r.added.length+' added',r.removed.length+' cut',r.same.length+' the same'].join(', ')+(r.changed.length?' · lines: '+la+' new or rewritten, '+lc+' cut':'')
     +(r.changed.length?'<br><span class="note">Changed: '+esc(r.changed.slice(0,4).map(x=>x.heading).join(' · '))+(r.changed.length>4?' …':'')+'</span>':'')
     +(r.added.length?'<br><span class="note">Added: '+esc(r.added.slice(0,4).map(x=>x.heading).join(' · '))+'</span>':'')
     +(r.removed.length?'<br><span class="note">Cut: '+esc(r.removed.slice(0,4).map(x=>x.heading).join(' · '))+'</span>':''); }
@@ -314,6 +341,17 @@ function wire(){
  const ex=$('exp'); if(ex) ex.onclick=()=>{ const out={app:'PAPER TRAIL',version:1,exported:new Date().toISOString(),projects:DB.projects,drafts:DB.drafts,marks:DB.marks,texts:TEXT};
    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(out)],{type:'application/json'})); a.download='paper_trail_export.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); };
  const ib=$('impb'); if(ib) ib.onclick=()=>$('imp').click();
+ const bb=$('boneb'); if(bb) bb.onclick=()=>{ const v=$('bone').value.trim(); if(!v) return; p.bones=(p.bones||[]).concat([{id:rid('b'),text:v,at:Date.now(),said:!!SAID}]); SAID=false; p.updated=Date.now(); save(); render(); toast('Kept.'); };
+ const bq=$('bq'); if(bq) bq.oninput=()=>{ VIEW.bq=bq.value; const pos=bq.selectionStart; render(); const n=$('bq'); n.focus(); n.setSelectionRange(pos,pos); };
+ document.querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{ try{ await navigator.clipboard.writeText(b.dataset.copy); toast('Copied. Paste it into your draft.'); }catch(e){ toast('This browser would not copy. Select the text and copy it.'); } });
+ document.querySelectorAll('[data-unbone]').forEach(b=>b.onclick=()=>{ if(!confirm('Remove this from the boneyard? It is only here.')) return; p.bones=p.bones.filter(x=>x.id!==b.dataset.unbone); save(); render(); });
+ const mic=$('mic'); if(mic) mic.onclick=()=>{
+  if(LISTEN){ try{ REC.stop(); }catch(e){} LISTEN=false; render(); return; }
+  try{ REC=new SR(); REC.continuous=true; REC.interimResults=false; const base=$('bone').value;
+   REC.onresult=e=>{ let s=''; for(let k=0;k<e.results.length;k++) s+=e.results[k][0].transcript; const el=$('bone'); if(el){ el.value=(base?base+' ':'')+s.trim(); SAID=true; } };
+   REC.onend=()=>{ const keep=$('bone')&&$('bone').value; LISTEN=false; render(); if(keep&&$('bone')) $('bone').value=keep; };
+   REC.onerror=()=>{ LISTEN=false; toast('The mic stopped. Type it, or try again.'); };
+   REC.start(); LISTEN=true; const keep=$('bone').value; render(); $('bone').value=keep; }catch(e){ toast('This browser would not open the mic.'); } };
  const rd=$('reader'); if(rd) rd.oninput=()=>{ READER=rd.value.trim(); try{ localStorage.setItem('paper_trail_reader',READER); }catch(e){} };
  const rdc=$('reader'); if(rdc) rdc.onchange=()=>render();
  document.querySelectorAll('[data-mk]').forEach(b=>b.onclick=()=>{
@@ -332,6 +370,7 @@ $('imp').addEventListener('change',async e=>{
   for(const p of Object.values(d.projects)){
    if(!DB.projects[p.id]){ DB.projects[p.id]=p; np++; continue; }
    const mine=DB.projects[p.id]; mine.cards=mine.cards||{};
+   (p.bones||[]).forEach(b=>{ mine.bones=mine.bones||[]; if(!mine.bones.some(x=>x.id===b.id)){ mine.bones.push(b); nc++; } });
    Object.keys(p.cards||{}).forEach(k=>{ const a=mine.cards[k], b=p.cards[k];
     if(!a){ mine.cards[k]=b; nc++; return; }
     ['purpose','notes','fx'].forEach(x=>{ if(!a[x]&&b[x]) { a[x]=b[x]; nc++; } });

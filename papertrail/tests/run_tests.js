@@ -62,6 +62,19 @@ ok('line hash ignores case and spacing', T.lineHash('Rennie:  nope.')===T.lineHa
 
 const pp=T.paras([{action:true,text:'Rain on a tin roof. RENNIE, wet coat, a'},{action:true,text:'duffel she packed.'},{action:true,text:'Headlights.'},{who:'CAL',text:'Hey.'}]);
 ok('wrapped action joins into one beat; a finished sentence starts the next', pp.length===3&&pp[0].text==='Rain on a tin roof. RENNIE, wet coat, a duffel she packed.'&&pp[1].text==='Headlights.', pp);
+// revision marks
+const df=T.lineDiff(['CAL: Hey.','RENNIE: I left a note.','The bus pulls in.'],['CAL: Hey.','RENNIE: I left you a note.','The bus pulls in.','CAL: Get in.']);
+ok('line diff: same, cut+new for a rewrite, new at the end', JSON.stringify(df.map(x=>x.t))==='["same","cut","new","same","new"]', df);
+ok('line counts', JSON.stringify(T.lineCounts(df))==='{"added":2,"cut":1,"same":2}');
+ok('no change: all the same', T.lineDiff(['a','b'],['A','b ']).every(x=>x.t==='same'));
+// boneyard
+const b1=[{heading:'EXT. ROAD - NIGHT',text:'CAL: Hey.\nRENNIE: I left a note.'},{heading:'INT. DINER - DAY',text:'Coffee.'}];
+const b2=[{heading:'EXT. ROAD - NIGHT',text:'CAL: Hey.\nRENNIE: I left you a note.'}];
+const b3=[{heading:'EXT. ROAD - NIGHT',text:'CAL: Hey.\nRENNIE: I left a note.'}];
+const c12=T.cuts([{label:'D1',scenes:b1},{label:"D2",scenes:b2}]);
+ok('boneyard: the diner scene cut in D2, and the rewritten line', c12.scenes.length===1&&c12.scenes[0].heading==='INT. DINER - DAY'&&c12.scenes[0].cutIn==='D2'&&c12.lines.length===1&&c12.lines[0].text==='RENNIE: I left a note.', c12);
+const c123=T.cuts([{label:'D1',scenes:b1},{label:"D2",scenes:b2},{label:"D3",scenes:b3}]);
+ok('a line put back in a later draft leaves the boneyard', c123.lines.every(x=>x.text!=='RENNIE: I left a note.'), c123.lines);
 const lb=process.argv[2];
 if(lb&&fs.existsSync(lb)){
  const raw=fs.readFileSync(lb,'utf8');

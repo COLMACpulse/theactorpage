@@ -167,6 +167,38 @@ T.carried=function(prevMarks,curScenes){
  return out;
 };
 
+/* ---------- revision marks: line by line, what changed since the last draft ----------
+   out: [{t:'same'|'new'|'cut', text}] in reading order. A rewritten line shows as cut + new. */
+T.lineDiff=function(prev,cur){
+ const a=prev.map(T.lineHash), b=cur.map(T.lineHash), n=a.length, m=b.length;
+ const L=Array.from({length:n+1},()=>new Uint16Array(m+1));
+ for(let i=n-1;i>=0;i--) for(let j=m-1;j>=0;j--) L[i][j]=a[i]===b[j]?L[i+1][j+1]+1:Math.max(L[i+1][j],L[i][j+1]);
+ const out=[]; let i=0,j=0;
+ while(i<n&&j<m){ if(a[i]===b[j]){ out.push({t:'same',text:cur[j]}); i++; j++; } else if(L[i+1][j]>=L[i][j+1]) out.push({t:'cut',text:prev[i++]}); else out.push({t:'new',text:cur[j++]}); }
+ while(i<n) out.push({t:'cut',text:prev[i++]}); while(j<m) out.push({t:'new',text:cur[j++]});
+ return out;
+};
+T.lineCounts=d=>({added:d.filter(x=>x.t==='new').length,cut:d.filter(x=>x.t==='cut').length,same:d.filter(x=>x.t==='same').length});
+
+/* ---------- the boneyard: everything cut between drafts ----------
+   drafts in order: [{id,label,scenes}]. Scenes cut whole, and lines cut from scenes that stayed. */
+T.cuts=function(drafts){
+ const scenes=[], lines=[];
+ for(let d=1;d<drafts.length;d++){
+  const P=drafts[d-1], C=drafts[d], r=T.compare(P.scenes,C.scenes);
+  r.removed.forEach(s=>scenes.push({from:P.label,cutIn:C.label,heading:s.heading,text:s.text||'',scene:s}));
+  const pk=T.keys(P.scenes), ck=T.keys(C.scenes);
+  r.changed.forEach(s=>{ const k=ck[C.scenes.indexOf(s)], ps=P.scenes[pk.indexOf(k)];
+   T.lineDiff(T.linesOf(ps),T.linesOf(s)).filter(x=>x.t==='cut').forEach(x=>lines.push({from:P.label,cutIn:C.label,heading:s.heading,text:x.text})); });
+ }
+ // a line cut in draft 2 and put back in draft 4 isn't in the boneyard any more
+ const last=drafts.length?drafts[drafts.length-1]:null, now=new Set();
+ if(last) last.scenes.forEach(s=>T.linesOf(s).forEach(l=>now.add(T.lineHash(l))));
+ const seen=new Set(), heads=new Set(last?last.scenes.map(s=>T.norm(s.heading)):[]);
+ return {scenes:scenes.filter(x=>{ if(heads.has(T.norm(x.heading))) return false; const h=T.hashText(x.text); if(seen.has(h)) return false; seen.add(h); return true; }),
+  lines:lines.filter(x=>{ const h=T.lineHash(x.text); if(now.has(h)||seen.has(h)) return false; seen.add(h); return true; })};
+};
+
 if(typeof module!=='undefined') module.exports=T;
 g.PaperTrail=T;
 })(typeof window!=='undefined'?window:globalThis);
