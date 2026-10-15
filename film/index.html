@@ -135,6 +135,11 @@ details summary{cursor:pointer;color:var(--tung-text);min-height:var(--tap);disp
 .take.never{opacity:.5}.take.never b{text-decoration:line-through}.take select.mark{flex:0 1 110px;padding:4px 6px;font-size:13px}
 .brief{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}.brief summary{cursor:pointer;font-size:14px;font-weight:600}.brief textarea{width:100%}
 .fsum{margin-top:10px;font-size:14px}.fsec{margin-top:10px}.fsec b{font-size:13px;display:block;margin-bottom:4px}.fl{font-size:13px;padding:4px 0;border-top:1px solid var(--line);word-break:break-all}.fl.bad{color:#e07a5f}.fl.ok{opacity:.8}
+.player{position:fixed;inset:0;z-index:70;background:#000;display:flex;flex-direction:column}
+.player .pview{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:8px}
+.player canvas{max-width:100%;max-height:100%;background:#000}
+.player .bar{display:flex;align-items:center;gap:8px;padding:8px 12px calc(8px + env(safe-area-inset-bottom));background:#111;color:#eee}
+.player .bar span{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .tprev{width:100%;max-height:220px;background:#000;border-radius:8px;margin-top:6px}
 </style>
 </head>
@@ -160,6 +165,7 @@ details summary{cursor:pointer;color:var(--tung-text);min-height:var(--tap);disp
 <script src="../actor-os/sides.js"></script>
 <script src="../actor-os/pdf.js"></script>
 <script src="film.js"></script>
+<script src="play.js"></script>
 <script src="app.js"></script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
 </body>

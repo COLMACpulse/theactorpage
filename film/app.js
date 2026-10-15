@@ -366,6 +366,7 @@ function vCut(){
  });
  h+='<div class="card"><p class="kicker">Hand it to your editor</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">An EDL opens in DaVinci Resolve, Premiere and Avid. Point it at your footage and it relinks by file name. In and out count from the start of each file.</p>'
   +'<div class="row"><button class="btn pri" id="cedl"'+(P.length?'':' disabled')+'>EDIT LIST (.EDL)</button><button class="btn" id="ccsv"'+(P.length?'':' disabled')+'>LIST (.CSV)</button><button class="btn" id="cbrief">EDITOR BRIEF (.TXT)</button></div>'
+  +watchBox(P)
   +'<p class="faint" style="font-size:13px;margin:8px 0 0">The brief says, scene by scene, how much freedom the editor has, what must stay, which take to use, backups, never-use takes, what is missing and when to ask you first.</p></div>';
  return h;
 }
@@ -396,6 +397,20 @@ function footBox(){
   h+=sec('Shots marked done, no takes logged',sh.length,sh.map(x=>'<div class="fl">Scene '+x.sc.n+': '+x.dn.d+' of '+x.dn.t+' shots done, no takes here yet.</div>').join(''));
  }
  return h+'</div>'; }
+/* watch it, make it: the picked pieces in script order, from this session's files */
+let ROUGH=null; // {blob,url,mime,codec,ext,name,len}
+function seqOf(P){ return P.filter(p=>FILES[p.id]).map(p=>({url:URL.createObjectURL(FILES[p.id]),in:p.in,out:p.out,label:'Scene '+p.scene+' · '+p.name,scene:p.scene,name:p.name})); }
+function watchBox(P){
+ const have=P.filter(p=>FILES[p.id]), miss=P.filter(p=>!FILES[p.id]), len=F.cutLength(have);
+ let h='<div class="watch"><p class="kicker" style="margin-top:14px">Watch it first</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">Your picked pieces, in script order, back to back. MAKE THE ROUGH CUT turns them into one video file on this device, no editing app needed.</p>';
+ if(miss.length) h+='<div class="msg" style="margin-bottom:8px">'+miss.length+' piece'+(miss.length===1?' needs its':'s need their')+' file picked again (FOOTAGE CHECK above, or + ADD TAKES): '+miss.map(p=>'scene '+p.scene+' '+esc(p.name)).join(', ')+'.'+(have.length?' Play and make use the other '+have.length+'.':'')+'</div>';
+ h+='<div class="row"><button class="btn" id="cplay"'+(have.length?'':' disabled')+'>PLAY THE CUT'+(have.length?' · '+F.mmss(len):'')+'</button><button class="btn" id="crough"'+(have.length&&window.MediaRecorder?'':' disabled')+'>MAKE THE ROUGH CUT</button></div>';
+ if(!window.MediaRecorder) h+='<p class="faint" style="font-size:13px">This browser cannot make video files. The edit list still works.</p>';
+ if(ROUGH){ const h264=/H\.264/.test(ROUGH.codec);
+  h+='<div class="msg" style="margin-top:10px">Made '+esc(ROUGH.name)+' · '+(ROUGH.blob.size/1048576).toFixed(1)+' MB · '+esc(ROUGH.mime.split(';')[0])+(ROUGH.codec?' ('+esc(ROUGH.codec)+')':'')+' · '+F.mmss(ROUGH.len)+' of pieces</div>'
+   +(h264?'':'<div class="msg bad">This browser made it as '+esc(ROUGH.codec||'an unknown codec')+', not H.264. It plays in Chrome, Premiere and Resolve, but not in QuickTime or iPhone Photos. Make it from Safari or desktop Chrome for an H.264 file.</div>')
+   +'<video class="tprev" id="roughvid" src="'+ROUGH.url+'" controls playsinline></video><div class="row" style="margin-top:6px"><button class="btn pri" id="csaverough">SAVE THE ROUGH CUT</button></div>'; }
+ return h+'</div>'; }
 async function clipLength(file){
  try{ const d=await F.movieLength((o,l)=>file.slice(o,o+l).arrayBuffer(),file.size); if(d>0) return d; }catch(e){}
  return clipLengthPlayer(file); }
@@ -423,6 +438,15 @@ function wireCut(){
  const name=()=>String(cur().file||'cut').replace(/\.[a-z]+$/i,'').replace(/[^\w ]+/g,' ').trim()||'cut';
  const e=$('cedl'); if(e) e.onclick=()=>dl(name()+' cut.edl',F.edl(name(),pieces(),k.fps),'text/plain');
  const cv=$('ccsv'); if(cv) cv.onclick=()=>dl(name()+' cut.csv',F.cutCsv(pieces()),'text/csv');
+ const pl=$('cplay'); if(pl) pl.onclick=async()=>{ const q=seqOf(pieces()); if(!q.length) return; try{ await FilmPlay.play(q); }catch(e){ toast('Stopped: '+e.message+'.'); } q.forEach(x=>URL.revokeObjectURL(x.url)); };
+ const rc=$('crough'); if(rc) rc.onclick=async()=>{ const P=pieces(), q=seqOf(P); if(!q.length) return; let r=null;
+   try{ r=await FilmPlay.render(q); }catch(e){ toast('Could not make the file: '+e.message+'.'); }
+   q.forEach(x=>URL.revokeObjectURL(x.url)); if(!r){ return; }
+   if(ROUGH) URL.revokeObjectURL(ROUGH.url);
+   ROUGH=Object.assign(r,{url:URL.createObjectURL(r.blob),name:name()+' rough cut.'+r.ext,len:F.cutLength(P.filter(p=>FILES[p.id]))});
+   render(); const o=$('roughvid'); if(o) o.scrollIntoView({block:'center'}); };
+ const sr=$('csaverough'); if(sr) sr.onclick=async()=>{ if(!ROUGH) return; try{ const f=new File([ROUGH.blob],ROUGH.name,{type:ROUGH.blob.type}); if(/Android|iPhone|iPad/i.test(navigator.userAgent)&&navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:ROUGH.name}); return; } }catch(e){ if(e&&e.name==='AbortError') return; }
+   const a=document.createElement('a'); a.href=ROUGH.url; a.download=ROUGH.name; document.body.appendChild(a); a.click(); a.remove(); };
  const cb=$('cbrief'); if(cb) cb.onclick=()=>dl(name()+' editor brief.txt',F.brief(name(),SCENES.map(sc=>({n:sc.n,heading:sc.heading,brief:(k.brief||{})[sc.n]||{},takes:k.takes[sc.n]||[],shots:doneOf(sc)})),k.fps),'text/plain');
  document.querySelectorAll('[data-tmark]').forEach(b=>b.onchange=()=>{ const r=findT(b.dataset.tmark); if(!r.t) return; if(b.value) r.t.mark=b.value; else delete r.t.mark; if(b.value==='never') r.t.use=false; save(); render(); });
  document.querySelectorAll('[data-brief]').forEach(i=>{ const ev=i.tagName==='SELECT'?'onchange':'oninput'; i[ev]=()=>{ const [n,key]=i.dataset.brief.split('|'); const b=briefOf(+n); if(i.value) b[key]=i.value; else delete b[key]; save(); if(key==='free') render(); }; });
