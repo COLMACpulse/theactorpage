@@ -363,6 +363,7 @@ function vCut(){
     +'<div class="row" style="margin-top:6px"><label class="faint" style="font-size:12px">In</label><input class="field" data-tin="'+sc.n+'|'+t.id+'" value="'+F.mmss(t.in)+'" style="flex:1 1 70px">'+(f?'<button class="btn sm" data-tsetin="'+sc.n+'|'+t.id+'">HERE</button>':'')
     +'<label class="faint" style="font-size:12px">Out</label><input class="field" data-tout="'+sc.n+'|'+t.id+'" value="'+F.mmss(t.out)+'" style="flex:1 1 70px">'+(f?'<button class="btn sm" data-tsetout="'+sc.n+'|'+t.id+'">HERE</button>':'')+'</div>'
     +'<input class="field tnote" data-tnote="'+sc.n+'|'+t.id+'" value="'+esc(t.note||'')+'" placeholder="A note you\'ll remember it by (the one where he laughs)">'
+    +F.watchNotes(t).map(w=>'<div class="wnote"><span><b>'+F.mmss(w.at)+'</b> in the take'+(w.cut!=null?' · '+F.mmss(w.cut)+' in the cut':'')+': '+esc(w.text)+'</span><button class="x" data-wdel="'+sc.n+'|'+t.id+'|'+w.id+'" aria-label="Delete this note">×</button></div>').join('')
     +'<div class="row" style="justify-content:space-between;margin-top:4px"><span class="faint" style="font-size:12px">'+F.mmss(Math.max(0,t.out-t.in))+' used'+(f?'':' · pick the file again to preview it')+(adrKept(t)?' · <b class="adrtag">ADR</b> your line replaces it, original '+UNDERS.find(u=>u[1]===t.adr.under)[0].toLowerCase():'')+'</span>'+(f?'<button class="btn sm" data-adr="'+sc.n+'|'+t.id+'">ADR</button>':'')+'</div></div>'; }).join('');
   h+='<label class="btn sm block" style="margin-top:8px"><input type="file" accept="video/*,.mov,.mp4,.m4v" multiple class="hide" data-tadd="'+sc.n+'">+ ADD TAKES</label>'+briefBox(sc)+'</div>';
  });
@@ -373,7 +374,7 @@ function vCut(){
  return h;
 }
 let FINDQ='';
-function findList(){ const k=cutOf(), L=[]; SCENES.forEach(sc=>(k.takes[sc.n]||[]).forEach(t=>L.push({id:t.id,scene:sc.n,heading:sc.heading,people:(sc.speakers||[]).map(x=>x.name),name:t.name,note:t.note||'',mark:t.mark,use:t.use,adr:!!adrKept(t),at:t.at||null,dur:t.dur}))); return L; }
+function findList(){ const k=cutOf(), L=[]; SCENES.forEach(sc=>(k.takes[sc.n]||[]).forEach(t=>L.push({id:t.id,scene:sc.n,heading:sc.heading,people:(sc.speakers||[]).map(x=>x.name),name:t.name,note:[t.note||''].concat(F.watchNotes(t).map(w=>w.text)).join(' ').trim(),mark:t.mark,use:t.use,adr:!!adrKept(t),at:t.at||null,dur:t.dur}))); return L; }
 function findHtml(){ if(!FINDQ.trim()) return ''; const L=findList(); if(!L.length) return '<p class="faint" style="font-size:13px;margin:8px 0 0">No takes logged yet. Add takes to a scene below first.</p>';
  const r=F.findTakes(FINDQ,L);
  if(!r.hits.length) return '<p class="faint" style="font-size:13px;margin:8px 0 0">Nothing matches "'+esc(FINDQ.trim())+'".'+(r.parsed.when?' Dates only reach takes logged since this version.':'')+'</p>';
@@ -407,7 +408,7 @@ function footBox(){
  return h+'</div>'; }
 /* watch it, make it: the picked pieces in script order, from this session's files */
 let ROUGH=null; // {blob,url,mime,codec,ext,name,len}
-async function seqOf(P){ const out=[]; for(const p of P.filter(p=>FILES[p.id])){ const it={url:URL.createObjectURL(FILES[p.id]),in:p.in,out:p.out,label:'Scene '+p.scene+' · '+p.name+(p.adr?' · ADR':''),scene:p.scene,name:p.name};
+async function seqOf(P){ const out=[]; for(const p of P.filter(p=>FILES[p.id])){ const it={url:URL.createObjectURL(FILES[p.id]),in:p.in,out:p.out,label:'Scene '+p.scene+' · '+p.name+(p.adr?' · ADR':''),scene:p.scene,name:p.name,id:p.id};
   if(p.adr){ const b=await adrBuffer(p.adr.id); if(b) it.adr={buffer:b,at:p.adr.at,under:p.adr.under}; } out.push(it); } return out; }
 /* ---------- ADR: re-record a line over picture. Matching from ADR ALIGNMENT TOOL v1. Not lip sync: check it by eye. ---------- */
 const UNDERS=[['Full',1],['Low',0.3],['Off',0]];
@@ -486,7 +487,7 @@ function wireAdr(){ const {n,id}=ADROPEN, t=adrTake(n,id), a=adrOf(t), v=$('adrv
 }
 function watchBox(P){
  const have=P.filter(p=>FILES[p.id]), miss=P.filter(p=>!FILES[p.id]), len=F.cutLength(have);
- let h='<div class="watch"><p class="kicker" style="margin-top:14px">Watch it first</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">Your picked pieces, in script order, back to back. MAKE THE ROUGH CUT turns them into one video file on this device, no editing app needed.</p>';
+ let h='<div class="watch"><p class="kicker" style="margin-top:14px">Watch it first</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">Your picked pieces, in script order, back to back. Tap NOTE while it plays to pin a note to the take on screen. MAKE THE ROUGH CUT turns them into one video file on this device, no editing app needed.</p>';
  if(miss.length) h+='<div class="msg" style="margin-bottom:8px">'+miss.length+' piece'+(miss.length===1?' needs its':'s need their')+' file picked again (FOOTAGE CHECK above, or + ADD TAKES): '+miss.map(p=>'scene '+p.scene+' '+esc(p.name)).join(', ')+'.'+(have.length?' Play and make use the other '+have.length+'.':'')+'</div>';
  h+='<div class="row"><button class="btn" id="cplay"'+(have.length?'':' disabled')+'>PLAY THE CUT'+(have.length?' · '+F.mmss(len):'')+'</button><button class="btn" id="crough"'+(have.length&&window.MediaRecorder?'':' disabled')+'>MAKE THE ROUGH CUT</button></div>';
  if(!window.MediaRecorder) h+='<p class="faint" style="font-size:13px">This browser cannot make video files. The edit list still works.</p>';
@@ -522,7 +523,9 @@ function wireCut(){
  const name=()=>String(cur().file||'cut').replace(/\.[a-z]+$/i,'').replace(/[^\w ]+/g,' ').trim()||'cut';
  const e=$('cedl'); if(e) e.onclick=()=>dl(name()+' cut.edl',F.edl(name(),pieces(),k.fps),'text/plain');
  const cv=$('ccsv'); if(cv) cv.onclick=()=>dl(name()+' cut.csv',F.cutCsv(pieces()),'text/csv');
- const pl=$('cplay'); if(pl) pl.onclick=async()=>{ const q=await seqOf(pieces()); if(!q.length) return; try{ await FilmPlay.play(q); }catch(e){ toast('Stopped: '+e.message+'.'); } q.forEach(x=>URL.revokeObjectURL(x.url)); };
+ const pl=$('cplay'); if(pl) pl.onclick=async()=>{ const q=await seqOf(pieces()); if(!q.length) return; let n=0;
+   const onNote=(i,it,at,text)=>{ const r=findT(it.scene+'|'+it.id); if(!r.t) return; if(F.watchNote(r.t,at,F.atInCut(q,i,at),text)){ n++; save(); } };
+   try{ await FilmPlay.play(q,{onNote}); }catch(e){ toast('Stopped: '+e.message+'.'); } q.forEach(x=>URL.revokeObjectURL(x.url)); if(n){ render(); toast(n+' note'+(n===1?'':'s')+' kept on the takes. They go in the editor brief.'); } };
  const rc=$('crough'); if(rc) rc.onclick=async()=>{ const P=pieces(), q=await seqOf(P); if(!q.length) return; let r=null;
    try{ r=await FilmPlay.render(q); }catch(e){ toast('Could not make the file: '+e.message+'.'); }
    q.forEach(x=>URL.revokeObjectURL(x.url)); if(!r){ return; }
@@ -533,6 +536,7 @@ function wireCut(){
    const a=document.createElement('a'); a.href=ROUGH.url; a.download=ROUGH.name; document.body.appendChild(a); a.click(); a.remove(); };
  const cf=$('cfind'); if(cf){ const show=()=>{ $('cfindres').innerHTML=findHtml(); document.querySelectorAll('[data-fgo]').forEach(b=>b.onclick=()=>{ const el=document.querySelector('[data-trow="'+b.dataset.fgo+'"]'); if(el){ el.scrollIntoView({block:'center'}); el.classList.add('flash'); setTimeout(()=>el.classList.remove('flash'),1600); } }); };
    cf.oninput=()=>{ FINDQ=cf.value; show(); }; show(); }
+ document.querySelectorAll('[data-wdel]').forEach(b=>b.onclick=()=>{ const [n,id,wid]=b.dataset.wdel.split('|'); const r=findT(n+'|'+id); if(!r.t||!r.t.watch) return; r.t.watch=r.t.watch.filter(w=>w.id!==wid); if(!r.t.watch.length) delete r.t.watch; save(); render(); });
  document.querySelectorAll('[data-tnote]').forEach(i=>i.oninput=()=>{ const r=findT(i.dataset.tnote); if(!r.t) return; if(i.value.trim()) r.t.note=i.value; else delete r.t.note; save(); });
  document.querySelectorAll('[data-adr]').forEach(b=>b.onclick=()=>{ const [n,id]=b.dataset.adr.split('|'); openAdr(n,id); });
  const cb=$('cbrief'); if(cb) cb.onclick=()=>dl(name()+' editor brief.txt',F.brief(name(),SCENES.map(sc=>({n:sc.n,heading:sc.heading,brief:(k.brief||{})[sc.n]||{},takes:k.takes[sc.n]||[],shots:doneOf(sc)})),k.fps),'text/plain');

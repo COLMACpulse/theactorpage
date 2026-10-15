@@ -361,7 +361,7 @@ F.brief=function(title,scenes,fps){
   L.push('SCENE '+sc.n+'. '+String(sc.heading||''));
   L.push('  Freedom: '+(fr?fr.name+'. '+fr.say:'not set. Ask the director.'));
   if(ln(b.keep).length){ L.push('  Must keep:'); ln(b.keep).forEach(x=>L.push('   - '+x)); }
-  L.push('  Use:'+(use.length?'':' no take picked yet.')); use.forEach(t=>L.push('   - '+t.name+'  '+tcr(t)));
+  L.push('  Use:'+(use.length?'':' no take picked yet.')); use.forEach(t=>{ L.push('   - '+t.name+'  '+tcr(t)); F.watchNotes(t).forEach(w=>L.push('       at '+F.tc(w.at,fps)+(w.cut!=null?' ('+F.mmss(w.cut)+' into the cut)':'')+': '+w.text)); });
   if(back.length){ L.push('  Backup:'); back.forEach(t=>L.push('   - '+t.name)); }
   if(never.length){ L.push('  Never use:'); never.forEach(t=>L.push('   - '+t.name)); }
   const miss=ln(b.missing); if(sc.shots&&sc.shots.t&&sc.shots.d<sc.shots.t) miss.push('Shot list: '+sc.shots.d+' of '+sc.shots.t+' shots marked done.');
@@ -374,6 +374,12 @@ F.brief=function(title,scenes,fps){
  L.push('Times count from the start of each file. The director has the final say.');
  return L.join('\n');
 };
+
+/* ---------- notes made while watching the cut, pinned to the take that was playing ----------
+   t.watch: [{id, at (seconds into the file), cut (seconds into the cut when you noted it), text, when}] */
+F.atInCut=function(pieces,i,t){ let c=0; for(let j=0;j<i&&j<(pieces||[]).length;j++) c+=Math.max(0,pieces[j].out-pieces[j].in); const p=(pieces||[])[i]; return p?c+Math.max(0,Math.min(t,p.out)-p.in):c; };
+F.watchNotes=t=>((t&&t.watch)||[]).slice().sort((a,b)=>a.at-b.at);
+F.watchNote=function(t,at,cut,text,now){ text=String(text||'').trim(); if(!t||!text) return null; const w={id:'w'+(now||Date.now()).toString(36)+Math.random().toString(36).slice(2,6),at:Math.round(at*100)/100,cut:cut==null?null:Math.round(cut*10)/10,text:text,when:now||Date.now()}; (t.watch=t.watch||[]).push(w); return w; };
 
 /* ---------- ADR: put your re-recorded line where the original was ----------
    From ADR ALIGNMENT TOOL v1 (matching the loudness shape of the two). Not lip sync: check it by eye.

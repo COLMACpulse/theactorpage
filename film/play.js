@@ -18,7 +18,14 @@
   async function runSequence(seq, opts, video, kit) {
     kit = kit || {};
     const cv = opts.canvas, ctx = cv.getContext('2d'), W = cv.width, H = cv.height;
-    let live = false, alive = true;
+    let live = false, alive = true, held = false, cur = null;
+    if (opts.ctl) {
+      opts.ctl.where = () => cur ? { i: cur.i, it: cur.it, t: video.currentTime } : null;
+      opts.ctl.hold = () => { if (held || !cur) return false; held = true; video.pause(); if (cur.adr) { try { cur.adr.stop(); } catch (e) { } cur.adr = null; } return true; };
+      opts.ctl.go = () => { if (!held) return; held = false; if (!cur) return; video.play().catch(() => { }); startAdr(cur); };
+    }
+    const startAdr = c => { const it = c.it; if (!it.adr || !kit.ac) return; try { const a = kit.ac.createBufferSource(); a.buffer = it.adr.buffer; const ag = kit.ac.createGain(); a.connect(ag); kit.outs.forEach(o => ag.connect(o));
+        const from = video.currentTime - it.adr.at; if (from >= 0) { if (from < a.buffer.duration) a.start(0, from); } else a.start(kit.ac.currentTime - from); c.adr = a; } catch (e) { c.adr = null; } };
     const draw = () => { if (!alive) return; if (live && video.readyState >= 2) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); fit(ctx, video, video.videoWidth, video.videoHeight, W, H); } requestAnimationFrame(draw); };
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); requestAnimationFrame(draw);
     let rec = null, chunks = [], mime = '';
@@ -42,14 +49,12 @@
         video.currentTime = it.in; await once(video, 'seeked', 10000);
         live = true; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); fit(ctx, video, video.videoWidth, video.videoHeight, W, H);
         await sleep(30); // let the in-frame land before recording resumes
-        let adr = null;
         if (kit.vg) kit.vg.gain.value = it.adr ? it.adr.under : 1;
         resume();
         await video.play();
-        if (it.adr && kit.ac) { try { adr = kit.ac.createBufferSource(); adr.buffer = it.adr.buffer; const ag = kit.ac.createGain(); adr.connect(ag); kit.outs.forEach(o => ag.connect(o));
-          const from = video.currentTime - it.adr.at; if (from >= 0) adr.start(0, from); else adr.start(kit.ac.currentTime - from); } catch (e) { adr = null; } }
-        await new Promise(res => { const chk = () => { if (opts.stop.v || video.ended || video.currentTime >= it.out - 0.012) return res(); requestAnimationFrame(chk); }; requestAnimationFrame(chk); });
-        video.pause(); pause(); if (adr) { try { adr.stop(); } catch (e) { } }
+        cur = { i, it, adr: null }; startAdr(cur);
+        await new Promise(res => { const chk = () => { if (opts.stop.v || (!held && (video.ended || video.currentTime >= it.out - 0.012))) return res(); requestAnimationFrame(chk); }; requestAnimationFrame(chk); });
+        video.pause(); pause(); if (cur.adr) { try { cur.adr.stop(); } catch (e) { } } cur = null; held = false;
       }
     } finally { alive = false; }
     if (!rec) return null;
@@ -67,18 +72,29 @@
     catch (e) { ac = null; vg = null; video.muted = !audible; }
     return { video, ac, dest, vg, outs };
   }
-  function shell(text, btn) {
+  function shell(text, btn, note) {
     const box = document.createElement('div'); box.className = 'player';
-    box.innerHTML = '<div class="pview"></div><div class="bar"><span id="pstep">' + text + '</span><button class="btn" id="pstop">' + btn + '</button></div>';
+    box.innerHTML = '<div class="pview"></div>' + (note ? '<div class="pnote hide"><div class="pnwhere" id="pnwhere"></div><input class="field" id="pntext" placeholder="Too much setup. Get to the bus sooner." autocomplete="off"><div class="row"><button class="btn pri" id="pnsave">SAVE NOTE</button><button class="btn" id="pncancel">BACK TO THE CUT</button></div></div>' : '') + '<div class="bar"><span id="pstep">' + text + '</span>' + (note ? '<button class="btn" id="pnotebtn">NOTE</button>' : '') + '<button class="btn" id="pstop">' + btn + '</button></div>';
     document.body.appendChild(box); return box;
   }
-  async function play(seq) {
+  // opts.onNote(i, item, secondsIntoFile, text): NOTE pauses the cut and pins what you type to the piece on screen
+  async function play(seq, opts) {
+    opts = opts || {};
     const kit = mediaKit(false, true);
     if (seq[0]) { kit.video.src = seq[0].url; kit.video.play().then(() => kit.video.pause()).catch(() => { }); } // unlock sound on phones
-    const box = shell('Playing the cut', 'STOP'), cv = document.createElement('canvas'); cv.width = 1280; cv.height = 720; box.firstChild.appendChild(cv);
-    const stop = { v: false }; box.querySelector('#pstop').onclick = () => { stop.v = true; };
+    const box = shell('Playing the cut', 'STOP', !!opts.onNote), cv = document.createElement('canvas'); cv.width = 1280; cv.height = 720; box.firstChild.appendChild(cv);
+    const stop = { v: false }, ctl = {}, q = s => box.querySelector(s); let step = '', pend = null;
+    const back = () => { q('.pnote').classList.add('hide'); pend = null; ctl.go && ctl.go(); };
+    const keep = () => { const tx = q('#pntext').value.trim(); if (pend && tx) { try { opts.onNote(pend.i, pend.it, pend.t, tx); } catch (e) { } q('#pstep').textContent = 'Noted on ' + pend.it.label; setTimeout(() => { const s = q('#pstep'); if (s && /^Noted/.test(s.textContent)) s.textContent = step; }, 2500); } back(); };
+    q('#pstop').onclick = () => { if (pend) keep(); stop.v = true; ctl.go && ctl.go(); };
+    if (opts.onNote) {
+      q('#pnotebtn').onclick = () => { if (pend) return; const w = ctl.where && ctl.where(); if (!w || !ctl.hold()) return; pend = w; const m = Math.floor(w.t / 60), s = w.t - m * 60;
+        q('#pnwhere').textContent = 'Note on ' + w.it.label + ', at ' + m + ':' + (s < 10 ? '0' : '') + s.toFixed(1) + ' in the take'; q('#pntext').value = ''; q('.pnote').classList.remove('hide'); q('#pntext').focus(); };
+      q('#pnsave').onclick = keep; q('#pncancel').onclick = back;
+      q('#pntext').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); keep(); } else if (e.key === 'Escape') { e.preventDefault(); back(); } };
+    }
     let err = null;
-    try { await runSequence(seq, { canvas: cv, stop, onStep: (i, n, it) => { const s = box.querySelector('#pstep'); if (s) s.textContent = (i + 1) + ' of ' + n + ' · ' + it.label; } }, kit.video, kit); }
+    try { await runSequence(seq, { canvas: cv, stop, ctl, onStep: (i, n, it) => { step = (i + 1) + ' of ' + n + ' · ' + it.label; const s = q('#pstep'); if (s) s.textContent = step; } }, kit.video, kit); }
     catch (e) { err = e; }
     kit.video.pause(); kit.video.removeAttribute('src'); try { kit.ac && kit.ac.close(); } catch (e) { }
     box.remove(); if (err) throw err; return !stop.v;

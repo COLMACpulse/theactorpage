@@ -168,4 +168,15 @@ ok('brief: ask-me-first gathered at the end; no scores or percents', /ASK ME FIR
  const w=F.findTakes('cal last week',T,now).hits[0].why.join(' · '); ok('find: says why in plain words', /logged 9 days ago/.test(w)&&/CAL is in the scene/.test(w), w);
  ok('find: a take logged before dates were kept is never matched by a date', !F.findTakes('this week',T,now).hits.some(h=>h.take.id==='d'));
 }
+{ // notes while watching, pinned to the take on screen
+ const P=[{in:2,out:12},{in:5,out:20},{in:0,out:4}];
+ ok('watch note: time in the cut adds the pieces before it', F.atInCut(P,1,8)===13 && F.atInCut(P,0,2)===0 && F.atInCut(P,2,3)===28, [F.atInCut(P,1,8),F.atInCut(P,2,3)]);
+ const t={name:'BUS_T3.mov',in:5,out:20,use:true};
+ ok('watch note: empty text is not kept', F.watchNote(t,9,14,'   ')===null && !t.watch);
+ F.watchNote(t,14.257,23.04,'Too much setup. Get to the bus sooner.',1000); F.watchNote(t,6.5,11.5,'Love the look.',2000);
+ ok('watch note: kept on the take, rounded, sorted by time in the take', t.watch.length===2 && F.watchNotes(t)[0].text==='Love the look.' && F.watchNotes(t)[1].at===14.26 && F.watchNotes(t)[1].cut===23, F.watchNotes(t));
+ const b=F.brief('Last Bus',[{n:2,heading:'EXT. BUS SHELTER - NIGHT',brief:{},takes:[t]}],'24');
+ ok('watch note: in the editor brief under the take, with file timecode and cut time', /BUS_T3\.mov  00:00:05:00 to 00:00:20:00 \(0:15\)\n {7}at 00:00:06:12 \(0:11\.5 into the cut\): Love the look\.\n {7}at 00:00:14:06 \(0:23 into the cut\): Too much setup/.test(b), b);
+ ok('watch note: no em-dash, no score', !/\u2014|score|%/.test(b));
+}
 console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail?1:0);
