@@ -92,6 +92,13 @@ th{font-family:var(--code);font-size:10px;letter-spacing:.14em;text-transform:up
 .note{font-size:13px;color:var(--ink-3)}
 .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(10px);background:var(--ink);color:var(--paper);padding:10px 16px;font-size:14px;opacity:0;transition:.2s;pointer-events:none;z-index:50;max-width:90vw;text-align:center}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.ln{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.ln .lt{flex:1 1 300px;font:14px/1.5 var(--code);white-space:pre-wrap}
+.mks{display:flex;gap:4px}
+.mk{font-family:var(--code);font-size:10px;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--rule-hard);background:var(--paper);padding:5px 8px;min-height:34px}
+.mk.landed.on{background:var(--ok);color:var(--paper);border-color:var(--ok)}
+.mk.lost.on{background:var(--grease);color:var(--paper);border-color:var(--grease)}
+.mk.confused.on{background:var(--gold);color:var(--paper);border-color:var(--gold)}
 @media (max-width:600px){ header{padding:14px 16px} main{padding:16px 16px 80px} .grid{grid-template-columns:1fr} }
 </style>
 </head>

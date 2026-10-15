@@ -47,6 +47,21 @@ const m2=T.missing(s2[0],{purpose:'She says no out loud for the first time'},sb[
 ok('missing: all there when written, boarded and shot', m2.every(x=>x.have), m2.filter(x=>!x.have));
 ok('no percent anywhere in the list', !JSON.stringify(m).includes('%'));
 
+// table read marks: people mark, this counts
+const mk=(key,li,m,who,h)=>({id:key+li+m+who,key,li,m,who,h:h||'x'});
+const MK=[mk('A#1',3,'lost','Ann'),mk('A#1',4,'confused','Bo'),mk('A#1',6,'lost','Ann'),mk('A#1',12,'lost','Bo'),mk('A#1',1,'landed','Ann'),mk('B#1',0,'lost','Ann')];
+const cnt=T.markCounts(MK);
+ok('counts per scene', cnt['A#1'].lost===3&&cnt['A#1'].confused===1&&cnt['A#1'].landed===1&&cnt['A#1'].readers.length===2, cnt);
+const cl=T.clusters(MK,'A#1');
+ok('clusters: lines 4 to 7 bunch up, a lone mark is not a cluster', cl.length===1&&cl[0].from===3&&cl[0].to===6&&cl[0].marks===3&&cl[0].readers===2, cl);
+ok('landed marks never make a cluster', T.clusters([mk('A#1',1,'landed','a'),mk('A#1',2,'landed','b')],'A#1').length===0);
+const curS=[{text:'CAL: Hey.\nRENNIE: Nope.\nThe bus pulls in.'}];
+const car=T.carried([{key:'A#1',li:1,m:'lost',who:'Ann',h:T.lineHash('RENNIE: Nope.')},{key:'A#1',li:9,m:'lost',who:'Ann',h:T.lineHash('A line that was cut.')}],curS);
+ok('a line that lost people and is still word for word comes over; a cut line does not', car.length===1&&car[0].where.li===1&&car[0].lost===1, car);
+ok('line hash ignores case and spacing', T.lineHash('Rennie:  nope.')===T.lineHash('RENNIE: Nope.'));
+
+const pp=T.paras([{action:true,text:'Rain on a tin roof. RENNIE, wet coat, a'},{action:true,text:'duffel she packed.'},{action:true,text:'Headlights.'},{who:'CAL',text:'Hey.'}]);
+ok('wrapped action joins into one beat; a finished sentence starts the next', pp.length===3&&pp[0].text==='Rain on a tin roof. RENNIE, wet coat, a duffel she packed.'&&pp[1].text==='Headlights.', pp);
 const lb=process.argv[2];
 if(lb&&fs.existsSync(lb)){
  const raw=fs.readFileSync(lb,'utf8');

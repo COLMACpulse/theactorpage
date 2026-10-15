@@ -11,7 +11,9 @@ const rid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const day=t=>new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
 const perf=()=>'<div class="perf">'+'<i></i>'.repeat(11)+'</div>';
 
-let DB=load(), TEXT={}, VIEW={tab:'projects',p:null,scene:null}, MSG='', ADDED=[], SHOWRET=false;
+let DB=load(); DB.marks=DB.marks||{};
+let READER=(()=>{ try{ return localStorage.getItem('paper_trail_reader')||''; }catch(e){ return ''; } })();
+let TEXT={}, VIEW={tab:'projects',p:null,scene:null}, MSG='', ADDED=[], SHOWRET=false;
 const CACHE={};   // draft id -> scenes
 function load(){ try{ const d=JSON.parse(localStorage.getItem(KEY)||'null'); if(d&&d.projects) return d; }catch(e){} return {projects:{},drafts:{}}; }
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify(DB)); }catch(e){ toast('This device would not save. Export a copy.'); } }
@@ -127,7 +129,7 @@ async function docxText(buf){
 function tabs(){
  const p=VIEW.p&&DB.projects[VIEW.p];
  const t=[['projects','Projects'],['add','Add drafts']];
- if(p) t.push(['scenes','Scenes'],['drafts','Drafts'],['characters','Characters']);
+ if(p) t.push(['scenes','Scenes'],['read','Table read'],['drafts','Drafts'],['characters','Characters']);
  $('tabs').innerHTML=t.map(([k,l])=>'<button data-tab="'+k+'" class="'+(VIEW.tab===k?'on':'')+'">'+l+'</button>').join('');
  $('crumb').innerHTML='<a data-go="projects">Paper Trail</a>'+(p?' &nbsp;/&nbsp; <a data-go="scenes">'+esc(p.title)+'</a>':'')+(VIEW.scene!=null&&p?' &nbsp;/&nbsp; scene':'');
 }
@@ -139,6 +141,7 @@ function render(){
  else if(VIEW.tab==='scenes') m.innerHTML=VIEW.scene!=null?vScene(p,VIEW.scene):vScenes(p);
  else if(VIEW.tab==='drafts') m.innerHTML=vDrafts(p);
  else if(VIEW.tab==='characters') m.innerHTML=vChars(p);
+ else if(VIEW.tab==='read') m.innerHTML=vRead(p);
  wire();
 }
 function vProjects(){
@@ -210,11 +213,44 @@ function vScene(p,i){
    return '<div class="li"><div class="w"><b>'+esc(d.label)+'</b>'+(d.id===(c&&c.id)?' <span class="tag cur">current</span>':'')+'<small>'+esc(d.file)+'</small></div>'+(!mine?'<span class="tag red">not in it</span>':same?'<span class="tag">same</span>':'<span class="tag ok">different</span>')+'</div>'; }).join('')+'</div>';
  }
  if(c){
+  const mc=T.markCounts(DB.marks[c.id])[keys[i]];
+  h+='<div class="eyebrow">Table read</div><div class="panel">'+(mc?countLine(mc):'No marks on this draft yet.')+'<div class="row" style="margin-top:10px"><button class="btn sm" data-tab="read">MARK LINES</button></div></div>';
+ }
+ if(c){
   h+='<div class="eyebrow">Story Studio</div><div class="panel">'+(st&&st.way?'<b>'+esc(st.way)+'</b> · '+st.done+' of '+st.total+' shots done':'Not in Story Studio yet.')
    +'<div class="row" style="margin-top:10px"><button class="btn" id="studio">'+(st?'OPEN IN STORY STUDIO':'SHOOT IT IN STORY STUDIO')+'</button></div><p class="note">Sends the current draft to the sides shelf and opens Story Studio on it.</p></div>';
  }
  if(s.text) h+='<details><summary class="eyebrow" style="cursor:pointer">Read the scene</summary><div class="read">'+esc(s.text)+'</div></details>';
  h+='</div></div>';
+ return h;
+}
+function countLine(c){ return c.landed+' landed, '+c.lost+' lost me, '+c.confused+' confused · '+c.readers.length+' reader'+(c.readers.length===1?'':'s'); }
+function prevScript(p,d){ const ds=draftsOf(p.id).filter(x=>x.kind==='script'&&!x.retired); const j=ds.findIndex(x=>x.id===d.id); return j>0?ds[j-1]:null; }
+function vRead(p){
+ const c=current(p);
+ if(!c) return '<div class="panel">A table read needs a script draft. <button class="btn sm" data-tab="add">ADD DRAFTS</button></div>';
+ const sc=scenesOf(c), keys=T.keys(sc), M=DB.marks[c.id]||[], C=T.markCounts(M), pv=prevScript(p,c), PC=pv?T.markCounts(DB.marks[pv.id]):{};
+ const who=READER||'';
+ let h='<p class="note">Marking <b>'+esc(c.label)+'</b> ('+esc(c.file)+'). Tap a line as it goes by: landed, lost me, confused. Tap again to take it back. Readers decide; this only counts.</p>';
+ h+='<div class="row"><input class="field" id="reader" placeholder="Who is marking (your name, or the reader\'s)" value="'+esc(who)+'" style="max-width:360px"></div>';
+ h+='<div class="stats" style="margin-top:14px"><div><b>'+M.filter(x=>x.m==='landed').length+'</b><span>landed</span></div><div><b>'+M.filter(x=>x.m==='lost').length+'</b><span>lost me</span></div><div><b>'+M.filter(x=>x.m==='confused').length+'</b><span>confused</span></div><div><b>'+[...new Set(M.map(x=>x.who))].length+'</b><span>readers</span></div></div>';
+ // where it bunches up, and what came over from the last draft
+ const notes=[];
+ sc.forEach((s,i)=>T.clusters(M,keys[i]).forEach(cl=>notes.push('SC '+(i+1)+' · '+esc(s.heading)+': lines '+(cl.from+1)+(cl.to>cl.from?' to '+(cl.to+1):'')+', '+cl.marks+' marks from '+cl.readers+' reader'+(cl.readers===1?'':'s'))));
+ if(notes.length) h+='<div class="eyebrow">Where people got lost or confused</div><div class="panel">'+notes.join('<br>')+'</div>';
+ if(pv){
+  const car=T.carried(DB.marks[pv.id],sc);
+  if(car.length) h+='<div class="eyebrow">Still here from '+esc(pv.label)+', word for word</div><div class="panel">'+car.map(x=>'SC '+(x.where.scene+1)+', line '+(x.where.li+1)+': '+esc(x.where.text.length>90?x.where.text.slice(0,88).replace(/\s+\S*$/,'')+' …':x.where.text)+' <span class="note">('+[x.lost?x.lost+' lost me':'',x.confused?x.confused+' confused':''].filter(Boolean).join(', ')+' in '+esc(pv.label)+')</span>').join('<br>')+'</div>';
+ }
+ sc.forEach((s,i)=>{
+  const k=keys[i], L=T.linesOf(s), mine=M.filter(x=>x.key===k);
+  h+='<div class="eyebrow">SC '+(i+1)+' · '+esc(s.heading)+'</div><div class="panel">';
+  h+='<p class="note" style="margin-top:0">'+(C[k]?countLine(C[k]):'No marks yet.')+(pv&&PC[k]?' · In '+esc(pv.label)+': '+countLine(PC[k]):'')+'</p>';
+  h+=L.map((l,j)=>{ const here=mine.filter(x=>x.li===j);
+   return '<div class="ln"><div class="lt"><span class="note">'+(j+1)+'</span> '+esc(l)+'</div><div class="mks">'+T.MARKS.map(([m,lab])=>{ const n=here.filter(x=>x.m===m).length, me=here.some(x=>x.m===m&&x.who===(who||'Reader'));
+    return '<button class="mk '+m+(me?' on':'')+'" data-mk="'+i+':'+j+':'+m+'">'+lab+(n?' '+n:'')+'</button>'; }).join('')+'</div></div>'; }).join('');
+  h+='</div>';
+ });
  return h;
 }
 function vDrafts(p){
@@ -275,9 +311,16 @@ function wire(){
  const rn=$('rename'); if(rn) rn.onclick=()=>{ const v=prompt('Project title',p.title); if(!v||!v.trim()) return; p.title=v.trim(); save(); render(); };
  const rp=$('retp'); if(rp) rp.onclick=()=>{ p.retired=!p.retired; save(); if(p.retired){ VIEW.p=null; go('projects'); } else render(); };
  const sr=$('showret'); if(sr) sr.onchange=()=>{ SHOWRET=sr.checked; render(); };
- const ex=$('exp'); if(ex) ex.onclick=()=>{ const out={app:'PAPER TRAIL',version:1,exported:new Date().toISOString(),projects:DB.projects,drafts:DB.drafts,texts:TEXT};
+ const ex=$('exp'); if(ex) ex.onclick=()=>{ const out={app:'PAPER TRAIL',version:1,exported:new Date().toISOString(),projects:DB.projects,drafts:DB.drafts,marks:DB.marks,texts:TEXT};
    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(out)],{type:'application/json'})); a.download='paper_trail_export.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); };
  const ib=$('impb'); if(ib) ib.onclick=()=>$('imp').click();
+ const rd=$('reader'); if(rd) rd.oninput=()=>{ READER=rd.value.trim(); try{ localStorage.setItem('paper_trail_reader',READER); }catch(e){} };
+ const rdc=$('reader'); if(rdc) rdc.onchange=()=>render();
+ document.querySelectorAll('[data-mk]').forEach(b=>b.onclick=()=>{
+  const c=current(p); if(!c) return; const [si,li,m]=b.dataset.mk.split(':'); const sc=scenesOf(c), k=T.keys(sc)[+si], line=T.linesOf(sc[+si])[+li], who=READER||'Reader';
+  const L=DB.marks[c.id]=DB.marks[c.id]||[]; const j=L.findIndex(x=>x.key===k&&x.li===+li&&x.m===m&&x.who===who);
+  if(j>=0) L.splice(j,1); else L.push({id:rid('m'),key:k,li:+li,h:T.lineHash(line),m:m,who:who,at:Date.now()});
+  p.updated=Date.now(); save(); const y=window.scrollY; render(); window.scrollTo(0,y); });
 }
 $('file').addEventListener('change',e=>{ const f=[...e.target.files]; e.target.value=''; if(f.length) addFiles(f); });
 /* bring in an export: add what isn't here; never remove, never replace */
@@ -301,7 +344,8 @@ $('imp').addEventListener('change',async e=>{
    if(!DB.projects[dr.project]) continue;
    DB.drafts[dr.id]=dr; if(d.texts&&d.texts[dr.id]) await putText(dr.id,d.texts[dr.id]); nd++;
   }
-  save(); render(); toast('Brought in '+np+' project'+(np===1?'':'s')+', '+nd+' draft'+(nd===1?'':'s')+(nc?', '+nc+' card note'+(nc===1?'':'s'):'')+'. '+skip+' already here. Nothing removed.');
+  let nm=0; Object.keys(d.marks||{}).forEach(id=>{ if(!DB.drafts[id]) return; const L=DB.marks[id]=DB.marks[id]||[]; (d.marks[id]||[]).forEach(x=>{ if(!L.some(y=>y.id===x.id)){ L.push(x); nm++; } }); });
+  save(); render(); toast('Brought in '+np+' project'+(np===1?'':'s')+', '+nd+' draft'+(nd===1?'':'s')+(nc?', '+nc+' card note'+(nc===1?'':'s'):'')+(nm?', '+nm+' table read mark'+(nm===1?'':'s'):'')+'. '+skip+' already here. Nothing removed.');
  }catch(err){ toast('Could not read that: '+err.message); }
 });
 

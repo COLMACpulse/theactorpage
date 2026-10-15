@@ -86,7 +86,15 @@ T.scenes=function(text,kind){
   cast:F.seen(s),voices:s.speakers.filter(x=>x.voice).map(x=>x.name),lines:s.speakers.map(x=>({name:x.name,lines:x.lines})),
   props:s.props,sound:s.sound,fx:'',notes:'',
   words:s.beats.reduce((n,b)=>n+String(b.text).split(/\s+/).filter(Boolean).length,0),
-  text:s.beats.map(b=>b.action?b.text:b.who+': '+b.text).join('\n')}));
+  text:T.paras(s.beats).map(b=>{ const x=String(b.text).replace(/\s*\n\s*/g,' ').trim(); return b.action?x:b.who+': '+x; }).join('\n')}));
+};
+/* a printed script wraps action at the margin; a beat that ends mid-sentence goes on in the next one */
+T.paras=function(beats){
+ const out=[];
+ (beats||[]).forEach(b=>{ const last=out[out.length-1];
+  if(b.action&&last&&last.action&&!/[.!?…"')\]:-]$/.test(String(last.text).trim())) last.text=String(last.text).trim()+' '+String(b.text).trim();
+  else out.push({who:b.who,text:String(b.text),action:b.action}); });
+ return out;
 };
 /* the same scene across drafts: its heading, and which time that heading comes up */
 T.keys=function(scenes){
@@ -130,6 +138,33 @@ T.missing=function(scene,card,sb,studio){
   {what:'How you\'ll make it (Story Studio)',have:!!(studio&&studio.way),from:studio&&studio.way?studio.way:''},
   {what:'Shot',have:!!(studio&&studio.total&&studio.done===studio.total),from:studio&&studio.total?studio.done+' of '+studio.total:''}
  ];
+};
+
+/* ---------- table read marks. People mark lines; this only counts. ----------
+   mark: {id, key (scene key), li (line index), h (line hash), m: landed|lost|confused, who, at} */
+T.MARKS=[['landed','Landed'],['lost','Lost me'],['confused','Confused']];
+T.lineHash=s=>T.hashText(T.norm(s));
+T.linesOf=s=>String((s&&s.text)||'').split('\n').filter(x=>x.trim());
+/* counts per scene key: {key:{landed,lost,confused,readers:[...]}} */
+T.markCounts=function(marks){
+ const o={};
+ (marks||[]).forEach(x=>{ const c=o[x.key]=o[x.key]||{landed:0,lost:0,confused:0,readers:[]}; c[x.m]=(c[x.m]||0)+1; if(x.who&&!c.readers.includes(x.who)) c.readers.push(x.who); });
+ return o;
+};
+/* where "lost me" and "confused" bunch up in one scene: runs of nearby lines (a gap of one line is still the same run) */
+T.clusters=function(marks,key){
+ const by={}; (marks||[]).filter(x=>x.key===key&&x.m!=='landed').forEach(x=>{ const b=by[x.li]=by[x.li]||{n:0,who:new Set()}; b.n++; if(x.who) b.who.add(x.who); });
+ const L=Object.keys(by).map(Number).sort((a,b)=>a-b), out=[]; let cur=null;
+ L.forEach(i=>{ if(cur&&i-cur.to<=2){ cur.to=i; cur.n+=by[i].n; by[i].who.forEach(w=>cur.who.add(w)); } else { if(cur) out.push(cur); cur={from:i,to:i,n:by[i].n,who:new Set(by[i].who)}; } });
+ if(cur) out.push(cur);
+ return out.filter(c=>c.n>=2).map(c=>({from:c.from,to:c.to,marks:c.n,readers:c.who.size}));
+};
+/* lines that lost people in an earlier draft and are still word for word in this one */
+T.carried=function(prevMarks,curScenes){
+ const have={}; curScenes.forEach((s,i)=>T.linesOf(s).forEach((l,j)=>{ const h=T.lineHash(l); (have[h]=have[h]||[]).push({scene:i,li:j,text:l}); }));
+ const seen={}, out=[];
+ (prevMarks||[]).filter(x=>x.m!=='landed').forEach(x=>{ if(!have[x.h]) return; const k=x.h; if(!seen[k]){ seen[k]={h:k,where:have[k][0],lost:0,confused:0}; out.push(seen[k]); } seen[k][x.m]++; });
+ return out;
 };
 
 if(typeof module!=='undefined') module.exports=T;
