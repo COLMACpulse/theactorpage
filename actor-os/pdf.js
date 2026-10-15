@@ -288,7 +288,7 @@ A.extract=async function(arrayBuffer){
    page footers, and an instructions page. All of it has to go before the parse. */
 const JUNK=[
  /^Sides by Breakdown Services/i,
- /^\(?CONTINUED\)?:?$/i,
+ /^\(?CONTINUED\)?:?(\s*\(\d+\))?$/i,
  /^\d+\s*\/\s*\d+$/,                       // 1/4 page counter
  /^\d+\s+CONTINUED:?(\s*\(\d+\))?\s+\d+$/i,// 5 CONTINUED: (2) 5
  /^\d{1,3}\s+\d{1,3}$/,                    // scene number in both margins
@@ -352,8 +352,10 @@ A.toSides=function(lines){
  /* A running header repeats on every page ("LAST BUS - SIDES ... 2."). Drop any
     all-caps line that turns up on more than one page once its page number is off. */
  const norm=t=>t.replace(/\s*\d+\.?\s*$/,'').trim();
- const seen={}; lines.forEach(l=>{ if(l.text===l.text.toUpperCase()){ const k=norm(l.text); seen[k]=(seen[k]||0)+1; } });
- lines=lines.filter(l=>!(l.text===l.text.toUpperCase() && seen[norm(l.text)]>1 && !/^[A-Z][A-Z0-9 .'\-]{0,30}(\(.*\))?$/.test(l.text)));
+ const seen={}; lines.forEach(l=>{ const k=norm(l.text); seen[k]=(seen[k]||0)+1; });
+ /* a header in mixed case with a date or draft in it ("LOW TIDE - Blue Rev. 10/12/26 2.") repeats too */
+ lines=lines.filter(l=>!(l.text!==l.text.toUpperCase() && l.text.length>=12 && /\d/.test(l.text) && seen[norm(l.text)]>1));
+ lines=lines.filter(l=>!(l.text===l.text.toUpperCase() && seen[norm(l.text)]>1 && !/^[A-Z][A-Z0-9 .'#&\-]{0,30}(\(.*\))?$/.test(l.text)));
  /* Scene headings carry their number in both margins: "2 INT. PICKUP - DAY 2". */
  lines=lines.map(l=>{ const m=l.text.match(/^\d+[A-Z]?\s+((?:INT|EXT|I\/E)[.\s].*?)(?:\s+\d+[A-Z]?)?$/); return m?Object.assign({},l,{text:m[1]}):l; });
  /* The action margin is where the prose sits, not the leftmost thing on the page
@@ -362,6 +364,8 @@ A.toSides=function(lines){
  const pk=Object.keys(prose).map(Number).sort((a,b)=>a-b);
  const xs=lines.map(l=>l.x).sort((a,b)=>a-b);
  const actionX=pk.find(k=>prose[k]>=3) ?? xs[0];
+ /* left of the prose margin is page furniture: running headers, draft dates ("LOW TIDE - Blue Rev. 10/12/26 2.") */
+ if(pk.some(k=>prose[k]>=3)) lines=lines.filter(l=>l.x>=actionX-12 || /^(INT|EXT|EST|I\/E)[.\s]/i.test(l.text));
  const TRANS=/(^(FADE|SMASH|MATCH|DISSOLVE|CUT)\b.*|\bTO:|:)$/;
  const capIndents=lines.filter(l=>l.text===l.text.toUpperCase()&&l.text.length<34&&/[A-Z]{2}/.test(l.text)&&!TRANS.test(l.text)&&l.x>actionX+20).map(l=>l.x);
  const cueX = capIndents.length ? capIndents.sort((a,b)=>b-a)[Math.floor(capIndents.length*0.25)] : actionX+150;

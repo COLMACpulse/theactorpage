@@ -1,0 +1,50 @@
+/* node shared/test_reader.js : the one script reader (actor-os/sides.js + pdf.js, used by ACTOR OS,
+   MEMORIZER, STORY STUDIO, PAPER TRAIL, and Writer's Blockage for PDFs) on one made-up script, LOW TIDE,
+   in six forms. Truth: shared/fixtures/low_tide_truth.json (3 scenes, 12 speeches, COP #2, V.O., O.S.,
+   a speech split by a page break, an all-caps action line, a shouted "NO."). Made up; no real scripts here. */
+const fs=require('fs'), path=require('path');
+const D=f=>path.join(__dirname,'fixtures',f);
+global.window=globalThis;
+require('../actor-os/sides.js'); require('../actor-os/pdf.js'); require('../film/film.js');
+const S=globalThis.ActorSides, P=globalThis.ActorPDF, F=globalThis.FilmOS;
+let pass=0,fail=0; const ok=(n,c,x)=>{ if(c){pass++;console.log('PASS',n)}else{fail++;console.log('FAIL',n,x===undefined?'':JSON.stringify(x).slice(0,900))} };
+const truth=JSON.parse(fs.readFileSync(D('low_tide_truth.json'),'utf8'));
+const Q=x=>String(x||'').replace(/[‘’]/g,"'").replace(/\s+/g,' ').trim();
+const N=s=>Q(s).toUpperCase();
+function score(text){
+ const sc=F.scenes(text).map(s=>N(s.heading)), sp=S.parse(text).filter(b=>!b.action);
+ const key=s=>s.who+'|'+Q(s.text), bag={}; sp.forEach(s=>bag[key(s)]=(bag[key(s)]||0)+1);
+ let right=0; const miss=[]; truth.speeches.forEach(t=>{ if(bag[key(t)]){ bag[key(t)]--; right++; } else miss.push(t.who+': '+t.text.slice(0,40)); });
+ const names=new Set(truth.speeches.map(s=>s.who));
+ return {scenes:truth.scenes.filter(h=>sc.includes(N(h))).length, extraScenes:sc.length-truth.scenes.filter(h=>sc.includes(N(h))).length, right, got:sp.length, fake:[...new Set(sp.map(s=>s.who).filter(w=>!names.has(w)))], miss};
+}
+(async()=>{
+ const pdfText=async f=>{ const b=fs.readFileSync(D(f)); const ex=await P.extract(b.buffer.slice(b.byteOffset,b.byteOffset+b.length)); return P.toSides(ex.lines); };
+ const forms={
+  'Fountain':fs.readFileSync(D('low_tide.fountain'),'utf8'),
+  'Final Draft (.fdx)':S.fromFdx(fs.readFileSync(D('low_tide.fdx'),'utf8')),
+  'sides PDF':await pdfText('low_tide_sides.pdf'),
+  'sides PDF (ASCII85 + Flate)':await pdfText('low_tide_sides_a85.pdf'),
+  'text pasted out of the PDF':fs.readFileSync(D('low_tide_pasted.txt'),'utf8'),
+ };
+ const want={'text pasted out of the PDF':11};
+ for(const [k,t] of Object.entries(forms)){ const r=score(t); const need=want[k]||12;
+  ok(k+': 3 of 3 scenes, '+need+'+ of 12 speeches right, no made-up characters ('+r.right+'/12)', r.scenes===3&&r.extraScenes===0&&r.right>=need&&!r.fake.length, r); }
+ const lay=score(fs.readFileSync(D('low_tide_pasted_layout.txt'),'utf8'));
+ console.log('  (not required) text pasted with the PDF layout kept: '+lay.right+'/12, '+lay.scenes+'/3 scenes'+(lay.fake.length?', not characters: '+lay.fake.join(', '):''));
+ // the traps, one by one
+ const fdx=forms['Final Draft (.fdx)'];
+ ok('fdx: title page kept as Fountain "Title:"', /^Title: LOW TIDE/.test(fdx));
+ const cop=S.parse('COP #2\nDetective.\n\nGUARD #1 (O.S.)\nHalt.'); ok('a name with a number sign is a name', cop.map(b=>b.who).join()==='COP #2,GUARD #1', cop);
+ const shot=S.parse('LOW ANGLE: the deckhand lies on the dock.\n\nPOV DECKHAND: a gull lands on the rail.\n\nFLASHBACK: EXT. DOCK - DAY\n\nLATER\nThe fire is out.\n\nHAL\nGet up.');
+ ok('camera words are never people (LOW ANGLE:, POV DECKHAND:, FLASHBACK:, LATER)', shot.filter(b=>!b.action).map(b=>b.who).join()==='HAL', shot);
+ const pb=S.parse('ANNA\nWhat is it? Tell me now,\n(MORE)\n\nCONTINUED: (2)\n\nANNA (CONT\'D)\nbecause I am tired.\n\nANNA (CONT\'D)\nAnd cold.');
+ ok('a speech carried over a page break is one speech; a later CONT\'D is a new one', pb.length===2&&pb[0].text==='What is it? Tell me now, because I am tired.'&&pb[1].text==='And cold.', pb);
+ const fsn=F.scenes('INT. BAR - NIGHT #12#\n\nBO\nHi.\n\n.TITLE CARD - 1892\n\nAL\nYo.');
+ ok('Fountain scene numbers come off the heading; a forced ".HEADING" is a scene', fsn.map(s=>s.heading).join('|')==='INT. BAR - NIGHT|TITLE CARD - 1892', fsn.map(s=>s.heading));
+ const wm=S.parse('ANNA\nWhat is it?\n\nPM\n\n4:15 PM - 55120 - Mar 3, 2026 4:15 PM - 55120\n\nE417-E417-E417-\n\nCOP #2\nYou need to see this.\n\nANNA\nNO.');
+ ok('watermark bits in pasted text are not people; a shouted "NO." under a name is still a line', wm.map(b=>b.who+':'+b.text).join('|')==="ANNA:What is it?|COP #2:You need to see this.|ANNA:NO.", wm);
+ const emph=S.parse('Title: X\n\nWORTH\n*My* head? _Really_.'); ok('Fountain bold / underline marks come off the words', emph[0].text==='My head? Really.', emph);
+ const colon=S.parse('BO: Get in.\nAL: No.'); ok('colon sides still read (BO: line)', colon.map(b=>b.who+':'+b.text).join('|')==='BO:Get in.|AL:No.', colon);
+ console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail?1:0);
+})();

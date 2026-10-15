@@ -61,19 +61,7 @@ async function readFile(f){
   take(t,name,f);
  }catch(e){ MSG='<b>Could not read that file.</b> '+esc(e.message); render(); }
 }
-function fdx(xml){
- const out=[]; const P=/<Paragraph[^>]*Type="([^"]*)"[^>]*>([\s\S]*?)<\/Paragraph>/gi; let m;
- while((m=P.exec(xml))){
-  const type=m[1], txt=[...m[2].matchAll(/<Text[^>]*>([\s\S]*?)<\/Text>/gi)].map(x=>x[1].replace(/<[^>]+>/g,'')).join('')
-   .replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').trim();
-  if(!txt) continue;
-  if(/Scene Heading/i.test(type)) out.push('',txt.toUpperCase(),'');
-  else if(/Character/i.test(type)) out.push('',txt.toUpperCase());
-  else if(/Action|Transition|General/i.test(type)) out.push('',txt,'');
-  else out.push(txt);
- }
- return out.join('\n');
-}
+function fdx(xml){ return window.ActorSides.fromFdx(xml); }   // one Final Draft reader, in ../actor-os/sides.js
 function fromShelf(id){
  const it=SH&&SH.get(id); if(!it) return;
  SH.use(id,TOOL); open(it.id,it.text,it.file,it.me); TAB='scenes'; OPEN=null; render();

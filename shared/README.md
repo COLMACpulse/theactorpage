@@ -31,3 +31,13 @@ One original two-hander a day. 30 scenes written for this site, any actor can pl
 - **Tests:** `node shared/test_scenes.js` (337: every scene reads as exactly its two parts in both readers on the site, same speech counts, no em dashes, at least 6 speeches for your part, picking rules). Browser 10/10 (landing → MEMORIZER → Actor OS → other part → keep a take marks it done → another one → BREAKDOWN → Writer's Blockage).
 
 Replaces DAILY SCENE ENGINE v2/v3 (a 72-line phrase bank: 89% of a day's lines repeated within a week, one fixed shape every day, the private objective spoken as dialogue, a copyright guard that deleted ordinary words).
+
+# The script reader · `actor-os/sides.js` + `actor-os/pdf.js`
+
+One reader for a script, whatever form it comes in. **Who uses it:** ACTOR OS, MEMORIZER, STORY STUDIO, PAPER TRAIL, and Writer's Blockage when it opens a PDF it didn't make. BREAKDOWN keeps its own page-position reader (it read every test file right).
+
+- **Forms:** plain sides (NAME on its own line, or NAME: line), text pasted out of a PDF, Fountain, Final Draft (`ActorSides.fromFdx`, the one .fdx reader; Story Studio and Paper Trail both use it), and PDF (`ActorPDF.extract` + `toSides`, 16 KB, no library).
+- **Final Draft:** its own element types decide what each line is. A heading it calls a heading is one; an action line that looks like a name stays action. Nothing is guessed.
+- **What it gets right now:** names with a number (COP #2), camera words that are never people (LOW ANGLE:, POV DECKHAND:, FLASHBACK:, LATER), one speech across a page break ((MORE) / CONT'D), Fountain scene numbers (#12#) and bold/underline marks, running headers, page numbers, revision stars, and watermark bits in pasted text.
+- **What no reader can see:** a speech crossed out on the page. The cross is a drawing, the words are still text.
+- **Tests:** `node shared/test_reader.js` (13): LOW TIDE, made up, in six forms (`shared/fixtures/`). Also checked on a real feature .fdx (108 of 108 scenes, 427 of 427 speeches) and real Breakdown Services sides (17 of 17 lines from the PDF, 15 of 17 pasted). Those files are private and not in the repo.

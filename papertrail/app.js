@@ -98,20 +98,7 @@ async function addFiles(files){
  render();
 }
 /* Final Draft: paragraphs by type */
-function fdx(xml){
- const out=[]; const P=/<Paragraph[^>]*Type="([^"]*)"[^>]*>([\s\S]*?)<\/Paragraph>/gi; let m;
- while((m=P.exec(xml))){
-  const type=m[1], txt=[...m[2].matchAll(/<Text[^>]*>([\s\S]*?)<\/Text>/gi)].map(x=>x[1].replace(/<[^>]+>/g,'')).join('')
-   .replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').trim();
-  if(!txt) continue;
-  if(/Scene Heading/i.test(type)) out.push('',txt.toUpperCase(),'');
-  else if(/Character/i.test(type)) out.push('',txt.toUpperCase());
-  else if(/Action|Transition|General/i.test(type)) out.push('',txt,'');
-  else out.push(txt);
- }
- const tm=xml.match(/<TitlePage[\s\S]*?<Text[^>]*>([^<]+)<\/Text>/i);
- return (tm?'Title: '+tm[1].trim()+'\n\n':'')+out.join('\n');
-}
+function fdx(xml){ return window.ActorSides.fromFdx(xml); }   // one Final Draft reader, in ../actor-os/sides.js
 /* Word .docx: a zip; the text is word/document.xml. No library: the browser inflates it. */
 async function docxText(buf){
  const u=new Uint8Array(buf), v=new DataView(buf);

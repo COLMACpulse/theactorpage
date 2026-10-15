@@ -9,7 +9,7 @@ const F={};
 const SIDES=()=>g.ActorSides;   // ../actor-os/sides.js, loaded first
 
 /* ---------- scenes ---------- */
-const SLUG=/^\s*(INT|EXT|I\/E|INT\.?\/EXT)[\.\s]/i;
+const SLUG=/^\s*(INT|EXT|EST|I\/E|INT\.?\/EXT|EXT\.?\/INT)[\.\s]|^\s*\.[A-Za-z0-9]/i;   // .TITLE CARD is a heading Final Draft or Fountain forced
 const TODS=['DAY','NIGHT','DAWN','DUSK','MORNING','EVENING','AFTERNOON','SUNSET','SUNRISE','CONTINUOUS','LATER','MOMENTS LATER','SAME'];
 
 /* Scene numbers hang off both margins of a heading in a real script:
@@ -18,13 +18,14 @@ F.prep=function(text){
  return String(text||'').replace(/\r/g,'')
   .replace(/[‘’]/g,"'").replace(/[“”]/g,'"')
   .split('\n').map(l=>{
+   l=l.replace(/\s+#[\w.\-]+#\s*$/,'');   // Fountain scene number: INT. BAR - NIGHT #12#
    const m=l.match(/^\s*\d+[A-Z]?\.?\s+((?:INT|EXT|I\/E)[.\s].*?)(?:\s+\d+[A-Z]?\.?)?\s*$/i);
    return m?m[1]:l;
   }).join('\n');
 };
 
 F.heading=function(h){
- const t=String(h||'').trim().replace(/\s+/g,' ');
+ const t=String(h||'').trim().replace(/^\.(?=[A-Za-z0-9])/,'').replace(/\s+/g,' ');
  const m=t.match(/^(INT\.?\/EXT\.?|I\/E\.?|INT\.?|EXT\.?)\s*(.*)$/i);
  const ie=m?m[1].toUpperCase().replace(/\.$/,'').replace('INT/EXT','I/E').replace('INT./EXT','I/E'):'';
  const parts=(m?m[2]:t).split(/\s+[-–—]\s+/).map(s=>s.trim()).filter(Boolean);
@@ -40,7 +41,7 @@ F.scenes=function(text){
  const lines=F.prep(text).split('\n');
  const chunks=[]; let cur={heading:'',lines:[]};
  lines.forEach(l=>{
-  if(SLUG.test(l)){ if(cur.heading||cur.lines.some(x=>x.trim())) chunks.push(cur); cur={heading:l.trim(),lines:[]}; }
+  if(SLUG.test(l)){ if(cur.heading||cur.lines.some(x=>x.trim())) chunks.push(cur); cur={heading:l.trim().replace(/^\.(?=[A-Za-z0-9])/,''),lines:[]}; }
   else cur.lines.push(l);
  });
  if(cur.heading||cur.lines.some(x=>x.trim())) chunks.push(cur);

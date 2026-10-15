@@ -397,6 +397,7 @@ table.rep td.num{text-align:right;font-variant-numeric:tabular-nums;color:#dfe6e
   <footer><button class="primary" data-close>Close</button></footer>
 </dialog>
 
+<script src="../actor-os/pdf.js"></script>
 <script src="voice-engine.js"></script>
 <script src="voice.js" defer></script>
 <script src="panel-signalscript.js" defer></script>
@@ -2924,11 +2925,59 @@ function pickFile(accept, wantBytes){
 
 /* ---------- PDF import, with a look before it lands ---------- */
 let pdfPending = null;
+/* Sides and other people's PDFs: read with the site's sides reader (../actor-os/pdf.js), which places
+   each line by where it sits on the page. Used when the margin-learning reader above finds no names:
+   tested, it read 0 of 17 lines on real Breakdown Services sides and 17 of 17 this way. */
+async function sidesPdfBlocks(bytes){
+  if(!window.ActorPDF) return null;
+  const ex = await ActorPDF.extract(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+  if(!ex.chars) return null;
+  const r = parseFountain(ActorPDF.toSides(ex.lines));
+  if(!r.blocks.some(b => b.type === "Character")) return null;
+  // a PDF breaks every line where the page did; put wrapped lines back together
+  const out = [];
+  r.blocks.forEach(b => {
+    b.text = String(b.text || "").replace(/\s*\n\s*/g, " ");
+    const p = out[out.length - 1];
+    if(p && b.type === "Action" && p.type === "Action" && !/[.!?:"')\u2019\u201d]$/.test(p.text) && /^[a-z(]/.test(b.text)) p.text += " " + b.text;
+    else out.push(b);
+  });
+  return out;
+}
+async function readPdfBlocks(bytes){
+  let r = null, err = null;
+  try{ r = await importPdf(bytes); }catch(e){ err = e; }
+  if(r && r.blocks.some(b => b.type === "Character")) return {r};
+  let sb = null; try{ sb = await sidesPdfBlocks(bytes); }catch(e){}
+  if(sb) return {blocks:sb};
+  if(err) throw err;
+  return {r};
+}
+function openBlocks(blocks, name, lines){
+  if(currentId) autosave();
+  currentId = newId(); fileHandle = null; fileName = "";
+  doc.blocks = blocks;
+  doc.title = name.replace(/\.[^.]+$/, "") || "Untitled";
+  doc.author = ""; doc.source = ""; doc.draft = ""; doc.contact = "";
+  doc.ideas = ""; doc.ledger = []; doc.logo = false;
+  ui.activeId = doc.blocks[0].id; ui.caret = 0;
+  past.length = 0; future.length = 0; sheetEl = null;
+  markDirty(); render(); renderProjectName();
+  showReport(lines);
+}
 async function openPdf(f){
   toast("Reading " + f.name + "\u2026");
-  let r;
-  try{ r = await importPdf(f.bytes); }
+  let got;
+  try{ got = await readPdfBlocks(f.bytes); }
   catch(err){ showReport(["Could not read " + f.name + ".", err.message]); return; }
+  if(got.blocks){
+    const n = t => got.blocks.filter(b => b.type === t).length;
+    openBlocks(got.blocks, f.name, ["Read " + f.name + " as sides, by where each line sits on the page.",
+      n("Scene Heading") + " scene " + (n("Scene Heading") === 1 ? "heading" : "headings") + ", " + n("Character") + " speeches. Headers, page numbers, (MORE) and the watermark were left out.",
+      "Anything crossed out on the page is still here: a cross is a drawing, not text. Delete it if it is not in your scene."]);
+    return;
+  }
+  const r = got.r;
   pdfPending = {r:r, name:f.name};
   drawPdfPreview();
   $("dlgPdf").showModal();
@@ -3305,7 +3354,7 @@ $("diffPick").onclick = async () => {
   try{
     syncFromDom();
     // An old draft is usually a PDF, which is exactly the thing worth comparing.
-    const other = f.bytes ? {blocks:(await importPdf(f.bytes)).blocks} : parseAny(f.name, f.text);
+    const other = f.bytes ? await readPdfBlocks(f.bytes).then(g => ({blocks:g.blocks || g.r.blocks})) : parseAny(f.name, f.text);
     const rows = diffBlocks(other.blocks, doc.blocks);
     let add = 0, del = 0;
     const host = $("diffOut"); host.textContent = "";
