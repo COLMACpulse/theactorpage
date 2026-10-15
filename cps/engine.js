@@ -154,7 +154,37 @@
     return out;
   }
 
-  const api = { analyse, compare, noteName, STATES, have, autoState, missing, reference, daysSince, makeZip, readZip, crc32, enc, dec, yin, toMono16k };
+  // ---------------------------------------------------------------- voices: every character reads the same lines
+  // so their numbers line up. Facts only: no score, no "best voice".
+  const DEFAULT_LINES = 'The package came at nine forty-two. Three folders, one torn label, and a note that said: check the second drawer before you call.\n' +
+    'Wait. Don\'t go yet. I need you to hear this.\n' +
+    'Fine. You win. But I\'m not sorry, and I won\'t pretend I am.';
+  const linesKey = s => { const t = String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); let h = 2166136261; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36) + '.' + t.length; };
+  // newest same-lines take for the current lines
+  function linesTake(c, key) { return (c.takes || []).filter(t => t.kind === 'lines' && t.linesKey === key && t.an).sort((a, b) => String(b.at).localeCompare(String(a.at)))[0] || null; }
+  // one character against you (as yourself), same lines. Plain words.
+  function vsMe(me, a) {
+    const out = [];
+    if (me.pitchHz && a.pitchHz) { const d = st(me.pitchHz, a.pitchHz); out.push(Math.abs(d) < 0.75 ? 'pitch about yours' : `${Math.abs(d).toFixed(1)} semitones ${d > 0 ? 'higher' : 'lower'} than you`); }
+    if (me.rangeSt != null && a.rangeSt != null) { const d = a.rangeSt - me.rangeSt; if (Math.abs(d) >= 1.5) out.push(d > 0 ? 'wider range' : 'flatter'); }
+    if (me.spanSec > 0.5 && a.spanSec > 0.5) { const r = a.spanSec / me.spanSec; out.push(Math.abs(r - 1) < 0.08 ? 'your pace' : `${Math.round(Math.abs(r - 1) * 100)}% ${r > 1 ? 'slower' : 'faster'}`); }
+    { const d = a.silencePct - me.silencePct; if (Math.abs(d) >= 5) out.push(`${d > 0 ? 'more' : 'fewer'} pauses (${a.silencePct}% vs ${me.silencePct}%)`); }
+    return out;
+  }
+  // pairs of voices that measure close on the same lines: pitch within stMax semitones AND time within timeMax.
+  // rows: [{id, name, an}]. Returns [{a, b, st, time}] closest first. It says they measure close; whether they sound alike is yours to hear.
+  function closePairs(rows, stMax, timeMax) {
+    stMax = stMax == null ? 1.5 : stMax; timeMax = timeMax == null ? 0.10 : timeMax;
+    const out = [];
+    for (let i = 0; i < rows.length; i++) for (let j = i + 1; j < rows.length; j++) {
+      const A = rows[i].an, B = rows[j].an; if (!A || !B || !A.pitchHz || !B.pitchHz || !(A.spanSec > 0.5) || !(B.spanSec > 0.5)) continue;
+      const d = Math.abs(st(A.pitchHz, B.pitchHz)), t = Math.abs(B.spanSec / A.spanSec - 1);
+      if (d <= stMax && t <= timeMax) out.push({ a: rows[i], b: rows[j], st: +d.toFixed(1), time: Math.round(t * 100) });
+    }
+    return out.sort((x, y) => (x.st - y.st) || (x.time - y.time));
+  }
+
+  const api = { DEFAULT_LINES, linesKey, linesTake, vsMe, closePairs, analyse, compare, noteName, STATES, have, autoState, missing, reference, daysSince, makeZip, readZip, crc32, enc, dec, yin, toMono16k };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CPSEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);

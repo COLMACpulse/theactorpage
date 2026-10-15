@@ -6,7 +6,7 @@
 */
 (function () {
   'use strict';
-  const VERSION = '0.2.0';
+  const VERSION = '0.3.0';
   const SCHEMA = 'ACT.CPS/0.2';
   const E = window.CPSEngine;
   const MAX_REC = 180; // seconds
@@ -37,8 +37,8 @@
   }
   async function peekAll(db, store) { if (!db || !db.objectStoreNames.contains(store)) return []; return new Promise(res => { try { const r = db.transaction(store, 'readonly').objectStore(store).getAll(); r.onsuccess = () => res(r.result || []); r.onerror = () => res([]); } catch (e) { res([]); } }); }
 
-  const emptyLib = () => ({ schema: SCHEMA, app: 'CPS ' + VERSION, created: now(), chars: [], cur: null, lastSaved: null });
-  const newChar = (name, project) => ({ id: rid(), name: name || '', project: project || '', created: now(), updated: now(), state: null, anchorLine: '', notes: '', refId: null, takes: [], looks: [], bd: null });
+  const emptyLib = () => ({ schema: SCHEMA, app: 'CPS ' + VERSION, created: now(), chars: [], cur: null, lastSaved: null, lines: E.DEFAULT_LINES });
+  const newChar = (name, project) => ({ id: rid(), name: name || '', project: project || '', created: now(), updated: now(), state: null, anchorLine: '', notes: '', refId: null, takes: [], looks: [], bd: null, never: '', vary: '', strain: '', strained: false, me: false });
   const S = { lib: null, tab: 'chars', urls: {}, rec: null, lastReturn: null, bd: [], busy: '' };
   let saveT = null;
   function touch(c) { if (c) c.updated = now(); clearTimeout(saveT); saveT = setTimeout(() => DB.putLib(S.lib), 200); }
@@ -105,6 +105,7 @@
     }
     const t = { id: rid(), kind, at: now(), type: blob.type || typeOf(name || ''), size: blob.size, name: name || '', an: a };
     if (kind === 'return') { const ref = E.reference(c); t.refId = ref ? ref.id : null; S.lastReturn = t.id; }
+    if (kind === 'lines') { t.linesKey = E.linesKey(S.lib.lines); t.lines = S.lib.lines; }
     try { await DB.putMedia(t.id, blob); } catch (e) { toast('Couldn\'t save the recording on this device. Save a pack now.'); }
     c.takes.push(t);
     S.urls[t.id] = URL.createObjectURL(blob);
@@ -129,17 +130,18 @@
     chars: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.6 3.4-5.5 6.5-5.5s5.5 1.9 6.5 5.5"/><circle cx="17" cy="7" r="2.6"/><path d="M17.5 12.5c2.3.3 3.6 2 4.2 4.5"/></svg>',
     capture: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>',
     back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 12a8 8 0 1 0 2.3-5.6"/><path d="M4 4v4h4"/><path d="M12 8v4l3 2"/></svg>',
+    voices: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>',
     pack: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>',
     close: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>',
     theme: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg>'
   };
-  const TABS = [['chars', 'CHARACTERS'], ['capture', 'CAPTURE'], ['back', 'COME BACK'], ['pack', 'PACK']];
+  const TABS = [['chars', 'CHARACTERS'], ['capture', 'CAPTURE'], ['back', 'COME BACK'], ['voices', 'VOICES'], ['pack', 'PACK']];
   function render() {
     closeSheet(true);
     const c = cur();
     $('#app').innerHTML = `<div class="shell">
-      <header class="top"><div class="title"><b>CPS</b><span>${esc(c && S.tab !== 'chars' && S.tab !== 'pack' ? (c.name || 'Unnamed character') + (c.project ? ' · ' + c.project : '') : 'You find it. This keeps it.')}</span></div><button class="iconbtn" data-a="theme" aria-label="Light or dark">${ICON.theme}</button></header>
-      <main id="main">${S.busy ? `<div class="msg" role="status">${esc(S.busy)}</div>` : ''}${({ chars: vChars, capture: vCapture, back: vBack, pack: vPack }[S.tab])()}</main>
+      <header class="top"><div class="title"><b>CPS</b><span>${esc(S.tab === 'voices' ? 'Your voices, same lines' : c && S.tab !== 'chars' && S.tab !== 'pack' ? (c.name || 'Unnamed character') + (c.project ? ' · ' + c.project : '') : 'You find it. This keeps it.')}</span></div><button class="iconbtn" data-a="theme" aria-label="Light or dark">${ICON.theme}</button></header>
+      <main id="main">${S.busy ? `<div class="msg" role="status">${esc(S.busy)}</div>` : ''}${({ chars: vChars, capture: vCapture, back: vBack, voices: vVoices, pack: vPack }[S.tab])()}</main>
       <nav class="tabs">${TABS.map(([k, l]) => `<button class="${S.tab === k ? 'on' : ''}" data-a="tab" data-t="${k}">${ICON[k]}<span>${l}</span></button>`).join('')}</nav></div>`;
     if (S.tab === 'back') { const r = $('#refaudio'); if (r) r.addEventListener('play', () => { const c2 = cur(); if (c2) { c2.lastVisit = now(); touch(c2); } }, { once: true }); }
   }
@@ -166,7 +168,7 @@
       ${bdNew.length ? `<div class="kicker">From your sides</div><div class="row" style="margin-bottom:14px">${bdNew.map(r => `<button class="chip" data-a="frombd" data-pid="${esc(r.pid)}" data-role="${esc(r.role)}">${esc(r.role)} · ${esc(r.title)}</button>`).join('')}</div>` : ''}
       ${L.chars.length ? `<div class="kicker">${L.chars.length} ${L.chars.length === 1 ? 'character' : 'characters'}</div>` + L.chars.slice().sort((a, b) => (b.updated || '').localeCompare(a.updated || '')).map(c => {
         const m = E.missing(c);
-        return `<button class="char" data-a="open" data-id="${c.id}">${avatar(c)}<span class="b"><b>${esc(c.name || 'Unnamed character')}</b><span class="faint" style="font-size:13px">${esc(c.project || 'No project')} · last visit ${ago(c.lastVisit || c.updated)}</span><br>${stateChip(c)}${m.length ? `<span class="faint" style="font-size:12px;margin-left:6px">Still to keep: ${esc(m.join(', '))}</span>` : ''}</span></button>`;
+        return `<button class="char" data-a="open" data-id="${c.id}">${avatar(c)}<span class="b"><b>${esc(c.me ? 'You, as yourself' : (c.name || 'Unnamed character'))}</b><span class="faint" style="font-size:13px">${esc(c.project || 'No project')} · last visit ${ago(c.lastVisit || c.updated)}</span><br>${stateChip(c)}${c.strained ? '<span class="state strained">Strained</span>' : ''}${m.length && !c.me ? `<span class="faint" style="font-size:12px;margin-left:6px">Still to keep: ${esc(m.join(', '))}</span>` : ''}</span></button>`;
       }).join('') : ''}`;
   }
   function needChar(what) { return `<div class="msg" style="margin-top:12px">Pick a character first.</div><button class="btn pri block" data-a="tab" data-t="chars" style="margin-top:10px">Characters</button>${what ? '' : ''}`; }
@@ -185,6 +187,13 @@
         ${recBlock('voice', voices.length ? 'Record another take' : 'Record the voice')}
         <div class="row" style="margin-top:10px"><button class="btn" data-a="memo" data-k="voice">Use a voice memo</button></div>
         ${voices.map(t => takeRow(c, t, ref)).join('')}
+        <div class="sameln"><div class="kicker" style="margin-top:14px">Same lines as your other voices</div>
+          <p class="dim" style="font-size:14px;margin:0 0 8px">Every voice reads these, so VOICES can line them up. Change the lines in VOICES.</p>
+          <div class="lines mono">${esc(S.lib.lines)}</div>
+          ${recBlock('lines', 'Read the same lines')}
+          <div class="row" style="margin-top:10px"><button class="btn" data-a="memo" data-k="lines">Use a voice memo</button></div>
+          ${c.takes.filter(t => t.kind === 'lines').slice().reverse().map(t => linesRow(t)).join('')}
+        </div>
       </section>
 
       <section class="step"><h3><span class="n">2</span>The look${h.look ? '<span class="ok">kept</span>' : ''}</h3>
@@ -204,6 +213,14 @@
         ${notes.map(t => `<div class="take"><audio src="${url(t.id)}" controls preload="metadata"></audio><div class="row" style="justify-content:space-between"><span class="rd">Note · ${esc(ago(t.at))}</span><button class="btn ghost bad" data-a="deltake" data-id="${t.id}" style="min-height:36px">Delete</button></div></div>`).join('')}
         <textarea class="field" id="c_notes" data-c="notes" rows="3" style="margin-top:10px" placeholder="Low in the chest. Never looks at the person he's threatening.">${esc(c.notes)}</textarea>
       </section>
+      <section class="step"><h3><span class="n">5</span>Your voice, kept safe${c.strained ? '<span class="state strained">Strained</span>' : ''}</h3>
+        <p class="dim" style="font-size:14px;margin:0 0 8px">So the voice stays the same and your throat stays whole.</p>
+        <label class="lab" for="c_never">What never changes</label><textarea class="field" id="c_never" data-c="never" rows="2" placeholder="The gravel on the first word. Always a beat before he answers.">${esc(c.never || '')}</textarea>
+        <label class="lab" for="c_vary" style="margin-top:8px">What can vary</label><textarea class="field" id="c_vary" data-c="vary" rows="2" placeholder="Speed. How loud he gets.">${esc(c.vary || '')}</textarea>
+        <label class="lab" for="c_strain" style="margin-top:8px">What strained your voice</label><textarea class="field" id="c_strain" data-c="strain" rows="2" placeholder="Holding the growl past ten seconds.">${esc(c.strain || '')}</textarea>
+        <label class="row" style="margin-top:10px;gap:10px"><input type="checkbox" data-cb="strained"${c.strained ? ' checked' : ''} style="width:22px;height:22px"><span>This voice hurt. Flag it.</span></label>
+        ${c.strained ? '<div class="msg bad" style="margin-top:8px">Stop if it hurts. No character is worth your voice. Rest it, then find a way in that doesn\'t hurt.</div>' : ''}
+      </section>
       ${E.autoState(c) !== 'found' ? `<button class="btn pri block" data-a="tab" data-t="back">Come back to ${esc(c.name || 'them')} later</button>` : ''}`;
   }
   function takeRow(c, t, ref) {
@@ -212,6 +229,39 @@
       <div class="rd">${esc(readout(t.an))}</div>
       <div class="row" style="justify-content:space-between;margin-top:4px"><span class="faint" style="font-size:13px">${t.kind === 'return' ? 'Come-back take' : 'Take'} · ${esc(ago(t.at))}${t.name ? ' · ' + esc(t.name) : ''}</span>
       <span class="row" style="gap:4px">${isRef ? '<span class="state inuse">Reference</span>' : `<button class="btn ghost" data-a="setref" data-id="${t.id}" style="min-height:36px">Make reference</button>`}<button class="btn ghost bad" data-a="deltake" data-id="${t.id}" style="min-height:36px">Delete</button></span></div></div>`;
+  }
+
+  function linesRow(t) {
+    const old = t.linesKey !== E.linesKey(S.lib.lines);
+    return `<div class="take"><audio src="${url(t.id)}" controls preload="metadata"></audio><div class="rd">${esc(readout(t.an))}</div>
+      <div class="row" style="justify-content:space-between;margin-top:4px"><span class="faint" style="font-size:13px">Same lines · ${esc(ago(t.at))}${old ? ' · on older lines, not compared' : ''}</span><button class="btn ghost bad" data-a="deltake" data-id="${t.id}" style="min-height:36px">Delete</button></div></div>`;
+  }
+
+  // ---------------------------------------------------------------- VOICES: every voice, same lines, side by side
+  function vVoices() {
+    const L = S.lib, key = E.linesKey(L.lines), me = L.chars.find(x => x.me), meT = me ? E.linesTake(me, key) : null;
+    const others = L.chars.filter(x => !x.me);
+    const rows = others.map(c => ({ c, t: E.linesTake(c, key) }));
+    const old = L.chars.some(c => c.takes.some(t => t.kind === 'lines' && t.linesKey !== key));
+    const pairs = E.closePairs(rows.filter(r => r.t).map(r => ({ id: r.c.id, name: r.c.name || 'Unnamed character', an: r.t.an, tid: r.t.id })));
+    const strained = L.chars.filter(c => c.strained);
+    const recHere = c => S.rec && S.rec.kind === 'lines' && S.lib.cur === c.id;
+    const recBtns = (c, t) => recHere(c) ? recBlock('lines', '') : `<div class="row" style="margin-top:8px"><button class="btn ${t ? '' : 'pri'}" data-a="linesrec" data-id="${c.id}">${t ? 'Read them again' : 'Read the lines'}</button><button class="btn ghost" data-a="linesmemo" data-id="${c.id}">Voice memo</button></div>`;
+    const card = (c, t, label) => `<div class="vcard" data-vid="${c.id}"><div class="row" style="gap:10px;align-items:center">${avatar(c)}<div style="flex:1;min-width:0"><b>${esc(label)}</b>${c.strained ? ' <span class="state strained">Strained</span>' : ''}<div class="rd">${t ? esc(readout(t.an)) : 'No take on these lines yet.'}</div>${t && meT && !c.me ? `<div class="vsme">Against you: ${esc(E.vsMe(meT.an, t.an).join(', ') || 'not enough sound to compare')}</div>` : ''}</div></div>
+      ${t ? `<audio src="${url(t.id)}" controls preload="metadata" style="width:100%;margin-top:8px"></audio>` : ''}${recBtns(c, t)}</div>`;
+    return `<p class="dim" style="margin:8px 0 12px">Every voice reads the same lines. Then the numbers line up: pitch, range, how long it takes, pauses. You hear which voice is which. This only measures.</p>
+      ${strained.length ? `<div class="msg bad" style="margin-bottom:12px">Strained your voice: ${esc(strained.map(c => c.me ? 'you' : (c.name || 'Unnamed character')).join(', '))}. Stop if it hurts.</div>` : ''}
+      <section class="step"><h3>The lines</h3>
+        <textarea class="field mono" id="v_lines" data-lib="lines" rows="5">${esc(L.lines)}</textarea>
+        ${old ? '<p class="faint" style="font-size:13px;margin:6px 0 0">Some takes were read on other lines. They stay kept; only takes on these lines are lined up here.</p>' : ''}
+        ${L.lines !== E.DEFAULT_LINES ? '<button class="btn ghost" data-a="linesreset" style="margin-top:6px">Use the starter lines</button>' : ''}
+      </section>
+      <div class="kicker" style="margin-top:14px">You, as yourself</div>
+      ${me ? card(me, meT, 'You, as yourself') : `<div class="vcard"><p class="dim" style="margin:0 0 8px;font-size:14px">Read the lines as yourself first. Every voice is measured against you.</p><button class="btn pri" data-a="makeme">Read them as yourself</button></div>`}
+      <div class="kicker" style="margin-top:14px">${others.length ? others.length + (others.length === 1 ? ' voice' : ' voices') : 'Your voices'}</div>
+      ${others.length ? rows.map(r => card(r.c, r.t, r.c.name || 'Unnamed character')).join('') : '<div class="msg">No characters yet. Make one in CHARACTERS, then read the lines here.</div>'}
+      ${pairs.length ? `<section class="step" style="margin-top:14px"><h3>Measure close</h3><p class="faint" style="font-size:13px;margin:0 0 8px">Within 1.5 semitones and 10% in time on the same lines. Close numbers don't mean they sound alike. Listen to both.</p>
+        ${pairs.map(p => `<div class="pair"><b>${esc(p.a.name)} and ${esc(p.b.name)}</b>: ${p.st} semitones apart, ${p.time}% apart in time.<div class="vs"><audio src="${url(p.a.tid)}" controls preload="metadata"></audio><audio src="${url(p.b.tid)}" controls preload="metadata"></audio></div></div>`).join('')}</section>` : ''}`;
   }
 
   // ---------------------------------------------------------------- COME BACK
@@ -260,7 +310,7 @@
       ${L.chars.length > 1 ? `<button class="btn block" data-a="packall" style="margin-bottom:8px">Save all ${L.chars.length} characters</button>` : ''}
       <button class="btn ghost block" data-a="openpack">Open a pack</button>
       ${c ? `<div class="kicker" style="margin-top:24px">${esc(c.name || 'This character')}</div><button class="btn ghost bad block" data-a="delchar">Delete this character from this device</button>` : ''}
-      <p class="faint" style="font-size:12px;margin-top:24px">CPS ${VERSION}. No account, no upload, no computer voice. Measurements are pitch, range, time and pauses from your own recordings.</p>`;
+      <p class="faint" style="font-size:12px;margin-top:24px">CPS ${VERSION}. No account, no upload, no computer voice. Measurements are pitch, range, time and pauses from your own recordings. VOICES lines your characters up on the same lines.</p>`;
   }
   async function packFor(chars) {
     const entries = [], used = {};
@@ -268,7 +318,7 @@
       let base = slug(c.name); while (used[base]) base += '_'; used[base] = 1;
       const files = {};
       for (const m of [...c.takes, ...c.looks]) { const b = await DB.getMedia(m.id).catch(() => null); if (!b) continue; const fn = 'media/' + m.id + '.' + extOf(m.type || b.type); files[m.id] = fn; entries.push({ name: base + '/' + fn, bytes: new Uint8Array(await b.arrayBuffer()) }); }
-      entries.unshift({ name: base + '/capsule.json', bytes: E.enc(JSON.stringify({ schema: SCHEMA, app: 'CPS ' + VERSION, saved: now(), character: c, files }, null, 1)) });
+      entries.unshift({ name: base + '/capsule.json', bytes: E.enc(JSON.stringify({ schema: SCHEMA, app: 'CPS ' + VERSION, saved: now(), character: c, lines: S.lib.lines, files }, null, 1)) });
     }
     return new Blob([E.makeZip(entries)], { type: 'application/zip' });
   }
@@ -342,6 +392,10 @@
       case 'recstart': await startRec(ds.k); break;
       case 'recstop': await stopRec(); break;
       case 'memo': pendingNew = false; pendingMemoKind = ds.k; $('#voicein').click(); break;
+      case 'linesrec': L.cur = ds.id; touch(); await startRec('lines'); break;
+      case 'linesmemo': L.cur = ds.id; touch(); pendingNew = false; pendingMemoKind = 'lines'; $('#voicein').click(); break;
+      case 'makeme': { let m = L.chars.find(x => x.me); if (!m) { m = makeChar('Me', ''); m.me = true; touch(m); } L.cur = m.id; await startRec('lines'); break; }
+      case 'linesreset': L.lines = E.DEFAULT_LINES; touch(); render(); break;
       case 'camera': $('#camin').click(); break;
       case 'photo': $('#photoin').click(); break;
       case 'sketch': sketchSheet(); break;
@@ -364,12 +418,16 @@
   document.addEventListener('click', e => { const t = e.target.closest('[data-a]'); if (!t || t.disabled || /INPUT|TEXTAREA|SELECT/.test(t.tagName)) return; e.preventDefault(); act(t.dataset.a, Object.assign({}, t.dataset), t); });
   document.addEventListener('input', e => {
     const t = e.target, c = cur();
+    if (t.dataset.cb && c) { c[t.dataset.cb] = !!t.checked; touch(c); render(); return; }
+    if (t.dataset.lib) { S.lib[t.dataset.lib] = t.value; touch(); return; }
     if (t.dataset.c && c) {
       c[t.dataset.c] = t.value; touch(c);
       const sb = $('#statebox .state'); if (sb) sb.outerHTML = stateChip(c);
       if (t.dataset.c === 'name' || t.dataset.c === 'project') { const s = $('.top .title span'); if (s) s.textContent = (c.name || 'Unnamed character') + (c.project ? ' · ' + c.project : ''); }
     }
   });
+  // lines edited: line the voices up again once you leave the box (not mid-typing; a tapped button renders by itself)
+  document.addEventListener('focusout', e => { if (!(e.target.dataset && e.target.dataset.lib)) return; if (e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('[data-a]')) return; setTimeout(() => { if (S.tab === 'voices' && !(document.activeElement && document.activeElement.dataset && document.activeElement.dataset.lib)) render(); }, 0); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('.sheet')) act('closesheet'); });
   $('#voicein').addEventListener('change', async e => {
     const f = e.target.files[0]; e.target.value = ''; if (!f) return;

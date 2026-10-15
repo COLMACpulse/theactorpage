@@ -1,5 +1,5 @@
 /* CPS service worker: opens with no signal. Your recordings never touch the network. */
-const CACHE = 'cps-0.2.1';
+const CACHE = 'cps-0.3.0';
 const FILES = ['./', 'index.html', 'app.js', 'engine.js', '../shared/shelf.js', 'manifest.webmanifest',
   'fonts/jost-latin-400-normal.woff2', 'fonts/jost-latin-500-normal.woff2', 'fonts/jost-latin-600-normal.woff2',
   'fonts/courier-prime-latin-400-normal.woff2', 'fonts/courier-prime-latin-700-normal.woff2',
