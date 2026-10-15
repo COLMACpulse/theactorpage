@@ -1,4 +1,4 @@
-# FILM OS 0.2 · Make it alone
+# FILM OS 0.2.1 · Make it alone
 
 *One person makes the whole scene.*
 
@@ -17,6 +17,9 @@
    - **Continuity** for each character on camera: wardrobe, in hand, lens, camera height, eyeline, light from, note. "Same as scene N" copies the last card for that character.
 3. **OWNED.** Locations (with what each can play), props, wardrobe, gear. Start from the ranch list (40 things: barn, porch, creek, workshop, oak treeline, corral, fire pit, the pickup, the gear) or empty.
 4. **SHOOT DAY.** Scenes grouped by where you're shooting, then time of day, then wardrobe. Places not picked yet are flagged. Each scene shows its way, who's on camera, wardrobe and shots done.
+
+## New in 0.2.1: a witness for the continuity card
+Mined from PARSOVAR CONTINUITY WITNESS ("no witness, no hard claim"). Each character's continuity card takes a photo from the phone: how they look at the end of the scene, what's in hand, the frame. The next scene with them shows it as **Match this: scene N** beside its own photo. "Same as scene N" copies the notes, never the photo: each scene needs its own. RETAKE replaces it and the old photo is deleted from the phone. Browser 10/10.
 
 ## New in 0.2: the places themselves
 Mined from RANCH BACKLOT ENGINE v1 and PRODUCTION GEOGRAPHY ENGINE v2 (their search matched "bus" inside "ambush"; their scores were typed numbers; they read file names, not photos).

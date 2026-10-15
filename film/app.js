@@ -175,7 +175,13 @@ function vScene(n){
   who.forEach(w=>{
    const v=s.cont[w]||{}, prev=lastCard(w,n);
    h+='<div class="cont"><div class="row" style="justify-content:space-between"><h3>'+esc(w)+'</h3>'+(prev?'<button class="btn sm ghost" data-same="'+esc(w)+'">Same as scene '+prev.n+'</button>':'')+'</div><div class="g">'
-    +CF.map(([k,l])=>'<div'+(k==='note'?' style="grid-column:1/-1"':'')+'><label>'+l+'</label><input class="field" data-cont="'+esc(w)+'" data-k="'+k+'" value="'+esc(v[k]||'')+'"></div>').join('')+'</div></div>';
+    +CF.map(([k,l])=>'<div'+(k==='note'?' style="grid-column:1/-1"':'')+'><label>'+l+'</label><input class="field" data-cont="'+esc(w)+'" data-k="'+k+'" value="'+esc(v[k]||'')+'"></div>').join('')+'</div>';
+   // the witness: a photo of how they look at the end of this scene
+   const pp=lastPhoto(w,n);
+   h+='<div class="g" style="margin-top:8px">'
+    +'<div><label>This scene</label>'+(v.photo?'<img data-photo="'+esc(v.photo)+'" class="cph">':'<div class="cph none">No photo yet</div>')
+    +'<label class="btn sm block" style="margin-top:6px"><input type="file" accept="image/*" capture="environment" class="hide" data-cphoto="'+esc(w)+'">'+(v.photo?'RETAKE':'PHOTO')+'</label></div>'
+    +(pp?'<div><label>Match this: scene '+pp.n+'</label><img data-photo="'+esc(pp.photo)+'" class="cph"></div>':'')+'</div></div>';
   });
  }
  // the scene itself
@@ -204,6 +210,11 @@ function lastAt(locId,skipScript,skipN){
   Object.keys(s.cont||{}).forEach(w=>{ const v=s.cont[w]; const b=[v.lens&&'lens '+v.lens,v.height&&'height '+v.height,v.eyeline&&'eyeline '+v.eyeline,v.light&&'light from '+v.light].filter(Boolean);
    if(b.length&&(!best||(s.contAt||0)>=best.at)) best={at:s.contAt||0,where:String(c.file||'').replace(/\.(pdf|txt|fountain|fdx)$/i,'').replace(/_/g,' ')+' scene '+k+', '+w,bits:b.join(' · ')}; });
  }); });
+ return best;
+}
+function lastPhoto(who,n){
+ const c=cur(); let best=null;
+ Object.keys(c.scenes||{}).map(Number).filter(k=>k<n).sort((a,b)=>b-a).some(k=>{ const v=c.scenes[k].cont&&c.scenes[k].cont[who]; if(v&&v.photo){ best={n:k,photo:v.photo}; return true; } return false; });
  return best;
 }
 function lastCard(who,n){
@@ -283,7 +294,12 @@ function wire(){
  document.querySelectorAll('[data-cont]').forEach(i=>i.oninput=()=>{ const s=st(OPEN); const w=i.dataset.cont; s.cont[w]=s.cont[w]||{}; s.cont[w][i.dataset.k]=i.value; s.contAt=Date.now(); save(); });
  document.querySelectorAll('[data-ins]').forEach(b=>b.onclick=()=>{ const sc=SCENES.find(x=>x.n===OPEN), s=st(OPEN); const cur0=Array.isArray(s.ins)?s.ins:sc.props.slice(0,6); const p=b.dataset.ins;
    s.ins=cur0.includes(p)?cur0.filter(x=>x!==p):sc.props.filter(x=>x===p||cur0.includes(x)); save(); render(); });
- document.querySelectorAll('[data-same]').forEach(b=>b.onclick=()=>{ const w=b.dataset.same, p=lastCard(w,OPEN); if(!p) return; st(OPEN).cont[w]=Object.assign({},p.v); save(); render(); toast(w+': copied from scene '+p.n+'.'); });
+ document.querySelectorAll('[data-cphoto]').forEach(i=>i.onchange=async()=>{ const f=i.files[0]; if(!f) return; const w=i.dataset.cphoto, s=st(OPEN); s.cont[w]=s.cont[w]||{};
+   const pid=rid('ph'); if(!(await putPhoto(pid,await shrink(f)))){ toast('This phone would not keep the photo.'); return; }
+   const old=s.cont[w].photo; s.cont[w].photo=pid; s.contAt=Date.now(); save();
+   if(old&&!Object.values(DB.scripts).some(c=>Object.values(c.scenes||{}).some(x=>Object.values(x.cont||{}).some(v=>v.photo===old)))) delPhoto(old);
+   render(); toast(w+': photo kept for scene '+OPEN+'.'); });
+ document.querySelectorAll('[data-same]').forEach(b=>b.onclick=()=>{ const w=b.dataset.same, p=lastCard(w,OPEN); if(!p) return; const keep=(st(OPEN).cont[w]||{}).photo; st(OPEN).cont[w]=Object.assign({},p.v,{photo:keep||''}); save(); render(); toast(w+': copied from scene '+p.n+'.'); });
  const ra=$('ranch'); if(ra) ra.onclick=()=>{ DB.owned=(DB.owned||[]).concat(F.RANCH.map(o=>Object.assign({id:rid('o')},o))); save(); render(); toast('The ranch list is in. 40 things.'); };
  const em=$('empty'); if(em) em.onclick=()=>{ DB.owned=[]; save(); render(); };
  const oa=$('oadd'); if(oa) oa.onclick=()=>{ const n=$('oname').value.trim(); if(!n) return; DB.owned=owned().concat([{id:rid('o'),kind:$('okind').value,name:n,plays:$('oplays').value.trim(),notes:$('onotes').value.trim()}]); save(); render(); };
