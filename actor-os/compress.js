@@ -222,7 +222,12 @@ A.measure=async function(blob){
   const hp=A.rumbleCut(off);
   s.connect(hp.in); hp.out.connect(off.destination); s.start(0);
   const r=await new Promise((res,rej)=>{ off.oncomplete=e=>res(e.renderedBuffer); const p=off.startRendering(); if(p&&p.then)p.then(res,rej); });
-  return A.levelOf(r.getChannelData(0),r.sampleRate);
+  const out=A.levelOf(r.getChannelData(0),r.sampleRate);
+  // read off the decoded file itself, before any filter: distortion and a dead side
+  const ch=[]; for(let i=0;i<buf.numberOfChannels;i++) ch.push(buf.getChannelData(i));
+  out.clip=A.clipsOf(ch,buf.sampleRate);
+  out.side=A.sideOf(ch,buf.sampleRate);
+  return out;
  }catch(e){ return {skipped:"this phone couldn't read the sound to measure it"}; }
  finally{ try{ if(ac)ac.close(); }catch(e){} }
 };
@@ -244,6 +249,37 @@ A.levelOf=function(d,rate){
  const lvl=db(keep2.reduce((a,b)=>a+b,0)/keep2.length);
  return {level:Math.round(lvl*10)/10, peak:Math.round(20*Math.log10(Math.max(peak,1e-6))*10)/10, gain:A.gainFor(lvl)};
 };
+/* Distortion: the waveform held flat at full volume. 4 or more samples in a row at
+   99% of full scale, on any channel; hits closer than half a second count as one
+   place. A loud take that only touches the top once is not flagged. Pure. */
+A.CLIP_AT=0.99; A.CLIP_RUN=4;
+A.clipsOf=function(chans,rate){
+ const hits=[]; let ms=0;
+ chans.forEach(d=>{
+  let run=0;
+  for(let i=0;i<=d.length;i++){
+   const x=i<d.length?d[i]:0, a=x<0?-x:x;
+   if(a>=A.CLIP_AT){ run++; continue; }
+   if(run>=A.CLIP_RUN){ hits.push((i-run)/rate); ms+=run*1000/rate; }
+   run=0;
+  }
+ });
+ if(!hits.length) return null;
+ hits.sort((a,b)=>a-b);
+ const at=[]; hits.forEach(t=>{ if(!at.length||t-at[at.length-1].end>0.5) at.push({t:t,end:t}); else at[at.length-1].end=t; });
+ return {places:at.map(x=>Math.round(x.t*10)/10), ms:Math.max(1,Math.round(ms/chans.length))};
+};
+/* One ear only: two channels, the voice on one and nothing (or 30 dB less) on the
+   other. Returns 'left', 'right' or null. Pure. */
+A.sideOf=function(chans,rate){
+ if(chans.length!==2) return null;
+ const l=A.levelOf(chans[0],rate), r=A.levelOf(chans[1],rate);
+ if(l.silent&&r.silent) return null;
+ const lv=l.silent?-120:l.level, rv=r.silent?-120:r.level;
+ if(rv<=lv-30) return 'left';
+ if(lv<=rv-30) return 'right';
+ return null;
+};
 A.gainFor=function(level){
  const g=A.TARGET-level;
  if(Math.abs(g)<1) return 0;                 // already there: leave it alone
@@ -263,6 +299,8 @@ A.limiter=function(ac){
 /* source -> rumble cut -> fixed gain -> into (limiter). Returns the last node. */
 A.chain=function(ac,src,sound,into){
  const hp=A.rumbleCut(ac);
+ // sound in one ear only: fold it to one channel so it plays in both
+ if(sound&&sound.side){ hp.in.channelCount=1; hp.in.channelCountMode='explicit'; hp.in.channelInterpretation='speakers'; }
  const g=ac.createGain(); g.gain.value=Math.pow(10,((sound&&sound.gain)||0)/20);
  src.connect(hp.in); hp.out.connect(g); g.connect(into);
  return g;
@@ -271,8 +309,16 @@ A.soundLine=function(sound){
  if(!sound) return 'Rumble cut. Level left as it was.';
  if(sound.skipped) return 'Rumble cut. Level left as it was ('+sound.skipped+').';
  if(sound.silent) return 'Rumble cut. No voice found to level.';
- if(!sound.gain) return 'Rumble cut. Level was already right.';
- return 'Rumble cut. '+(sound.gain>0?'Brought up ':'Brought down ')+Math.round(Math.abs(sound.gain))+' dB.';
+ const both=sound.side?' Sound was only in your '+sound.side+' ear; now it\'s in both.':'';
+ const clip=sound.clip?' Distorted in '+sound.clip.places.length+' place'+(sound.clip.places.length===1?'':'s')+': that can\'t be fixed here, only re-recorded.':'';
+ if(!sound.gain) return 'Rumble cut. Level was already right.'+both+clip;
+ return 'Rumble cut. '+(sound.gain>0?'Brought up ':'Brought down ')+Math.round(Math.abs(sound.gain))+' dB.'+both+clip;
+};
+A.clipLine=function(clip){
+ const mm=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+ const p=clip.places, show=p.slice(0,3).map(mm);
+ const where=show.length===1?show[0]:show.slice(0,-1).join(', ')+(p.length>3?', '+show[show.length-1]+' and '+(p.length-3)+' more':' and '+show[show.length-1]);
+ return 'Distorted at '+where+' ('+clip.ms+' ms in all). The sound hit full volume and went flat. Re-record that part lower or further from the mic.';
 };
 
 /* ===== FIT UNDER A SIZE =====
@@ -363,6 +409,10 @@ A.checkLines=function(c){
  else if(sd.silent) L.push({ok:false,t:'No sound in this file. The track is there but it\'s silent.'});
  else if(sd.level!=null&&sd.level<-42) L.push({ok:false,t:'Sound is very quiet ('+Math.round(sd.level)+' dB). Check it before you send.'});
  else L.push({ok:true,t:'Sound: yes'+(sd.level!=null?' (voice around '+Math.round(sd.level)+' dB)':'')+'.'});
+ if(sd&&!sd.skipped&&!sd.silent){
+  if(sd.clip) L.push({ok:false,t:A.clipLine(sd.clip)});
+  if(sd.side) L.push({ok:false,t:'Sound is only in your '+sd.side+' ear. Casting will hear you on one side. CUT with "Clean up the sound" on puts it in both.'});
+ }
  // format
  const f=c.fmt||{};
  if(f.container==='unknown') L.push({ok:null,t:"Format: couldn't read it from the file."});

@@ -130,6 +130,12 @@ This is the part that matters.
 
 ---
 
+## New in 5.30 (2026-10-14): distortion and one ear, in Before you send
+Mined from SOUND CHECK. Read off the decoded file itself, before any filter.
+- **Distorted.** Where the sound hit full volume and went flat (4 or more samples in a row at 99% of full scale): "Distorted at 0:05 and 0:12 (550 ms in all). Re-record that part lower or further from the mic." A loud take that only touches the top is not flagged. Still found after the phone's sound compression (Opus). It can't be fixed in CUT, and CUT says so.
+- **One ear only.** Voice on one side, nothing on the other (a mic in one input): "Sound is only in your right ear. Casting will hear you on one side." CUT with "Clean up the sound" on now puts it in both ears (measured: -91 / -20 dB before, -18 / -18 after).
+- Skipped from Sound Check: room tone. A phone's noise gate makes the gaps dead silent, so hum under your voice reads as a clean room.
+
 ## New in 5.29 (2026-10-14): the light check, switched on
 Actor OS already measured light and background, but only on the old hidden screen. Now it runs under the live SHOOT preview. Mined from CAMERA COACH.
 - **One line, only when something is off:** you read dark, part of you is blowing out, you blend into the wall, the wall is blown out, busy background, unevenly lit wall, strong wall colour. Otherwise "Nothing needs your attention."
