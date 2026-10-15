@@ -1,12 +1,12 @@
-/* FILM OS offline shell. Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='film-os-0.2.1';
+/* STORY STUDIO offline shell. Bump CACHE on every release. Only clears its own old copies. */
+const CACHE='story-studio-0.3.0';
 const FILES=['./','index.html','app.js','film.js','manifest.webmanifest',
  '../shared/shelf.js','../actor-os/sides.js','../actor-os/pdf.js',
  'fonts/jost-latin-400-normal.woff2','fonts/jost-latin-500-normal.woff2','fonts/jost-latin-600-normal.woff2',
  'fonts/courier-prime-latin-400-normal.woff2','fonts/courier-prime-latin-700-normal.woff2',
  'icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];
 self.addEventListener('install',e=>{ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting())); });
-self.addEventListener('activate',e=>{ e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE&&k.startsWith('film-os-')).map(k=>caches.delete(k)))).then(()=>self.clients.claim())); });
+self.addEventListener('activate',e=>{ e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE&&(k.startsWith("film-os-")||k.startsWith("story-studio-"))).map(k=>caches.delete(k)))).then(()=>self.clients.claim())); });
 /* network first for the shared readers, so a fix in Actor OS reaches here; cache first for the rest */
 self.addEventListener('fetch',e=>{
  const u=new URL(e.request.url);

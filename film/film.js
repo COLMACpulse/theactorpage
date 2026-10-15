@@ -1,4 +1,4 @@
-/* FILM OS engine. One person makes the whole scene.
+/* STORY STUDIO engine. One person makes the whole scene.
    Pure: no page, no storage. Runs in the browser (window.FilmOS) and in Node for the tests.
    Speeches come from Actor OS's own reader (../actor-os/sides.js), so a script reads the
    same here as it does in ACT. This file only adds what a shoot needs on top: scenes,

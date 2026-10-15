@@ -1,8 +1,8 @@
-# FILM OS 0.2.1 · Make it alone
+# STORY STUDIO 0.3 · Make it alone
 
 *One person makes the whole scene.*
 
-**Section:** FILM main tool (working name). Phone and tablet.
+**Section:** FILM main tool. Phone and tablet. Named STORY STUDIO in 0.3 (built as STORY STUDIO 0.1 to 0.2.1; same address /film/, same storage, nothing to move).
 **Mined from:** STORY STUDIO v1 to v6, the Unified Command Center, v12 and STUDIO MEMORY. Their ideas, not their code: every one of their script readers failed the real sides.
 
 **The rule:** the actor is the machine. No scores. It lists what's in the script and what you own; you pick.

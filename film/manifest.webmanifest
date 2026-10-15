@@ -1,6 +1,6 @@
 {
-  "name": "FILM OS · Make it alone",
-  "short_name": "FILM OS",
+  "name": "STORY STUDIO · Make it alone",
+  "short_name": "STORY STUDIO",
   "description": "One person makes the whole scene: you play the parts, the others become a shoulder, hands, a voice, shot on what you own.",
   "start_url": "./", "scope": "./", "display": "standalone",
   "background_color": "#121110", "theme_color": "#121110",
