@@ -182,12 +182,63 @@ function vScene(n){
    h+='<div class="g" style="margin-top:8px">'
     +'<div><label>This scene</label>'+(v.photo?'<img data-photo="'+esc(v.photo)+'" class="cph">':'<div class="cph none">No photo yet</div>')
     +'<label class="btn sm block" style="margin-top:6px"><input type="file" accept="image/*" capture="environment" class="hide" data-cphoto="'+esc(w)+'">'+(v.photo?'RETAKE':'PHOTO')+'</label></div>'
-    +(pp?'<div><label>Match this: scene '+pp.n+'</label><img data-photo="'+esc(pp.photo)+'" class="cph"></div>':'')+'</div></div>';
+    +(pp?'<div><label>Match this: scene '+pp.n+'</label><img data-photo="'+esc(pp.photo)+'" class="cph"></div>':'')+'</div>'
+    +'<button class="btn sm block pri" style="margin-top:8px" data-match="'+esc(w)+'">MATCH CAMERA'+((pp||v.photo)?' · line up with '+(pp?'scene '+pp.n:'this scene'):'')+'</button></div>';
   });
  }
  // the scene itself
  h+='<details style="margin-top:16px"><summary>Read the scene</summary><div class="read">'+sc.beats.map(b=>b.action?esc(b.text):'<span class="who">'+esc(b.who)+'</span>\n'+esc(b.text)).join('\n\n')+'</div></details>';
  return h;
+}
+async function keepPhoto(w,blob){ const s=st(OPEN); s.cont[w]=s.cont[w]||{};
+ const pid=rid('ph'); if(!(await putPhoto(pid,blob))){ toast('This phone would not keep the photo.'); return false; }
+ const old=s.cont[w].photo; s.cont[w].photo=pid; s.contAt=Date.now(); save();
+ if(old&&!Object.values(DB.scripts).some(c=>Object.values(c.scenes||{}).some(x=>Object.values(x.cont||{}).some(v=>v.photo===old)))) delPhoto(old);
+ render(); toast(w+': photo kept for scene '+OPEN+'.'); return true; }
+
+/* ---------- match camera: the live camera with the last photo laid over it. You line it up by eye. No score. ---------- */
+const MC={stream:null,facing:'environment',ghost:50,timer:0,show:true,who:'',busy:false};
+function mcStop(){ if(MC.stream){ MC.stream.getTracks().forEach(t=>t.stop()); MC.stream=null; } clearInterval(MC.tick); }
+function mcClose(){ mcStop(); const o=$('mc'); if(o) o.remove(); document.body.classList.remove('mcopen'); }
+function mcSay(t){ const m=$('mcmsg'); if(m){ m.textContent=t; m.style.display=t?'block':'none'; } }
+async function mcStart(){
+ mcStop(); const v=$('mcvid'); if(!v) return;
+ const mirror=MC.facing==='user'; $('mc').classList.toggle('mirror',mirror);
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ mcSay('This browser will not open the camera here. Close this and use PHOTO instead.'); $('mcshot').disabled=true; return; }
+ mcSay('Opening the camera…'); $('mcshot').disabled=true;
+ try{ MC.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:MC.facing},width:{ideal:1920},height:{ideal:1080}},audio:false}); }
+ catch(e){ const n=e&&e.name; mcSay(n==='NotAllowedError'||n==='SecurityError'?'Camera is off for this page. Turn it on in your browser settings, or close this and use PHOTO.':n==='NotFoundError'||n==='OverconstrainedError'?'No camera found on this device. Close this and use PHOTO.':n==='NotReadableError'?'Another app is using the camera. Close it and try again.':'The camera would not open. Close this and use PHOTO.'); return; }
+ if(!$('mc')){ mcStop(); return; }
+ v.srcObject=MC.stream; try{ await v.play(); }catch(e){}
+ const ready=()=>v.videoWidth>0; let n=0; while(!ready()&&n++<50) await new Promise(r=>setTimeout(r,100));
+ if(!ready()){ mcSay('The camera opened but sent no picture. Close this and use PHOTO.'); return; }
+ mcSay(''); $('mcshot').disabled=false;
+}
+function openMatch(w){
+ const s=st(OPEN), v=s.cont[w]||{}, pp=lastPhoto(w,OPEN), gid=pp?pp.photo:v.photo||'';
+ MC.who=w; MC.show=true;
+ const o=document.createElement('div'); o.id='mc'; o.className='mc';
+ o.innerHTML='<div class="mchead"><b>'+esc(w)+' · scene '+OPEN+'</b><button class="btn sm" id="mcx">CLOSE</button></div>'
+  +'<div class="mcview"><video id="mcvid" playsinline muted autoplay></video>'+(gid?'<img id="mcghost" data-photo="'+esc(gid)+'" alt="">':'')+'<div id="mccount"></div><div id="mcmsg"></div></div>'
+  +'<div class="mcbar">'+(gid?'<label class="mcsl"><span>'+(pp?'Scene '+pp.n:'Last photo')+'</span><input type="range" id="mcop" min="0" max="90" value="'+MC.ghost+'" aria-label="How see-through"></label><button class="btn sm" id="mcflip">HIDE</button>':'<span class="faint" style="font-size:13px">No earlier photo of '+esc(w)+'. This one becomes the one to match.</span>')+'</div>'
+  +'<div class="mcbar"><button class="btn sm" id="mcface">'+(MC.facing==='user'?'BACK CAMERA':'FRONT CAMERA')+'</button><button class="btn sm" id="mctime">TIMER '+(MC.timer?MC.timer+' S':'OFF')+'</button><button class="btn pri" id="mcshot" disabled>TAKE PHOTO</button></div>';
+ document.body.appendChild(o); document.body.classList.add('mcopen');
+ const g=$('mcghost'); if(g){ g.style.opacity=MC.ghost/100; fillPhotos(); }
+ $('mcx').onclick=mcClose;
+ const op=$('mcop'); if(op) op.oninput=()=>{ MC.ghost=+op.value; if(MC.show) g.style.opacity=MC.ghost/100; };
+ const fl=$('mcflip'); if(fl) fl.onclick=()=>{ MC.show=!MC.show; g.style.opacity=MC.show?MC.ghost/100:0; fl.textContent=MC.show?'HIDE':'SHOW'; };
+ $('mcface').onclick=()=>{ MC.facing=MC.facing==='user'?'environment':'user'; $('mcface').textContent=MC.facing==='user'?'BACK CAMERA':'FRONT CAMERA'; mcStart(); };
+ $('mctime').onclick=()=>{ MC.timer=MC.timer===0?3:MC.timer===3?10:0; $('mctime').textContent='TIMER '+(MC.timer?MC.timer+' S':'OFF'); };
+ $('mcshot').onclick=()=>{ if(MC.busy) return; if(!MC.timer){ mcSnap(); return; } MC.busy=true; let left=MC.timer; const c=$('mccount'); c.textContent=left;
+  MC.tick=setInterval(()=>{ left--; if(left<=0){ clearInterval(MC.tick); c.textContent=''; MC.busy=false; mcSnap(); } else c.textContent=left; },1000); };
+ mcStart();
+}
+async function mcSnap(){
+ const v=$('mcvid'); if(!v||!v.videoWidth){ toast('No picture from the camera yet.'); return; }
+ const k=Math.min(1,1600/Math.max(v.videoWidth,v.videoHeight)), c=document.createElement('canvas'); c.width=Math.round(v.videoWidth*k); c.height=Math.round(v.videoHeight*k);
+ c.getContext('2d').drawImage(v,0,0,c.width,c.height);   // saved as the camera sees it; only the screen is mirrored
+ const b=await new Promise(r=>c.toBlob(r,'image/jpeg',0.85)); if(!b){ toast('This phone would not make the photo.'); return; }
+ const w=MC.who; mcClose(); await keepPhoto(w,b);
 }
 /* ---------- the sun at a place ---------- */
 const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -405,11 +456,8 @@ function wire(){
  document.querySelectorAll('[data-cont]').forEach(i=>i.oninput=()=>{ const s=st(OPEN); const w=i.dataset.cont; s.cont[w]=s.cont[w]||{}; s.cont[w][i.dataset.k]=i.value; s.contAt=Date.now(); save(); });
  document.querySelectorAll('[data-ins]').forEach(b=>b.onclick=()=>{ const sc=SCENES.find(x=>x.n===OPEN), s=st(OPEN); const cur0=Array.isArray(s.ins)?s.ins:sc.props.slice(0,6); const p=b.dataset.ins;
    s.ins=cur0.includes(p)?cur0.filter(x=>x!==p):sc.props.filter(x=>x===p||cur0.includes(x)); save(); render(); });
- document.querySelectorAll('[data-cphoto]').forEach(i=>i.onchange=async()=>{ const f=i.files[0]; if(!f) return; const w=i.dataset.cphoto, s=st(OPEN); s.cont[w]=s.cont[w]||{};
-   const pid=rid('ph'); if(!(await putPhoto(pid,await shrink(f)))){ toast('This phone would not keep the photo.'); return; }
-   const old=s.cont[w].photo; s.cont[w].photo=pid; s.contAt=Date.now(); save();
-   if(old&&!Object.values(DB.scripts).some(c=>Object.values(c.scenes||{}).some(x=>Object.values(x.cont||{}).some(v=>v.photo===old)))) delPhoto(old);
-   render(); toast(w+': photo kept for scene '+OPEN+'.'); });
+ document.querySelectorAll('[data-cphoto]').forEach(i=>i.onchange=async()=>{ const f=i.files[0]; if(!f) return; keepPhoto(i.dataset.cphoto,await shrink(f)); });
+ document.querySelectorAll('[data-match]').forEach(b=>b.onclick=()=>openMatch(b.dataset.match));
  document.querySelectorAll('[data-same]').forEach(b=>b.onclick=()=>{ const w=b.dataset.same, p=lastCard(w,OPEN); if(!p) return; const keep=(st(OPEN).cont[w]||{}).photo; st(OPEN).cont[w]=Object.assign({},p.v,{photo:keep||''}); save(); render(); toast(w+': copied from scene '+p.n+'.'); });
  const ra=$('ranch'); if(ra) ra.onclick=()=>{ DB.owned=(DB.owned||[]).concat(F.RANCH.map(o=>Object.assign({id:rid('o')},o))); save(); render(); toast('The ranch list is in. 40 things.'); };
  const em=$('empty'); if(em) em.onclick=()=>{ DB.owned=[]; save(); render(); };
@@ -433,6 +481,7 @@ function wire(){
  if(TAB==='cut') wireCut();
  fillPhotos();
 }
+document.addEventListener('visibilitychange',()=>{ if(document.hidden&&MC.stream) mcClose(); });
 document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{ TAB=b.dataset.t; if(TAB!=='scenes') OPEN=null; OEDIT=null; render(); });
 $('file').addEventListener('change',e=>{ const f=e.target.files[0]; e.target.value=''; if(f) readFile(f); });
 window.addEventListener('storage',e=>{ if(e.key&&/shelf/.test(e.key)){ const p=SH&&SH.pending(TOOL); if(p){ adopt(); render(); } } });
