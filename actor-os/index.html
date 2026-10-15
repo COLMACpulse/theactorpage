@@ -730,6 +730,7 @@ $('sidesFile').addEventListener('change',async e=>{
      'Character names are usually on their own line above the dialogue. Check the preview below - if the names are there, paste it in and it will parse.',txt);
   }
   loadSides(txt,f.name);
+  if(ex.struck){ const o=$('sidesOut'); if(o) o.insertAdjacentHTML('afterbegin','<div class="am" id="struckNote">'+ex.struck+' crossed-out line'+(ex.struck===1?'':'s')+' on the page left out. Check the page if a line you need is missing.</div>'); }
  }catch(err){
   pdfProblem(f,null,'Could not read that PDF.',err.message);
  }

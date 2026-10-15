@@ -222,9 +222,116 @@ function toLines(items){
       if(prev!==null && it.x-prev>6) s+=' ';
       s+=it.s; prev=it.x+it.s.length*6;
     });
-    return {y, x:arr[0].x, text:s.replace(/\s+/g,' ').trim()};
+    return {y, x:arr[0].x, x1:Math.max(prev||0, arr[0].x+s.trim().length*6), text:s.replace(/\s+/g,' ').trim()};
   })
   .filter(r=>r.text);
+}
+
+/* ---------- crossed-out lines ----------
+   Casting sites cross out the part of a page that isn't your scene with a box and an X laid over
+   the page as a see-through picture (an image with an /SMask). The words under it are still text,
+   so a reader that only reads text would hand you the crossed-out speech as a line. This finds the
+   marks: a page-sized overlay mask is turned into a 1-point grid of ink, and a text line is crossed
+   out when a diagonal runs through it and the lines next to it, or a thin line runs through its words.
+   A highlighter (ink over the whole line) and a START / END arrow (one line) are not crossings. */
+function objectTable(s){
+ const T={}; const re=/(?<![\d])(\d+)\s+(\d+)\s+obj\b/g; let m;
+ while((m=re.exec(s))){ const st=m.index+m[0].length; const e=s.indexOf('endobj',st); const body=s.slice(st,e<0?st+4000:e);
+  const k=body.search(/(?<![A-Za-z])stream(\r\n|\n|\r)/); T[m[1]]={dict:k>=0?body.slice(0,k):body, at:st, stream:k>=0?st+k:-1}; }
+ return T;
+}
+async function addObjStms(T,buf,s,streams){
+ for(const st of streams){
+  const d=s.slice(Math.max(0,st.start-600),st.start); if(!/\/Type\s*\/ObjStm/.test(d)) continue;
+  const N=+(d.match(/\/N\s+(\d+)/)||[])[1], F=+(d.match(/\/First\s+(\d+)/)||[])[1]; if(!N||isNaN(F)) continue;
+  let data=buf.slice(st.start,st.end); if(st.filters.includes('FlateDecode')){ data=await inflate(data); if(!data) continue; }
+  const t=dec.decode(data), head=t.slice(0,F).trim().split(/\s+/).map(Number);
+  for(let i=0;i<N;i++){ const num=head[2*i], off=head[2*i+1], nxt=i+1<N?head[2*i+3]:t.length-F; if(!(num in T)) T[num]={dict:t.slice(F+off,F+nxt),at:-1,stream:-1}; }
+ }
+}
+const ref=(d,key)=>{ const m=d.match(new RegExp('/'+key+'\\s+(\\d+)\\s+\\d+\\s+R')); return m?m[1]:null; };
+function subDict(d,key,T){ // /Resources << ... >> inline, or /Resources 12 0 R
+ const r=ref(d,key); if(r&&T[r]) return T[r].dict;
+ const i=d.indexOf('/'+key); if(i<0) return ''; let j=d.indexOf('<<',i); if(j<0) return ''; let depth=0,k=j;
+ for(;k<d.length;k++){ if(d.startsWith('<<',k)){depth++;k++;} else if(d.startsWith('>>',k)){depth--;k++; if(!depth) break;} }
+ return d.slice(j,k+1);
+}
+function pageList(T){
+ let root=null; for(const n in T){ if(/\/Type\s*\/Catalog/.test(T[n].dict)){ root=ref(T[n].dict,'Pages'); break; } }
+ const out=[]; const walk=(n,depth)=>{ const o=T[n]; if(!o||depth>20) return;
+  if(/\/Type\s*\/Pages/.test(o.dict)){ const k=(o.dict.match(/\/Kids\s*\[([^\]]*)\]/)||[])[1]||''; [...k.matchAll(/(\d+)\s+\d+\s+R/g)].forEach(x=>walk(x[1],depth+1)); }
+  else if(/\/Type\s*\/Page\b/.test(o.dict)) out.push(n); };
+ if(root) walk(root,0);
+ return out;
+}
+function pageStuff(T,pn){
+ const d=T[pn].dict, mb=(d.match(/\/MediaBox\s*\[\s*([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)/)||[]).slice(1).map(Number);
+ const cont=[]; const cm=d.match(/\/Contents\s*(\[[^\]]*\]|\d+\s+\d+\s+R)/); if(cm) [...cm[1].matchAll(/(\d+)\s+\d+\s+R/g)].forEach(x=>cont.push(x[1]));
+ const masks=[]; const seen={};
+ const look=(res,depth)=>{ const xo=subDict(res,'XObject',T); [...xo.matchAll(/\/[^\s\/<>\[\]]+\s+(\d+)\s+\d+\s+R/g)].forEach(x=>{ const o=T[x[1]]; if(!o||seen[x[1]]) return; seen[x[1]]=1;
+   if(/\/Subtype\s*\/Image/.test(o.dict)){ const sm=ref(o.dict,'SMask'); if(sm&&T[sm]) masks.push(sm); }
+   else if(/\/Subtype\s*\/Form/.test(o.dict)&&depth<3){ cont.push(x[1]); look(subDict(o.dict,'Resources',T),depth+1); } }); };
+ look(subDict(d,'Resources',T),0);
+ return {w:mb.length?mb[2]-mb[0]:612, h:mb.length?mb[3]-mb[1]:792, cont, masks};
+}
+async function inkGrid(T,buf,s,masks,pw,ph){
+ let g=null; const W=Math.ceil(pw), H=Math.ceil(ph);
+ for(const mk of masks){ const o=T[mk]; if(!o||o.stream<0) continue;
+  const w=+(o.dict.match(/\/Width\s+(\d+)/)||[])[1], h=+(o.dict.match(/\/Height\s+(\d+)/)||[])[1], bpc=+(o.dict.match(/\/BitsPerComponent\s+(\d+)/)||[])[1]||8;
+  if(!w||!h||bpc!==8||/\/DecodeParms/.test(o.dict)) continue;
+  if(Math.abs(w/h-pw/ph)>0.02||w<pw) continue;                      // only a page-sized overlay
+  const st=o.stream+(s.slice(o.stream,o.stream+8).match(/stream(\r\n|\n|\r)/)||['stream\n'])[0].length;
+  const len=+(o.dict.match(/\/Length\s+(\d+)(?!\s+\d+\s+R)/)||[])[1]; let end=len?st+len:s.indexOf('endstream',st); if(!len){ while(end>st&&(s[end-1]==='\n'||s[end-1]==='\r')) end--; }
+  let px=buf.slice(st,end); const fl=((o.dict.match(/\/Filter\s*(\[[^\]]*\]|\/\w+)/)||[])[1]||'').match(/\/(\w+)/g)||[];
+  let ok=true; for(const f of fl){ if(f==='/ASCII85Decode') px=a85(px); else if(f==='/FlateDecode'){ px=await inflate(px); if(!px){ ok=false; break; } } else { ok=false; break; } }
+  if(!ok) continue;
+  if(px.length<w*h) continue;
+  g=g||new Uint8Array(W*H); const sx=w/pw, sy=h/ph;
+  for(let y=0;y<h;y++){ const gy=Math.min(H-1,Math.floor(y/sy)); const row=y*w; for(let x=0;x<w;x++){ if(px[row+x]>110) g[gy*W+Math.min(W-1,Math.floor(x/sx))]=1; } }
+ }
+ return g?{g,W,H}:null;
+}
+/* A box with an X through it: a long rule, the same rule lower down, and a diagonal corner to corner. */
+function crossedBoxes(grid){
+ const {g,W,H}=grid, ink=(x,y)=>x>=0&&y>=0&&x<W&&y<H&&g[y*W+x];
+ const rules=[];
+ for(let y=0;y<H;y++){ let run=0; for(let x=0;x<=W;x++){ if(x<W&&ink(x,y)) run++; else { if(run>=100){ const xa=x-run, xb=x-1, p=rules[rules.length-1];
+    if(p&&y-p.y1<=2&&Math.abs(p.xa-xa)<=6&&Math.abs(p.xb-xb)<=6) p.y1=y; else rules.push({y0:y,y1:y,xa,xb}); } run=0; } } }
+ const near=(x,y)=>{ for(let dy=-2;dy<=2;dy++) for(let dx=-2;dx<=2;dx++) if(ink(Math.round(x)+dx,Math.round(y)+dy)) return true; return false; };
+ const boxes=[];
+ rules.forEach((a,i)=>{ for(let j=i+1;j<rules.length;j++){ const b=rules[j]; if(b.y0-a.y1<14) continue; if(Math.abs(a.xa-b.xa)>6||Math.abs(a.xb-b.xb)>6) continue;
+   const ya=(a.y0+a.y1)/2, yb=(b.y0+b.y1)/2; let d1=0,d2=0,n=40;
+   for(let k=1;k<n;k++){ const t=k/n, x=a.xa+t*(a.xb-a.xa); if(near(x,ya+t*(yb-ya))) d1++; if(near(x,yb-t*(yb-ya))) d2++; }
+   if(Math.max(d1,d2)>=(n-1)*0.7) boxes.push({x0:Math.min(a.xa,b.xa),x1:Math.max(a.xb,b.xb),y0:ya,y1:yb});
+   break; } });
+ return boxes;
+}
+/* lines: [{x, x1, top}] on one page, top = distance of the baseline from the top of the page */
+function crossedOut(lines,grid){
+ if(!grid) return lines.map(()=>false);
+ const {g,W,H}=grid, ink=(x,y)=>x>=0&&y>=0&&x<W&&y<H&&g[y*W+x];
+ const info=lines.map(l=>{ const x0=Math.round(l.x)+2, x1=Math.round(l.x1)-2, b=Math.round(l.top); let cols=[], rows=0, thin=false;
+  if(x1<=x0) return {has:false};
+  for(let y=b-9;y<=b+1;y++){ let n=0,run=0,best=0; for(let x=x0;x<=x1;x++){ if(ink(x,y)){ n++; run++; if(run>best)best=run; } else run=0; } if(n) rows++; if(best>=(x1-x0)*0.6&&y>=b-7&&y<=b-1) thin=true; }
+  for(let x=x0;x<=x1;x++){ for(let y=b-9;y<=b+1;y++) if(ink(x,y)){ cols.push(x); break; } }
+  const span=x1-x0+1;
+  return {has:cols.length>0&&cols.length<span*0.6, left:cols.length?cols[0]:null, strike:thin&&rows<=4, top:b}; });
+ const out=info.map(i=>!!i.strike);
+ const boxes=crossedBoxes(grid);
+ lines.forEach((l,i)=>{ if(boxes.some(b=>info[i].top>b.y0+2&&info[i].top<b.y1+2&&l.x>=b.x0-4&&l.x<b.x1)) out[i]=true; });
+ const order=lines.map((l,i)=>i).sort((a,b)=>info[a].top-info[b].top);
+ for(let k=0;k<order.length;){ let j=k; while(j+1<order.length&&info[order[j]].has&&info[order[j+1]].has&&info[order[j+1]].top-info[order[j]].top<=30) j++;
+  const grp=order.slice(k,j+1).filter(i=>info[i].has);
+  if(grp.length>=3){ let moves=0; for(let q=1;q<grp.length;q++) if(Math.abs(info[grp[q]].left-info[grp[q-1]].left)>=10) moves++;
+   if(moves>=(grp.length-1)*0.8){ grp.forEach(i=>out[i]=true);
+    // the box the X sits in: a long rule above and below. Everything inside it is crossed out (a name over crossed lines too).
+    const rule=y=>{ let run=0; for(let x=0;x<W;x++){ if(ink(x,y)){ if(++run>=100) return true; } else run=0; } return false; };
+    let t0=info[grp[0]].top, t1=info[grp[grp.length-1]].top, up=null, dn=null;
+    for(let y=t0-10;y>=t0-40&&up===null;y--) if(rule(y)) up=y;
+    for(let y=t1+2;y<=t1+30&&dn===null;y++) if(rule(y)) dn=y;
+    if(up!==null) info.forEach((x,i)=>{ if(x.top>up+3&&x.top<(dn!==null?dn:t1+1)) out[i]=true; }); } }
+  k=j+1; }
+ return out;
 }
 
 A.extract=async function(arrayBuffer){
@@ -237,6 +344,12 @@ A.extract=async function(arrayBuffer){
  const version=(head.match(/%PDF-(\d\.\d)/)||[])[1]||'?';
  const streams=findStreams(buf);
  let pages=[], cmap={}, sawCMap=false;
+ // which page each content stream belongs to, and that page's crossed-out marks
+ let T={}, plist=[], streamPage={}, pinfo=[];
+ try{ T=objectTable(all); await addObjStms(T,buf,all,streams); plist=pageList(T);
+  pinfo=plist.map(pn=>pageStuff(T,pn));
+  pinfo.forEach((pi,ix)=>pi.cont.forEach(c=>{ const o=T[c]; if(o&&o.stream>=0){ const st=o.stream+(all.slice(o.stream,o.stream+8).match(/stream(\r\n|\n|\r)/)||['stream\n'])[0].length; streamPage[st]=ix; } }));
+ }catch(e){ plist=[]; }
  for(const st of streams){
   let data=buf.slice(st.start,st.end);
   let bad=false;
@@ -261,7 +374,7 @@ A.extract=async function(arrayBuffer){
   }
   if(!/\bTj\b|\bTJ\b/.test(txt))continue;
   const got=readContent(txt);
-  if(got.length)pages.push(got);
+  if(got.length){ got.pg=streamPage[st.start]; pages.push(got); }
  }
  // if the raw text is mostly unprintable, the strings are glyph codes - remap
  const rawAll=pages.flat().map(i=>i.s).join('');
@@ -272,10 +385,16 @@ A.extract=async function(arrayBuffer){
     return (cmap[c]!==undefined)?cmap[c]:ch; }).join('')})));
  }
  const perPage=pages.map(pg=>toLines(pg));
+ let struck=0;
+ for(let i=0;i<pages.length;i++){ const ix=pages[i].pg; const pi=pinfo[ix]; if(ix===undefined||!pi||!pi.masks.length) continue;
+  if(!pi.grid) pi.grid=await inkGrid(T,buf,all,pi.masks,pi.w,pi.h); if(!pi.grid) continue;
+  const up=topIsHighY(pages[i]), L=perPage[i];
+  const marks=crossedOut(L.map(l=>({x:l.x,x1:l.x1,top:up?pi.h-l.y:l.y})),pi.grid);
+  L.forEach((l,k)=>{ if(marks[k]){ l.struck=true; struck++; } }); }
  const lines=perPage.reduce((acc,pg)=>acc.concat(pg),[]);
  const allTxt=lines.map(l=>l.text).join('');
  const pr=(allTxt.match(/[\x20-\x7e]/g)||[]).length/Math.max(1,allTxt.length);
- return {lines, pages:perPage, chars:allTxt.length, printable:Math.round(pr*100)/100,
+ return {lines, pages:perPage, struck, chars:allTxt.length, printable:Math.round(pr*100)/100,
          cmapEntries:Object.keys(cmap).length, streams:streams.length,
          encrypted:encrypted, version:version,
          images:(all.match(/\/Subtype\s*\/Image/g)||[]).length};
@@ -308,7 +427,7 @@ function isWatermark(l){
 A.clean=function(lines){
  return lines.filter(l=>{
   const t=(l.text||'').trim();
-  if(!t) return false;
+  if(!t||l.struck) return false;   // crossed out on the page
   if(isWatermark(l)) return false;
   if(JUNK.some(rx=>rx.test(t))) return false;
   return true;

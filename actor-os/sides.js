@@ -36,15 +36,40 @@ function fountainPrep(text){
     if(/^\s*#+\s/.test(l)||/^\s*=\s/.test(l)) return '';                 // # Act One / = synopsis
     l=l.replace(/\s+#[\w.\-]+#\s*$/,'');                                 // INT. BAR - NIGHT #12#
     if(isF) l=l.replace(/(\*{1,3}|_)(?=\S)([^*_\n]*?\S)\1/g,'$2');       // *bold* _underline_
-    // text pasted with the page layout kept: watermark letters and scene numbers sit apart from the words by wide gaps
-    if(/\S {3,}\S/.test(l)) l=l.split(/ {3,}/).filter(x=>x.replace(/[^A-Za-z0-9]/g,'').length>2||/^[A-Z]{2}[.!?]$/.test(x.trim())).join(' ');
     return l; })};
+}
+/* Text pasted with the page layout kept (pdftotext -layout, some PDF viewers): the columns are still there
+   as spaces, and the watermark sits in its own bits far to the right. Drop the bits, then read each line by
+   its column, the way the PDF reader does: names at one indent, speech at another, action at the margin. */
+const keepBit=x=>x.replace(/[^A-Za-z0-9]/g,'').length>2||/^[A-Z]{1,2}[.!?]$/.test(x)||/^\(.*\)$/.test(x);
+function wideGap(l){ return /\S {3,}\S/.test(l)?l.trim().split(/ {3,}/).filter(keepBit).join(' '):l; }
+function unlayout(raw){
+  const rows=raw.map(l=>{ const ss=[]; const re=/\S+(?: {1,2}\S+)*/g; let m; while((m=re.exec(l))) if(keepBit(m[0])) ss.push({c:m.index,t:m[0]}); return ss.length?{c:ss[0].c,t:ss.map(x=>x.t).join(' ')}:null; });
+  const nb=rows.filter(Boolean); if(nb.length<8) return null;
+  if(nb.filter(r=>r.c>=8).length/nb.length<0.5) return null;
+  const mode=a=>{ const h={}; a.forEach(c=>h[c]=(h[c]||0)+1); let b=null; for(const k in h) if(b===null||h[k]>h[b]) b=k; return b===null?null:+b; };
+  const actC=mode(nb.filter(r=>r.t.length>40&&/[a-z]{3}/.test(r.t)).map(r=>r.c)); if(actC===null) return null;
+  const cueC=mode(nb.filter(r=>r.c>actC+10&&isName(r.t)).map(r=>r.c)); if(cueC===null) return null;
+  // the speech column: where the line under a name starts
+  const after=[]; rows.forEach((r,i)=>{ if(r&&Math.abs(r.c-cueC)<=4&&isName(r.t)){ for(let j=i+1;j<rows.length&&j<i+12;j++) if(rows[j]&&/[a-z]/.test(rows[j].t)){ after.push(rows[j].c); break; } } });
+  const dlgC=mode(after.filter(c=>c>actC+4&&c<cueC)); if(dlgC===null) return null;
+  const words=t=>/[a-z]{3}|[A-Z]{3}/.test(t);
+  const out=[]; let inSpeech=false;
+  rows.forEach(r=>{ if(!r) return; const t=r.t;
+    if(MARK.test(t)||(PAGE.test(t)&&!MORE.test(t))||/^Role:\s/i.test(t)) return;
+    if(r.c>dlgC+4&&r.c<cueC+25&&isName(t)){ out.push('',t); inSpeech=true; return; }
+    if(MORE.test(t)){ out.push(t,''); inSpeech=false; return; }
+    if(inSpeech&&(Math.abs(r.c-dlgC)<=4||(/^\(/.test(t)&&r.c>dlgC&&r.c<cueC))){ out.push(t); return; }
+    if(inSpeech&&!words(t)) return;                 // a watermark bit between speech lines
+    if(r.c>cueC+25&&!words(t)) return;
+    out.push('',t,''); inSpeech=false; });
+  return out;
 }
 const DIRECTION=l=>/^\s*[!>]/.test(l)&&!/^\s*>.*<\s*$/.test(l)?l.replace(/^\s*[!>]\s*/,''):null;
 
 A.parse=function(text){
   const fp=fountainPrep(text);
-  const raw=fp.lines;
+  const raw=(!fp.isF&&unlayout(fp.lines))||fp.lines.map(wideGap);
   // a lone 1-3 character bit with blank lines round it is watermark, not script ("PM", "E", "eb")
   const lone=i=>!(raw[i-1]||'').trim() && !(raw[i+1]||'').trim();
   const bit=t=>{ t=t.trim(); return !!t && t.replace(/[^A-Za-z0-9]/g,'').length<=4 && !/[a-z]{3}/.test(t) && !/^[\(\[]/.test(t); };
@@ -55,6 +80,11 @@ A.parse=function(text){
     // a run of three or more bits with a digit or a dash among them: a watermark broken into pieces
     let a=i,b=i; while(a>0&&bit(raw[a-1])) a--; while(b<raw.length-1&&bit(raw[b+1])) b++;
     return bit(t) && b-a>=2 && raw.slice(a,b+1).some(x=>/[\d,\-]/.test(x)); });
+  /* Text that came out of a PDF keeps the page's line breaks: speech wraps at about 35 characters, action at
+     about 60. When no blank line separates a speech from the action after it, the width tells them apart. */
+  const nbl=raw.filter((l,i)=>l.trim()&&!junk[i]).map(l=>l.trim().length);
+  const wrapped=nbl.length>=12 && nbl.filter(n=>n<=64).length>=nbl.length*0.9 && Math.max(...nbl)<=78 && !fp.isF;
+  const SPEECH_W=46;
   const beats=[]; let cur=null, more=null;
   const blank=i=>!raw[i]||!raw[i].trim()||junk[i];
   for(let i=0;i<raw.length;i++){
@@ -84,6 +114,7 @@ A.parse=function(text){
         if(junk[j]){ j++; continue; }
         const nt=raw[j].trim();
         if(!nt||isName(nt)||SLUG.test(nt)||MORE.test(nt)||/^@/.test(nt)||DIRECTION(nt)!==null)break;
+        if(wrapped&&buf.length&&nt.length>SPEECH_W&&!/^\(/.test(nt))break;     // wider than a speech line: the action after it
         if(inParen){ if(/\)\s*$/.test(nt))inParen=false; j++; continue; }
         if(/^\(/.test(nt)&&!/\)\s*$/.test(nt)){ inParen=true; j++; continue; }   // (on his phone,
         if(!PAREN.test(nt))buf.push(nt);

@@ -2934,6 +2934,7 @@ async function sidesPdfBlocks(bytes){
   if(!ex.chars) return null;
   const r = parseFountain(ActorPDF.toSides(ex.lines));
   if(!r.blocks.some(b => b.type === "Character")) return null;
+  sidesPdfBlocks.struck = ex.struck || 0;
   // a PDF breaks every line where the page did; put wrapped lines back together
   const out = [];
   r.blocks.forEach(b => {
@@ -2974,7 +2975,8 @@ async function openPdf(f){
     const n = t => got.blocks.filter(b => b.type === t).length;
     openBlocks(got.blocks, f.name, ["Read " + f.name + " as sides, by where each line sits on the page.",
       n("Scene Heading") + " scene " + (n("Scene Heading") === 1 ? "heading" : "headings") + ", " + n("Character") + " speeches. Headers, page numbers, (MORE) and the watermark were left out.",
-      "Anything crossed out on the page is still here: a cross is a drawing, not text. Delete it if it is not in your scene."]);
+      sidesPdfBlocks.struck ? sidesPdfBlocks.struck + " crossed-out " + (sidesPdfBlocks.struck === 1 ? "line" : "lines") + " on the page left out. Check the page if a line you need is missing."
+        : "Nothing on the page was crossed out."]);
     return;
   }
   const r = got.r;

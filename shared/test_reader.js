@@ -1,6 +1,6 @@
 /* node shared/test_reader.js : the one script reader (actor-os/sides.js + pdf.js, used by ACTOR OS,
    MEMORIZER, STORY STUDIO, PAPER TRAIL, and Writer's Blockage for PDFs) on one made-up script, LOW TIDE,
-   in six forms. Truth: shared/fixtures/low_tide_truth.json (3 scenes, 12 speeches, COP #2, V.O., O.S.,
+   in eight forms. Truth: shared/fixtures/low_tide_truth.json (3 scenes, 12 speeches, COP #2, V.O., O.S.,
    a speech split by a page break, an all-caps action line, a shouted "NO."). Made up; no real scripts here. */
 const fs=require('fs'), path=require('path');
 const D=f=>path.join(__dirname,'fixtures',f);
@@ -27,11 +27,20 @@ function score(text){
   'sides PDF (ASCII85 + Flate)':await pdfText('low_tide_sides_a85.pdf'),
   'text pasted out of the PDF':fs.readFileSync(D('low_tide_pasted.txt'),'utf8'),
  };
- const want={'text pasted out of the PDF':11};
+ const want={'text pasted out of the PDF':12};
  for(const [k,t] of Object.entries(forms)){ const r=score(t); const need=want[k]||12;
   ok(k+': 3 of 3 scenes, '+need+'+ of 12 speeches right, no made-up characters ('+r.right+'/12)', r.scenes===3&&r.extraScenes===0&&r.right>=need&&!r.fake.length, r); }
  const lay=score(fs.readFileSync(D('low_tide_pasted_layout.txt'),'utf8'));
- console.log('  (not required) text pasted with the PDF layout kept: '+lay.right+'/12, '+lay.scenes+'/3 scenes'+(lay.fake.length?', not characters: '+lay.fake.join(', '):''));
+ ok('text pasted with the page layout kept: read by column, 11 of 12 (the paste itself puts one name below its action), no made-up characters', lay.scenes===3&&lay.right>=11&&!lay.fake.length, lay);
+ // crossed out on the page: the end of the scene before sits in a box with an X; one action line has a line through it;
+ // a START arrow and a highlighter are on two of ANNA's lines and must not count as crossings
+ for(const f of ['low_tide_crossed.pdf','low_tide_crossed_a85.pdf']){
+  const b=fs.readFileSync(D(f)); const ex=await P.extract(b.buffer.slice(b.byteOffset,b.byteOffset+b.length)); const t=P.toSides(ex.lines); const r=score(t);
+  const gone=ex.lines.filter(l=>l.struck).map(l=>l.text);
+  ok(f+': the box with an X (name, 2 speech lines, action) and the struck-through line are left out: 5 lines', ex.struck===5&&gone.includes('DOCKHAND')&&gone.includes('THE PHONE RINGS.')&&!/DOCKHAND|Tide's turning|PHONE RINGS/.test(t), {struck:ex.struck,gone});
+  ok(f+': the highlighted line and the START arrow line stay; 12 of 12 speeches, no DOCKHAND', r.right===12&&!r.fake.length&&/Voss\./.test(t)&&/Who found it\?/.test(t), r);
+ }
+ { const b=fs.readFileSync(D('low_tide_sides.pdf')); const ex=await P.extract(b.buffer.slice(b.byteOffset,b.byteOffset+b.length)); ok('a page with no marks: nothing crossed out', ex.struck===0, ex.struck); }
  // the traps, one by one
  const fdx=forms['Final Draft (.fdx)'];
  ok('fdx: title page kept as Fountain "Title:"', /^Title: LOW TIDE/.test(fdx));
@@ -45,6 +54,10 @@ function score(text){
  const wm=S.parse('ANNA\nWhat is it?\n\nPM\n\n4:15 PM - 55120 - Mar 3, 2026 4:15 PM - 55120\n\nE417-E417-E417-\n\nCOP #2\nYou need to see this.\n\nANNA\nNO.');
  ok('watermark bits in pasted text are not people; a shouted "NO." under a name is still a line', wm.map(b=>b.who+':'+b.text).join('|')==="ANNA:What is it?|COP #2:You need to see this.|ANNA:NO.", wm);
  const emph=S.parse('Title: X\n\nWORTH\n*My* head? _Really_.'); ok('Fountain bold / underline marks come off the words', emph[0].text==='My head? Really.', emph);
+ const wide=S.parse(Array(6).fill('ANNA\nShort line here.\n').join('\n')+'\nMRS. O\'NEIL (O.S.)\nWhere is he?\nAnna turns. MRS. O\'NEIL, 60s, in a nightgown and boots, at\nthe end of the pier.\n\nANNA\nMa\'am, stay there.');
+ ok('PDF-wrapped text: a line wider than a speech line ends the speech (no blank line needed)', wide.find(b=>b.who==="MRS. O'NEIL").text==='Where is he?'&&wide.some(b=>b.action&&/^Anna turns/.test(b.text)), wide.slice(-3));
+ const typed=S.parse('BO\nI drove all night to get here and I am not leaving until you tell me what happened to the truck.\n\nAL\nFine.');
+ ok('typed sides with one long line per speech still read whole', typed[0].text.length>80&&typed[1].who==='AL', typed);
  const colon=S.parse('BO: Get in.\nAL: No.'); ok('colon sides still read (BO: line)', colon.map(b=>b.who+':'+b.text).join('|')==='BO:Get in.|AL:No.', colon);
  console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail?1:0);
 })();

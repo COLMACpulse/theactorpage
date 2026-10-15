@@ -56,7 +56,7 @@ T.kind=function(fileName,text){
  return 'script';
 };
 
-/* ---------- a storyboard: SCENE 15 INT. SALOON - DAY  CAST: ...  PROPS: ...  FX: ...  NOTES: ... ---------- */
+/* ---------- a storyboard: SCENE 15 INT. CANTINA - DAY  CAST: ...  PROPS: ...  FX: ...  NOTES: ... ---------- */
 const LABELS=['CAST','PROPS','FX','SFX','VFX','WARDROBE','NOTES','LOCATION','SHOTS'];
 T.storyboard=function(text){
  const t=String(text||'').replace(/\r/g,'').replace(/[‘’]/g,"'");

@@ -10,21 +10,21 @@ ok('Fountain Title: line', T.titleFrom('Title: Last Bus\nCredit: Written by\n\nE
 ok('storyboard title line drops the word storyboard', T.titleFrom('LAST BUS STORYBOARD\nSCENE 1 EXT. ROAD - NIGHT CAST: A PROPS: b','x.docx')==='LAST BUS', T.titleFrom('LAST BUS STORYBOARD\nSCENE 1 EXT. ROAD - NIGHT CAST: A PROPS: b','x.docx'));
 ok('title page line', T.titleFrom('LAST BUS\n\nWritten by\nSomeone\n\nEXT. ROAD - NIGHT\n\nCAL\nHey.\n','x.txt')==='LAST BUS');
 ok('no title page: the file name, not the first character', T.titleFrom('EXT. ROAD - NIGHT\n\nCAL\nHey.\n','Last Bus - draft 2.fountain')==='Last Bus', T.titleFrom('EXT. ROAD - NIGHT\n\nCAL\nHey.\n','Last Bus - draft 2.fountain'));
-ok('file name: dates and words like storyboard dropped', T.fromFileName("A GUNMAN'S HAND STORYBOARD6_19_17.docx")==="A GUNMAN'S HAND", T.fromFileName("A GUNMAN'S HAND STORYBOARD6_19_17.docx"));
+ok('file name: dates and words like storyboard dropped', T.fromFileName("SALT FLATS STORYBOARD6_19_17.docx")==="SALT FLATS", T.fromFileName("SALT FLATS STORYBOARD6_19_17.docx"));
 ok('file name: underscores and sides', T.fromFileName('LAST_BUS_sides.pdf')==='LAST BUS', T.fromFileName('LAST_BUS_sides.pdf'));
 ok('same title ignores case and THE', T.sameTitle("The Devil's Paintbrush","THE DEVIL'S PAINTBRUSH")&&T.sameTitle('Devils Paintbrush','THE DEVILS PAINTBRUSH'));
-ok('draft labels', T.draftLabel('Last Bus - draft 2.fountain')==='Draft 2'&&T.draftLabel('GONE ASTRAY 1-19-18.pdf')==='1-19-18'&&T.draftLabel("STORYBOARD6_19_17.docx")==='6-19-17'&&T.draftLabel('x.fountain','Title: X\nDraft date: 3/1/26\n')==='3-1-26', [T.draftLabel('Last Bus - draft 2.fountain'),T.draftLabel('GONE ASTRAY 1-19-18.pdf'),T.draftLabel("STORYBOARD6_19_17.docx")]);
+ok('draft labels', T.draftLabel('Last Bus - draft 2.fountain')==='Draft 2'&&T.draftLabel('DRY CREEK 1-19-18.pdf')==='1-19-18'&&T.draftLabel("STORYBOARD6_19_17.docx")==='6-19-17'&&T.draftLabel('x.fountain','Title: X\nDraft date: 3/1/26\n')==='3-1-26', [T.draftLabel('Last Bus - draft 2.fountain'),T.draftLabel('DRY CREEK 1-19-18.pdf'),T.draftLabel("STORYBOARD6_19_17.docx")]);
 
 // storyboard cards
-const SB=`A GUNMAN'S HAND STORYBOARD
-SCENE 15 INT. SALOON - HERO TABLE - DAY CAST: JWH, WILD BILL PROPS: JWH guns, WB guns, whiskey bottle, glass NOTES: Davis Tutt talks to the Stranger. Pete slams a glass of beer in front of JWH.
-SCENE 18 INT. SALOON - HERO TABLE - DAY CAST: WILD BILL, JWH FX: WB's hand goes through shot glass PROPS: WB guns, JWH guns, whiskey bottle, glasses NOTES: Wild Bill and JWH chew the fat.`;
-ok('storyboard detected', T.kind("A GUNMAN'S HAND STORYBOARD6_19_17.docx",SB)==='storyboard'&&T.kind('x.txt',SB)==='storyboard'&&T.kind('x.txt','EXT. ROAD - NIGHT\n\nCAL\nHey.')==='script');
+const SB=`SALT FLATS STORYBOARD
+SCENE 15 INT. CANTINA - CORNER TABLE - DAY CAST: MAE, DUKE PROPS: MAE rifle, DUKE knife, whiskey bottle, glass NOTES: Otis talks to the Stranger. Lou slams a glass of beer in front of MAE.
+SCENE 18 INT. CANTINA - CORNER TABLE - DAY CAST: DUKE, MAE FX: DUKE's hand goes through shot glass PROPS: DUKE knife, MAE rifle, whiskey bottle, glasses NOTES: Duke and Mae chew the fat.`;
+ok('storyboard detected', T.kind("SALT FLATS STORYBOARD6_19_17.docx",SB)==='storyboard'&&T.kind('x.txt',SB)==='storyboard'&&T.kind('x.txt','EXT. ROAD - NIGHT\n\nCAL\nHey.')==='script');
 const sb=T.storyboard(SB);
 ok('two storyboard scenes', sb.length===2, sb.length);
-ok('scene 15: heading, cast, props, notes', sb[0].num==='15'&&sb[0].heading==='INT. SALOON - HERO TABLE - DAY'&&sb[0].cast.join()==='JWH,WILD BILL'&&sb[0].props.length===4&&/Pete slams/.test(sb[0].notes), sb[0]);
-ok('scene 18: FX kept apart from props', sb[1].fx==="WB's hand goes through shot glass"&&sb[1].props.includes('glasses'), sb[1]);
-ok('place and time from the heading', sb[0].place==='SALOON - HERO TABLE'&&sb[0].tod==='DAY', [sb[0].place,sb[0].tod]);
+ok('scene 15: heading, cast, props, notes', sb[0].num==='15'&&sb[0].heading==='INT. CANTINA - CORNER TABLE - DAY'&&sb[0].cast.join()==='MAE,DUKE'&&sb[0].props.length===4&&/Lou slams/.test(sb[0].notes), sb[0]);
+ok('scene 18: FX kept apart from props', sb[1].fx==="DUKE's hand goes through shot glass"&&sb[1].props.includes('glasses'), sb[1]);
+ok('place and time from the heading', sb[0].place==='CANTINA - CORNER TABLE'&&sb[0].tod==='DAY', [sb[0].place,sb[0].tod]);
 
 // drafts compared
 const d1=`EXT. ROAD - NIGHT\n\nRain.\n\nCAL\nGet in.\n\nRENNIE\nNo.\n\nINT. TRUCK - NIGHT\n\nCAL\nTucson?\n\nRENNIE\nMaybe.\n`;
