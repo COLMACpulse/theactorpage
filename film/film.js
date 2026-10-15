@@ -220,6 +220,103 @@ F.RANCH=[
  ['gear','Shotgun mic',''],['gear','Boom pole',''],['gear','Field recorder',''],['gear','C-stand',''],['gear','Sandbags','']
 ].map(r=>Object.assign({kind:r[0],name:r[1],notes:r[2],plays:''},RANCH_MORE[r[1]]||{}));
 
+/* ---------- the sun, worked out on the phone ----------
+   NOAA solar calculator maths, refined at each event's own time, no network.
+   date: the calendar day you shoot (its year/month/day). Times come back as Dates. */
+const RAD=Math.PI/180, DEG=180/Math.PI;
+function sunAt(jd){
+ const T=(jd-2451545)/36525;
+ const L0=((280.46646+T*(36000.76983+T*0.0003032))%360+360)%360, M=357.52911+T*(35999.05029-0.0001537*T), e=0.016708634-T*(0.000042037+0.0000001267*T);
+ const C=Math.sin(M*RAD)*(1.914602-T*(0.004817+0.000014*T))+Math.sin(2*M*RAD)*(0.019993-0.000101*T)+Math.sin(3*M*RAD)*0.000289;
+ const om=125.04-1934.136*T, app=L0+C-0.00569-0.00478*Math.sin(om*RAD);
+ const obl=23+(26+(21.448-T*(46.815+T*(0.00059-T*0.001813)))/60)/60+0.00256*Math.cos(om*RAD);
+ const dec=Math.asin(Math.sin(obl*RAD)*Math.sin(app*RAD)), y=Math.pow(Math.tan(obl*RAD/2),2);
+ const eq=4*DEG*(y*Math.sin(2*L0*RAD)-2*e*Math.sin(M*RAD)+4*e*y*Math.sin(M*RAD)*Math.cos(2*L0*RAD)-0.5*y*y*Math.sin(4*L0*RAD)-1.25*e*e*Math.sin(2*M*RAD));
+ return {dec:dec, eq:eq};
+}
+F.sun=function(date,lat,lng){
+ if(!isFinite(lat)||!isFinite(lng)) return null;
+ const d=new Date(date), y=d.getFullYear(), mo=d.getMonth(), da=d.getDate(), base=Date.UTC(y,mo,da), jd0=base/864e5+2440587.5, phi=lat*RAD;
+ const at=(mins)=>new Date(base+mins*60000);
+ const noonMin=()=>{ let m=720-4*lng; for(let i=0;i<3;i++){ const s=sunAt(jd0+m/1440); m=720-4*lng-s.eq; } return m; };
+ const ev=(h,sign)=>{ let m=noonMin();
+  for(let i=0;i<4;i++){ const s=sunAt(jd0+m/1440), c=(Math.sin(h*RAD)-Math.sin(phi)*Math.sin(s.dec))/(Math.cos(phi)*Math.cos(s.dec)); if(c<-1||c>1) return null;
+   m=720-4*lng-s.eq+sign*4*Math.acos(c)*DEG; } return at(m); };
+ const sr=ev(-0.833,-1), ss=ev(-0.833,1), s0=sunAt(jd0+noonMin()/1440);
+ return {noon:at(noonMin()), sunrise:sr, sunset:ss, dawn:ev(-6,-1), dusk:ev(-6,1), goldenMorningEnds:ev(6,-1), goldenEveningStarts:ev(6,1),
+  polar:sr||ss?'':(Math.sin(phi)*Math.sin(s0.dec)>0?'sun up all day':'sun down all day')};
+};
+/* "38.6721, -97.1234", "38.6721 N 97.1234 W", or a maps link with @lat,lng or ?q=lat,lng */
+F.coords=function(s){
+ s=String(s||'').trim(); if(!s) return null;
+ let lat, lng, m=s.match(/@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/)||s.match(/[?&](?:q|ll|query)=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/);
+ if(m){ lat=+m[1]; lng=+m[2]; }
+ else { m=s.match(/(-?\d+(?:\.\d+)?)\s*°?\s*([NS])?\s*[,; ]\s*(-?\d+(?:\.\d+)?)\s*°?\s*([EW])?/i); if(!m) return null;
+  lat=+m[1]; lng=+m[3]; if(m[2]&&/S/i.test(m[2])) lat=-Math.abs(lat); if(m[4]&&/W/i.test(m[4])) lng=-Math.abs(lng); }
+ if(!(Math.abs(lat)<=90&&Math.abs(lng)<=180)) return null;
+ return {lat:Math.round(lat*1e5)/1e5,lng:Math.round(lng*1e5)/1e5};
+};
+/* which part of the sun matters for a scene's time of day */
+F.sunFor=function(tod,s){
+ if(!s) return '';
+ const t=String(tod||'').toUpperCase(), f=d=>d?d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}):'none';
+ if(s.polar) return s.polar;
+ if(/DAWN|SUNRISE|FIRST LIGHT/.test(t)) return 'first light '+f(s.dawn)+', sunrise '+f(s.sunrise);
+ if(/MORNING/.test(t)) return 'sunrise '+f(s.sunrise)+', golden light until '+f(s.goldenMorningEnds);
+ if(/DUSK|SUNSET|MAGIC/.test(t)) return 'sunset '+f(s.sunset)+', last light '+f(s.dusk);
+ if(/EVENING|AFTERNOON/.test(t)) return 'golden light from '+f(s.goldenEveningStarts)+', sunset '+f(s.sunset);
+ if(/NIGHT/.test(t)) return 'dark after '+f(s.dusk)+', light again '+f(s.dawn);
+ return 'sunrise '+f(s.sunrise)+', sunset '+f(s.sunset);
+};
+
+/* ---------- cut to length: your takes, in script order, out to an editor ----------
+   pieces: [{scene, heading, name, in, out}] in seconds. Nothing is scored; you chose them. */
+F.FPS={'23.976':24,'24':24,'25':25,'29.97':30,'30':30};
+F.tc=function(sec,fps){ const n=F.FPS[fps]||Math.round(+fps)||24; let fr=Math.round(sec*n); const f=fr%n; fr=(fr-f)/n; const s=fr%60; fr=(fr-s)/60; const m=fr%60; const h=(fr-m)/60;
+ return [h,m,s,f].map(x=>String(x).padStart(2,'0')).join(':'); };
+F.mmss=function(sec){ sec=Math.max(0,Math.round(sec*10)/10); const m=Math.floor(sec/60), s=sec-m*60; return m+':'+(s<10?'0':'')+(Number.isInteger(s)?s:s.toFixed(1)); };
+F.secs=function(v){ v=String(v||'').trim(); if(!v) return null; const p=v.split(':').map(Number); if(p.some(x=>!isFinite(x))) return null; return p.reduce((a,x)=>a*60+x,0); };
+F.cutLength=pieces=>(pieces||[]).reduce((t,p)=>t+Math.max(0,(p.out||0)-(p.in||0)),0);
+F.edl=function(title,pieces,fps){
+ const n=F.FPS[fps]||24, L=['TITLE: '+String(title||'STORY STUDIO CUT').toUpperCase().replace(/[^\w .'-]/g,'').slice(0,60),'FCM: NON-DROP FRAME',''];
+ let rec=3600; // record starts at 01:00:00:00
+ (pieces||[]).filter(p=>p.out>p.in).forEach((p,i)=>{
+  const fi=Math.round(p.in*n)/n, fo=Math.round(p.out*n)/n, d=fo-fi;
+  const reel=String(p.name||'AX').replace(/\.[^.]+$/,'').replace(/[^A-Za-z0-9_]/g,'').slice(0,8)||'AX';
+  L.push(String(i+1).padStart(3,'0')+'  '+reel.padEnd(8)+' AA/V  C        '+F.tc(fi,fps)+' '+F.tc(fo,fps)+' '+F.tc(rec,fps)+' '+F.tc(rec+d,fps));
+  L.push('* FROM CLIP NAME: '+String(p.name||''));
+  L.push('* COMMENT: SC '+p.scene+' '+String(p.heading||'').replace(/\s+/g,' '));
+  L.push('');
+  rec+=d;
+ });
+ return L.join('\n');
+};
+F.cutCsv=function(pieces){
+ const q=s=>'"'+String(s==null?'':s).replace(/"/g,'""')+'"'; let t=0;
+ return ['order,scene,heading,file,in,out,length,starts_at'].concat((pieces||[]).filter(p=>p.out>p.in).map((p,i)=>{ const r=[i+1,p.scene,q(p.heading),q(p.name),p.in.toFixed(2),p.out.toFixed(2),(p.out-p.in).toFixed(2),F.mmss(t)].join(','); t+=p.out-p.in; return r; })).join('\n');
+};
+
+/* how long a phone clip is, read from the file's own header (MP4 / MOV 'mvhd'); no decoding,
+   so it works for HEVC .mov on any browser. read(offset, length) -> Promise<ArrayBuffer>. */
+F.movieLength=async function(read,size){
+ const u32=(dv,o)=>dv.getUint32(o), typ=(dv,o)=>String.fromCharCode(dv.getUint8(o),dv.getUint8(o+1),dv.getUint8(o+2),dv.getUint8(o+3));
+ let off=0, guard=0;
+ while(off+8<=size&&guard++<200){
+  const h=new DataView(await read(off,16)); let len=u32(h,0); const ty=typ(h,4); let hdr=8;
+  if(len===1){ len=Number(h.getBigUint64(8)); hdr=16; } else if(len===0) len=size-off;
+  if(len<hdr) return 0;
+  if(ty==='moov'){
+   const m=new DataView(await read(off+hdr,Math.min(len-hdr,64*1024*1024)));
+   let i=0; while(i+8<=m.byteLength){ const l=u32(m,i), k=typ(m,i+4); if(k==='mvhd'){ const v=m.getUint8(i+8);
+     if(v===1){ const ts=u32(m,i+28), du=Number(m.getBigUint64(i+32)); return ts?du/ts:0; }
+     const ts=u32(m,i+20), du=u32(m,i+24); return ts?du/ts:0; } if(l<8) break; i+=l; }
+   return 0;
+  }
+  off+=len;
+ }
+ return 0;
+};
+
 if(typeof module!=='undefined') module.exports=F;
 g.FilmOS=F;
 })(typeof window!=='undefined'?window:globalThis);

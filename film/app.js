@@ -98,6 +98,7 @@ function render(){
  else if(TAB==='scenes') m.innerHTML=OPEN?vScene(OPEN):vScenes();
  else if(TAB==='own') m.innerHTML=vOwn();
  else if(TAB==='day') m.innerHTML=vDay();
+ else if(TAB==='cut') m.innerHTML=vCut();
  wire();
  window.scrollTo(0,0);
 }
@@ -188,8 +189,20 @@ function vScene(n){
  h+='<details style="margin-top:16px"><summary>Read the scene</summary><div class="read">'+sc.beats.map(b=>b.action?esc(b.text):'<span class="who">'+esc(b.who)+'</span>\n'+esc(b.text)).join('\n\n')+'</div></details>';
  return h;
 }
+/* ---------- the sun at a place ---------- */
+const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+function shootDate(){ const c=cur(); const v=(c&&c.dayDate)||''; if(/^\d{4}-\d\d-\d\d$/.test(v)){ const [y,m,d]=v.split('-').map(Number); return new Date(y,m-1,d,12); } return new Date(); }
+function sunOf(o,date){ const g=o&&F.coords(o.where); return g?F.sun(date||shootDate(),g.lat,g.lng):null; }
+const hm=d=>d?d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}):'none';
+function sunCard(o,date){
+ const s=sunOf(o,date); if(!s) return '';
+ if(s.polar) return '<div class="sun"><b>'+esc(s.polar)+'</b></div>';
+ return '<div class="sun"><div><span>First light</span><b>'+hm(s.dawn)+'</b></div><div><span>Sunrise</span><b>'+hm(s.sunrise)+'</b></div><div><span>Golden until</span><b>'+hm(s.goldenMorningEnds)+'</b></div>'
+  +'<div><span>Golden from</span><b>'+hm(s.goldenEveningStarts)+'</b></div><div><span>Sunset</span><b>'+hm(s.sunset)+'</b></div><div><span>Last light</span><b>'+hm(s.dusk)+'</b></div></div>';
+}
 function vAt(o,sc,n){
  const rows=[];
+ const sn=sunOf(o); if(sn) rows.push(['Sun',(sc.tod?sc.tod+': ':'')+F.sunFor(sc.tod,sn)+' ('+shootDate().toLocaleDateString(undefined,{month:'short',day:'numeric'})+')']);
  if(o.light) rows.push(['Light',o.light+(sc.tod?' · the scene is '+sc.tod:'')]);
  else if(sc.tod) rows.push(['Light','The scene is '+sc.tod+'. No light note for this place yet.']);
  if(o.sound) rows.push(['Sound',o.sound]);
@@ -228,6 +241,12 @@ function vLoc(o){
  const F2=[['name','Name',''],['plays','Can play','bus shelter, motel lot'],['light','Light','best light, when'],['sound','Sound','what you hear there'],['access','Access','power, parking, who to ask'],['notes','Notes','']];
  h+=F2.filter(f=>o.kind==='location'||['name','notes'].includes(f[0])).map(([k,l,ph])=>'<label class="faint" style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;display:block;margin-top:8px">'+l+'</label><input class="field" data-of="'+k+'" placeholder="'+esc(ph)+'" value="'+esc(o[k]||'')+'">').join('')+'</div>';
  if(o.kind==='location'){
+  const g=F.coords(o.where);
+  h+='<div class="card"><p class="kicker">Where it is, and the sun there</p><div class="row"><input class="field" id="owhere" placeholder="38.84, -97.61 or a maps link" value="'+esc(o.where||'')+'" style="flex:1 1 200px"><button class="btn" id="ohere">I\'M HERE</button></div>'
+   +'<p class="faint" style="font-size:13px;margin:6px 0 10px">'+(g?'Set: '+g.lat+', '+g.lng+'. Worked out on this phone, no connection needed.':'Stand there and tap I\'M HERE, or paste a pin from your maps app.')+'</p>'
+   +(g?'<div class="row"><label class="faint" style="font-size:13px">On</label><input type="date" class="field" id="osundate" value="'+esc(cur()&&cur().dayDate||ymd(new Date()))+'" style="flex:0 1 180px"></div>'+sunCard(o)+'<p class="faint" style="font-size:12px;margin-top:6px">Times in this phone\'s time. Golden light: the sun under 6° up. First and last light: 6° down.</p>':'')+'</div>';
+ }
+ if(o.kind==='location'){
   h+='<div class="card"><p class="kicker">Scout log</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">What the place gave you, and when. Fog, a light, a sound. Photos stay on this phone.</p>'
    +'<textarea class="field" id="snote" placeholder="Fog over the creek, sun just over the ridge" style="min-height:80px"></textarea>'
    +'<div class="row" style="margin-top:8px"><label class="btn" style="flex:1"><input type="file" id="sphoto" accept="image/*" capture="environment" class="hide">ADD A PHOTO</label><button class="btn pri" id="ssave" style="flex:1">SAVE</button></div><div id="sphotoname" class="faint" style="font-size:13px;margin-top:6px"></div></div>';
@@ -263,12 +282,67 @@ function vDay(){
   const wd=who.map(w=>(s.cont&&s.cont[w]&&s.cont[w].wardrobe)?w+': '+s.cont[w].wardrobe:'').filter(Boolean).join(' · ');
   return {scene:sc,where:o?o.name:(sc.place||'No place'),set:!!o,wardrobe:wd,way:way,who:who}; });
  const B=F.day(list);
- let h='<p class="kicker">Shoot day</p><p class="dim" style="font-size:14px;margin:-2px 0 14px">Same place together, then same time of day, then same wardrobe. Inside each: every angle of one part before you change clothes. Inserts and room tone last.</p>';
+ let h='<p class="kicker">Shoot day</p><p class="dim" style="font-size:14px;margin:-2px 0 10px">Same place together, then same time of day, then same wardrobe. Inside each: every angle of one part before you change clothes. Inserts and room tone last.</p>'
+  +'<div class="row" style="margin-bottom:14px"><label class="faint" style="font-size:13px">Shooting on</label><input type="date" class="field" id="daydate" value="'+esc(c.dayDate||'')+'" style="flex:0 1 180px"></div>';
  B.forEach((b,i)=>{
   h+='<div class="blk'+(b.set?'':' unset')+'"><h3>'+(i+1)+'. '+esc(b.where)+(b.tod?' · '+esc(b.tod):'')+'</h3>'+(b.set?'':'<div class="faint" style="font-size:13px">Where you\'ll shoot this isn\'t picked yet.</div>')
+   +(()=>{ const it0=b.items[0], s0=it0&&(c.scenes||{})[it0.scene.n], o0=s0&&s0.where&&owned().find(x=>x.id===s0.where), sn=sunOf(o0); return sn?'<div class="faint" style="font-size:13px;margin:2px 0 6px">Sun'+(c.dayDate?'':' (today; set the date above)')+': '+esc(F.sunFor(b.tod,sn))+'</div>':''; })()
    +b.items.map(x=>{ const dn=doneOf(x.scene); return '<div class="it"><b>Scene '+x.scene.n+'</b> <small>'+esc(x.scene.heading)+'</small><br><small>'+(x.way?esc(F.WAYS.find(w=>w.id===x.way).name)+' · ':'Way not picked · ')+'on camera: '+esc(x.who.join(', ')||'nobody')+(x.wardrobe?' · '+esc(x.wardrobe):'')+(dn?' · '+dn.d+' of '+dn.t+' shot':'')+'</small></div>'; }).join('')+'</div>';
  });
  return h;
+}
+
+/* ---------- cut to length ---------- */
+const FILES={};   // the clip files picked this session, for the preview; only names and lengths are kept
+function cutOf(){ const c=cur(); c.cut=c.cut||{target:300,fps:'30',takes:{}}; return c.cut; }
+function pieces(){ const k=cutOf(); const out=[]; SCENES.forEach(sc=>(k.takes[sc.n]||[]).forEach(t=>{ if(t.use&&t.out>t.in) out.push({scene:sc.n,heading:sc.heading,name:t.name,in:t.in,out:t.out,id:t.id}); })); return out; }
+function vCut(){
+ const k=cutOf(), P=pieces(), len=F.cutLength(P), diff=k.target-len;
+ let h='<p class="kicker">Cut to length</p><p class="dim" style="font-size:14px;margin:-2px 0 12px">Add the takes you shot, keep the one you want for each scene, set where it starts and ends. They line up in script order. Then hand the list to your editor.</p>';
+ h+='<div class="card"><div class="row"><label class="faint" style="font-size:13px">Aim for</label><input class="field" id="ctarget" value="'+esc(F.mmss(k.target))+'" style="flex:0 1 90px"><label class="faint" style="font-size:13px">Frame rate</label><select class="field" id="cfps" style="flex:0 1 110px">'+Object.keys(F.FPS).map(x=>'<option'+(x===k.fps?' selected':'')+'>'+x+'</option>').join('')+'</select></div>'
+  +'<div class="runtime"><b>'+F.mmss(len)+'</b><span>'+(P.length?(Math.abs(diff)<0.05?'right on '+F.mmss(k.target):diff>0?F.mmss(diff)+' to go to '+F.mmss(k.target):F.mmss(-diff)+' over '+F.mmss(k.target)):'nothing in the cut yet')+' · '+P.length+' piece'+(P.length===1?'':'s')+'</span></div></div>';
+ SCENES.forEach(sc=>{
+  const T=k.takes[sc.n]||[];
+  h+='<div class="card"><div class="hd" style="font:700 14px/1.35 var(--mono)">'+sc.n+'. '+esc(sc.heading)+'</div>';
+  h+=T.map(t=>{ const f=FILES[t.id];
+   return '<div class="take'+(t.use?' on':'')+'"><div class="row" style="justify-content:space-between"><label class="row" style="gap:8px"><input type="checkbox" data-tuse="'+sc.n+'|'+t.id+'"'+(t.use?' checked':'')+'><b style="font-size:14px;word-break:break-all">'+esc(t.name)+'</b></label><span class="faint" style="font-size:13px">'+(t.dur?F.mmss(t.dur):'length?')+'</span><button class="x" data-tdel="'+sc.n+'|'+t.id+'" aria-label="Remove">×</button></div>'
+    +(f?'<video class="tprev" data-tvid="'+t.id+'" playsinline controls preload="metadata"></video>':'')
+    +'<div class="row" style="margin-top:6px"><label class="faint" style="font-size:12px">In</label><input class="field" data-tin="'+sc.n+'|'+t.id+'" value="'+F.mmss(t.in)+'" style="flex:1 1 70px">'+(f?'<button class="btn sm" data-tsetin="'+sc.n+'|'+t.id+'">HERE</button>':'')
+    +'<label class="faint" style="font-size:12px">Out</label><input class="field" data-tout="'+sc.n+'|'+t.id+'" value="'+F.mmss(t.out)+'" style="flex:1 1 70px">'+(f?'<button class="btn sm" data-tsetout="'+sc.n+'|'+t.id+'">HERE</button>':'')+'</div>'
+    +'<div class="faint" style="font-size:12px;margin-top:4px">'+F.mmss(Math.max(0,t.out-t.in))+' used'+(f?'':' · pick the file again to preview it')+'</div></div>'; }).join('');
+  h+='<label class="btn sm block" style="margin-top:8px"><input type="file" accept="video/*,.mov,.mp4,.m4v" multiple class="hide" data-tadd="'+sc.n+'">+ ADD TAKES</label></div>';
+ });
+ h+='<div class="card"><p class="kicker">Hand it to your editor</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">An EDL opens in DaVinci Resolve, Premiere and Avid. Point it at your footage and it relinks by file name. In and out count from the start of each file.</p>'
+  +'<div class="row"><button class="btn pri" id="cedl"'+(P.length?'':' disabled')+'>EDIT LIST (.EDL)</button><button class="btn" id="ccsv"'+(P.length?'':' disabled')+'>LIST (.CSV)</button></div></div>';
+ return h;
+}
+async function clipLength(file){
+ try{ const d=await F.movieLength((o,l)=>file.slice(o,o+l).arrayBuffer(),file.size); if(d>0) return d; }catch(e){}
+ return clipLengthPlayer(file); }
+function clipLengthPlayer(file){ return new Promise(res=>{ try{ const v=document.createElement('video'); v.preload='metadata'; v.muted=true; const u=URL.createObjectURL(file); let done=false;
+ const fin=x=>{ if(done) return; done=true; URL.revokeObjectURL(u); res(x); };
+ v.onloadedmetadata=()=>fin(isFinite(v.duration)?v.duration:0); v.onerror=()=>fin(0); setTimeout(()=>fin(0),8000); v.src=u; }catch(e){ res(0); } }); }
+function dl(name,text,type){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:type})); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),3000); }
+function wireCut(){
+ const k=cutOf(); const findT=v=>{ const [n,id]=v.split('|'); return {n:+n,t:(k.takes[n]||[]).find(x=>x.id===id)}; };
+ const tg=$('ctarget'); if(tg) tg.onchange=()=>{ const s=F.secs(tg.value); if(s!=null&&s>0){ k.target=s; save(); } render(); };
+ const fp=$('cfps'); if(fp) fp.onchange=()=>{ k.fps=fp.value; save(); };
+ document.querySelectorAll('[data-tadd]').forEach(i=>i.onchange=async()=>{ const n=+i.dataset.tadd; const fl=[...i.files]; if(!fl.length) return; k.takes[n]=k.takes[n]||[];
+   for(const f of fl){ const ex=k.takes[n].find(x=>x.name===f.name&&x.size===f.size); const id=ex?ex.id:rid('t'); FILES[id]=f; if(ex) continue;
+    const d=await clipLength(f); k.takes[n].push({id:id,name:f.name,size:f.size,dur:Math.round(d*100)/100,in:0,out:Math.round(d*100)/100,use:!k.takes[n].some(x=>x.use)}); }
+   save(); render(); toast(fl.length+' take'+(fl.length===1?'':'s')+' added to scene '+n+'.'); });
+ document.querySelectorAll('[data-tuse]').forEach(b=>b.onchange=()=>{ const r=findT(b.dataset.tuse); if(!r.t) return; r.t.use=b.checked; save(); render(); });
+ document.querySelectorAll('[data-tdel]').forEach(b=>b.onclick=()=>{ const [n,id]=b.dataset.tdel.split('|'); k.takes[n]=(k.takes[n]||[]).filter(x=>x.id!==id); delete FILES[id]; save(); render(); });
+ const setT=(sel,key)=>document.querySelectorAll(sel).forEach(i=>i.onchange=()=>{ const r=findT(i.dataset[key]); if(!r.t) return; let s=F.secs(i.value); if(s==null){ render(); return; }
+   s=Math.max(0,Math.min(r.t.dur||s,s)); if(key==='tin') r.t.in=s; else r.t.out=s; if(r.t.out<r.t.in){ toast('Out is before in. Check the times.'); } save(); render(); });
+ setT('[data-tin]','tin'); setT('[data-tout]','tout');
+ document.querySelectorAll('[data-tvid]').forEach(v=>{ const f=FILES[v.dataset.tvid]; if(f){ v.src=URL.createObjectURL(f); } });
+ const here=(sel,key,side)=>document.querySelectorAll(sel).forEach(b=>b.onclick=()=>{ const r=findT(b.dataset[key]); if(!r.t) return; const v=document.querySelector('[data-tvid="'+r.t.id+'"]'); if(!v) return;
+   const s=Math.round(v.currentTime*100)/100; if(side==='in') r.t.in=s; else r.t.out=s; save(); render(); });
+ here('[data-tsetin]','tsetin','in'); here('[data-tsetout]','tsetout','out');
+ const name=()=>String(cur().file||'cut').replace(/\.[a-z]+$/i,'').replace(/[^\w ]+/g,' ').trim()||'cut';
+ const e=$('cedl'); if(e) e.onclick=()=>dl(name()+' cut.edl',F.edl(name(),pieces(),k.fps),'text/plain');
+ const cv=$('ccsv'); if(cv) cv.onclick=()=>dl(name()+' cut.csv',F.cutCsv(pieces()),'text/csv');
 }
 
 /* ---------- wiring ---------- */
@@ -313,6 +387,13 @@ function wire(){
    if(f){ const pid=rid('ph'); if(await putPhoto(pid,await shrink(f))) e.photo=pid; else toast('This phone would not keep the photo.'); }
    o.scout=[e].concat(o.scout||[]); save(); render(); toast('Scouted: '+o.name+'.'); };
  document.querySelectorAll('[data-sdel]').forEach(b=>b.onclick=()=>{ const o=owned().find(x=>x.id===OEDIT); if(!o) return; const e=(o.scout||[]).find(x=>x.id===b.dataset.sdel); if(e&&e.photo) delPhoto(e.photo); o.scout=(o.scout||[]).filter(x=>x.id!==b.dataset.sdel); save(); render(); });
+ const ow=$('owhere'); if(ow) ow.onchange=()=>{ const o=owned().find(x=>x.id===OEDIT); if(!o) return; const g=F.coords(ow.value); o.where=ow.value.trim(); save(); render(); if(ow.value.trim()&&!g) toast('That doesn\'t read as a place. Try 38.84, -97.61 or a maps link.'); };
+ const oh=$('ohere'); if(oh) oh.onclick=()=>{ if(!navigator.geolocation){ toast('This phone won\'t share where it is. Paste a pin instead.'); return; } oh.textContent='FINDING…';
+   navigator.geolocation.getCurrentPosition(p=>{ const o=owned().find(x=>x.id===OEDIT); if(!o) return; o.where=p.coords.latitude.toFixed(5)+', '+p.coords.longitude.toFixed(5); save(); render(); toast('Set to where you are.'); },
+   ()=>{ oh.textContent='I\'M HERE'; toast('Location is off for this page. Paste a pin from your maps app instead.'); },{enableHighAccuracy:true,timeout:15000}); };
+ const sd=$('osundate'); if(sd) sd.onchange=()=>{ const c=cur(); if(c){ c.dayDate=sd.value; save(); } render(); };
+ const dd=$('daydate'); if(dd) dd.onchange=()=>{ cur().dayDate=dd.value; save(); render(); };
+ if(TAB==='cut') wireCut();
  fillPhotos();
 }
 document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{ TAB=b.dataset.t; if(TAB!=='scenes') OPEN=null; OEDIT=null; render(); });

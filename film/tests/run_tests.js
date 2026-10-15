@@ -84,4 +84,23 @@ if(lbPath&&fs.existsSync(lbPath)){
  const pk=F.places(lb[1],owned);
  ok("LAST BUS: Cal's pickup suggests the pickup truck cab", pk.some(x=>x.loc.name==='Pickup truck cab'), pk.map(x=>x.loc.name));
 }
+
+// ---------- sun ----------
+{ const s=F.sun(new Date(2026,9,15,12),38.8403,-97.6114);
+  ok('sun: an order that makes sense', s.dawn<s.sunrise&&s.sunrise<s.goldenMorningEnds&&s.goldenMorningEnds<s.noon&&s.noon<s.goldenEveningStarts&&s.goldenEveningStarts<s.sunset&&s.sunset<s.dusk);
+  ok('sun: day length in Kansas mid-October about 11 h', Math.abs((s.sunset-s.sunrise)/36e5-11.1)<0.3, (s.sunset-s.sunrise)/36e5);
+  ok('sun: midnight sun and polar night are said, not faked', F.sun(new Date(2026,5,21,12),69.65,18.96).polar==='sun up all day'&&F.sun(new Date(2026,11,21,12),69.65,18.96).polar==='sun down all day');
+  ok('sun: no place, no times', F.sun(new Date(),NaN,1)===null);
+  ok('sun for a DAWN scene names first light and sunrise', /^first light .*, sunrise /.test(F.sunFor('DAWN',s))&&/^sunset .*, last light /.test(F.sunFor('DUSK',s))&&/^dark after /.test(F.sunFor('NIGHT',s)));
+}
+ok('coords: plain, N/W, a Google pin, an Apple pin, words', JSON.stringify([F.coords('38.8403, -97.6114'),F.coords('38.8403 N, 97.6114 W'),F.coords('https://www.google.com/maps/@38.8403,-97.6114,15z'),F.coords('https://maps.apple.com/?ll=38.84,-97.61'),F.coords('the barn')])==='[{"lat":38.8403,"lng":-97.6114},{"lat":38.8403,"lng":-97.6114},{"lat":38.8403,"lng":-97.6114},{"lat":38.84,"lng":-97.61},null]');
+// ---------- cut ----------
+ok('timecode', F.tc(3600,'30')==='01:00:00:00'&&F.tc(4.5,'24')==='00:00:04:12'&&F.tc(61.1,'25')==='00:01:01:03');
+ok('m:ss in and out', F.secs('1:05.5')===65.5&&F.secs('12')===12&&F.secs('x')===null&&F.mmss(65.5)==='1:05.5'&&F.mmss(300)==='5:00');
+const PC=[{scene:1,heading:'EXT. ROAD - NIGHT',name:'IMG_4512.MOV',in:2,out:14.5},{scene:2,heading:'INT. TRUCK - NIGHT',name:'IMG_4520.MOV',in:0,out:31},{scene:3,heading:'EXT. MOTEL - DAWN',name:'C0013.MP4',in:5,out:5}];
+ok('cut length skips a piece with no length', F.cutLength(PC.slice(0,2))===43.5);
+const E=F.edl('Last Bus',PC,'30');
+ok('EDL: two events, record runs on from 01:00:00:00, clip names kept', /^001  IMG_4512 AA\/V  C        00:00:02:00 00:00:14:15 01:00:00:00 01:00:12:15$/m.test(E)&&/^002  IMG_4520 AA\/V  C        00:00:00:00 00:00:31:00 01:00:12:15 01:00:43:15$/m.test(E)&&/FROM CLIP NAME: IMG_4512.MOV/.test(E)&&!/^003/m.test(E), E);
+require('fs').writeFileSync(process.env.EDL_OUT||'/dev/null',E);
+ok('CSV: order, start times', F.cutCsv(PC).split('\n')[2].endsWith(',0:12.5'));
 console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail?1:0);
