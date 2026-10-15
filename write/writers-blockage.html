@@ -257,7 +257,8 @@ table.rep td.num{text-align:right;font-variant-numeric:tabular-nums;color:#dfe6e
       <button id="xRtf">Rich text (.rtf) &mdash; opens in Word</button>
       <button id="xTxt">Plain text (.txt)</button>
       <button id="xWbs">Working file (.wbs)</button>
-      <button id="xActor">Actor OS &mdash; tape this scene (opens it as your sides)</button>
+      <button id="xActor">Actor OS: tape this scene (opens it as your sides)</button>
+      <button id="xTrail">Paper Trail: keep this draft (every draft, never overwritten)</button>
     </div>
   </div>
   <footer><button data-close>Close</button></footer>
@@ -2835,6 +2836,21 @@ function sendToActorOS(){
   }catch(e){ toast("Could not hand it over: " + e.message); return; }
   location.href = "../actor-os/";
 }
+function sendToTrail(){
+  syncFromDom(); autosave();
+  const text = toFountain();
+  if(!/\S/.test(text)){ toast("Nothing to keep yet."); return; }
+  if(!/^https?:$/.test(location.protocol)){
+    download(slugName() + ".fountain", text, "text/plain");
+    toast("Opened from a file, so Paper Trail is not next door. Saved a Fountain file; drop it in Paper Trail.");
+    return;
+  }
+  try{
+    localStorage.setItem("theactorpage_handoff_trail", JSON.stringify({
+      from:"writers-blockage", title:doc.title || "Untitled", draft:doc.draft || "", file:slugName() + ".fountain", text, at:Date.now()}));
+  }catch(e){ toast("Could not hand it over: " + e.message); return; }
+  location.href = "../papertrail/";
+}
 function takePremise(){
   let h = null;
   try{ h = JSON.parse(store.get("theactorpage_handoff_premise") || "null"); }catch(e){}
@@ -3078,6 +3094,7 @@ $("btnKeys").onclick = () => $("dlgKeys").showModal();
 $("xPdf").onclick = () => { $("dlgExport").close(); exportPdf(); };
 $("xFountain").onclick = () => { $("dlgExport").close(); exportFountain(); };
 $("xActor").onclick = () => { $("dlgExport").close(); sendToActorOS(); };
+$("xTrail").onclick = () => { $("dlgExport").close(); sendToTrail(); };
 $("xFdx").onclick = () => { $("dlgExport").close(); exportFdx(); };
 $("xRtf").onclick = () => { $("dlgExport").close(); syncFromDom();
   download(slugName()+".rtf", toRtf(), "application/rtf"); toast("Exported rich text."); };
