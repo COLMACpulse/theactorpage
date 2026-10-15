@@ -325,7 +325,11 @@ A.roleFrom=function(lines){
 /* Instructions pages have no character cues. Drop any leading run without one. */
 A.trimToScene=function(lines){
  const first=lines.findIndex(l=>l.x>=240&&l.x<=340&&/^[A-Z][A-Z0-9 .'\u2019\-()]{1,32}$/.test(l.text.trim()));
- return first>0?lines.slice(first):lines;
+ if(first<=0) return lines;
+ /* keep the scene heading and its action above the first cue (FILM OS needs the place,
+    the time of day and what's in the action); the instructions page has no heading */
+ for(let i=first-1;i>=0;i--){ if(/^\s*(\d+[A-Z]?\s+)?(INT|EXT|I\/E)[.\s]/.test(lines[i].text||'')) return lines.slice(i); }
+ return lines.slice(first);
 };
 
 /* Look for typed START / END markers. Returns indices into the cleaned lines,

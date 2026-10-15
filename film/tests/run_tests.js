@@ -1,0 +1,87 @@
+/* node film/tests/run_tests.js [path/to/LAST_BUS_sides.txt] */
+const fs=require('fs'), path=require('path');
+new Function('window',fs.readFileSync(path.join(__dirname,'../../actor-os/sides.js'),'utf8'))(globalThis);
+const F=require('../film.js');
+let pass=0,fail=0; const ok=(n,c,x)=>{ if(c){pass++;console.log('PASS',n)}else{fail++;console.log('FAIL',n,x===undefined?'':JSON.stringify(x))} };
+
+const lbPath=process.argv[2];
+const SAMPLE=`EXT. RANCH BRIDGE - DUSK
+
+Sheriff Cole stands by the creek. He checks his badge and watches the road. That's all.
+
+SHERIFF COLE
+You picked a hell of a place to lie to me.
+
+A bartender's shoulder in the foreground. Three men wait near the truck.
+
+BARTENDER
+I didn't lie. I survived.
+
+SHERIFF COLE
+Then survive the truth.
+
+INT. BARN - CONTINUOUS
+
+The door creaks. Nobody speaks.
+`;
+let sc=F.scenes(SAMPLE);
+ok('two scenes', sc.length===2, sc.length);
+ok('speakers are the two who talk', sc[0].speakers.map(s=>s.name).join()==='SHERIFF COLE,BARTENDER', sc[0].speakers);
+ok('place and time read from the heading', sc[0].place==='RANCH BRIDGE'&&sc[0].tod==='DUSK'&&sc[0].ie==='EXT', [sc[0].place,sc[0].tod,sc[0].ie]);
+ok('CONTINUOUS carries the time before', sc[1].tod==='DUSK', sc[1].tod);
+ok('props by whole word: badge, truck; no hat from "that"', sc[0].props.includes('badge')&&sc[0].props.includes('truck')&&!sc[0].props.includes('hat'), sc[0].props);
+ok('people in the action without lines', sc[0].people.includes('men')&&!sc[0].people.includes('sheriff'), sc[0].people);
+ok('scene with no speech has no speakers', sc[1].speakers.length===0);
+ok('sound cues found', sc[1].sound.includes('door')&&sc[1].sound.includes('creaks'), sc[1].sound);
+
+// heading forms
+const h=F.heading('INT./EXT. CAL\'S PICKUP - MOVING - NIGHT');
+ok('I/E heading', h.ie==='I/E'&&h.place==="CAL'S PICKUP - MOVING"&&h.tod==='NIGHT', h);
+ok('scene numbers stripped', F.prep('  12A   INT. KITCHEN - DAY     12A').trim()==='INT. KITCHEN - DAY');
+
+// shots
+const two=sc[0];
+const keep=F.shots(two,'keep','SHERIFF COLE'), comp=F.shots(two,'compress','SHERIFF COLE'), proof=F.shots(two,'proof','SHERIFF COLE');
+ok('keep: a close-up for each part', keep.some(s=>s.what==='SHERIFF COLE close-up')&&keep.some(s=>s.what==='BARTENDER close-up'), keep.map(s=>s.what));
+ok('keep: over the shoulder both ways', keep.filter(s=>/^Over /.test(s.what)).length===2);
+ok('compress: the other is a dirty over, hands and a voice', ['BARTENDER as a dirty over',"BARTENDER's hands","BARTENDER's lines as a voice"].every(w=>comp.some(s=>s.what===w)), comp.map(s=>s.what));
+ok('compress: no close-up of the other', !comp.some(s=>s.what==='BARTENDER close-up'));
+ok('proof: one face, one setup', proof.filter(s=>/close-up/.test(s.what)).length===1&&proof[0].what==='SHERIFF COLE close-up, one setup', proof.map(s=>s.what));
+ok('every list ends with room tone', [keep,comp,proof].every(l=>/Room tone/.test(l[l.length-1].what)));
+ok('inserts come from the action', keep.some(s=>s.what==='Insert: badge'));
+ok('your character leads when you picked one', F.shots(two,'proof','BARTENDER')[0].what==='BARTENDER close-up, one setup');
+ok('no-dialogue scene: wide, medium, the door, room tone', F.shots(sc[1],'keep','').map(s=>s.id).join()==='wide,med,ins-door,tone', F.shots(sc[1],'keep','').map(s=>s.id));
+ok('shot copy has no em dashes', [keep,comp,proof].flat().every(s=>!/[—–]/.test(s.what+s.how)));
+
+// owned
+const owned=F.RANCH.map((o,i)=>Object.assign({id:'o'+i},o));
+ok('ranch list: 14 locations', owned.filter(o=>o.kind==='location').length===14);
+const pl=F.places({place:'RANCH ROAD'},owned);
+ok('owned location matched by a word in the place', pl.some(x=>x.loc.name==='Ranch road / dirt driveway'), pl.map(x=>x.loc.name));
+ok('short words do not match ("bar" is not "barn")', F.places({place:'BAR'},owned).length===0);
+const own=F.owns(F.scenes("INT. CAB - NIGHT\n\nShe grabs the lantern and the rope.\n\nCAL\nGo.\n")[0],owned);
+ok('your props named in the scene', own.some(o=>o.name==='Lantern')&&own.some(o=>o.name==='Coil of rope'), own.map(o=>o.name));
+
+// day
+const d=F.day([{scene:{n:1,tod:'NIGHT'},where:'Barn',set:true,wardrobe:'a'},{scene:{n:2,tod:'DAY'},where:'Creek',set:true,wardrobe:'b'},{scene:{n:3,tod:'NIGHT'},where:'Barn',set:true,wardrobe:'a'},{scene:{n:4,tod:'DAY'},where:'BUS SHELTER',set:false,wardrobe:''}]);
+ok('same place and time together', d[0].where==='Barn'&&d[0].items.map(x=>x.scene.n).join()==='1,3', d.map(b=>b.where+':'+b.items.map(x=>x.scene.n)));
+ok('places not set yet go last', d[d.length-1].where==='BUS SHELTER');
+
+// the real sides
+if(lbPath&&fs.existsSync(lbPath)){
+ const raw=fs.readFileSync(lbPath,'utf8');
+ const lb=F.scenes(raw);
+ ok('LAST BUS raw text: 3 scenes', lb.length===3, lb.map(s=>s.heading));
+ ok('LAST BUS: Cal and Rennie on camera, every scene', lb.every(s=>F.seen(s).slice().sort().join()==='CAL,RENNIE'), lb.map(s=>F.seen(s)));
+ ok('LAST BUS: Mom is a voice on the phone (V.O.), scene 1 only', lb[0].speakers.find(x=>x.name==='MOM').voice==='V.O.'&&!lb[1].speakers.some(x=>x.name==='MOM'));
+ ok('LAST BUS: Mom gets a voice shot, never a close-up', ['keep','compress','proof'].every(w=>{const l=F.shots(lb[0],w,'RENNIE');return l.some(s=>s.what==="MOM's lines as a voice")&&!l.some(s=>/^MOM close|onto MOM|Over MOM/.test(s.what));}));
+ ok('LAST BUS: places', lb.map(s=>s.place).join('|')==="COUNTY ROAD BUS SHELTER|CAL'S PICKUP - MOVING|TRUCK STOP MOTEL - PARKING LOT", lb.map(s=>s.place));
+ ok('LAST BUS: times (pickup is CONTINUOUS from night)', lb.map(s=>s.tod).join()==='NIGHT,NIGHT,DAWN', lb.map(s=>s.tod));
+ ok('LAST BUS: ticket and duffel in scene 1', lb[0].props.includes('ticket')&&lb[0].props.includes('duffel'), lb[0].props);
+ ok('LAST BUS: rain on a tin roof is a sound', lb[0].sound.includes('rain')&&lb[0].sound.includes('roof'), lb[0].sound);
+ const rp=F.shots(lb[0],'compress','RENNIE');
+ ok('LAST BUS compress as RENNIE: Cal is the shoulder and the voice', rp.some(s=>s.what==='CAL as a dirty over')&&rp.some(s=>s.what==="CAL's lines as a voice")&&rp[0].who==='RENNIE');
+ const pk=F.places(lb[1],owned);
+ ok("LAST BUS: Cal's pickup suggests the pickup truck cab", pk.some(x=>x.loc.name==='Pickup truck cab'), pk.map(x=>x.loc.name));
+}
+console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail?1:0);
