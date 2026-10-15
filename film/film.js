@@ -192,6 +192,17 @@ F.day=function(list){
  return blocks;
 };
 
+/* Light / sound / access, from the notes on the ranch list itself. */
+const RANCH_MORE={
+ 'Barn':{access:'interior + big door'},
+ 'Creek':{light:'dusk light',sound:'running water'},
+ 'Workshop':{light:'work light'},
+ 'Open field':{light:'wide, uncontrolled light'},
+ 'Oak treeline':{light:'shade; silhouettes'},
+ 'Kitchen':{light:'interior, white wall'},
+ 'Corral / paddock':{sound:'animals'},
+ 'Fire pit':{light:'night, warm key light'}
+};
 /* The ranch starter list (Col's place). Locations, props, wardrobe, gear. */
 F.RANCH=[
  ['location','Barn','main structure; interior + big door'],['location','Front porch','covered; dialogue + authority chairs'],
@@ -207,7 +218,7 @@ F.RANCH=[
  ['wardrobe','Brown jacket',''],['wardrobe','Flannel shirts',''],['wardrobe','Denim',''],['wardrobe','Work boots',''],['wardrobe','Work gloves',''],
  ['gear','Camera (mirrorless/DSLR)','primary'],['gear','Tripod',''],['gear','LED light panel x2',''],['gear','Reflector / bounce',''],
  ['gear','Shotgun mic',''],['gear','Boom pole',''],['gear','Field recorder',''],['gear','C-stand',''],['gear','Sandbags','']
-].map(r=>({kind:r[0],name:r[1],notes:r[2],plays:''}));
+].map(r=>Object.assign({kind:r[0],name:r[1],notes:r[2],plays:''},RANCH_MORE[r[1]]||{}));
 
 if(typeof module!=='undefined') module.exports=F;
 g.FilmOS=F;

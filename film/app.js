@@ -7,7 +7,20 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const rid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 
-let DB=load(); let TAB='script', OPEN=null, SCENES=[], MSG='';
+let DB=load(); let TAB='script', OPEN=null, SCENES=[], MSG='', OEDIT=null;
+/* scout photos: IndexedDB 'film_os' / 'photos', this phone only */
+function idb(){ return new Promise(res=>{ try{ const r=indexedDB.open('film_os',1); r.onupgradeneeded=()=>r.result.createObjectStore('photos'); r.onsuccess=()=>res(r.result); r.onerror=()=>res(null); }catch(e){ res(null); } }); }
+async function putPhoto(id,blob){ const d=await idb(); if(!d) return false; return new Promise(res=>{ const x=d.transaction('photos','readwrite'); x.objectStore('photos').put(blob,id); x.oncomplete=()=>res(true); x.onerror=()=>res(false); }); }
+async function getPhoto(id){ const d=await idb(); if(!d) return null; return new Promise(res=>{ const r=d.transaction('photos','readonly').objectStore('photos').get(id); r.onsuccess=()=>res(r.result||null); r.onerror=()=>res(null); }); }
+async function delPhoto(id){ const d=await idb(); if(d) try{ d.transaction('photos','readwrite').objectStore('photos').delete(id); }catch(e){} }
+const URLS={};
+async function fillPhotos(){ for(const im of document.querySelectorAll('img[data-photo]')){ const id=im.dataset.photo; if(!URLS[id]){ const b=await getPhoto(id); if(b) URLS[id]=URL.createObjectURL(b); } if(URLS[id]) im.src=URLS[id]; else im.alt='photo not on this phone'; } }
+/* a phone photo is 3 to 12 MB; keep a 1600 px JPEG */
+async function shrink(file){
+ try{ const bm=await createImageBitmap(file); const k=Math.min(1,1600/Math.max(bm.width,bm.height)); const c=document.createElement('canvas'); c.width=Math.round(bm.width*k); c.height=Math.round(bm.height*k);
+  c.getContext('2d').drawImage(bm,0,0,c.width,c.height); return await new Promise(r=>c.toBlob(b=>r(b||file),'image/jpeg',0.85)); }catch(e){ return file; }
+}
+const day=t=>new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})+', '+new Date(t).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
 function load(){ try{ const d=JSON.parse(localStorage.getItem(KEY)||'null'); if(d&&d.scripts) return d; }catch(e){} return {cur:'',scripts:{},owned:null}; }
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify(DB)); }catch(e){ toast('This phone would not save. Your work may not be kept.'); } }
 let tt; function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('on'); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove('on'),2600); }
@@ -138,6 +151,8 @@ function vScene(n){
  if(locs.length){
   h+='<select class="field" id="where"><option value="">Not picked ('+esc(sc.place||'no place in the script')+')</option>'+locs.map(o=>'<option value="'+o.id+'"'+(s.where===o.id?' selected':'')+'>'+esc(o.name)+'</option>').join('')+'</select>';
   if(sug.length&&!s.where) h+='<div class="chips" style="margin-top:8px">'+sug.map(x=>'<button class="chip" data-where="'+x.loc.id+'">'+esc(x.loc.name)+' <i>'+esc(x.words.join(', '))+'</i></button>').join('')+'</div>';
+  const L0=s.where&&owned().find(o=>o.id===s.where);
+  if(L0) h+=vAt(L0,sc,n);
  } else h+='<div class="msg">Add your locations on the OWNED tab and pick one here.</div>';
  // found in the action
  const mine=F.owns(sc,owned());
@@ -146,7 +161,8 @@ function vScene(n){
  if(sc.props.length) bits.push('<p class="kicker" style="margin:12px 0 6px">In the action · tap for an insert</p><div class="chips">'+sc.props.map(p=>'<button class="chip'+(ins.includes(p)?' on':'')+'" data-ins="'+esc(p)+'">'+esc(p)+'</button>').join('')+'</div>');
  if(mine.length) bits.push('<p class="kicker" style="margin:12px 0 6px">Yours, named in the scene</p><div class="chips">'+mine.map(o=>'<span class="tag on">'+esc(o.name)+'</span>').join('')+'</div>');
  if(sc.people.length) bits.push('<p class="kicker" style="margin:12px 0 6px">People in the action, no lines</p><div class="chips">'+sc.people.map(p=>'<span class="tag">'+esc(p)+'</span>').join('')+'</div><p class="faint" style="font-size:13px;margin:6px 0 0">A walk-by, a shoulder, or a sound. Not a cast.</p>');
- bits.push('<p class="kicker" style="margin:12px 0 6px">Sound bed</p><div class="chips"><span class="tag on">room tone</span>'+sc.sound.map(p=>'<span class="tag">'+esc(p)+'</span>').join('')+'</div>');
+ const L1=s.where&&owned().find(o=>o.id===s.where);
+ bits.push('<p class="kicker" style="margin:12px 0 6px">Sound bed</p><div class="chips"><span class="tag on">room tone</span>'+sc.sound.map(p=>'<span class="tag">'+esc(p)+'</span>').join('')+(L1&&L1.sound?'<span class="tag warn">'+esc(L1.name)+': '+esc(L1.sound)+'</span>':'')+'</div>');
  h+=bits.join('');
  // shots
  if(s.way){
@@ -166,13 +182,50 @@ function vScene(n){
  h+='<details style="margin-top:16px"><summary>Read the scene</summary><div class="read">'+sc.beats.map(b=>b.action?esc(b.text):'<span class="who">'+esc(b.who)+'</span>\n'+esc(b.text)).join('\n\n')+'</div></details>';
  return h;
 }
+function vAt(o,sc,n){
+ const rows=[];
+ if(o.light) rows.push(['Light',o.light+(sc.tod?' · the scene is '+sc.tod:'')]);
+ else if(sc.tod) rows.push(['Light','The scene is '+sc.tod+'. No light note for this place yet.']);
+ if(o.sound) rows.push(['Sound',o.sound]);
+ if(o.access) rows.push(['Access',o.access]);
+ const la=lastAt(o.id,DB.cur,n);
+ if(la) rows.push(['Last time here',la.where+': '+la.bits]);
+ const sc0=(o.scout||[])[0];
+ let h='<div class="card" style="margin-top:10px"><p class="kicker">At '+esc(o.name)+'</p>'+rows.map(r=>'<div style="font-size:14px;margin:3px 0"><span class="faint">'+r[0]+':</span> '+esc(r[1])+'</div>').join('');
+ if(sc0) h+='<div style="font-size:14px;margin-top:8px"><span class="faint">Scouted '+esc(day(sc0.at))+':</span> '+esc(sc0.note||'')+'</div>'+(sc0.photo?'<img data-photo="'+esc(sc0.photo)+'" style="width:100%;border-radius:10px;margin-top:8px;display:block">':'');
+ if(!rows.length&&!sc0) h+='<div class="faint" style="font-size:13px">Add light, sound and scout notes for this place on the OWNED tab.</div>';
+ return h+'<button class="btn sm ghost" data-oedit="'+o.id+'" style="margin-top:8px">Notes and scouting for '+esc(o.name)+'</button></div>';
+}
+/* the last lens, camera height and eyeline you wrote for a scene shot at this place, any script */
+function lastAt(locId,skipScript,skipN){
+ let best=null;
+ Object.keys(DB.scripts).forEach(sid=>{ const c=DB.scripts[sid]; Object.keys(c.scenes||{}).forEach(k=>{
+  const s=c.scenes[k]; if(s.where!==locId||(sid===skipScript&&Number(k)===skipN)) return;
+  Object.keys(s.cont||{}).forEach(w=>{ const v=s.cont[w]; const b=[v.lens&&'lens '+v.lens,v.height&&'height '+v.height,v.eyeline&&'eyeline '+v.eyeline,v.light&&'light from '+v.light].filter(Boolean);
+   if(b.length&&(!best||(s.contAt||0)>=best.at)) best={at:s.contAt||0,where:String(c.file||'').replace(/\.(pdf|txt|fountain|fdx)$/i,'').replace(/_/g,' ')+' scene '+k+', '+w,bits:b.join(' · ')}; });
+ }); });
+ return best;
+}
 function lastCard(who,n){
  const c=cur(); let best=null;
  Object.keys(c.scenes||{}).map(Number).filter(k=>k<n).sort((a,b)=>b-a).some(k=>{ const v=c.scenes[k].cont&&c.scenes[k].cont[who]; if(v&&Object.values(v).some(Boolean)){ best={n:k,v:v}; return true; } return false; });
  return best;
 }
 const KINDS=[['location','Locations','What it can play, e.g. bus shelter, motel lot'],['prop','Props',''],['wardrobe','Wardrobe',''],['gear','Gear','']];
+function vLoc(o){
+ let h='<button class="back" data-oback="1">‹ Everything you own</button><div class="card"><p class="kicker">'+(o.kind==='location'?'Location':esc(o.kind))+'</p>';
+ const F2=[['name','Name',''],['plays','Can play','bus shelter, motel lot'],['light','Light','best light, when'],['sound','Sound','what you hear there'],['access','Access','power, parking, who to ask'],['notes','Notes','']];
+ h+=F2.filter(f=>o.kind==='location'||['name','notes'].includes(f[0])).map(([k,l,ph])=>'<label class="faint" style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;display:block;margin-top:8px">'+l+'</label><input class="field" data-of="'+k+'" placeholder="'+esc(ph)+'" value="'+esc(o[k]||'')+'">').join('')+'</div>';
+ if(o.kind==='location'){
+  h+='<div class="card"><p class="kicker">Scout log</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">What the place gave you, and when. Fog, a light, a sound. Photos stay on this phone.</p>'
+   +'<textarea class="field" id="snote" placeholder="Fog over the creek, sun just over the ridge" style="min-height:80px"></textarea>'
+   +'<div class="row" style="margin-top:8px"><label class="btn" style="flex:1"><input type="file" id="sphoto" accept="image/*" capture="environment" class="hide">ADD A PHOTO</label><button class="btn pri" id="ssave" style="flex:1">SAVE</button></div><div id="sphotoname" class="faint" style="font-size:13px;margin-top:6px"></div></div>';
+  h+=(o.scout||[]).map(x=>'<div class="card"><div class="row" style="justify-content:space-between"><b style="font-size:14px">'+esc(day(x.at))+'</b><button class="x" data-sdel="'+x.id+'" aria-label="Remove">×</button></div>'+(x.note?'<div style="margin-top:4px">'+esc(x.note)+'</div>':'')+(x.photo?'<img data-photo="'+esc(x.photo)+'" style="width:100%;border-radius:10px;margin-top:8px;display:block">':'')+'</div>').join('');
+ }
+ return h;
+}
 function vOwn(){
+ if(OEDIT){ const o=owned().find(x=>x.id===OEDIT); if(o) return vLoc(o); OEDIT=null; }
  let h='';
  if(DB.owned===null||!owned().length){
   h+='<div class="card"><p class="kicker">What you own</p><p>Your locations, props, wardrobe and gear. Scenes get matched to them.</p>'
@@ -183,11 +236,12 @@ function vOwn(){
  h+='<div class="card"><p class="kicker">Add</p><div class="row"><select class="field" id="okind" style="flex:1 1 120px">'+KINDS.map(k=>'<option value="'+k[0]+'">'+k[1]+'</option>').join('')+'</select>'
   +'<input class="field" id="oname" placeholder="Name" style="flex:2 1 180px"></div>'
   +'<input class="field" id="oplays" placeholder="Can play (locations): bus shelter, motel lot…" style="margin-top:8px">'
-  +'<input class="field" id="onotes" placeholder="Notes: light, sound, access" style="margin-top:8px"><button class="btn pri block" id="oadd" style="margin-top:8px">ADD</button></div>';
+  +'<input class="field" id="onotes" placeholder="Notes" style="margin-top:8px"><button class="btn pri block" id="oadd" style="margin-top:8px">ADD</button></div>';
  KINDS.forEach(([k,l])=>{
   const L=owned().filter(o=>o.kind===k); if(!L.length) return;
-  h+='<p class="kicker" style="margin-top:16px">'+l+' · '+L.length+'</p>'+L.map(o=>'<div class="own"><div><b>'+esc(o.name)+'</b>'+(o.plays?'<small>Plays: '+esc(o.plays)+'</small>':'')+(o.notes?'<small>'+esc(o.notes)+'</small>':'')+'</div>'
-   +(k==='location'?'<button class="btn sm ghost" data-plays="'+o.id+'">Plays…</button>':'')+'<button class="x" data-del="'+o.id+'" aria-label="Remove">×</button></div>').join('');
+  h+='<p class="kicker" style="margin-top:16px">'+l+' · '+L.length+'</p>'+L.map(o=>'<div class="own"><div><b>'+esc(o.name)+'</b>'+(o.plays?'<small>Plays: '+esc(o.plays)+'</small>':'')
+   +(k==='location'?['light','sound','access'].filter(x=>o[x]).map(x=>'<small>'+x[0].toUpperCase()+x.slice(1)+': '+esc(o[x])+'</small>').join('')+((o.scout||[]).length?'<small>Scouted '+(o.scout.length===1?'once':o.scout.length+' times')+', last '+esc(day(o.scout[0].at))+'</small>':''):(o.notes?'<small>'+esc(o.notes)+'</small>':''))+'</div>'
+   +'<button class="btn sm ghost" data-oedit="'+o.id+'">'+(k==='location'?'Notes':'Edit')+'</button><button class="x" data-del="'+o.id+'" aria-label="Remove">×</button></div>').join('');
  });
  return h;
 }
@@ -226,7 +280,7 @@ function wire(){
  document.querySelectorAll('[data-where]').forEach(b=>b.onclick=()=>{ st(OPEN).where=b.dataset.where; save(); render(); });
  document.querySelectorAll('[data-shot]').forEach(b=>b.onchange=()=>{ const s=st(OPEN); if(b.checked) s.done[b.dataset.shot]=1; else delete s.done[b.dataset.shot]; save();
    b.closest('.shot').classList.toggle('done',b.checked); const L=document.querySelectorAll('[data-shot]'); const k=[...document.querySelectorAll('.kicker')].find(x=>/^Shots/.test(x.textContent)); if(k) k.textContent='Shots · '+[...L].filter(x=>x.checked).length+' of '+L.length; });
- document.querySelectorAll('[data-cont]').forEach(i=>i.oninput=()=>{ const s=st(OPEN); const w=i.dataset.cont; s.cont[w]=s.cont[w]||{}; s.cont[w][i.dataset.k]=i.value; save(); });
+ document.querySelectorAll('[data-cont]').forEach(i=>i.oninput=()=>{ const s=st(OPEN); const w=i.dataset.cont; s.cont[w]=s.cont[w]||{}; s.cont[w][i.dataset.k]=i.value; s.contAt=Date.now(); save(); });
  document.querySelectorAll('[data-ins]').forEach(b=>b.onclick=()=>{ const sc=SCENES.find(x=>x.n===OPEN), s=st(OPEN); const cur0=Array.isArray(s.ins)?s.ins:sc.props.slice(0,6); const p=b.dataset.ins;
    s.ins=cur0.includes(p)?cur0.filter(x=>x!==p):sc.props.filter(x=>x===p||cur0.includes(x)); save(); render(); });
  document.querySelectorAll('[data-same]').forEach(b=>b.onclick=()=>{ const w=b.dataset.same, p=lastCard(w,OPEN); if(!p) return; st(OPEN).cont[w]=Object.assign({},p.v); save(); render(); toast(w+': copied from scene '+p.n+'.'); });
@@ -234,9 +288,18 @@ function wire(){
  const em=$('empty'); if(em) em.onclick=()=>{ DB.owned=[]; save(); render(); };
  const oa=$('oadd'); if(oa) oa.onclick=()=>{ const n=$('oname').value.trim(); if(!n) return; DB.owned=owned().concat([{id:rid('o'),kind:$('okind').value,name:n,plays:$('oplays').value.trim(),notes:$('onotes').value.trim()}]); save(); render(); };
  document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{ DB.owned=owned().filter(o=>o.id!==b.dataset.del); save(); render(); });
- document.querySelectorAll('[data-plays]').forEach(b=>b.onclick=()=>{ const o=owned().find(x=>x.id===b.dataset.plays); const v=prompt('What can '+o.name+' play? e.g. bus shelter, motel lot',o.plays||''); if(v===null) return; o.plays=v.trim(); save(); render(); });
+ document.querySelectorAll('[data-oedit]').forEach(b=>b.onclick=()=>{ OEDIT=b.dataset.oedit; TAB='own'; render(); });
+ document.querySelectorAll('[data-oback]').forEach(b=>b.onclick=()=>{ OEDIT=null; render(); });
+ document.querySelectorAll('[data-of]').forEach(i=>i.oninput=()=>{ const o=owned().find(x=>x.id===OEDIT); if(!o) return; o[i.dataset.of]=i.value; save(); });
+ const sp=$('sphoto'); if(sp) sp.onchange=()=>{ $('sphotoname').textContent=sp.files[0]?'Photo: '+sp.files[0].name:''; };
+ const ss=$('ssave'); if(ss) ss.onclick=async()=>{ const o=owned().find(x=>x.id===OEDIT); if(!o) return; const note=$('snote').value.trim(), f=sp&&sp.files[0]; if(!note&&!f) return;
+   const e={id:rid('s'),at:Date.now(),note:note,photo:''};
+   if(f){ const pid=rid('ph'); if(await putPhoto(pid,await shrink(f))) e.photo=pid; else toast('This phone would not keep the photo.'); }
+   o.scout=[e].concat(o.scout||[]); save(); render(); toast('Scouted: '+o.name+'.'); };
+ document.querySelectorAll('[data-sdel]').forEach(b=>b.onclick=()=>{ const o=owned().find(x=>x.id===OEDIT); if(!o) return; const e=(o.scout||[]).find(x=>x.id===b.dataset.sdel); if(e&&e.photo) delPhoto(e.photo); o.scout=(o.scout||[]).filter(x=>x.id!==b.dataset.sdel); save(); render(); });
+ fillPhotos();
 }
-document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{ TAB=b.dataset.t; if(TAB!=='scenes') OPEN=null; render(); });
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{ TAB=b.dataset.t; if(TAB!=='scenes') OPEN=null; OEDIT=null; render(); });
 $('file').addEventListener('change',e=>{ const f=e.target.files[0]; e.target.value=''; if(f) readFile(f); });
 window.addEventListener('storage',e=>{ if(e.key&&/shelf/.test(e.key)){ const p=SH&&SH.pending(TOOL); if(p){ adopt(); render(); } } });
 

@@ -1,4 +1,4 @@
-# FILM OS 0.1 · Make it alone
+# FILM OS 0.2 · Make it alone
 
 *One person makes the whole scene.*
 
@@ -18,11 +18,19 @@
 3. **OWNED.** Locations (with what each can play), props, wardrobe, gear. Start from the ranch list (40 things: barn, porch, creek, workshop, oak treeline, corral, fire pit, the pickup, the gear) or empty.
 4. **SHOOT DAY.** Scenes grouped by where you're shooting, then time of day, then wardrobe. Places not picked yet are flagged. Each scene shows its way, who's on camera, wardrobe and shots done.
 
+## New in 0.2: the places themselves
+Mined from RANCH BACKLOT ENGINE v1 and PRODUCTION GEOGRAPHY ENGINE v2 (their search matched "bus" inside "ambush"; their scores were typed numbers; they read file names, not photos).
+- **Light, sound, access** for each location (tap Notes on the OWNED tab). The ranch list fills them from its own notes: Creek "dusk light" / "running water", Fire pit "night, warm key light", Corral "animals".
+- **Scout log** per location: a dated note and a photo from the phone ("Fog on the road at 7 am, gone by 8"). Photos are kept on this phone as a 1600 px JPEG (IndexedDB `film_os`).
+- **At this place** on a scene, once you pick where: its light next to the scene's time of day ("dusk light · the scene is NIGHT"), sound, access, the latest scout note and photo, and **last time here**: the lens, camera height, eyeline and light you wrote for the last scene shot there, any script. The place's sound joins the scene's sound bed in red.
+
 ## Same reader as ACT
 Speeches come from Actor OS's reader (`../actor-os/sides.js`, `../actor-os/pdf.js`). FILM adds scenes, places, times of day (CONTINUOUS carries the time before), and what's in the action. The PDF reader now keeps the first scene heading and its action (it used to start at the first character name, which lost scene 1's place and props).
 
 ## Proven vs not
-**Proven (Node 36/36, headless Chromium 24/24 at 390 px):** LAST BUS from the real PDF dropped in Actor OS opens here with no upload, RENNIE picked: 3 scenes, places COUNTY ROAD BUS SHELTER / CAL'S PICKUP - MOVING / TRUCK STOP MOTEL - PARKING LOT, times NIGHT / NIGHT / DAWN, Cal and Rennie on camera, Mom a voice (V.O.) in scene 1 only; compress as Rennie gives Cal as a dirty over, hands and a voice and no Cal close-up; inserts duffel and ticket from the action; tap a prop to drop it; the pickup cab suggested for scene 2 and a hand-added gas station for scene 3; Same as scene 1 copies continuity; shoot day groups by place and time with wardrobe; kept after reopening; a script pasted here lands on the shelf; a grocery list is "No scenes found"; no sideways scroll at 320 px; no page errors. Regressions after the PDF reader change: shelf 19/19, MEMORIZER 26/26 + 31/31, learn 13/13, Today's scene 10/10, BREAKDOWN PDFs pass.
+**Proven 0.2 (headless Chromium 14/14):** ranch list light/sound filled; scout note + photo saved, shown, kept after reopening, stored as JPEG, removable; scene at the ranch road shows light vs NIGHT, access, the scout note and photo; scene 3 at the same place shows "Last time here: LAST BUS sides scene 1, RENNIE: lens 1x · height 58 in · eyeline camera left"; creek adds "running water" to the sound bed; 320 px; no errors.
+
+**Proven 0.1 (Node 36/36, headless Chromium 24/24 at 390 px):** LAST BUS from the real PDF dropped in Actor OS opens here with no upload, RENNIE picked: 3 scenes, places COUNTY ROAD BUS SHELTER / CAL'S PICKUP - MOVING / TRUCK STOP MOTEL - PARKING LOT, times NIGHT / NIGHT / DAWN, Cal and Rennie on camera, Mom a voice (V.O.) in scene 1 only; compress as Rennie gives Cal as a dirty over, hands and a voice and no Cal close-up; inserts duffel and ticket from the action; tap a prop to drop it; the pickup cab suggested for scene 2 and a hand-added gas station for scene 3; Same as scene 1 copies continuity; shoot day groups by place and time with wardrobe; kept after reopening; a script pasted here lands on the shelf; a grocery list is "No scenes found"; no sideways scroll at 320 px; no page errors. Regressions after the PDF reader change: shelf 19/19, MEMORIZER 26/26 + 31/31, learn 13/13, Today's scene 10/10, BREAKDOWN PDFs pass.
 
 **Not proven yet:** a real phone or tablet on a real shoot; scripts longer than sides (a full short or feature); Final Draft files from the wild.
 
