@@ -409,6 +409,52 @@ F.wav=function(x,sr){ const n=x.length, b=new ArrayBuffer(44+n*2), v=new DataVie
 F.placeAt=function(take,sr,at){ const off=Math.round(at*sr); const n=Math.max(0,off+take.length), out=new Float32Array(n);
  for(let i=0;i<take.length;i++){ const j=off+i; if(j>=0) out[j]=take[i]; } return out; };
 
+/* ---------- find a take: what you remember, against what you logged. Says why; no score. ----------
+   takes: [{scene, heading, people:[names], name, note, mark, use, adr, at(ms|null), dur}] */
+F.STOP=new Set('a an the in on of at to and or with one where take takes that this it its is was he she his her they them i me my we our for from by about clip shot'.split(' '));
+F.WEEKDAYS=['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+F.dayStart=t=>{ const d=new Date(t); d.setHours(0,0,0,0); return d.getTime(); };
+F.parseFind=function(q,now){
+ now=now||Date.now(); let s=' '+String(q||'').toLowerCase().replace(/[^a-z0-9' ]+/g,' ')+' '; const out={words:[],when:null,scene:null,flags:[]};
+ const D=864e5, t0=F.dayStart(now), take=(re,fn)=>{ const m=s.match(re); if(m){ fn(m); s=s.replace(m[0],' '); } };
+ take(/ (today|tonight) /,()=>{ out.when={from:t0,to:t0+D,say:'today'}; });
+ take(/ yesterday /,()=>{ out.when={from:t0-D,to:t0,say:'yesterday'}; });
+ take(/ this week /,()=>{ out.when={from:t0-6*D,to:t0+D,say:'in the last 7 days'}; });
+ take(/ last week /,()=>{ out.when={from:t0-13*D,to:t0-6*D,say:'last week (7 to 13 days ago)'}; });
+ take(/ (\d+) days? ago /,m=>{ const n=+m[1]; out.when={from:t0-n*D,to:t0-n*D+D,say:n+' day'+(n===1?'':'s')+' ago'}; });
+ take(/ (last |on )?(sunday|monday|tuesday|wednesday|thursday|friday|saturday) /,m=>{ const wd=F.WEEKDAYS.indexOf(m[2]); let back=(new Date(now).getDay()-wd+7)%7; if(back===0||m[1]==='last ') back+=back===0?7:0; const f=t0-back*D; out.when={from:f,to:f+D,say:'on '+m[2][0].toUpperCase()+m[2].slice(1)}; });
+ take(/ scene (\d+) /,m=>{ out.scene=+m[1]; });
+ take(/ never use /,()=>out.flags.push('never'));
+ take(/ (backups?) /,()=>out.flags.push('backup'));
+ take(/ (in the cut|picked|used) /,()=>out.flags.push('use'));
+ take(/ (adr|re ?recorded|dubbed) /,()=>out.flags.push('adr'));
+ out.words=s.split(/\s+/).filter(w=>w&&!F.STOP.has(w)&&(w.length>1||/\d/.test(w)));
+ return out;
+};
+F.findTakes=function(q,takes,now){
+ const P=F.parseFind(q,now), wordsOf=x=>String(x||'').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+ if(!P.words.length&&!P.when&&P.scene==null&&!P.flags.length) return {parsed:P,hits:[],partial:false};
+ const ago=at=>{ const d=Math.round((F.dayStart(now||Date.now())-F.dayStart(at))/864e5); return d<=0?'today':d===1?'yesterday':d+' days ago'; };
+ const score=t=>{ const why=[];
+  if(P.scene!=null){ if(t.scene!==P.scene) return null; why.push('scene '+t.scene); }
+  if(P.when){ if(!t.at||t.at<P.when.from||t.at>=P.when.to) return null; why.push('logged '+ago(t.at)); }
+  for(const f of P.flags){ if(f==='never'&&t.mark!=='never') return null; if(f==='backup'&&t.mark!=='backup') return null; if(f==='use'&&!t.use) return null; if(f==='adr'&&!t.adr) return null;
+   why.push(f==='never'?'marked never use':f==='backup'?'marked backup':f==='use'?'in the cut':'has your ADR line'); }
+  let got=0; const fields=[['heading','in the heading',t.heading],['people','',(t.people||[]).join(' ')],['note','in your note',t.note],['name','in the file name',t.name]];
+  for(const w of P.words){ let hit=null;
+   for(const [k,say,val] of fields){ const ws=wordsOf(val); const ok=/^\d+$/.test(w)?ws.includes(w):ws.some(x=>x.startsWith(w)); if(ok){ hit=k==='people'?(t.people||[]).find(n=>wordsOf(n).some(x=>x.startsWith(w)))+' is in the scene':'"'+w+'" '+say; break; } }
+   if(hit){ got++; why.push(hit); } }
+  return {got,why};
+ };
+ const all=takes.map(t=>({take:t,r:score(t)})).filter(x=>x.r);
+ const need=P.words.length;
+ let hits=all.filter(x=>x.r.got===need), partial=false;
+ if(!hits.length&&need>1){ const best=Math.max(0,...all.map(x=>x.r.got)); if(best>0){ hits=all.filter(x=>x.r.got===best); partial=true; } }
+ if(!need&&!hits.length) hits=all;
+ hits.sort((a,b)=>(a.take.scene-b.take.scene)||((b.take.at||0)-(a.take.at||0)));
+ return {parsed:P,partial,hits:hits.map(x=>({take:x.take,why:x.r.why}))};
+};
+
 if(typeof module!=='undefined') module.exports=F;
 g.FilmOS=F;
 })(typeof window!=='undefined'?window:globalThis);

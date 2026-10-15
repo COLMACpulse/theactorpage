@@ -352,15 +352,17 @@ function vCut(){
  let h='<p class="kicker">Cut to length</p><p class="dim" style="font-size:14px;margin:-2px 0 12px">Add the takes you shot, keep the one you want for each scene, set where it starts and ends. They line up in script order. Then hand the list to your editor.</p>';
  h+='<div class="card"><div class="row"><label class="faint" style="font-size:13px">Aim for</label><input class="field" id="ctarget" value="'+esc(F.mmss(k.target))+'" style="flex:0 1 90px"><label class="faint" style="font-size:13px">Frame rate</label><select class="field" id="cfps" style="flex:0 1 110px">'+Object.keys(F.FPS).map(x=>'<option'+(x===k.fps?' selected':'')+'>'+x+'</option>').join('')+'</select></div>'
   +'<div class="runtime"><b>'+F.mmss(len)+'</b><span>'+(P.length?(Math.abs(diff)<0.05?'right on '+F.mmss(k.target):diff>0?F.mmss(diff)+' to go to '+F.mmss(k.target):F.mmss(-diff)+' over '+F.mmss(k.target)):'nothing in the cut yet')+' · '+P.length+' piece'+(P.length===1?'':'s')+'</span></div></div>';
+ h+='<div class="card"><p class="kicker">Find a take</p><input class="field" id="cfind" placeholder="bus shelter · rennie · last week · the laugh · never use" value="'+esc(FINDQ)+'" autocomplete="off"><div id="cfindres">'+findHtml()+'</div></div>';
  h+=footBox();
  SCENES.forEach(sc=>{
   const T=k.takes[sc.n]||[];
   h+='<div class="card"><div class="hd" style="font:700 14px/1.35 var(--mono)">'+sc.n+'. '+esc(sc.heading)+'</div>';
   h+=T.map(t=>{ const f=FILES[t.id];
-   return '<div class="take'+(t.use?' on':'')+(t.mark==='never'?' never':'')+'"><div class="row" style="justify-content:space-between"><label class="row" style="gap:8px"><input type="checkbox" data-tuse="'+sc.n+'|'+t.id+'"'+(t.use?' checked':'')+(t.mark==='never'?' disabled':'')+'><b style="font-size:14px;word-break:break-all">'+esc(t.name)+'</b></label><span class="faint" style="font-size:13px">'+(t.dur?F.mmss(t.dur):'length?')+'</span><select class="field mark" data-tmark="'+sc.n+'|'+t.id+'" aria-label="Mark this take">'+[['','—'],['backup','backup'],['never','never use']].map(o=>'<option value="'+o[0]+'"'+((t.mark||'')===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select><button class="x" data-tdel="'+sc.n+'|'+t.id+'" aria-label="Remove">×</button></div>'
+   return '<div class="take'+(t.use?' on':'')+(t.mark==='never'?' never':'')+'" data-trow="'+sc.n+'|'+t.id+'"><div class="row" style="justify-content:space-between"><label class="row" style="gap:8px"><input type="checkbox" data-tuse="'+sc.n+'|'+t.id+'"'+(t.use?' checked':'')+(t.mark==='never'?' disabled':'')+'><b style="font-size:14px;word-break:break-all">'+esc(t.name)+'</b></label><span class="faint" style="font-size:13px">'+(t.dur?F.mmss(t.dur):'length?')+'</span><select class="field mark" data-tmark="'+sc.n+'|'+t.id+'" aria-label="Mark this take">'+[['','—'],['backup','backup'],['never','never use']].map(o=>'<option value="'+o[0]+'"'+((t.mark||'')===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select><button class="x" data-tdel="'+sc.n+'|'+t.id+'" aria-label="Remove">×</button></div>'
     +(f?'<video class="tprev" data-tvid="'+t.id+'" playsinline controls preload="metadata"></video>':'')
     +'<div class="row" style="margin-top:6px"><label class="faint" style="font-size:12px">In</label><input class="field" data-tin="'+sc.n+'|'+t.id+'" value="'+F.mmss(t.in)+'" style="flex:1 1 70px">'+(f?'<button class="btn sm" data-tsetin="'+sc.n+'|'+t.id+'">HERE</button>':'')
     +'<label class="faint" style="font-size:12px">Out</label><input class="field" data-tout="'+sc.n+'|'+t.id+'" value="'+F.mmss(t.out)+'" style="flex:1 1 70px">'+(f?'<button class="btn sm" data-tsetout="'+sc.n+'|'+t.id+'">HERE</button>':'')+'</div>'
+    +'<input class="field tnote" data-tnote="'+sc.n+'|'+t.id+'" value="'+esc(t.note||'')+'" placeholder="A note you\'ll remember it by (the one where he laughs)">'
     +'<div class="row" style="justify-content:space-between;margin-top:4px"><span class="faint" style="font-size:12px">'+F.mmss(Math.max(0,t.out-t.in))+' used'+(f?'':' · pick the file again to preview it')+(adrKept(t)?' · <b class="adrtag">ADR</b> your line replaces it, original '+UNDERS.find(u=>u[1]===t.adr.under)[0].toLowerCase():'')+'</span>'+(f?'<button class="btn sm" data-adr="'+sc.n+'|'+t.id+'">ADR</button>':'')+'</div></div>'; }).join('');
   h+='<label class="btn sm block" style="margin-top:8px"><input type="file" accept="video/*,.mov,.mp4,.m4v" multiple class="hide" data-tadd="'+sc.n+'">+ ADD TAKES</label>'+briefBox(sc)+'</div>';
  });
@@ -370,6 +372,12 @@ function vCut(){
   +'<p class="faint" style="font-size:13px;margin:8px 0 0">The brief says, scene by scene, how much freedom the editor has, what must stay, which take to use, backups, never-use takes, what is missing and when to ask you first.</p></div>';
  return h;
 }
+let FINDQ='';
+function findList(){ const k=cutOf(), L=[]; SCENES.forEach(sc=>(k.takes[sc.n]||[]).forEach(t=>L.push({id:t.id,scene:sc.n,heading:sc.heading,people:(sc.speakers||[]).map(x=>x.name),name:t.name,note:t.note||'',mark:t.mark,use:t.use,adr:!!adrKept(t),at:t.at||null,dur:t.dur}))); return L; }
+function findHtml(){ if(!FINDQ.trim()) return ''; const L=findList(); if(!L.length) return '<p class="faint" style="font-size:13px;margin:8px 0 0">No takes logged yet. Add takes to a scene below first.</p>';
+ const r=F.findTakes(FINDQ,L);
+ if(!r.hits.length) return '<p class="faint" style="font-size:13px;margin:8px 0 0">Nothing matches "'+esc(FINDQ.trim())+'".'+(r.parsed.when?' Dates only reach takes logged since this version.':'')+'</p>';
+ return (r.partial?'<p class="faint" style="font-size:13px;margin:8px 0 0">Nothing matches every word. Closest:</p>':'')+r.hits.slice(0,12).map(h=>'<button class="fhit" data-fgo="'+h.take.scene+'|'+h.take.id+'"><b>Scene '+h.take.scene+' · '+esc(h.take.name)+'</b><span>'+esc(h.why.join(' · ')||'')+'</span></button>').join('')+(r.hits.length>12?'<p class="faint" style="font-size:12px">'+(r.hits.length-12)+' more. Add a word.</p>':''); }
 function briefOf(n){ const k=cutOf(); k.brief=k.brief||{}; k.brief[n]=k.brief[n]||{}; return k.brief[n]; }
 function briefBox(sc){ const b=(cutOf().brief||{})[sc.n]||{}, set=['free','keep','missing','ask','note'].filter(x=>b[x]).length;
  const ta=(key,label,ph)=>'<label class="faint" style="font-size:12px;display:block;margin-top:8px">'+label+'</label><textarea class="field" rows="2" data-brief="'+sc.n+'|'+key+'" placeholder="'+ph+'">'+esc(b[key]||'')+'</textarea>';
@@ -500,7 +508,7 @@ function wireCut(){
  const fp=$('cfps'); if(fp) fp.onchange=()=>{ k.fps=fp.value; save(); };
  document.querySelectorAll('[data-tadd]').forEach(i=>i.onchange=async()=>{ const n=+i.dataset.tadd; const fl=[...i.files]; if(!fl.length) return; k.takes[n]=k.takes[n]||[];
    for(const f of fl){ const ex=k.takes[n].find(x=>x.name===f.name&&x.size===f.size); const id=ex?ex.id:rid('t'); FILES[id]=f; if(ex) continue;
-    const d=await clipLength(f); k.takes[n].push({id:id,name:f.name,size:f.size,dur:Math.round(d*100)/100,in:0,out:Math.round(d*100)/100,use:!k.takes[n].some(x=>x.use)}); }
+    const d=await clipLength(f); k.takes[n].push({id:id,name:f.name,size:f.size,dur:Math.round(d*100)/100,in:0,out:Math.round(d*100)/100,use:!k.takes[n].some(x=>x.use),at:Date.now()}); }
    save(); render(); toast(fl.length+' take'+(fl.length===1?'':'s')+' added to scene '+n+'.'); });
  document.querySelectorAll('[data-tuse]').forEach(b=>b.onchange=()=>{ const r=findT(b.dataset.tuse); if(!r.t) return; r.t.use=b.checked; save(); render(); });
  document.querySelectorAll('[data-tdel]').forEach(b=>b.onclick=()=>{ const [n,id]=b.dataset.tdel.split('|'); k.takes[n]=(k.takes[n]||[]).filter(x=>x.id!==id); delete FILES[id]; save(); render(); });
@@ -523,6 +531,9 @@ function wireCut(){
    render(); const o=$('roughvid'); if(o) o.scrollIntoView({block:'center'}); };
  const sr=$('csaverough'); if(sr) sr.onclick=async()=>{ if(!ROUGH) return; try{ const f=new File([ROUGH.blob],ROUGH.name,{type:ROUGH.blob.type}); if(/Android|iPhone|iPad/i.test(navigator.userAgent)&&navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:ROUGH.name}); return; } }catch(e){ if(e&&e.name==='AbortError') return; }
    const a=document.createElement('a'); a.href=ROUGH.url; a.download=ROUGH.name; document.body.appendChild(a); a.click(); a.remove(); };
+ const cf=$('cfind'); if(cf){ const show=()=>{ $('cfindres').innerHTML=findHtml(); document.querySelectorAll('[data-fgo]').forEach(b=>b.onclick=()=>{ const el=document.querySelector('[data-trow="'+b.dataset.fgo+'"]'); if(el){ el.scrollIntoView({block:'center'}); el.classList.add('flash'); setTimeout(()=>el.classList.remove('flash'),1600); } }); };
+   cf.oninput=()=>{ FINDQ=cf.value; show(); }; show(); }
+ document.querySelectorAll('[data-tnote]').forEach(i=>i.oninput=()=>{ const r=findT(i.dataset.tnote); if(!r.t) return; if(i.value.trim()) r.t.note=i.value; else delete r.t.note; save(); });
  document.querySelectorAll('[data-adr]').forEach(b=>b.onclick=()=>{ const [n,id]=b.dataset.adr.split('|'); openAdr(n,id); });
  const cb=$('cbrief'); if(cb) cb.onclick=()=>dl(name()+' editor brief.txt',F.brief(name(),SCENES.map(sc=>({n:sc.n,heading:sc.heading,brief:(k.brief||{})[sc.n]||{},takes:k.takes[sc.n]||[],shots:doneOf(sc)})),k.fps),'text/plain');
  document.querySelectorAll('[data-tmark]').forEach(b=>b.onchange=()=>{ const r=findT(b.dataset.tmark); if(!r.t) return; if(b.value) r.t.mark=b.value; else delete r.t.mark; if(b.value==='never') r.t.use=false; save(); render(); });
@@ -530,7 +541,7 @@ function wireCut(){
  document.querySelectorAll('[data-bopen]').forEach(d=>d.ontoggle=()=>{ BOPEN[d.dataset.bopen]=d.open; });
  ['ffold','ffiles'].forEach(id=>{ const i=$(id); if(i) i.onchange=()=>{ const fl=[...i.files]; if(!fl.length) return; runFoot(fl); render(); toast(fl.length+' files checked.'); }; });
  document.querySelectorAll('[data-fadd]').forEach(sel=>sel.onchange=async()=>{ const n=+sel.value; if(!n||!FOOT) return; const f=FOOT.res.extra[+sel.dataset.fadd].f; k.takes[n]=k.takes[n]||[];
-   const id=rid('t'); FILES[id]=f; const d=await clipLength(f); k.takes[n].push({id:id,name:f.name,size:f.size,dur:Math.round(d*100)/100,in:0,out:Math.round(d*100)/100,use:!k.takes[n].some(x=>x.use)});
+   const id=rid('t'); FILES[id]=f; const d=await clipLength(f); k.takes[n].push({id:id,name:f.name,size:f.size,dur:Math.round(d*100)/100,in:0,out:Math.round(d*100)/100,use:!k.takes[n].some(x=>x.use),at:Date.now()});
    save(); runFoot(FOOT.files); render(); toast(f.name+' added to scene '+n+'.'); });
 }
 

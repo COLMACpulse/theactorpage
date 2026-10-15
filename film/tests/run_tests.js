@@ -146,4 +146,26 @@ ok('brief: ask-me-first gathered at the end; no scores or percents', /ASK ME FIR
    const wv=new DataView(F.wav(new Float32Array([0,1,-1]),48000)); ok('WAV: header, 48 kHz, 16-bit mono, samples', wv.getUint32(24,true)===48000&&wv.getUint16(34,true)===16&&wv.getUint16(22,true)===1&&wv.getInt16(46,true)===32767&&wv.getInt16(48,true)===-32768); }
  ok('ADR: no score words', !/score|%/.test([r0,r15,rw].map(F.matchWords).join(' ')));
 }
+// ---------- find a take ----------
+{
+ const now=new Date('2026-10-15T15:00:00').getTime(), D=864e5;
+ const T=[
+  {id:'a',scene:1,heading:'EXT. COUNTY ROAD BUS SHELTER - NIGHT',people:['CAL'],name:'IMG_4512.MOV',note:'the one where he laughs',use:true,at:now-1*D},
+  {id:'b',scene:1,heading:'EXT. COUNTY ROAD BUS SHELTER - NIGHT',people:['CAL'],name:'IMG_4513.MOV',note:'',mark:'never',at:now-9*D},
+  {id:'c',scene:2,heading:"INT. CAL'S PICKUP - MOVING - CONTINUOUS",people:['CAL','RENNIE'],name:'IMG_4520.MOV',note:'rennie cries',mark:'backup',at:now-10*D,adr:true},
+  {id:'d',scene:3,heading:'EXT. TRUCK STOP MOTEL - PARKING LOT - DAWN',people:['CAL','MOM'],name:'Insurance take.mov',note:'',use:true,at:null}];
+ const ids=q=>F.findTakes(q,T,now).hits.map(h=>h.take.id).join();
+ ok('find: "bus shelter" finds the IMG takes by their scene heading', ids('bus shelter')==='a,b', ids('bus shelter'));
+ ok('find: "the laugh" finds the take by your note (laugh / laughs)', ids('the laugh')==='a' && /"laugh" in your note/.test(F.findTakes('the laugh',T,now).hits[0].why.join()));
+ ok('find: "rennie" finds the scene she is in', ids('rennie')==='c' && /RENNIE is in the scene/.test(F.findTakes('rennie',T,now).hits[0].why.join()));
+ ok('find: "last week" is a date (7 to 13 days ago), not two words', ids('last week')==='b,c', ids('last week'));
+ ok('find: "yesterday" and "today"', ids('yesterday')==='a' && ids('today')==='' );
+ ok('find: "never use", "backup", "in the cut", "adr"', ids('never use')==='b'&&ids('backup')==='c'&&ids('in the cut')==='a,d'&&ids('adr')==='c', [ids('never use'),ids('backup'),ids('in the cut'),ids('adr')]);
+ ok('find: "scene 2" and a number from a file name', ids('scene 2')==='c'&&ids('4513')==='b');
+ ok('find: "a", "in", "the" alone find nothing (not everything)', ids('a')===''&&ids('in')===''&&ids('the one')==='');
+ ok('find: "insurance" matches the word, "in" never matches inside words', ids('insurance')==='d'&&ids('bus in')==='a,b');
+ const pr=F.findTakes('bus shelter dancing',T,now); ok('find: when nothing matches every word, closest shown and marked partial', pr.partial&&pr.hits.map(h=>h.take.id).join()==='a,b');
+ const w=F.findTakes('cal last week',T,now).hits[0].why.join(' · '); ok('find: says why in plain words', /logged 9 days ago/.test(w)&&/CAL is in the scene/.test(w), w);
+ ok('find: a take logged before dates were kept is never matched by a date', !F.findTakes('this week',T,now).hits.some(h=>h.take.id==='d'));
+}
 console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail?1:0);
