@@ -89,6 +89,17 @@ const st3=T.threadStatus({kind:'secret',what:'bought it',plant:ref(0),learns:[{w
 ok('secret: who learns, who is not in that scene, who is not marked as knowing', st3.learns.length===2&&st3.notes.some(n=>/CAL2 isn't in SC 3/.test(n))&&st3.unaware.sort().join()==='MOM,RENNIE', st3);
 ok('learns before it starts is said', /before it starts/.test(T.threadStatus({kind:'secret',what:'s',plant:ref(1),learns:[{who:'CAL',...ref(0)}]},SC).problems[0]||''));
 ok('threads at a scene', T.threadsAt([{kind:'setup',what:'t',plant:ref(0),payoff:ref(2)}],K[2])[0].roles[0]==='pays off here');
+// research
+ok('kinds', T.kindOf('image/png','a.png')==='photo'&&T.kindOf('','IMG_0042.HEIC')==='photo'&&T.kindOf('audio/mp4','Memo.m4a')==='audio'&&T.kindOf('video/quicktime','x.mov')==='video'&&T.kindOf('application/pdf','s.pdf')==='pdf'&&T.kindOf('','notes.docx')==='file');
+ok('a link pulled out of pasted text', T.linkOf('see https://example.com/bus-schedule). ok')==='https://example.com/bus-schedule');
+const SRC={drafts:[{id:'d2',label:'Draft 2',scenes:[{heading:'EXT. ROAD - NIGHT',text:'CAL: Hey.\nRENNIE: I left a note.'}]}],
+ cards:{'EXT ROAD NIGHT#1':{purpose:'Rennie says no out loud',decisions:[{text:'Keep the engine running'}]}},
+ bones:[{text:'Mom kept the bus schedule taped inside the cupboard.'}],
+ cuts:{scenes:[],lines:[{text:'RENNIE: A room over a bakery in Tucson.',cutIn:'Draft 2',heading:'EXT. ROAD - NIGHT'}]},
+ research:[{id:'r1',kind:'photo',name:'IMG_1.jpg',note:'The real shelter on Route 54',who:'RENNIE'}]};
+const S1=T.search('note',SRC); ok('search: a line in the draft, with where', S1.some(r=>/Draft 2 · SC 1/.test(r.where)&&/I left a note/.test(r.text)), S1);
+ok('search: decisions, purposes, boneyard, cut lines, research', T.search('engine',SRC).some(r=>/Decision/.test(r.where))&&T.search('out loud',SRC).some(r=>/What it is for/.test(r.where))&&T.search('cupboard',SRC)[0].go.tab==='bones'&&T.search('bakery',SRC)[0].where==='Boneyard · line cut in Draft 2'&&T.search('route 54',SRC)[0].go.id==='r1');
+ok('search: every word has to be there, nothing ranked', T.search('bus tucson',SRC).length===0&&T.search('',SRC).length===0);
 const lb=process.argv[2];
 if(lb&&fs.existsSync(lb)){
  const raw=fs.readFileSync(lb,'utf8');

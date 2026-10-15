@@ -21,7 +21,16 @@ function save(){ try{ localStorage.setItem(KEY,JSON.stringify(DB)); }catch(e){ t
 let tt; function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('on'); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove('on'),2800); }
 
 /* ---------- texts in IndexedDB ---------- */
-function idb(){ return new Promise(res=>{ try{ const r=indexedDB.open('paper_trail',1); r.onupgradeneeded=()=>r.result.createObjectStore('texts'); r.onsuccess=()=>res(r.result); r.onerror=()=>res(null); }catch(e){ res(null); } }); }
+let _db=null;
+function idb(){ if(_db) return Promise.resolve(_db); return new Promise(res=>{ try{ const r=indexedDB.open('paper_trail',2);
+ r.onupgradeneeded=()=>{ const d=r.result; if(!d.objectStoreNames.contains('texts')) d.createObjectStore('texts'); if(!d.objectStoreNames.contains('research')) d.createObjectStore('research'); };
+ r.onsuccess=()=>{ _db=r.result; _db.onversionchange=()=>{ try{ _db.close(); }catch(e){} _db=null; }; res(_db); }; r.onerror=()=>res(null); r.onblocked=()=>res(null); }catch(e){ res(null); } }); }
+/* research files: photos, memos, PDFs. Kept here, in the On This Device backup, never uploaded */
+async function putBlob(id,b){ const d=await idb(); if(!d) return false; return new Promise(res=>{ const x=d.transaction('research','readwrite'); x.objectStore('research').put(b,id); x.oncomplete=()=>res(true); x.onerror=()=>res(false); x.onabort=()=>res(false); }); }
+async function getBlob(id){ const d=await idb(); if(!d) return null; return new Promise(res=>{ const r=d.transaction('research','readonly').objectStore('research').get(id); r.onsuccess=()=>res(r.result||null); r.onerror=()=>res(null); }); }
+async function delBlob(id){ const d=await idb(); if(!d) return; return new Promise(res=>{ const x=d.transaction('research','readwrite'); x.objectStore('research').delete(id); x.oncomplete=()=>res(); x.onerror=()=>res(); }); }
+const URLS={};
+async function urlOf(id){ if(URLS[id]) return URLS[id]; const b=await getBlob(id); if(!b) return ''; URLS[id]=URL.createObjectURL(b); return URLS[id]; }
 async function putText(id,t){ TEXT[id]=t; const d=await idb(); if(!d) return false; return new Promise(res=>{ const x=d.transaction('texts','readwrite'); x.objectStore('texts').put(t,id); x.oncomplete=()=>res(true); x.onerror=()=>res(false); }); }
 async function loadTexts(){ const d=await idb(); if(!d) return; await new Promise(res=>{ const x=d.transaction('texts','readonly').objectStore('texts').openCursor(); x.onsuccess=e=>{ const c=e.target.result; if(c){ TEXT[c.key]=c.value; c.continue(); } else res(); }; x.onerror=()=>res(); }); }
 
@@ -130,7 +139,7 @@ async function docxText(buf){
 function tabs(){
  const p=VIEW.p&&DB.projects[VIEW.p];
  const t=[['projects','Projects'],['add','Add drafts']];
- if(p) t.push(['scenes','Scenes'],['read','Table read'],['bones','Boneyard'],['threads','Setups'],['drafts','Drafts'],['characters','Characters']);
+ if(p) t.push(['scenes','Scenes'],['read','Table read'],['bones','Boneyard'],['research','Research'],['threads','Setups'],['drafts','Drafts'],['characters','Characters']);
  $('tabs').innerHTML=t.map(([k,l])=>'<button data-tab="'+k+'" class="'+(VIEW.tab===k?'on':'')+'">'+l+'</button>').join('');
  $('crumb').innerHTML='<a data-go="projects">Paper Trail</a>'+(p?' &nbsp;/&nbsp; <a data-go="scenes">'+esc(p.title)+'</a>':'')+(VIEW.scene!=null&&p?' &nbsp;/&nbsp; scene':'');
 }
@@ -145,6 +154,7 @@ function render(){
  else if(VIEW.tab==='read') m.innerHTML=vRead(p);
  else if(VIEW.tab==='bones') m.innerHTML=vBones(p);
  else if(VIEW.tab==='threads') m.innerHTML=vThreads(p);
+ else if(VIEW.tab==='research') m.innerHTML=vResearch(p);
  wire();
 }
 function vProjects(){
@@ -152,6 +162,12 @@ function vProjects(){
  let h='<div class="stats"><div><b>'+P.length+'</b><span>projects</span></div><div><b>'+nd+'</b><span>drafts kept</span></div>'
   +'<div><b>'+P.reduce((n,p)=>n+scenesOf(current(p)).length,0)+'</b><span>scenes, current drafts</span></div></div>';
  if(!P.length) h+='<div class="panel"><p style="margin-top:0">Nothing here yet. Bring in a draft: a script (PDF, Final Draft, Fountain, text) or a storyboard (Word or PDF). Drafts with the same title land in the same project.</p><button class="btn pri" data-tab="add">ADD DRAFTS</button></div>';
+ if(P.length){
+  h+='<div class="row" style="margin-bottom:12px"><input class="field" id="gq" placeholder="Find anything: a line, a name, a note, a photo you pinned" value="'+esc(VIEW.gq||'')+'" style="flex:1"></div>';
+  if((VIEW.gq||'').trim().length>1){ const R=searchAll(VIEW.gq);
+   h+='<div class="panel"><div class="eyebrow" style="margin-top:0">'+R.length+' found</div><div class="list">'+(R.length?R.slice(0,80).map((r,i)=>'<div class="li"><div class="w">'+esc(r.text)+'<small>'+esc(r.pt+' · '+r.where)+'</small></div><button class="btn sm" data-hit="'+i+'">OPEN</button></div>').join(''):'<div class="li"><div class="w note">Nothing matches.</div></div>')+'</div>'+(R.length>80?'<p class="note">Showing the first 80. Add a word to narrow it.</p>':'')+'</div>';
+   HITS=R; }
+ }
  h+='<div class="grid">'+P.map(p=>{ const c=current(p), ds=draftsOf(p.id), b=board(p);
   return '<button class="frame" data-open="'+p.id+'">'+perf()+'<div class="fb"><div class="fk"><span>'+ds.length+' draft'+(ds.length===1?'':'s')+(b?' · storyboard':'')+'</span><span>'+(p.retired?'retired':esc(day(p.updated)))+'</span></div>'
    +'<div class="ft">'+esc(p.title)+'</div><div class="fl">'+(c?'Current: '+esc(c.label)+' · '+scenesOf(c).length+' scenes · '+c.words+' words':'No script draft yet')+'</div></div></button>'; }).join('')+'</div>';
@@ -204,7 +220,7 @@ function vScene(p,i){
  h+='<div class="eyebrow">FX</div>'+(sb&&sb.fx?'<p style="margin:0 0 6px">'+esc(sb.fx)+' <span class="note">(storyboard)</span></p>':'')+'<input class="field" data-card="fx" value="'+esc(cd.fx)+'" placeholder="Effects, stunts, practical gags">';
  h+='<div class="eyebrow">Notes</div>'+(sb&&sb.notes?'<p style="margin:0 0 6px">'+esc(sb.notes)+' <span class="note">(storyboard)</span></p>':'')+'<textarea class="field" data-card="notes" placeholder="Your notes">'+esc(cd.notes)+'</textarea>';
  h+='<div class="eyebrow">Decisions</div><div class="list">'+(cd.decisions||[]).map(x=>'<div class="li"><div class="w">'+esc(x.text)+'<small>'+esc(day(x.at))+'</small></div></div>').join('')+'</div>'
-  +'<div class="row" style="margin-top:8px"><input class="field" id="dec" placeholder="What you decided, e.g. cut the last two lines" style="flex:1"><button class="btn" id="decb">LOG IT</button></div><p class="note">Logged decisions stay. They are never edited after the fact.</p>'+threadBox(p,s,i,keys)+'</div>';
+  +'<div class="row" style="margin-top:8px"><input class="field" id="dec" placeholder="What you decided, e.g. cut the last two lines" style="flex:1"><button class="btn" id="decb">LOG IT</button></div><p class="note">Logged decisions stay. They are never edited after the fact.</p>'+threadBox(p,s,i,keys)+researchBox(p,keys[i])+'</div>';
  // right: on file / missing / drafts / story studio
  const M=T.missing(s,cd,sb,st);
  h+='<div><div class="eyebrow" style="margin-top:0">On file, and missing</div><div class="panel"><div class="hm">'+M.map(x=>'<i class="'+(x.have?'y':'n')+'">'+(x.have?'✓':'○')+'</i><div>'+esc(x.what)+(x.from?'<br><small>'+esc(x.from)+'</small>':'')+'</div>').join('')+'</div></div>';
@@ -318,6 +334,72 @@ function vThreads(p){
   +st.problems.map(m=>'<small style="color:var(--grease)">'+esc(m)+'</small>').join('')+st.notes.map(m=>'<small>'+esc(m)+'</small>').join('')+'</div></div>').join(''):'<div class="li"><div class="w note">No secrets yet. On a scene page: + A SECRET STARTS HERE.</div></div>')+'</div>';
  return h;
 }
+/* ---------- research ---------- */
+let HITS=[];
+function searchAll(q){
+ const out=[];
+ projects().forEach(p=>{ const ds=draftsOf(p.id).filter(d=>d.kind==='script'&&!d.retired), cur=current(p);
+  const D=(cur?[cur]:[]).concat(ds.filter(d=>!cur||d.id!==cur.id)).map(d=>({id:d.id,label:d.label,scenes:scenesOf(d)}));
+  const cuts=T.cuts(ds.map(d=>({id:d.id,label:d.label,scenes:scenesOf(d)})));
+  T.search(q,{drafts:D,cards:p.cards||{},bones:p.bones||[],cuts:cuts,research:p.research||[]}).forEach(r=>out.push(Object.assign({pt:p.title,pid:p.id},r)));
+ });
+ return out;
+}
+const RKIND={photo:'Photo',audio:'Recording',video:'Video',pdf:'PDF',file:'File',link:'Link',note:'Note'};
+function rCard(p,r,sc,keys,names){
+ const pin=(r.scene?'<span class="tag">'+esc((sc[keys.indexOf(r.scene)]||{}).heading||r.sceneHeading||'a cut scene')+'</span> ':'')+(r.who?'<span class="tag">'+esc(r.who)+'</span>':'');
+ let prev='';
+ if(r.kind==='photo') prev='<img class="rimg" data-rblob="'+r.id+'" alt="'+esc(r.name||'photo')+'">';
+ else if(r.kind==='audio') prev='<audio controls preload="none" data-rblob="'+r.id+'"></audio>';
+ else if(r.kind==='video') prev='<video controls preload="metadata" playsinline data-rblob="'+r.id+'" style="width:100%;max-height:260px;background:#000"></video>';
+ else if(r.kind==='link') prev='<a href="'+esc(r.url)+'" target="_blank" rel="noopener noreferrer">'+esc(r.url)+'</a>';
+ else if(r.kind==='note') prev='<p style="margin:0;white-space:pre-wrap">'+esc(r.text)+'</p>';
+ else prev='<a data-ropen="'+r.id+'" href="#">'+esc(r.name)+'</a> <span class="note">'+(r.size?Math.round(r.size/1024)+' KB':'')+'</span>';
+ return '<div class="panel rcard" id="r_'+r.id+'" style="margin:0"><div class="fk"><span>'+(RKIND[r.kind]||'File')+'</span><span>'+esc(day(r.at))+'</span></div>'
+  +'<div style="margin:8px 0">'+prev+'</div>'+(pin?'<div class="chips">'+pin+'</div>':'')
+  +'<textarea class="field" data-rnote="'+r.id+'" placeholder="What this is, why you kept it" style="min-height:60px;margin-top:8px">'+esc(r.note||'')+'</textarea>'
+  +'<div class="row" style="margin-top:8px"><select class="field" data-rscene="'+r.id+'" style="flex:1 1 160px;min-height:36px"><option value="">No scene</option>'+sc.map((s,i)=>'<option value="'+esc(keys[i])+'"'+(r.scene===keys[i]?' selected':'')+'>SC '+(i+1)+' '+esc(s.heading)+'</option>').join('')+'</select>'
+  +'<select class="field" data-rwho="'+r.id+'" style="flex:1 1 120px;min-height:36px"><option value="">No character</option>'+names.map(n=>'<option'+(r.who===n?' selected':'')+'>'+esc(n)+'</option>').join('')+'</select>'
+  +'<button class="btn sm ghost" data-rdel="'+r.id+'">REMOVE</button></div></div>';
+}
+function vResearch(p){
+ p.research=p.research||[];
+ const c=current(p)||board(p), sc=c?scenesOf(c):[], keys=T.keys(sc), names=c?T.characters([{id:'x',scenes:sc}]).map(x=>x.name):[];
+ const f=VIEW.rf||'', q=(VIEW.rq||'').trim();
+ let L=p.research.slice().reverse();
+ if(f==='none') L=L.filter(r=>!r.scene&&!r.who); else if(f.startsWith('s:')) L=L.filter(r=>r.scene===f.slice(2)); else if(f.startsWith('w:')) L=L.filter(r=>r.who===f.slice(2));
+ if(q) L=L.filter(r=>T.search(q,{research:[r]}).length);
+ let h='<p class="note">Photos, screenshots, voice memos, video, PDFs, links and notes for this project. Pin any of it to a scene or a character. It stays on this device and goes in the On This Device backup.</p>';
+ h+='<div class="drop" id="rdrop"><b>DROP RESEARCH</b><span class="note">Several at once is fine. Photos, screenshots, recordings, video, PDFs, anything.</span></div>';
+ h+='<div class="row" style="margin-top:10px"><button class="btn" id="rcam">TAKE A PHOTO</button><button class="btn" id="rrec">'+(RECORDING?'STOP RECORDING':'RECORD A MEMO')+'</button></div>';
+ h+='<div class="row" style="margin-top:10px"><input class="field" id="rlink" placeholder="Paste a link, or write a note" style="flex:1"><button class="btn pri" id="rkeep">KEEP</button></div>';
+ h+='<div class="stats" style="margin-top:14px"><div><b>'+p.research.length+'</b><span>kept</span></div><div><b>'+p.research.filter(r=>r.scene).length+'</b><span>pinned to a scene</span></div><div><b>'+p.research.filter(r=>r.who).length+'</b><span>pinned to a character</span></div></div>';
+ h+='<div class="row"><select class="field" id="rf" style="flex:1 1 200px"><option value="">Everything</option><option value="none"'+(f==='none'?' selected':'')+'>Not pinned yet</option>'
+  +sc.map((s,i)=>'<option value="s:'+esc(keys[i])+'"'+(f==='s:'+keys[i]?' selected':'')+'>SC '+(i+1)+' '+esc(s.heading)+'</option>').join('')
+  +names.map(n=>'<option value="w:'+esc(n)+'"'+(f==='w:'+n?' selected':'')+'>'+esc(n)+'</option>').join('')+'</select>'
+  +'<input class="field" id="rq" placeholder="Find in research" value="'+esc(VIEW.rq||'')+'" style="flex:1 1 200px"></div>';
+ h+='<div class="grid" style="margin-top:14px">'+(L.length?L.map(r=>rCard(p,r,sc,keys,names)).join(''):'<div class="panel note">'+(p.research.length?'Nothing here matches.':'Nothing kept yet.')+'</div>')+'</div>';
+ return h;
+}
+function researchBox(p,key){
+ const L=(p.research||[]).filter(r=>r.scene===key);
+ return '<div class="eyebrow">Research for this scene</div>'+(L.length?'<div class="rthumbs">'+L.map(r=>r.kind==='photo'?'<img class="rthumb" data-rblob="'+r.id+'" data-rgo="'+r.id+'" alt="">':'<button class="btn sm ghost" data-rgo="'+r.id+'">'+esc((RKIND[r.kind]||'File')+': '+(r.note||r.name||r.url||r.text||'').slice(0,40))+'</button>').join('')+'</div>':'<p class="note" style="margin-top:0">Nothing pinned here yet.</p>')
+  +'<div class="row" style="margin-top:8px"><button class="btn sm" id="raddhere">+ ADD RESEARCH TO THIS SCENE</button></div>';
+}
+let RECORDING=null;
+async function addResearch(p,files,pin){
+ p.research=p.research||[]; let n=0, bad=0;
+ for(const f of files){
+  const id=rid('r'); const ok=await putBlob(id,f);
+  if(!ok){ bad++; continue; }
+  p.research.push(Object.assign({id:id,kind:T.kindOf(f.type,f.name),name:f.name||'',type:f.type||'',size:f.size||0,at:Date.now(),note:'',scene:'',who:''},pin||{})); n++;
+ }
+ p.updated=Date.now(); save(); render();
+ toast(bad?'Kept '+n+'. '+bad+' would not save: this device may be out of room.':'Kept '+n+'.');
+}
+function fillBlobs(){
+ document.querySelectorAll('[data-rblob]').forEach(async el=>{ const u=await urlOf(el.dataset.rblob); if(u) el.src=u; else if(el.tagName==='IMG') el.alt='(file missing on this device)'; });
+}
 function vDrafts(p){
  const ds=draftsOf(p.id), c=current(p);
  let h='<p class="note">Every draft you brought in, oldest first. None is ever replaced. The current draft is the one Scenes reads.</p><div class="list">';
@@ -387,7 +469,7 @@ function wire(){
  const rn=$('rename'); if(rn) rn.onclick=()=>{ const v=prompt('Project title',p.title); if(!v||!v.trim()) return; p.title=v.trim(); save(); render(); };
  const rp=$('retp'); if(rp) rp.onclick=()=>{ p.retired=!p.retired; save(); if(p.retired){ VIEW.p=null; go('projects'); } else render(); };
  const sr=$('showret'); if(sr) sr.onchange=()=>{ SHOWRET=sr.checked; render(); };
- const ex=$('exp'); if(ex) ex.onclick=()=>{ const out={app:'PAPER TRAIL',version:1,exported:new Date().toISOString(),projects:DB.projects,drafts:DB.drafts,marks:DB.marks,texts:TEXT};
+ const ex=$('exp'); if(ex) ex.onclick=()=>{ const out={app:'PAPER TRAIL',version:1,exported:new Date().toISOString(),projects:DB.projects,drafts:DB.drafts,marks:DB.marks,texts:TEXT,note:'Photos, recordings and files from Research travel in the On This Device backup, not in this file.'};
    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(out)],{type:'application/json'})); a.download='paper_trail_export.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); };
  const ib=$('impb'); if(ib) ib.onclick=()=>$('imp').click();
  const bb=$('boneb'); if(bb) bb.onclick=()=>{ const v=$('bone').value.trim(); if(!v) return; p.bones=(p.bones||[]).concat([{id:rid('b'),text:v,at:Date.now(),said:!!SAID}]); SAID=false; p.updated=Date.now(); save(); render(); toast('Kept.'); };
@@ -401,6 +483,44 @@ function wire(){
    REC.onend=()=>{ const keep=$('bone')&&$('bone').value; LISTEN=false; render(); if(keep&&$('bone')) $('bone').value=keep; };
    REC.onerror=()=>{ LISTEN=false; toast('The mic stopped. Type it, or try again.'); };
    REC.start(); LISTEN=true; const keep=$('bone').value; render(); $('bone').value=keep; }catch(e){ toast('This browser would not open the mic.'); } };
+ const gq=$('gq'); if(gq) gq.oninput=()=>{ VIEW.gq=gq.value; const pos=gq.selectionStart; render(); const n=$('gq'); n.focus(); n.setSelectionRange(pos,pos); };
+ document.querySelectorAll('[data-hit]').forEach(b=>b.onclick=()=>{ const r=HITS[+b.dataset.hit]; if(!r) return; VIEW.p=r.pid; const P0=DB.projects[r.pid];
+  if(r.go.tab){ VIEW.tab=r.go.tab; VIEW.scene=null; if(r.go.tab==='bones') VIEW.bq=VIEW.gq; if(r.go.id) VIEW.rfocus=r.go.id; render(); window.scrollTo(0,0); return; }
+  if(r.go.draft&&P0&&current(P0)&&current(P0).id!==r.go.draft){ toast('That line is in '+(DB.drafts[r.go.draft]||{}).label+', not the current draft. Showing the drafts.'); VIEW.tab='drafts'; VIEW.scene=null; render(); return; }
+  let i=r.go.scene; if(r.go.key){ const c0=current(P0)||board(P0); i=T.keys(scenesOf(c0)).indexOf(r.go.key); }
+  VIEW.tab='scenes'; VIEW.scene=i>=0?i:null; render(); window.scrollTo(0,0); });
+ if(p&&VIEW.tab==='research'){
+  const pickR=(pin)=>{ const i=document.createElement('input'); i.type='file'; i.multiple=true; i.onchange=()=>{ if(i.files.length) addResearch(p,[...i.files],pin); }; i.click(); };
+  const rd0=$('rdrop'); if(rd0){ rd0.onclick=()=>pickR(); rd0.ondragover=e=>{e.preventDefault();rd0.classList.add('over');}; rd0.ondragleave=()=>rd0.classList.remove('over'); rd0.ondrop=e=>{ e.preventDefault(); rd0.classList.remove('over'); if(e.dataTransfer.files.length) addResearch(p,[...e.dataTransfer.files]); }; }
+  const cam=$('rcam'); if(cam) cam.onclick=()=>{ const i=document.createElement('input'); i.type='file'; i.accept='image/*'; i.setAttribute('capture','environment'); i.onchange=()=>{ if(i.files.length) addResearch(p,[...i.files]); }; i.click(); };
+  const rec=$('rrec'); if(rec) rec.onclick=async()=>{
+   if(RECORDING){ try{ RECORDING.stop(); }catch(e){} return; }
+   if(!navigator.mediaDevices||!window.MediaRecorder){ toast('This browser can\'t record here. Use your phone\'s voice memo app and drop the file in.'); return; }
+   try{ const s=await navigator.mediaDevices.getUserMedia({audio:true}); const mr=new MediaRecorder(s), parts=[];
+    mr.ondataavailable=e=>{ if(e.data&&e.data.size) parts.push(e.data); };
+    mr.onstop=()=>{ s.getTracks().forEach(t=>t.stop()); RECORDING=null; const type=mr.mimeType||'audio/webm'; const ext=/mp4|m4a/.test(type)?'m4a':'webm';
+     const f=new File(parts,'Memo '+new Date().toLocaleString().replace(/[\/:]/g,'-')+'.'+ext,{type:type}); addResearch(p,[f]); };
+    mr.start(); RECORDING=mr; render(); toast('Recording. Tap STOP RECORDING when you\'re done.'); }
+   catch(e){ toast('The mic is blocked for this page. Allow it, or drop in a voice memo.'); } };
+  const rk=$('rkeep'); if(rk) rk.onclick=()=>{ const v=$('rlink').value.trim(); if(!v) return; const u=T.linkOf(v); p.research=p.research||[];
+   p.research.push(u&&v.replace(u,'').trim().length<3?{id:rid('r'),kind:'link',url:u,name:u,at:Date.now(),note:'',scene:'',who:''}
+     :{id:rid('r'),kind:'note',text:v,url:u,name:'',at:Date.now(),note:'',scene:'',who:''});
+   p.updated=Date.now(); save(); render(); toast('Kept.'); };
+  const rf=$('rf'); if(rf) rf.onchange=()=>{ VIEW.rf=rf.value; render(); };
+  const rq=$('rq'); if(rq) rq.oninput=()=>{ VIEW.rq=rq.value; const pos=rq.selectionStart; render(); const n=$('rq'); n.focus(); n.setSelectionRange(pos,pos); };
+  document.querySelectorAll('[data-rnote]').forEach(t=>t.oninput=()=>{ const r=p.research.find(x=>x.id===t.dataset.rnote); if(r){ r.note=t.value; p.updated=Date.now(); save(); } });
+  document.querySelectorAll('[data-rscene]').forEach(s=>s.onchange=()=>{ const r=p.research.find(x=>x.id===s.dataset.rscene); if(r){ r.scene=s.value; r.sceneHeading=s.value?s.options[s.selectedIndex].text.replace(/^SC \d+ /,''):''; save(); render(); } });
+  document.querySelectorAll('[data-rwho]').forEach(s=>s.onchange=()=>{ const r=p.research.find(x=>x.id===s.dataset.rwho); if(r){ r.who=s.value; save(); render(); } });
+  document.querySelectorAll('[data-rdel]').forEach(b=>b.onclick=async()=>{ if(!confirm('Remove this from Research? It is only kept here.')) return; const id=b.dataset.rdel; p.research=p.research.filter(x=>x.id!==id); await delBlob(id); save(); render(); });
+  document.querySelectorAll('[data-ropen]').forEach(a=>a.onclick=async e=>{ e.preventDefault(); const u=await urlOf(a.dataset.ropen); if(u) window.open(u,'_blank'); else toast('That file isn\'t on this device.'); });
+  if(VIEW.rfocus){ const el=$('r_'+VIEW.rfocus); VIEW.rfocus=null; if(el){ el.scrollIntoView({block:'center'}); el.style.outline='2px solid var(--gold)'; } }
+ }
+ if(p&&VIEW.scene!=null){
+  const ah=$('raddhere'); if(ah) ah.onclick=()=>{ const c0=current(p)||board(p), k0=T.keys(scenesOf(c0))[VIEW.scene], h0=scenesOf(c0)[VIEW.scene].heading;
+   const i=document.createElement('input'); i.type='file'; i.multiple=true; i.onchange=()=>{ if(i.files.length) addResearch(p,[...i.files],{scene:k0,sceneHeading:h0}); }; i.click(); };
+  document.querySelectorAll('[data-rgo]').forEach(b=>b.onclick=()=>{ VIEW.tab='research'; VIEW.rfocus=b.dataset.rgo; VIEW.scene=null; render(); });
+ }
+ fillBlobs();
  const rd=$('reader'); if(rd) rd.oninput=()=>{ READER=rd.value.trim(); try{ localStorage.setItem('paper_trail_reader',READER); }catch(e){} };
  const rdc=$('reader'); if(rdc) rdc.onchange=()=>render();
  document.querySelectorAll('[data-mk]').forEach(b=>b.onclick=()=>{
@@ -420,6 +540,7 @@ $('imp').addEventListener('change',async e=>{
    if(!DB.projects[p.id]){ DB.projects[p.id]=p; np++; continue; }
    const mine=DB.projects[p.id]; mine.cards=mine.cards||{};
    (p.threads||[]).forEach(x=>{ mine.threads=mine.threads||[]; const m=mine.threads.find(y=>y.id===x.id); if(!m){ mine.threads.push(x); nc++; return; } if(!m.payoff&&x.payoff){ m.payoff=x.payoff; nc++; } (x.learns||[]).forEach(l=>{ if(!(m.learns||[]).some(y=>T.norm(y.who)===T.norm(l.who))){ m.learns=(m.learns||[]).concat([l]); nc++; } }); });
+   (p.research||[]).forEach(x=>{ mine.research=mine.research||[]; if(!mine.research.some(y=>y.id===x.id)){ mine.research.push(x); nc++; } });
    (p.bones||[]).forEach(b=>{ mine.bones=mine.bones||[]; if(!mine.bones.some(x=>x.id===b.id)){ mine.bones.push(b); nc++; } });
    Object.keys(p.cards||{}).forEach(k=>{ const a=mine.cards[k], b=p.cards[k];
     if(!a){ mine.cards[k]=b; nc++; return; }

@@ -236,6 +236,39 @@ T.threadsAt=function(threads,key){
   return r.length?{th:th,roles:r}:null; }).filter(Boolean);
 };
 
+/* ---------- research: what a file is ---------- */
+T.kindOf=function(type,name){
+ const t=String(type||''), n=String(name||'').toLowerCase();
+ if(/^image\//.test(t)||/\.(jpe?g|png|gif|webp|heic)$/.test(n)) return 'photo';
+ if(/^audio\//.test(t)||/\.(m4a|mp3|wav|aac|ogg|webm)$/.test(n)&&!/^video\//.test(t)) return 'audio';
+ if(/^video\//.test(t)||/\.(mp4|mov|m4v)$/.test(n)) return 'video';
+ if(/pdf/.test(t)||/\.pdf$/.test(n)) return 'pdf';
+ return 'file';
+};
+T.linkOf=function(s){ const m=String(s||'').match(/https?:\/\/[^\s<>"']+/i); return m?m[0].replace(/[).,;]+$/,''):''; };
+
+/* ---------- search everything in a project ----------
+   src: {drafts:[{label,scenes}], cards:{key:{purpose,notes,decisions}}, bones:[{text}], cuts:{scenes,lines}, research:[{name,note,url,text,who}]}
+   Every hit says where it is. Nothing ranked. */
+T.search=function(q,src){
+ const words=T.norm(q).split(' ').filter(w=>w.length>1); if(!words.length) return [];
+ const has=s=>{ const n=T.norm(s); return words.every(w=>n.includes(w)); };
+ const out=[], cut=s=>{ s=String(s||'').replace(/\s+/g,' ').trim(); return s.length>160?s.slice(0,158)+' …':s; };
+ (src.drafts||[]).forEach(d=>(d.scenes||[]).forEach((s,i)=>{
+  if(has(s.heading)) out.push({where:d.label+' · SC '+(i+1),text:s.heading,go:{scene:i,draft:d.id}});
+  T.linesOf(s).forEach(l=>{ if(has(l)) out.push({where:d.label+' · SC '+(i+1)+' · '+s.heading,text:cut(l),go:{scene:i,draft:d.id}}); });
+ }));
+ Object.keys(src.cards||{}).forEach(k=>{ const c=src.cards[k]||{}, h=k.replace(/#\d+$/,'');
+  [['purpose','What it is for'],['notes','Notes'],['fx','FX']].forEach(([f,l])=>{ if(c[f]&&has(c[f])) out.push({where:l+' · '+h,text:cut(c[f]),go:{key:k}}); });
+  (c.decisions||[]).forEach(x=>{ if(has(x.text)) out.push({where:'Decision · '+h,text:cut(x.text),go:{key:k}}); }); });
+ (src.bones||[]).forEach(b=>{ if(has(b.text)) out.push({where:'Boneyard · caught',text:cut(b.text),go:{tab:'bones'}}); });
+ const C=src.cuts||{};
+ (C.scenes||[]).forEach(x=>{ if(has(x.heading+' '+x.text)) out.push({where:'Boneyard · scene cut in '+x.cutIn,text:x.heading,go:{tab:'bones'}}); });
+ (C.lines||[]).forEach(x=>{ if(has(x.text)) out.push({where:'Boneyard · line cut in '+x.cutIn,text:cut(x.text),go:{tab:'bones'}}); });
+ (src.research||[]).forEach(r=>{ if(has([r.name,r.note,r.url,r.text,r.who].join(' '))) out.push({where:'Research · '+r.kind,text:cut(r.note||r.text||r.name||r.url),go:{tab:'research',id:r.id}}); });
+ return out;
+};
+
 if(typeof module!=='undefined') module.exports=T;
 g.PaperTrail=T;
 })(typeof window!=='undefined'?window:globalThis);
