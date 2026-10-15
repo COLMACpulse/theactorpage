@@ -269,6 +269,25 @@ T.search=function(q,src){
  return out;
 };
 
+/* ---------- study tables: research placed on a table, connected by what you say connects it ----------
+   table: {id, question, items:[{id, rid, x, y, w}], links:[{id, a, b, type, note}]}  (x, y, w on a 1000 x 700 table)
+   The receipt is only what you wrote. Nothing is read into it. */
+T.LINKS=['unknown','same','opposite','bridge','cause','sequence','contains','echo'];
+T.itemLabel=function(r){ if(!r) return '(removed from Research)'; const K={photo:'Photo',audio:'Recording',video:'Video',pdf:'PDF',file:'File',link:'Link',note:'Note'};
+ const what=r.note||r.text||r.name||r.url||''; return (K[r.kind]||'File')+(what?': '+String(what).replace(/\s+/g,' ').trim().slice(0,80):''); };
+T.receipt=function(table,research,title){
+ const R={}; (research||[]).forEach(r=>R[r.id]=r);
+ const name={}; (table.items||[]).forEach((it,i)=>name[it.id]=String(i+1)+'. '+T.itemLabel(R[it.rid]));
+ const L=[(title?title+'\n':'')+'STUDY TABLE','Question: '+(String(table.question||'').trim()||'(none written)'),'',
+  'On the table ('+(table.items||[]).length+'):'].concat((table.items||[]).map(it=>'  '+name[it.id]));
+ L.push('','Connections ('+(table.links||[]).length+'):');
+ (table.links||[]).forEach(l=>{ if(!name[l.a]||!name[l.b]) return; L.push('  '+name[l.a].split('.')[0]+' '+l.type.toUpperCase()+' '+name[l.b].split('.')[0]+(l.note?': '+l.note:'')); });
+ const linked=new Set(); (table.links||[]).forEach(l=>{ linked.add(l.a); linked.add(l.b); });
+ const alone=(table.items||[]).filter(it=>!linked.has(it.id)).map(it=>name[it.id].split('.')[0]);
+ if(alone.length&&(table.items||[]).length>1) L.push('','Not connected to anything yet: '+alone.join(', '));
+ return L.join('\n');
+};
+
 if(typeof module!=='undefined') module.exports=T;
 g.PaperTrail=T;
 })(typeof window!=='undefined'?window:globalThis);

@@ -100,6 +100,13 @@ const SRC={drafts:[{id:'d2',label:'Draft 2',scenes:[{heading:'EXT. ROAD - NIGHT'
 const S1=T.search('note',SRC); ok('search: a line in the draft, with where', S1.some(r=>/Draft 2 · SC 1/.test(r.where)&&/I left a note/.test(r.text)), S1);
 ok('search: decisions, purposes, boneyard, cut lines, research', T.search('engine',SRC).some(r=>/Decision/.test(r.where))&&T.search('out loud',SRC).some(r=>/What it is for/.test(r.where))&&T.search('cupboard',SRC)[0].go.tab==='bones'&&T.search('bakery',SRC)[0].where==='Boneyard · line cut in Draft 2'&&T.search('route 54',SRC)[0].go.id==='r1');
 ok('search: every word has to be there, nothing ranked', T.search('bus tucson',SRC).length===0&&T.search('',SRC).length===0);
+// study tables: the receipt is only what you wrote
+const RS=[{id:'r1',kind:'photo',name:'IMG_1.jpg',note:'The real shelter'},{id:'r2',kind:'note',text:'Mom kept the schedule in the cupboard'},{id:'r3',kind:'link',url:'https://example.com/x'}];
+const TB={question:'What does Rennie leave behind?',items:[{id:'i1',rid:'r1'},{id:'i2',rid:'r2'},{id:'i3',rid:'r3'}],links:[{id:'l1',a:'i1',b:'i2',type:'cause',note:'she waits because Mom did'}]};
+const RC=T.receipt(TB,RS,'LAST BUS');
+ok('receipt: question, what is on the table, the line and its note, what is not connected', /Question: What does Rennie leave behind\?/.test(RC)&&/1\. Photo: The real shelter/.test(RC)&&/1 CAUSE 2: she waits because Mom did/.test(RC)&&/Not connected to anything yet: 3/.test(RC), RC);
+ok('receipt invents nothing: no hypothesis, no confidence, no percent', !/hypothes|confidence|%/i.test(RC));
+ok('a removed research item says so', /removed from Research/.test(T.receipt({question:'',items:[{id:'i9',rid:'gone'}],links:[]},RS)));
 const lb=process.argv[2];
 if(lb&&fs.existsSync(lb)){
  const raw=fs.readFileSync(lb,'utf8');

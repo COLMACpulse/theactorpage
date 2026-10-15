@@ -362,14 +362,17 @@ function rCard(p,r,sc,keys,names){
   +'<select class="field" data-rwho="'+r.id+'" style="flex:1 1 120px;min-height:36px"><option value="">No character</option>'+names.map(n=>'<option'+(r.who===n?' selected':'')+'>'+esc(n)+'</option>').join('')+'</select>'
   +'<button class="btn sm ghost" data-rdel="'+r.id+'">REMOVE</button></div></div>';
 }
+function rSwitch(on){ return '<div class="row" style="margin-bottom:12px"><button class="btn sm'+(on==='shelf'?' pri':'')+'" data-rt="">SHELF</button><button class="btn sm'+(on==='tables'?' pri':'')+'" data-rt="list">STUDY TABLES</button></div>'; }
 function vResearch(p){
- p.research=p.research||[];
+ p.research=p.research||[]; p.tables=p.tables||[];
+ if(VIEW.rt==='list') return vTables(p);
+ if(VIEW.rt){ const tb=p.tables.find(x=>x.id===VIEW.rt); if(tb) return vTable(p,tb); VIEW.rt='list'; return vTables(p); }
  const c=current(p)||board(p), sc=c?scenesOf(c):[], keys=T.keys(sc), names=c?T.characters([{id:'x',scenes:sc}]).map(x=>x.name):[];
  const f=VIEW.rf||'', q=(VIEW.rq||'').trim();
  let L=p.research.slice().reverse();
  if(f==='none') L=L.filter(r=>!r.scene&&!r.who); else if(f.startsWith('s:')) L=L.filter(r=>r.scene===f.slice(2)); else if(f.startsWith('w:')) L=L.filter(r=>r.who===f.slice(2));
  if(q) L=L.filter(r=>T.search(q,{research:[r]}).length);
- let h='<p class="note">Photos, screenshots, voice memos, video, PDFs, links and notes for this project. Pin any of it to a scene or a character. It stays on this device and goes in the On This Device backup.</p>';
+ let h=rSwitch('shelf')+'<p class="note">Photos, screenshots, voice memos, video, PDFs, links and notes for this project. Pin any of it to a scene or a character. It stays on this device and goes in the On This Device backup.</p>';
  h+='<div class="drop" id="rdrop"><b>DROP RESEARCH</b><span class="note">Several at once is fine. Photos, screenshots, recordings, video, PDFs, anything.</span></div>';
  h+='<div class="row" style="margin-top:10px"><button class="btn" id="rcam">TAKE A PHOTO</button><button class="btn" id="rrec">'+(RECORDING?'STOP RECORDING':'RECORD A MEMO')+'</button></div>';
  h+='<div class="row" style="margin-top:10px"><input class="field" id="rlink" placeholder="Paste a link, or write a note" style="flex:1"><button class="btn pri" id="rkeep">KEEP</button></div>';
@@ -380,6 +383,86 @@ function vResearch(p){
   +'<input class="field" id="rq" placeholder="Find in research" value="'+esc(VIEW.rq||'')+'" style="flex:1 1 200px"></div>';
  h+='<div class="grid" style="margin-top:14px">'+(L.length?L.map(r=>rCard(p,r,sc,keys,names)).join(''):'<div class="panel note">'+(p.research.length?'Nothing here matches.':'Nothing kept yet.')+'</div>')+'</div>';
  return h;
+}
+/* ---------- study tables ---------- */
+function vTables(p){
+ let h=rSwitch('tables')+'<p class="note">Put research on a table around one question. Move it, size it, draw lines between things and say what the line means. The table keeps what you think; it doesn\'t think for you.</p>';
+ h+='<div class="row"><button class="btn pri" id="tnew">+ NEW TABLE</button></div>';
+ h+='<div class="grid" style="margin-top:14px">'+(p.tables.length?p.tables.slice().reverse().map(tb=>'<button class="frame" data-topen="'+tb.id+'">'+perf()+'<div class="fb"><div class="fk"><span>'+tb.items.length+' on it · '+tb.links.length+' lines</span><span>'+esc(day(tb.at))+'</span></div><div class="ft" style="font-size:19px">'+esc(tb.question||'No question yet')+'</div></div></button>').join(''):'<div class="panel note">No tables yet. Start one with a question.</div>')+'</div>';
+ return h;
+}
+function tItem(p,tb,it){
+ const r=(p.research||[]).find(x=>x.id===it.rid), sel=VIEW.tsel===it.id, a=VIEW.tlinkA===it.id;
+ let inner='';
+ if(!r) inner='<div class="tnote">(removed from Research)</div>';
+ else if(r.kind==='photo') inner='<img data-rblob="'+r.id+'" alt="" draggable="false">';
+ else if(r.kind==='audio') inner='<div class="tnote"><b>Recording</b><br>'+esc(r.note||r.name)+'</div><audio controls preload="none" data-rblob="'+r.id+'"></audio>';
+ else if(r.kind==='video') inner='<video muted playsinline preload="metadata" data-rblob="'+r.id+'"></video>';
+ else inner='<div class="tnote">'+esc(r.kind==='note'?r.text:r.kind==='link'?(r.note||r.url):(r.note||r.name))+'</div>';
+ const cap=r&&r.kind==='photo'&&r.note?'<div class="tcap">'+esc(r.note.slice(0,60))+'</div>':'';
+ return '<div class="titem'+(sel?' sel':'')+(a?' linka':'')+'" data-titem="'+it.id+'" style="left:'+(it.x/10)+'%;top:'+(it.y/7)+'%;width:'+(it.w/10)+'%;z-index:'+(2+(it.z||0))+'">'+inner+cap+'<span class="tnum">'+(tb.items.indexOf(it)+1)+'</span><i class="tsize" data-tsize="'+it.id+'"></i></div>';
+}
+function tLines(tb){
+ const P={}; tb.items.forEach(it=>P[it.id]=it);
+ return '<svg class="tlines" viewBox="0 0 1000 700" preserveAspectRatio="none">'+tb.links.map(l=>{ const a=P[l.a], b=P[l.b]; if(!a||!b) return '';
+  const ax=a.x+a.w/2, ay=a.y+a.w*0.35, bx=b.x+b.w/2, by=b.y+b.w*0.35;
+  return '<line x1="'+ax+'" y1="'+ay+'" x2="'+bx+'" y2="'+by+'" class="tl '+l.type+'"/>'; }).join('')+'</svg>'
+  +tb.links.map(l=>{ const a=P[l.a], b=P[l.b]; if(!a||!b) return ''; const mx=(a.x+a.w/2+b.x+b.w/2)/2, my=(a.y+a.w*0.35+b.y+b.w*0.35)/2;
+   return '<span class="tlab" style="left:'+(mx/10)+'%;top:'+(my/7)+'%">'+esc(l.type)+'</span>'; }).join('');
+}
+function vTable(p,tb){
+ const on=new Set(tb.items.map(i=>i.rid)), off=(p.research||[]).filter(r=>!on.has(r.id));
+ let h=rSwitch('tables')+'<button class="btn ghost sm" data-rt="list">‹ All tables</button>';
+ h+='<div class="eyebrow">The question</div><input class="field" id="tq" value="'+esc(tb.question)+'" placeholder="What are you trying to find out?">';
+ h+='<div class="row" style="margin:10px 0"><button class="btn'+(VIEW.tlinking?' pri':'')+'" id="tlink">'+(VIEW.tlinking?(VIEW.tlinkA?'NOW TAP THE OTHER ONE':'TAP THE FIRST ONE'):'DRAW A LINE')+'</button>'
+  +'<select class="field" id="tltype" style="flex:0 1 150px;min-height:40px">'+T.LINKS.map(x=>'<option'+(x===(VIEW.tltype||'unknown')?' selected':'')+'>'+x+'</option>').join('')+'</select>'
+  +(VIEW.tsel?'<button class="btn ghost" id="toff">TAKE OFF THE TABLE</button>':'')+'</div>';
+ h+='<div class="tboard" id="tboard">'+tLines(tb)+tb.items.map(it=>tItem(p,tb,it)).join('')+(tb.items.length?'':'<div class="tempty">Place research from below. Drag to move; drag the corner to size.</div>')+'</div>';
+ h+='<div class="eyebrow">Lines</div><div class="list">'+(tb.links.length?tb.links.map(l=>{ const A=tb.items.findIndex(i=>i.id===l.a)+1, B=tb.items.findIndex(i=>i.id===l.b)+1;
+  return '<div class="li"><div class="w"><b>'+A+' '+esc(l.type.toUpperCase())+' '+B+'</b><input class="field" data-lnote="'+l.id+'" value="'+esc(l.note||'')+'" placeholder="What the line means" style="margin-top:6px"></div><select class="field" data-ltype="'+l.id+'" style="flex:0 1 130px;min-height:36px">'+T.LINKS.map(x=>'<option'+(x===l.type?' selected':'')+'>'+x+'</option>').join('')+'</select><button class="btn sm ghost" data-ldel="'+l.id+'">REMOVE</button></div>'; }).join(''):'<div class="li"><div class="w note">No lines yet. DRAW A LINE, then tap two things.</div></div>')+'</div>';
+ h+='<div class="eyebrow">Place on the table</div><div class="tshelf">'+(off.length?off.map(r=>'<button class="tput" data-tput="'+r.id+'">'+(r.kind==='photo'?'<img data-rblob="'+r.id+'" alt="">':'')+'<span>'+esc(T.itemLabel(r).slice(0,46))+'</span></button>').join(''):'<p class="note">Everything in Research is on this table'+((p.research||[]).length?'':'. Nothing in Research yet: add some on the SHELF')+'.</p>')+'</div>';
+ h+='<div class="eyebrow">Receipt</div><div class="read">'+esc(T.receipt(tb,p.research,p.title))+'</div><div class="row" style="margin-top:8px"><button class="btn sm" id="tcopy">COPY</button><button class="btn sm ghost" id="tdl">SAVE AS TEXT</button><button class="btn sm ghost" id="tdel">DELETE TABLE</button></div>';
+ return h;
+}
+function wireTable(p){
+ const tn=$('tnew'); if(tn) tn.onclick=()=>{ const q=prompt('What\'s the question? e.g. What does Rennie leave behind?'); if(q===null) return; const tb={id:rid('t'),question:q.trim(),at:Date.now(),items:[],links:[]}; p.tables.push(tb); VIEW.rt=tb.id; save(); render(); };
+ document.querySelectorAll('[data-topen]').forEach(b=>b.onclick=()=>{ VIEW.rt=b.dataset.topen; VIEW.tsel=null; VIEW.tlinking=false; VIEW.tlinkA=null; render(); window.scrollTo(0,0); });
+ const tb=VIEW.rt&&VIEW.rt!=='list'?(p.tables||[]).find(x=>x.id===VIEW.rt):null; if(!tb) return;
+ const touch=()=>{ tb.at=Date.now(); p.updated=Date.now(); save(); };
+ const tq=$('tq'); if(tq) tq.oninput=()=>{ tb.question=tq.value; touch(); const r=document.querySelector('#main .read'); if(r) r.textContent=T.receipt(tb,p.research,p.title); };
+ const tt=$('tltype'); if(tt) tt.onchange=()=>{ VIEW.tltype=tt.value; };
+ const tl=$('tlink'); if(tl) tl.onclick=()=>{ VIEW.tlinking=!VIEW.tlinking; VIEW.tlinkA=null; render(); };
+ const to=$('toff'); if(to) to.onclick=()=>{ const id=VIEW.tsel; tb.items=tb.items.filter(i=>i.id!==id); tb.links=tb.links.filter(l=>l.a!==id&&l.b!==id); VIEW.tsel=null; touch(); render(); };
+ document.querySelectorAll('[data-tput]').forEach(b=>b.onclick=()=>{ const n=tb.items.length; tb.items.push({id:rid('i'),rid:b.dataset.tput,x:40+(n%4)*230,y:40+(Math.floor(n/4)%3)*210,w:180}); touch(); render(); });
+ const rcLive=()=>{ const r=document.querySelector('#main .read'); if(r) r.textContent=T.receipt(tb,p.research,p.title); };
+ document.querySelectorAll('[data-lnote]').forEach(i=>i.oninput=()=>{ const l=tb.links.find(x=>x.id===i.dataset.lnote); if(l){ l.note=i.value; touch(); rcLive(); } });
+ document.querySelectorAll('[data-ltype]').forEach(s=>s.onchange=()=>{ const l=tb.links.find(x=>x.id===s.dataset.ltype); if(l){ l.type=s.value; touch(); render(); } });
+ document.querySelectorAll('[data-ldel]').forEach(b=>b.onclick=()=>{ tb.links=tb.links.filter(x=>x.id!==b.dataset.ldel); touch(); render(); });
+ const rc=()=>T.receipt(tb,p.research,p.title);
+ const tc=$('tcopy'); if(tc) tc.onclick=async()=>{ try{ await navigator.clipboard.writeText(rc()); toast('Copied.'); }catch(e){ toast('This browser would not copy. Use SAVE AS TEXT.'); } };
+ const td=$('tdl'); if(td) td.onclick=()=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([rc()],{type:'text/plain'})); a.download=(p.title+' study table').replace(/[^\w ]+/g,'').trim()+'.txt'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); };
+ const tx=$('tdel'); if(tx) tx.onclick=()=>{ if(!confirm('Delete this table? The research stays on the shelf.')) return; p.tables=p.tables.filter(x=>x.id!==tb.id); VIEW.rt='list'; save(); render(); };
+ // move and size with a finger or a mouse
+ const board=$('tboard'); if(!board) return;
+ const scale=()=>({sx:1000/board.clientWidth, sy:700/board.clientHeight});
+ board.querySelectorAll('[data-titem]').forEach(el=>{
+  el.onpointerdown=e=>{
+   const it=tb.items.find(i=>i.id===el.dataset.titem); if(!it) return;
+   if(VIEW.tlinking){ e.preventDefault();
+    if(!VIEW.tlinkA){ VIEW.tlinkA=it.id; render(); return; }
+    if(VIEW.tlinkA!==it.id){ tb.links.push({id:rid('l'),a:VIEW.tlinkA,b:it.id,type:VIEW.tltype||'unknown',note:''}); touch(); toast('Line drawn: '+(VIEW.tltype||'unknown')+'. Say what it means below.'); }
+    VIEW.tlinkA=null; VIEW.tlinking=false; render(); return; }
+   const sizing=e.target.dataset&&e.target.dataset.tsize;
+   // what you touch comes to the front
+   const top=Math.max(0,...tb.items.map(i=>i.z||0)); if((it.z||0)<top||!it.z){ it.z=top+1; el.style.zIndex=2+it.z; }
+   e.preventDefault(); try{ el.setPointerCapture(e.pointerId); }catch(x){}
+   const s=scale(), x0=e.clientX, y0=e.clientY, ix=it.x, iy=it.y, iw=it.w; let moved=false;
+   el.onpointermove=m=>{ const dx=(m.clientX-x0)*s.sx, dy=(m.clientY-y0)*s.sy; if(Math.abs(dx)+Math.abs(dy)>4) moved=true;
+    if(sizing){ it.w=Math.max(80,Math.min(600,iw+dx)); el.style.width=(it.w/10)+'%'; }
+    else { it.x=Math.max(0,Math.min(1000-it.w,ix+dx)); it.y=Math.max(0,Math.min(660,iy+dy)); el.style.left=(it.x/10)+'%'; el.style.top=(it.y/7)+'%'; } };
+   el.onpointerup=()=>{ el.onpointermove=null; el.onpointerup=null; if(moved){ touch(); } else VIEW.tsel=VIEW.tsel===it.id?null:it.id; render(); };
+  };
+ });
 }
 function researchBox(p,key){
  const L=(p.research||[]).filter(r=>r.scene===key);
@@ -511,8 +594,10 @@ function wire(){
   document.querySelectorAll('[data-rnote]').forEach(t=>t.oninput=()=>{ const r=p.research.find(x=>x.id===t.dataset.rnote); if(r){ r.note=t.value; p.updated=Date.now(); save(); } });
   document.querySelectorAll('[data-rscene]').forEach(s=>s.onchange=()=>{ const r=p.research.find(x=>x.id===s.dataset.rscene); if(r){ r.scene=s.value; r.sceneHeading=s.value?s.options[s.selectedIndex].text.replace(/^SC \d+ /,''):''; save(); render(); } });
   document.querySelectorAll('[data-rwho]').forEach(s=>s.onchange=()=>{ const r=p.research.find(x=>x.id===s.dataset.rwho); if(r){ r.who=s.value; save(); render(); } });
-  document.querySelectorAll('[data-rdel]').forEach(b=>b.onclick=async()=>{ if(!confirm('Remove this from Research? It is only kept here.')) return; const id=b.dataset.rdel; p.research=p.research.filter(x=>x.id!==id); await delBlob(id); save(); render(); });
+  document.querySelectorAll('[data-rdel]').forEach(b=>b.onclick=async()=>{ if(!confirm('Remove this from Research? It is only kept here.')) return; const id=b.dataset.rdel; p.research=p.research.filter(x=>x.id!==id); (p.tables||[]).forEach(tb=>{ const gone=tb.items.filter(i=>i.rid===id).map(i=>i.id); tb.items=tb.items.filter(i=>i.rid!==id); tb.links=tb.links.filter(l=>!gone.includes(l.a)&&!gone.includes(l.b)); }); await delBlob(id); save(); render(); });
   document.querySelectorAll('[data-ropen]').forEach(a=>a.onclick=async e=>{ e.preventDefault(); const u=await urlOf(a.dataset.ropen); if(u) window.open(u,'_blank'); else toast('That file isn\'t on this device.'); });
+  document.querySelectorAll('[data-rt]').forEach(b=>b.onclick=()=>{ VIEW.rt=b.dataset.rt||null; VIEW.tsel=null; VIEW.tlinking=false; VIEW.tlinkA=null; render(); window.scrollTo(0,0); });
+  wireTable(p);
   if(VIEW.rfocus){ const el=$('r_'+VIEW.rfocus); VIEW.rfocus=null; if(el){ el.scrollIntoView({block:'center'}); el.style.outline='2px solid var(--gold)'; } }
  }
  if(p&&VIEW.scene!=null){
@@ -540,6 +625,7 @@ $('imp').addEventListener('change',async e=>{
    if(!DB.projects[p.id]){ DB.projects[p.id]=p; np++; continue; }
    const mine=DB.projects[p.id]; mine.cards=mine.cards||{};
    (p.threads||[]).forEach(x=>{ mine.threads=mine.threads||[]; const m=mine.threads.find(y=>y.id===x.id); if(!m){ mine.threads.push(x); nc++; return; } if(!m.payoff&&x.payoff){ m.payoff=x.payoff; nc++; } (x.learns||[]).forEach(l=>{ if(!(m.learns||[]).some(y=>T.norm(y.who)===T.norm(l.who))){ m.learns=(m.learns||[]).concat([l]); nc++; } }); });
+   (p.tables||[]).forEach(x=>{ mine.tables=mine.tables||[]; if(!mine.tables.some(y=>y.id===x.id)){ mine.tables.push(x); nc++; } });
    (p.research||[]).forEach(x=>{ mine.research=mine.research||[]; if(!mine.research.some(y=>y.id===x.id)){ mine.research.push(x); nc++; } });
    (p.bones||[]).forEach(b=>{ mine.bones=mine.bones||[]; if(!mine.bones.some(x=>x.id===b.id)){ mine.bones.push(b); nc++; } });
    Object.keys(p.cards||{}).forEach(k=>{ const a=mine.cards[k], b=p.cards[k];
