@@ -346,7 +346,7 @@ function vDay(){
 /* ---------- cut to length ---------- */
 const FILES={};   // the clip files picked this session, for the preview; only names and lengths are kept
 function cutOf(){ const c=cur(); c.cut=c.cut||{target:300,fps:'30',takes:{}}; return c.cut; }
-function pieces(){ const k=cutOf(); const out=[]; SCENES.forEach(sc=>(k.takes[sc.n]||[]).forEach(t=>{ if(t.use&&t.out>t.in) out.push({scene:sc.n,heading:sc.heading,name:t.name,in:t.in,out:t.out,id:t.id}); })); return out; }
+function pieces(){ const k=cutOf(); const out=[]; SCENES.forEach(sc=>(k.takes[sc.n]||[]).forEach(t=>{ if(t.use&&t.out>t.in){ const a=adrKept(t); out.push({scene:sc.n,heading:sc.heading,name:t.name,in:t.in,out:t.out,id:t.id,adr:a?{id:a.id,at:a.at+(a.nudge||0)/1000,under:t.adr.under}:null}); } })); return out; }
 function vCut(){
  const k=cutOf(), P=pieces(), len=F.cutLength(P), diff=k.target-len;
  let h='<p class="kicker">Cut to length</p><p class="dim" style="font-size:14px;margin:-2px 0 12px">Add the takes you shot, keep the one you want for each scene, set where it starts and ends. They line up in script order. Then hand the list to your editor.</p>';
@@ -361,7 +361,7 @@ function vCut(){
     +(f?'<video class="tprev" data-tvid="'+t.id+'" playsinline controls preload="metadata"></video>':'')
     +'<div class="row" style="margin-top:6px"><label class="faint" style="font-size:12px">In</label><input class="field" data-tin="'+sc.n+'|'+t.id+'" value="'+F.mmss(t.in)+'" style="flex:1 1 70px">'+(f?'<button class="btn sm" data-tsetin="'+sc.n+'|'+t.id+'">HERE</button>':'')
     +'<label class="faint" style="font-size:12px">Out</label><input class="field" data-tout="'+sc.n+'|'+t.id+'" value="'+F.mmss(t.out)+'" style="flex:1 1 70px">'+(f?'<button class="btn sm" data-tsetout="'+sc.n+'|'+t.id+'">HERE</button>':'')+'</div>'
-    +'<div class="faint" style="font-size:12px;margin-top:4px">'+F.mmss(Math.max(0,t.out-t.in))+' used'+(f?'':' · pick the file again to preview it')+'</div></div>'; }).join('');
+    +'<div class="row" style="justify-content:space-between;margin-top:4px"><span class="faint" style="font-size:12px">'+F.mmss(Math.max(0,t.out-t.in))+' used'+(f?'':' · pick the file again to preview it')+(adrKept(t)?' · <b class="adrtag">ADR</b> your line replaces it, original '+UNDERS.find(u=>u[1]===t.adr.under)[0].toLowerCase():'')+'</span>'+(f?'<button class="btn sm" data-adr="'+sc.n+'|'+t.id+'">ADR</button>':'')+'</div></div>'; }).join('');
   h+='<label class="btn sm block" style="margin-top:8px"><input type="file" accept="video/*,.mov,.mp4,.m4v" multiple class="hide" data-tadd="'+sc.n+'">+ ADD TAKES</label>'+briefBox(sc)+'</div>';
  });
  h+='<div class="card"><p class="kicker">Hand it to your editor</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">An EDL opens in DaVinci Resolve, Premiere and Avid. Point it at your footage and it relinks by file name. In and out count from the start of each file.</p>'
@@ -399,7 +399,83 @@ function footBox(){
  return h+'</div>'; }
 /* watch it, make it: the picked pieces in script order, from this session's files */
 let ROUGH=null; // {blob,url,mime,codec,ext,name,len}
-function seqOf(P){ return P.filter(p=>FILES[p.id]).map(p=>({url:URL.createObjectURL(FILES[p.id]),in:p.in,out:p.out,label:'Scene '+p.scene+' · '+p.name,scene:p.scene,name:p.name})); }
+async function seqOf(P){ const out=[]; for(const p of P.filter(p=>FILES[p.id])){ const it={url:URL.createObjectURL(FILES[p.id]),in:p.in,out:p.out,label:'Scene '+p.scene+' · '+p.name+(p.adr?' · ADR':''),scene:p.scene,name:p.name};
+  if(p.adr){ const b=await adrBuffer(p.adr.id); if(b) it.adr={buffer:b,at:p.adr.at,under:p.adr.under}; } out.push(it); } return out; }
+/* ---------- ADR: re-record a line over picture. Matching from ADR ALIGNMENT TOOL v1. Not lip sync: check it by eye. ---------- */
+const UNDERS=[['Full',1],['Low',0.3],['Off',0]];
+const ADRBUF={}, REFENV={};
+function adrOf(t){ t.adr=t.adr||{line:{in:t.in,out:t.out},under:0.3,takes:[],keep:null}; return t.adr; }
+function adrKept(t){ return t.adr&&t.adr.keep?(t.adr.takes||[]).find(x=>x.id===t.adr.keep)||null:null; }
+let ACX=null; const acx=()=>ACX||(ACX=new (window.AudioContext||window.webkitAudioContext)());
+async function decodeBlob(b){ const ab=await b.arrayBuffer(); return await new Promise((res,rej)=>{ const pr=acx().decodeAudioData(ab,res,rej); if(pr&&pr.then) pr.then(res,rej); }); }
+async function adrBuffer(id){ if(ADRBUF[id]) return ADRBUF[id]; const b=await getPhoto(id); if(!b) return null; try{ ADRBUF[id]=await decodeBlob(b); }catch(e){ return null; } return ADRBUF[id]; }
+async function refEnv(tid){ if(REFENV[tid]) return REFENV[tid]; const f=FILES[tid]; if(!f) return null; if(f.size>400*1048576) return {big:true};
+ try{ const ab=await decodeBlob(f); REFENV[tid]={env:F.envelope(F.mono(Array.from({length:ab.numberOfChannels},(_,i)=>ab.getChannelData(i))),ab.sampleRate)}; }catch(e){ REFENV[tid]={none:true}; } return REFENV[tid]; }
+async function lineUp(t,tk,blob,lo,hi){ let buf; try{ buf=await decodeBlob(blob); }catch(e){ toast('This browser could not read that recording.'); return false; }
+ ADRBUF[tk.id]=buf; tk.dur=Math.round(buf.duration*100)/100; const ref=await refEnv(t.id);
+ if(!ref||ref.big||ref.none){ tk.at=tk.at0; tk.match={none:true,why:ref&&ref.big?'big':'nosound'}; return true; }
+ const m=F.alignTake(ref.env,0,F.envelope(F.mono(Array.from({length:buf.numberOfChannels},(_,i)=>buf.getChannelData(i))),buf.sampleRate),lo,hi);
+ tk.at=m.r>0.3?m.at:tk.at0; tk.match=m; return true; }
+let ADROPEN=null; // {n,id}
+function adrTake(n,id){ return (cutOf().takes[n]||[]).find(x=>x.id===id); }
+function adrHtml(){ const {n,id}=ADROPEN, t=adrTake(n,id), a=adrOf(t);
+ const words=tk=>tk.match&&tk.match.why==='big'?'Clip too big to line up here. Placed where you recorded it; nudge by ear.':tk.match&&tk.match.why==='nosound'?'The clip has no sound to match. Placed where you recorded it; nudge by ear.':F.matchWords(tk.match);
+ return '<div class="mchead"><b>ADR · scene '+n+' · '+esc(t.name)+'</b><button class="btn sm" id="adrx">CLOSE</button></div>'
+  +'<div class="adrbody"><video id="adrvid" playsinline controls preload="auto"></video><div id="adrcount"></div>'
+  +'<p class="faint" style="font-size:13px;margin:6px 0">Wear headphones, so the scene and the count-in stay out of your take. It plays 2 seconds before your line, counts you in, and stops by itself.</p>'
+  +'<div class="row"><label class="faint" style="font-size:12px">Line in</label><input class="field" id="adrin" value="'+F.mmss(a.line.in)+'" style="flex:1 1 70px"><button class="btn sm" id="adrinh">HERE</button><label class="faint" style="font-size:12px">out</label><input class="field" id="adrout" value="'+F.mmss(a.line.out)+'" style="flex:1 1 70px"><button class="btn sm" id="adrouth">HERE</button></div>'
+  +'<div class="row" style="margin-top:8px"><button class="btn pri" id="adrrec">RECORD THE LINE</button><label class="btn"><input type="file" accept="audio/*,video/*" class="hide" id="adrfile">USE A RECORDING</label><button class="btn" id="adrorig">PLAY ORIGINAL</button></div>'
+  +'<div class="row" style="margin-top:8px"><label class="faint" style="font-size:13px">Original sound under your line</label><select class="field" id="adrunder" style="flex:0 1 110px">'+UNDERS.map(u=>'<option value="'+u[1]+'"'+(a.under===u[1]?' selected':'')+'>'+u[0]+'</option>').join('')+'</select></div>'
+  +(a.takes.length?'<p class="kicker" style="margin-top:14px">Takes</p>':'')
+  +a.takes.map((tk,i)=>'<div class="adrtk'+(a.keep===tk.id?' on':'')+'"><div class="row" style="justify-content:space-between"><b>Take '+(i+1)+'</b><span class="faint" style="font-size:12px">'+(tk.how==='mic'?'recorded':'from a file')+' · '+F.mmss(tk.dur||0)+' · starts at '+F.mmss(Math.max(0,tk.at+(tk.nudge||0)/1000))+'</span></div>'
+    +'<div class="adrw">'+esc(words(tk))+'</div>'
+    +'<div class="row" style="margin-top:6px"><button class="btn sm" data-adrplay="'+tk.id+'">PLAY OVER PICTURE</button><button class="btn sm" data-adrn="'+tk.id+'|-10">−10 ms</button><span class="mono" style="font-size:13px">'+((tk.nudge||0)>0?'+':'')+(tk.nudge||0)+' ms</span><button class="btn sm" data-adrn="'+tk.id+'|10">+10 ms</button>'
+    +(a.keep===tk.id?'<span class="state on">KEPT</span>':'<button class="btn sm pri" data-adrkeep="'+tk.id+'">KEEP</button>')+'<button class="x" data-adrdel="'+tk.id+'" aria-label="Delete take">×</button></div></div>').join('')
+  +(adrKept(t)?'<div class="row" style="margin-top:10px"><button class="btn" id="adrwav">SAVE THE LINE FOR YOUR EDITOR (.WAV)</button><button class="btn ghost" id="adrnone">USE THE ORIGINAL SOUND</button></div><p class="faint" style="font-size:12px">The .wav starts at the start of the clip, so it drops in at the clip\'s first frame. Silence until your line.</p>':'')
+  +'<p class="faint" style="font-size:12px;margin-top:10px">It lines your take up by matching the loudness shape of the two. That is not lip sync. Watch it and nudge.</p></div>'; }
+function openAdr(n,id){ ADROPEN={n:+n,id}; let o=$('adr'); if(!o){ o=document.createElement('div'); o.id='adr'; o.className='mc'; document.body.appendChild(o); document.body.classList.add('mcopen'); } o.innerHTML=adrHtml(); wireAdr(); }
+function closeAdr(){ adrStopRec(); const o=$('adr'); if(o) o.remove(); document.body.classList.remove('mcopen'); ADROPEN=null; render(); }
+let ADRREC=null;
+function adrStopRec(){ if(!ADRREC) return; const r=ADRREC; ADRREC=null; clearInterval(r.tick); try{ r.v.pause(); }catch(e){} try{ if(r.mr.state!=='inactive') r.mr.stop(); }catch(e){} }
+function beep(at){ try{ const c=acx(), o=c.createOscillator(), g=c.createGain(); o.frequency.value=1000; g.gain.value=0.25; o.connect(g); g.connect(c.destination); o.start(c.currentTime+at); o.stop(c.currentTime+at+0.08); }catch(e){} }
+function wireAdr(){ const {n,id}=ADROPEN, t=adrTake(n,id), a=adrOf(t), v=$('adrvid');
+ v.src=URL.createObjectURL(FILES[id]); v.addEventListener('loadedmetadata',()=>{ try{ v.currentTime=a.line.in; }catch(e){} },{once:true});
+ $('adrx').onclick=closeAdr;
+ const setLine=(k,val)=>{ const x=F.secs(val); if(x==null) return; a.line[k]=Math.max(0,Math.min(t.dur||x,x)); if(a.line.out<=a.line.in) toast('Out is before in. Check the line.'); save(); };
+ $('adrin').onchange=e=>setLine('in',e.target.value); $('adrout').onchange=e=>setLine('out',e.target.value);
+ $('adrinh').onclick=()=>{ a.line.in=Math.round(v.currentTime*100)/100; save(); openAdr(n,id); }; $('adrouth').onclick=()=>{ a.line.out=Math.round(v.currentTime*100)/100; save(); openAdr(n,id); };
+ $('adrunder').onchange=e=>{ a.under=+e.target.value; save(); };
+ $('adrorig').onclick=()=>{ v.currentTime=Math.max(0,a.line.in-0.5); v.play(); const stop=()=>{ if(v.currentTime>=a.line.out+0.5){ v.pause(); v.removeEventListener('timeupdate',stop); } }; v.addEventListener('timeupdate',stop); };
+ $('adrrec').onclick=async()=>{ if(ADRREC){ adrStopRec(); return; }
+  if(!(a.line.out>a.line.in)){ toast('Set the line in and out first.'); return; }
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaRecorder){ toast('This browser will not record here. Use a recording instead.'); return; }
+  let st; try{ st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}}); }catch(e){ toast(e&&e.name==='NotAllowedError'?'The mic is off for this page. Turn it on in your browser settings, or use a recording.':'No mic found. Use a recording instead.'); return; }
+  const pre=Math.min(2,a.line.in), chunks=[]; let mime=['audio/webm;codecs=opus','audio/mp4','audio/webm'].find(m=>{ try{ return MediaRecorder.isTypeSupported(m); }catch(e){ return false; } })||'';
+  const mr=new MediaRecorder(st,mime?{mimeType:mime}:undefined); mr.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
+  const btn=$('adrrec'); btn.textContent='STOP'; const cnt=$('adrcount');
+  v.currentTime=a.line.in-pre; await new Promise(r=>v.addEventListener('seeked',r,{once:true}));
+  let at0=null; mr.onstart=()=>{ at0=v.currentTime; };
+  mr.onstop=async()=>{ st.getTracks().forEach(x=>x.stop()); cnt.textContent=''; const blob=new Blob(chunks,{type:mr.mimeType||'audio/webm'}); if(!blob.size){ toast('Nothing was recorded.'); openAdr(n,id); return; }
+   const tk={id:rid('adr'),how:'mic',at0:at0==null?a.line.in-pre:at0,nudge:0,when:Date.now()};
+   if(!(await putPhoto(tk.id,blob))){ toast('This phone would not keep the recording.'); return; }
+   if(await lineUp(t,tk,blob,tk.at0-1,tk.at0+1)){ a.takes.push(tk); if(!a.keep) a.keep=tk.id; save(); } if(ADROPEN) openAdr(n,id); };
+  mr.start(250); await v.play();
+  [1.5,1,0.5].forEach(b=>{ if(pre>=b) beep(pre-b); });
+  ADRREC={mr,v,tick:setInterval(()=>{ const left=a.line.in-v.currentTime; cnt.textContent=left>0.05?Math.ceil(left*2)/2+'':'LINE'; if(v.currentTime>=a.line.out+0.5||v.ended) adrStopRec(); },100)};
+ };
+ $('adrfile').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return; const tk={id:rid('adr'),how:'file',name:f.name,at0:a.line.in,nudge:0,when:Date.now()};
+  if(!(await putPhoto(tk.id,f))){ toast('This phone would not keep the recording.'); return; }
+  if(await lineUp(t,tk,f,Math.max(-2,a.line.in-2),a.line.in+2)){ a.takes.push(tk); if(!a.keep) a.keep=tk.id; save(); } openAdr(n,id); };
+ document.querySelectorAll('[data-adrn]').forEach(b=>b.onclick=()=>{ const [tid,d]=b.dataset.adrn.split('|'); const tk=a.takes.find(x=>x.id===tid); if(!tk) return; tk.nudge=(tk.nudge||0)+(+d); save(); openAdr(n,id); });
+ document.querySelectorAll('[data-adrkeep]').forEach(b=>b.onclick=()=>{ a.keep=b.dataset.adrkeep; save(); openAdr(n,id); });
+ document.querySelectorAll('[data-adrdel]').forEach(b=>b.onclick=()=>{ const tid=b.dataset.adrdel; a.takes=a.takes.filter(x=>x.id!==tid); if(a.keep===tid) a.keep=null; delPhoto(tid); delete ADRBUF[tid]; save(); openAdr(n,id); });
+ document.querySelectorAll('[data-adrplay]').forEach(b=>b.onclick=async()=>{ const tk=a.takes.find(x=>x.id===b.dataset.adrplay); const buf=tk&&await adrBuffer(tk.id); if(!buf) return;
+   const u=URL.createObjectURL(FILES[id]); try{ await FilmPlay.play([{url:u,in:Math.max(0,a.line.in-0.5),out:Math.min(t.dur||1e9,a.line.out+0.5),label:'Take '+(a.takes.indexOf(tk)+1)+' over picture',adr:{buffer:buf,at:tk.at+(tk.nudge||0)/1000,under:a.under}}]); }catch(e){ toast('Stopped: '+e.message+'.'); } URL.revokeObjectURL(u); });
+ const nw=$('adrnone'); if(nw) nw.onclick=()=>{ a.keep=null; save(); openAdr(n,id); };
+ const wv=$('adrwav'); if(wv) wv.onclick=async()=>{ const tk=adrKept(t), buf=tk&&await adrBuffer(tk.id); if(!buf) return;
+   const x=F.placeAt(F.mono(Array.from({length:buf.numberOfChannels},(_,i)=>buf.getChannelData(i))),buf.sampleRate,tk.at+(tk.nudge||0)/1000);
+   dl(String(t.name).replace(/\.[^.]+$/,'')+' ADR line.wav',F.wav(x,buf.sampleRate),'audio/wav'); };
+}
 function watchBox(P){
  const have=P.filter(p=>FILES[p.id]), miss=P.filter(p=>!FILES[p.id]), len=F.cutLength(have);
  let h='<div class="watch"><p class="kicker" style="margin-top:14px">Watch it first</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">Your picked pieces, in script order, back to back. MAKE THE ROUGH CUT turns them into one video file on this device, no editing app needed.</p>';
@@ -438,8 +514,8 @@ function wireCut(){
  const name=()=>String(cur().file||'cut').replace(/\.[a-z]+$/i,'').replace(/[^\w ]+/g,' ').trim()||'cut';
  const e=$('cedl'); if(e) e.onclick=()=>dl(name()+' cut.edl',F.edl(name(),pieces(),k.fps),'text/plain');
  const cv=$('ccsv'); if(cv) cv.onclick=()=>dl(name()+' cut.csv',F.cutCsv(pieces()),'text/csv');
- const pl=$('cplay'); if(pl) pl.onclick=async()=>{ const q=seqOf(pieces()); if(!q.length) return; try{ await FilmPlay.play(q); }catch(e){ toast('Stopped: '+e.message+'.'); } q.forEach(x=>URL.revokeObjectURL(x.url)); };
- const rc=$('crough'); if(rc) rc.onclick=async()=>{ const P=pieces(), q=seqOf(P); if(!q.length) return; let r=null;
+ const pl=$('cplay'); if(pl) pl.onclick=async()=>{ const q=await seqOf(pieces()); if(!q.length) return; try{ await FilmPlay.play(q); }catch(e){ toast('Stopped: '+e.message+'.'); } q.forEach(x=>URL.revokeObjectURL(x.url)); };
+ const rc=$('crough'); if(rc) rc.onclick=async()=>{ const P=pieces(), q=await seqOf(P); if(!q.length) return; let r=null;
    try{ r=await FilmPlay.render(q); }catch(e){ toast('Could not make the file: '+e.message+'.'); }
    q.forEach(x=>URL.revokeObjectURL(x.url)); if(!r){ return; }
    if(ROUGH) URL.revokeObjectURL(ROUGH.url);
@@ -447,6 +523,7 @@ function wireCut(){
    render(); const o=$('roughvid'); if(o) o.scrollIntoView({block:'center'}); };
  const sr=$('csaverough'); if(sr) sr.onclick=async()=>{ if(!ROUGH) return; try{ const f=new File([ROUGH.blob],ROUGH.name,{type:ROUGH.blob.type}); if(/Android|iPhone|iPad/i.test(navigator.userAgent)&&navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:ROUGH.name}); return; } }catch(e){ if(e&&e.name==='AbortError') return; }
    const a=document.createElement('a'); a.href=ROUGH.url; a.download=ROUGH.name; document.body.appendChild(a); a.click(); a.remove(); };
+ document.querySelectorAll('[data-adr]').forEach(b=>b.onclick=()=>{ const [n,id]=b.dataset.adr.split('|'); openAdr(n,id); });
  const cb=$('cbrief'); if(cb) cb.onclick=()=>dl(name()+' editor brief.txt',F.brief(name(),SCENES.map(sc=>({n:sc.n,heading:sc.heading,brief:(k.brief||{})[sc.n]||{},takes:k.takes[sc.n]||[],shots:doneOf(sc)})),k.fps),'text/plain');
  document.querySelectorAll('[data-tmark]').forEach(b=>b.onchange=()=>{ const r=findT(b.dataset.tmark); if(!r.t) return; if(b.value) r.t.mark=b.value; else delete r.t.mark; if(b.value==='never') r.t.use=false; save(); render(); });
  document.querySelectorAll('[data-brief]').forEach(i=>{ const ev=i.tagName==='SELECT'?'onchange':'oninput'; i[ev]=()=>{ const [n,key]=i.dataset.brief.split('|'); const b=briefOf(+n); if(i.value) b[key]=i.value; else delete b[key]; save(); if(key==='free') render(); }; });
@@ -505,7 +582,7 @@ function wire(){
  if(TAB==='cut') wireCut();
  fillPhotos();
 }
-document.addEventListener('visibilitychange',()=>{ if(document.hidden&&MC.stream) mcClose(); });
+document.addEventListener('visibilitychange',()=>{ if(document.hidden&&MC.stream) mcClose(); if(document.hidden&&ADRREC) adrStopRec(); });
 document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{ TAB=b.dataset.t; if(TAB!=='scenes') OPEN=null; OEDIT=null; render(); });
 $('file').addEventListener('change',e=>{ const f=e.target.files[0]; e.target.value=''; if(f) readFile(f); });
 window.addEventListener('storage',e=>{ if(e.key&&/shelf/.test(e.key)){ const p=SH&&SH.pending(TOOL); if(p){ adopt(); render(); } } });

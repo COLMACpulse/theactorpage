@@ -124,4 +124,26 @@ ok('brief: must keep, use with times, backup, never use', /Must keep:\n   - Cal 
 ok('brief: shot list gap shows as missing; full list does not', /Shot list: 3 of 5 shots marked done/.test(BR)&&!/4 of 4/.test(BR));
 ok('brief: empty scene left out; zero-length take is not a pick', !/SCENE 2\./.test(BR)&&/SCENE 3\.[^\n]*\n  Freedom: not set\. Ask the director\.\n  Use: no take picked yet\./.test(BR));
 ok('brief: ask-me-first gathered at the end; no scores or percents', /ASK ME FIRST, ALL SCENES\n - Scene 1: You want to drop the wave/.test(BR)&&!/%|score/i.test(BR));
+// ---------- ADR ----------
+{
+ const sr=16000;
+ const line=(f0,syl,gap,jit,seed)=>{ let s=seed; const rnd=()=>{ s=(s*16807)%2147483647; return s/2147483647-0.5; }; const parts=[];
+  syl.forEach((d0,k)=>{ const d=d0*(1+jit*rnd()), n=Math.round(d*sr), a=new Float32Array(n); for(let i=0;i<n;i++){ const t=i/sr; let v=0; for(let h=1;h<6;h++) v+=Math.sin(2*Math.PI*h*f0*t)/h; a[i]=0.25*v*Math.min(1,t/0.02,(d-t)/0.02); } parts.push(a,new Float32Array(Math.round(gap[k%gap.length]*(1+jit*rnd())*sr))); });
+  let L=0; parts.forEach(p=>L+=p.length); const o=new Float32Array(L); let q=0; parts.forEach(p=>{o.set(p,q);q+=p.length;}); return o; };
+ const syl=[0.18,0.25,0.12,0.3,0.2,0.15,0.35], gap=[0.08,0.15,0.06,0.25];
+ const orig=line(120,syl,gap,0,1), scene=new Float32Array(8*sr); scene.set(orig,2*sr); for(let i=0;i<scene.length;i++) scene[i]+=0.003*Math.sin(i*1.7);
+ const mk=j=>{ const l=line(135,syl,gap,j,4), t=new Float32Array(Math.round(0.5*sr)+l.length); t.set(l,Math.round(0.5*sr)); return t; };
+ const ref=F.envelope(scene,sr);
+ const r0=F.alignTake(ref,0,F.envelope(mk(0),sr),0.5,3.5), r15=F.alignTake(ref,0,F.envelope(mk(0.15),sr),0.5,3.5), r35=F.alignTake(ref,0,F.envelope(mk(0.35),sr),0.5,3.5);
+ console.log('ADR at:',r0,r15,r35);
+ ok('ADR: same timing, other pitch, 0.5 s lead-in: take starts at 1.50 s', Math.abs(r0.at-1.5)<=0.011&&r0.r>0.9, r0);
+ ok('ADR: timing loose by 15% / 35%: still within 60 ms', Math.abs(r15.at-1.5)<=0.06&&Math.abs(r35.at-1.5)<=0.07, [r15,r35]);
+ ok('ADR: words follow the match', /closely/.test(F.matchWords(r0))&&/nearly silent/.test(F.matchWords(F.alignTake(ref,0,new Float32Array(200),0,2)))&&/runs past/.test(F.matchWords(F.alignTake(ref,0,F.envelope(new Float32Array(20*sr).map((_,i)=>Math.sin(i)),sr),0,1))));
+ const wrong=new Float32Array(3*sr); for(let i=0;i<wrong.length;i++) wrong[i]=0.2*Math.sin(2*Math.PI*200*i/sr)*(i<sr*2.5?1:0);
+ const rw=F.alignTake(ref,0,F.envelope(wrong,sr),0.5,3.5); ok('ADR: one long held note against the line does not "line up closely"', rw.r<0.8&&!/closely/.test(F.matchWords(rw)), rw);
+ { const pl=F.placeAt(new Float32Array([0.5,-0.5,1]),10,0.2); ok('ADR: place a take at 0.2 s = 2 samples of silence first', pl.length===5&&pl[0]===0&&pl[1]===0&&pl[2]===0.5&&pl[4]===1, Array.from(pl));
+   const neg=F.placeAt(new Float32Array([1,2,3]),10,-0.1); ok('ADR: a take starting before the clip is trimmed, not shifted', neg.length===2&&neg[0]===2, Array.from(neg));
+   const wv=new DataView(F.wav(new Float32Array([0,1,-1]),48000)); ok('WAV: header, 48 kHz, 16-bit mono, samples', wv.getUint32(24,true)===48000&&wv.getUint16(34,true)===16&&wv.getUint16(22,true)===1&&wv.getInt16(46,true)===32767&&wv.getInt16(48,true)===-32768); }
+ ok('ADR: no score words', !/score|%/.test([r0,r15,rw].map(F.matchWords).join(' ')));
+}
 console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail?1:0);

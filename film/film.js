@@ -375,6 +375,40 @@ F.brief=function(title,scenes,fps){
  return L.join('\n');
 };
 
+/* ---------- ADR: put your re-recorded line where the original was ----------
+   From ADR ALIGNMENT TOOL v1 (matching the loudness shape of the two). Not lip sync: check it by eye.
+   samples: Float32Array (mono), sr. Envelope = loudness every 10 ms. */
+F.HOP=0.01;
+F.envelope=function(x,sr){ const hop=Math.max(1,Math.round(sr*F.HOP)), n=Math.floor(x.length/hop), e=new Float32Array(n);
+ for(let i=0;i<n;i++){ let s=0; const o=i*hop; for(let j=0;j<hop;j++){ const v=x[o+j]; s+=v*v; } e[i]=Math.sqrt(s/hop); } return e; };
+F.mono=function(chans){ const n=chans[0].length, m=new Float32Array(n); chans.forEach(c=>{ for(let i=0;i<n;i++) m[i]+=c[i]/chans.length; }); return m; };
+/* ref: envelope of the clip's sound from clip time refStart; take: envelope of your take.
+   Search take start times (clip seconds) from lo to hi. Returns {at, r} : where the take starts in the clip, and how well the shapes match (-1..1). */
+F.alignTake=function(ref,refStart,take,lo,hi){
+ let best={at:lo,r:-2}; const step=F.HOP;
+ // only the voiced part of the take carries the shape; trim quiet ends so silence doesn't decide
+ let mx=0; for(const v of take) mx=Math.max(mx,v); const th=mx*0.08; let a=0,b=take.length-1; while(a<b&&take[a]<th) a++; while(b>a&&take[b]<th) b--;
+ const T=take.subarray(a,b+1), m=T.length; if(m<5||mx<1e-5) return {at:lo,r:0,quiet:true};
+ let mt=0; for(const v of T) mt+=v; mt/=m; let nt=0; for(const v of T) nt+=(v-mt)*(v-mt); nt=Math.sqrt(nt);
+ for(let at=lo; at<=hi+1e-9; at+=step){
+  const o=Math.round((at-refStart)/step)+a; if(o<0||o+m>ref.length) continue;
+  let mr=0; for(let i=0;i<m;i++) mr+=ref[o+i]; mr/=m; let num=0,nr=0; for(let i=0;i<m;i++){ const d=ref[o+i]-mr; num+=d*(T[i]-mt); nr+=d*d; }
+  const r=num/(Math.sqrt(nr)*nt+1e-12); if(r>best.r) best={at:+at.toFixed(3),r};
+ }
+ if(best.r<-1) return {at:lo,r:0,none:true};
+ best.r=+best.r.toFixed(3); return best;
+};
+F.matchWords=function(m){ if(!m) return 'Not lined up yet.'; if(m.quiet) return 'The take is nearly silent. Nothing to line up.'; if(m.none) return 'The take runs past the scene sound. Placed at the start of the line; nudge by ear.';
+ return m.r>=0.8?'Lines up closely with the original. Check the lips.':m.r>=0.5?'Lines up roughly. Watch the lips and nudge.':'The shapes don\'t match well (different words or timing?). Nudge by ear.'; };
+
+/* 16-bit mono WAV from samples. For the editor: your line, placed from the clip's start (silence before it). */
+F.wav=function(x,sr){ const n=x.length, b=new ArrayBuffer(44+n*2), v=new DataView(b), w=(o,str)=>{ for(let i=0;i<str.length;i++) v.setUint8(o+i,str.charCodeAt(i)); };
+ w(0,'RIFF'); v.setUint32(4,36+n*2,true); w(8,'WAVE'); w(12,'fmt '); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true); v.setUint32(24,sr,true); v.setUint32(28,sr*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true); w(36,'data'); v.setUint32(40,n*2,true);
+ for(let i=0;i<n;i++){ const c=Math.max(-1,Math.min(1,x[i])); v.setInt16(44+i*2,c<0?c*32768:c*32767,true); } return b; };
+/* place a take at clip time `at` (seconds, may be negative = starts before the clip): returns samples from clip time 0 */
+F.placeAt=function(take,sr,at){ const off=Math.round(at*sr); const n=Math.max(0,off+take.length), out=new Float32Array(n);
+ for(let i=0;i<take.length;i++){ const j=off+i; if(j>=0) out[j]=take[i]; } return out; };
+
 if(typeof module!=='undefined') module.exports=F;
 g.FilmOS=F;
 })(typeof window!=='undefined'?window:globalThis);

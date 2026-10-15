@@ -1,6 +1,6 @@
 /* STORY STUDIO: play the cut, and make it into one video file, in this browser.
    The sequencer is ARCHBOOK's (proven there: order, cuts within a frame, sound in sync), without the name cards.
-   seq: [{url, in, out, label}] in seconds. Nothing leaves the device. */
+   seq: [{url, in, out, label, adr?:{buffer, at, under}}] in seconds; adr = your re-recorded line starting at clip time `at`, original sound at `under` (0..1). Nothing leaves the device. */
 (function (g) {
   'use strict';
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -15,7 +15,8 @@
     const list = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
     return list.find(t => { try { return MediaRecorder.isTypeSupported(t); } catch (e) { return false; } }) || '';
   }
-  async function runSequence(seq, opts, video) {
+  async function runSequence(seq, opts, video, kit) {
+    kit = kit || {};
     const cv = opts.canvas, ctx = cv.getContext('2d'), W = cv.width, H = cv.height;
     let live = false, alive = true;
     const draw = () => { if (!alive) return; if (live && video.readyState >= 2) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); fit(ctx, video, video.videoWidth, video.videoHeight, W, H); } requestAnimationFrame(draw); };
@@ -41,10 +42,14 @@
         video.currentTime = it.in; await once(video, 'seeked', 10000);
         live = true; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); fit(ctx, video, video.videoWidth, video.videoHeight, W, H);
         await sleep(30); // let the in-frame land before recording resumes
+        let adr = null;
+        if (kit.vg) kit.vg.gain.value = it.adr ? it.adr.under : 1;
         resume();
         await video.play();
+        if (it.adr && kit.ac) { try { adr = kit.ac.createBufferSource(); adr.buffer = it.adr.buffer; const ag = kit.ac.createGain(); adr.connect(ag); kit.outs.forEach(o => ag.connect(o));
+          const from = video.currentTime - it.adr.at; if (from >= 0) adr.start(0, from); else adr.start(kit.ac.currentTime - from); } catch (e) { adr = null; } }
         await new Promise(res => { const chk = () => { if (opts.stop.v || video.ended || video.currentTime >= it.out - 0.012) return res(); requestAnimationFrame(chk); }; requestAnimationFrame(chk); });
-        video.pause(); pause();
+        video.pause(); pause(); if (adr) { try { adr.stop(); } catch (e) { } }
       }
     } finally { alive = false; }
     if (!rec) return null;
@@ -56,11 +61,11 @@
   // one video element + one audio graph per run, made inside the tap so phones allow sound
   function mediaKit(record, audible) {
     const video = document.createElement('video'); video.playsInline = true; video.preload = 'auto';
-    let ac = null, dest = null;
-    try { const AC = window.AudioContext || window.webkitAudioContext; ac = new AC(); ac.resume(); const src = ac.createMediaElementSource(video);
-      if (record) { dest = ac.createMediaStreamDestination(); src.connect(dest); } if (audible) src.connect(ac.destination); }
-    catch (e) { ac = null; video.muted = !audible; }
-    return { video, ac, dest };
+    let ac = null, dest = null, vg = null; const outs = [];
+    try { const AC = window.AudioContext || window.webkitAudioContext; ac = new AC(); ac.resume(); const src = ac.createMediaElementSource(video); vg = ac.createGain(); src.connect(vg);
+      if (record) { dest = ac.createMediaStreamDestination(); outs.push(dest); } if (audible) outs.push(ac.destination); outs.forEach(o => vg.connect(o)); }
+    catch (e) { ac = null; vg = null; video.muted = !audible; }
+    return { video, ac, dest, vg, outs };
   }
   function shell(text, btn) {
     const box = document.createElement('div'); box.className = 'player';
@@ -73,7 +78,7 @@
     const box = shell('Playing the cut', 'STOP'), cv = document.createElement('canvas'); cv.width = 1280; cv.height = 720; box.firstChild.appendChild(cv);
     const stop = { v: false }; box.querySelector('#pstop').onclick = () => { stop.v = true; };
     let err = null;
-    try { await runSequence(seq, { canvas: cv, stop, onStep: (i, n, it) => { const s = box.querySelector('#pstep'); if (s) s.textContent = (i + 1) + ' of ' + n + ' · ' + it.label; } }, kit.video); }
+    try { await runSequence(seq, { canvas: cv, stop, onStep: (i, n, it) => { const s = box.querySelector('#pstep'); if (s) s.textContent = (i + 1) + ' of ' + n + ' · ' + it.label; } }, kit.video, kit); }
     catch (e) { err = e; }
     kit.video.pause(); kit.video.removeAttribute('src'); try { kit.ac && kit.ac.close(); } catch (e) { }
     box.remove(); if (err) throw err; return !stop.v;
@@ -92,7 +97,7 @@
     let wl = null; try { wl = await navigator.wakeLock.request('screen'); } catch (e) { }
     const stop = { v: false }; box.querySelector('#pstop').onclick = () => { stop.v = true; };
     let out = null, err = null;
-    try { out = await runSequence(seq, { canvas: cv, record: true, dest: kit.dest, stop, onStep: (i, n, it) => { const s = box.querySelector('#pstep'); if (s) s.textContent = 'Making ' + (i + 1) + ' of ' + n + ': ' + it.label + '. Keep this screen open.'; } }, kit.video); }
+    try { out = await runSequence(seq, { canvas: cv, record: true, dest: kit.dest, stop, onStep: (i, n, it) => { const s = box.querySelector('#pstep'); if (s) s.textContent = 'Making ' + (i + 1) + ' of ' + n + ': ' + it.label + '. Keep this screen open.'; } }, kit.video, kit); }
     catch (e) { err = e; }
     try { wl && wl.release(); } catch (e) { }
     kit.video.pause(); kit.video.removeAttribute('src'); try { kit.ac && kit.ac.close(); } catch (e) { }
@@ -101,5 +106,5 @@
     if (!out || stop.v || !out.blob.size) return null;
     return { blob: out.blob, mime: out.mime, codec: await sniffCodec(out.blob).catch(() => ''), ext: /mp4/.test(out.mime) ? 'mp4' : 'webm' };
   }
-  g.FilmPlay = { play, render, mimePick };
+  g.FilmPlay = { play, render, mimePick, mediaKit };
 })(window);
