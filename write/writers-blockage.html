@@ -167,6 +167,7 @@ table.rep td.num{text-align:right;font-variant-numeric:tabular-nums;color:#dfe6e
     <button id="bD" title="Pair this speech with the one above, side by side">Side&nbsp;by&nbsp;side</button>
   </span>
   <span class="grow"></span>
+  <button id="btnVoice" title="Write by talking (phone or computer)">Voice</button>
   <button id="btnProjects">Scripts</button>
   <button id="btnNew">New</button>
   <button id="btnOpen">Open</button>
@@ -396,6 +397,8 @@ table.rep td.num{text-align:right;font-variant-numeric:tabular-nums;color:#dfe6e
   <footer><button class="primary" data-close>Close</button></footer>
 </dialog>
 
+<script src="voice-engine.js"></script>
+<script src="voice.js" defer></script>
 <script>
 "use strict";
 
@@ -3573,6 +3576,15 @@ const panelApi = {
   },
   ledger: () => (doc.ledger || []).slice(),
   record: entry => recordLedger(entry || {}),
+  // one step back through the same undo the editor uses
+  undo: () => { undo(); return true; },
+  // a thought for later: into Ideas, never into the script
+  addIdea(text){
+    const v = String(text || "").trim(); if(!v) return false;
+    doc.ideas = (doc.ideas ? doc.ideas.replace(/\s+$/, "") + "\n" : "") + v;
+    const box = $("ideasBox"); if(box) box.value = doc.ideas;
+    markDirty(); return true;
+  },
 
   toast: msg => toast(String(msg)),
   onChange(fn){ if(typeof fn === "function") WB._watchers.push(fn); },
