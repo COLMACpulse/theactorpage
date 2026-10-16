@@ -117,6 +117,19 @@
   function reference(c) { const t = (c.takes || []).filter(x => x.kind === 'voice' || x.kind === 'return'); return t.find(x => x.id === c.refId) || t.find(x => x.kind === 'voice') || null; }
   function daysSince(iso, now) { return Math.floor(((now ? new Date(now) : new Date()) - new Date(iso)) / 86400000); }
 
+
+  // ---------------------------------------------------------------- the body and the choices; how long it took to get back
+  const BODY = [['posture', 'Posture'], ['weight', 'Weight'], ['eyes', 'Eyes'], ['hands', 'Hands'], ['trigger', 'What sets them off'], ['plays', 'What they play'], ['neverDo', 'What they never do']];
+  function body(c) { return BODY.filter(([k]) => String((c && c[k]) || '').trim()).map(([k, l]) => ({ k, label: l, text: String(c[k]).trim() })); }
+  function clock(secs) { secs = Math.max(0, Math.round(secs || 0)); const m = Math.floor(secs / 60), r = secs % 60; return m ? m + ' min' + (r ? ' ' + r + ' s' : '') : r + ' s'; }
+  // newest first: "Back in 1 min 40 s, cold, 3 days ago". Real seconds, nothing graded.
+  function backWords(backs, now) {
+    return (backs || []).slice().sort((a, b) => String(b.at).localeCompare(String(a.at))).map(b => {
+      const d = daysSince(b.at, now);
+      return 'Back in ' + clock(b.secs) + (b.cold ? ', cold' : '') + ', ' + (d <= 0 ? 'today' : d === 1 ? 'yesterday' : d + ' days ago');
+    });
+  }
+
   // ---------------------------------------------------------------- ZIP (store only) write + read
   const CRC = (function () { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c >>> 0; } return t; })();
   function crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = (c >>> 8) ^ CRC[(c ^ b[i]) & 0xFF]; return (c ^ 0xFFFFFFFF) >>> 0; }
@@ -184,7 +197,7 @@
     return out.sort((x, y) => (x.st - y.st) || (x.time - y.time));
   }
 
-  const api = { DEFAULT_LINES, linesKey, linesTake, vsMe, closePairs, analyse, compare, noteName, STATES, have, autoState, missing, reference, daysSince, makeZip, readZip, crc32, enc, dec, yin, toMono16k };
+  const api = { DEFAULT_LINES, linesKey, linesTake, vsMe, closePairs, analyse, compare, noteName, STATES, have, autoState, missing, reference, daysSince, BODY, body, clock, backWords, makeZip, readZip, crc32, enc, dec, yin, toMono16k };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CPSEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);

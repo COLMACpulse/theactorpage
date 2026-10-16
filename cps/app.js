@@ -1,12 +1,12 @@
 /*
-  CPS v0.2 · Character Preservation
+  CPS v0.4 · Character Preservation
   You find the character. This keeps it: your voice, your look, the line that drops you back in.
   Come back weeks later, hear yourself, record again, see what moved.
   No computer voice. The actor is the machine. Vanilla JS, offline, no account.
 */
 (function () {
   'use strict';
-  const VERSION = '0.3.0';
+  const VERSION = '0.4.0';
   const SCHEMA = 'ACT.CPS/0.2';
   const E = window.CPSEngine;
   const MAX_REC = 180; // seconds
@@ -38,8 +38,8 @@
   async function peekAll(db, store) { if (!db || !db.objectStoreNames.contains(store)) return []; return new Promise(res => { try { const r = db.transaction(store, 'readonly').objectStore(store).getAll(); r.onsuccess = () => res(r.result || []); r.onerror = () => res([]); } catch (e) { res([]); } }); }
 
   const emptyLib = () => ({ schema: SCHEMA, app: 'CPS ' + VERSION, created: now(), chars: [], cur: null, lastSaved: null, lines: E.DEFAULT_LINES });
-  const newChar = (name, project) => ({ id: rid(), name: name || '', project: project || '', created: now(), updated: now(), state: null, anchorLine: '', notes: '', refId: null, takes: [], looks: [], bd: null, never: '', vary: '', strain: '', strained: false, me: false });
-  const S = { lib: null, tab: 'chars', urls: {}, rec: null, lastReturn: null, bd: [], busy: '' };
+  const newChar = (name, project) => ({ id: rid(), name: name || '', project: project || '', created: now(), updated: now(), state: null, anchorLine: '', notes: '', refId: null, takes: [], looks: [], bd: null, never: '', vary: '', strain: '', strained: false, me: false, posture: '', weight: '', eyes: '', hands: '', trigger: '', plays: '', neverDo: '', backs: [] });
+  const S = { visit: null, cold: (function () { try { return localStorage.getItem('cps_cold') === '1'; } catch (e) { return false; } })(), lib: null, tab: 'chars', urls: {}, rec: null, lastReturn: null, bd: [], busy: '' };
   let saveT = null;
   function touch(c) { if (c) c.updated = now(); clearTimeout(saveT); saveT = setTimeout(() => DB.putLib(S.lib), 200); }
   const cur = () => S.lib.chars.find(c => c.id === S.lib.cur) || null;
@@ -104,7 +104,7 @@
       if (!a.pitchHz && a.speechSec < 0.5) toast('That take is nearly silent. It\'s kept, but there\'s nothing to measure.');
     }
     const t = { id: rid(), kind, at: now(), type: blob.type || typeOf(name || ''), size: blob.size, name: name || '', an: a };
-    if (kind === 'return') { const ref = E.reference(c); t.refId = ref ? ref.id : null; S.lastReturn = t.id; }
+    if (kind === 'return') { const ref = E.reference(c); t.refId = ref ? ref.id : null; S.lastReturn = t.id; if (S.cold && S.visit && S.visit.id === c.id && !S.visit.coldDone) { t.cold = true; S.visit.coldDone = true; } }
     if (kind === 'lines') { t.linesKey = E.linesKey(S.lib.lines); t.lines = S.lib.lines; }
     try { await DB.putMedia(t.id, blob); } catch (e) { toast('Couldn\'t save the recording on this device. Save a pack now.'); }
     c.takes.push(t);
@@ -221,6 +221,13 @@
         <label class="row" style="margin-top:10px;gap:10px"><input type="checkbox" data-cb="strained"${c.strained ? ' checked' : ''} style="width:22px;height:22px"><span>This voice hurt. Flag it.</span></label>
         ${c.strained ? '<div class="msg bad" style="margin-top:8px">Stop if it hurts. No character is worth your voice. Rest it, then find a way in that doesn\'t hurt.</div>' : ''}
       </section>
+      <section class="step"><h3><span class="n">6</span>The body and the choices${E.body(c).length ? '<span class="ok">kept</span>' : ''}</h3>
+        <p class="dim" style="font-size:14px;margin:0 0 8px">If it helps. Any of these, none of them.</p>
+        <div class="grid2">${[['posture', 'Posture', 'Squared up, heavy'], ['weight', 'Weight', 'Planted, in the heels'], ['eyes', 'Eyes', 'Flat. Doesn\'t blink first'], ['hands', 'Hands', 'Still. In his pockets']].map(([k, l, ph]) => `<div><label class="lab" for="c_${k}">${l}</label><input class="field" id="c_${k}" data-c="${k}" value="${esc(c[k] || '')}" placeholder="${ph}"></div>`).join('')}</div>
+        <label class="lab" for="c_trigger" style="margin-top:8px">What sets them off</label><textarea class="field" id="c_trigger" data-c="trigger" rows="2" placeholder="When someone looks away while he's talking.">${esc(c.trigger || '')}</textarea>
+        <label class="lab" for="c_plays" style="margin-top:8px">What they play</label><textarea class="field" id="c_plays" data-c="plays" rows="2" placeholder="Make them flinch first.">${esc(c.plays || '')}</textarea>
+        <label class="lab" for="c_neverDo" style="margin-top:8px">What they never do</label><textarea class="field" id="c_neverDo" data-c="neverDo" rows="2" placeholder="Raise his voice. Plead.">${esc(c.neverDo || '')}</textarea>
+      </section>
       ${E.autoState(c) !== 'found' ? `<button class="btn pri block" data-a="tab" data-t="back">Come back to ${esc(c.name || 'them')} later</button>` : ''}`;
   }
   function takeRow(c, t, ref) {
@@ -271,7 +278,19 @@
     if (!ref) return `<div class="msg" style="margin-top:12px">Nothing to come back to yet. Record the voice first.</div><button class="btn pri block" data-a="tab" data-t="capture" style="margin-top:10px">Capture</button>`;
     const rets = c.takes.filter(t => t.kind === 'return').sort((a, b) => b.at.localeCompare(a.at));
     const last = rets.find(t => t.id === S.lastReturn) || null;
-    return `<p class="dim" style="margin:8px 0 12px">Last time with ${esc(c.name || 'this character')}: ${esc(ago(c.lastVisit || c.updated))}. Take it in order.</p>
+    if (!S.visit || S.visit.id !== c.id) S.visit = { id: c.id, t0: Date.now(), coldDone: false, done: null };
+    const V = S.visit, cold = S.cold && !V.coldDone, backs = E.backWords(c.backs);
+    const head = `<p class="dim" style="margin:8px 0 10px">Last time with ${esc(c.name || 'this character')}: ${esc(ago(c.lastVisit || c.updated))}.${cold ? '' : ' Take it in order.'}</p>
+      <div class="row" style="margin:0 0 10px"><button class="btn${S.cold ? '' : ' pri'}" data-a="cold" data-v="0" aria-pressed="${!S.cold}">With your notes</button><button class="btn${S.cold ? ' pri' : ''}" data-a="cold" data-v="1" aria-pressed="${S.cold}">Cold first</button></div>
+      <div class="msg" id="clockbox" style="margin:0 0 12px">${V.done != null ? `Back in ${esc(E.clock(V.done))}.` : `On the clock: <b class="mono" id="backclock">${esc(E.clock((Date.now() - V.t0) / 1000))}</b> <button class="btn" data-a="itsback" style="margin-left:8px;min-height:36px">It's back</button>`}</div>`;
+    if (cold) return head + `<section class="step"><h3><span class="n">1</span>Cold</h3>
+        <p class="dim" style="font-size:14px;margin:0 0 10px">Your notes, the look and the old take stay hidden until you've recorded. Nothing to copy, so you hear what stuck.</p>
+        ${c.anchorLine ? `<div class="big" style="margin-bottom:10px">${esc(c.anchorLine)}</div>` : ''}
+        ${recBlock('return', 'Record it cold')}
+        <div class="row" style="margin-top:10px"><button class="btn" data-a="memo" data-k="return">Use a voice memo</button></div>
+      </section>`;
+    const bd = E.body(c);
+    return head + `
       ${look ? `<section class="step"><h3><span class="n">1</span>Look</h3>${look.kind === 'video' ? `<video class="hero-look" src="${url(look.id)}" playsinline controls></video>` : `<img class="hero-look" src="${url(look.id)}" alt="Your look">`}</section>` : ''}
       <section class="step"><h3><span class="n">${look ? 2 : 1}</span>Listen to then</h3>
         <audio id="refaudio" src="${url(ref.id)}" controls preload="auto" style="width:100%"></audio>
@@ -279,6 +298,7 @@
         ${c.notes ? `<p style="margin:10px 0 0;font-size:15px">${esc(c.notes)}</p>` : ''}
         ${c.takes.filter(t => t.kind === 'note').slice(-1).map(t => `<div style="margin-top:8px"><span class="faint" style="font-size:13px">Your note</span><audio src="${url(t.id)}" controls preload="metadata" style="width:100%;height:40px"></audio></div>`).join('')}
       </section>
+      ${bd.length ? `<section class="step"><h3>The body and the choices</h3>${bd.map(b => `<div style="margin:4px 0"><span class="faint" style="font-size:13px">${esc(b.label)}</span><div>${esc(b.text)}</div></div>`).join('')}</section>` : ''}
       ${c.anchorLine ? `<section class="step"><h3><span class="n">${look ? 3 : 2}</span>Say the line</h3><div class="big">${esc(c.anchorLine)}</div></section>` : ''}
       <section class="step"><h3><span class="n">${(look ? 3 : 2) + (c.anchorLine ? 1 : 0)}</span>Record now</h3>
         <p class="dim" style="font-size:14px;margin:0 0 10px">Same lines as the reference, so the time and pauses mean something.</p>
@@ -286,17 +306,18 @@
         <div class="row" style="margin-top:10px"><button class="btn" data-a="memo" data-k="return">Use a voice memo</button></div>
       </section>
       ${last ? resultBlock(c, last) : ''}
-      ${rets.filter(t => t !== last).length ? `<div class="kicker" style="margin-top:16px">Earlier come-backs</div>${rets.filter(t => t !== last).map(t => { const r0 = take(c, t.refId) || ref; return `<div class="take"><audio src="${url(t.id)}" controls preload="metadata"></audio><div class="rd">${esc(ago(t.at))} · ${esc(E.compare(r0.an, t.an).say.join(' '))}</div><div class="row" style="justify-content:flex-end;gap:4px">${ref.id === t.id ? '<span class="state inuse">Reference</span>' : `<button class="btn ghost" data-a="setref" data-id="${t.id}" style="min-height:36px">Make reference</button>`}<button class="btn ghost bad" data-a="deltake" data-id="${t.id}" style="min-height:36px">Delete</button></div></div>`; }).join('')}` : ''}`;
+      ${rets.filter(t => t !== last).length ? `<div class="kicker" style="margin-top:16px">Earlier come-backs</div>${rets.filter(t => t !== last).map(t => { const r0 = take(c, t.refId) || ref; return `<div class="take"><audio src="${url(t.id)}" controls preload="metadata"></audio><div class="rd">${esc(ago(t.at))}${t.cold ? ' · cold' : ''} · ${esc(E.compare(r0.an, t.an).say.join(' '))}</div><div class="row" style="justify-content:flex-end;gap:4px">${ref.id === t.id ? '<span class="state inuse">Reference</span>' : `<button class="btn ghost" data-a="setref" data-id="${t.id}" style="min-height:36px">Make reference</button>`}<button class="btn ghost bad" data-a="deltake" data-id="${t.id}" style="min-height:36px">Delete</button></div></div>`; }).join('')}` : ''}
+      ${backs.length ? `<div class="kicker" style="margin-top:16px">How long it took to get back</div><ul class="said">${backs.slice(0, 8).map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}`;
   }
   function resultBlock(c, t) {
     const r0 = take(c, t.refId) || E.reference(c);
     if (!r0 || !t.an || !r0.an) return '';
     const cmp = E.compare(r0.an, t.an), ref = E.reference(c);
     return `<section class="step" id="result" style="border-color:var(--tung)"><h3>Then and now</h3>
-      <div class="vs"><div><b>THEN · ${esc(ago(r0.at))}</b><audio src="${url(r0.id)}" controls preload="metadata"></audio></div><div><b>NOW</b><audio id="nowaudio" src="${url(t.id)}" controls preload="metadata"></audio></div></div>
+      <div class="vs"><div><b>THEN · ${esc(ago(r0.at))}</b><audio src="${url(r0.id)}" controls preload="metadata"></audio></div><div><b>NOW${t.cold ? ' · COLD' : ''}</b><audio id="nowaudio" src="${url(t.id)}" controls preload="metadata"></audio></div></div>
       <ul class="said" id="said">${cmp.say.map(s => `<li>${esc(s)}</li>`).join('')}</ul>
       <p class="faint" style="font-size:13px;margin:10px 0 0">This only measures sound. Whether now is better is yours to hear.</p>
-      <div class="row" style="margin-top:12px">${E.autoState(c) === 'inuse' ? '' : `<button class="btn pri" data-a="setstate" data-v="inuse">It's back. Mark Back in use</button>`}${ref && ref.id === t.id ? '' : `<button class="btn" data-a="setref" data-id="${t.id}">Keep this as the new reference</button>`}</div>
+      <div class="row" style="margin-top:12px">${E.autoState(c) === 'inuse' ? '' : (S.visit && S.visit.done == null ? `<button class="btn pri" data-a="itsback">It's back. Mark Back in use</button>` : `<button class="btn pri" data-a="setstate" data-v="inuse">Mark Back in use</button>`)}${ref && ref.id === t.id ? '' : `<button class="btn" data-a="setref" data-id="${t.id}">Keep this as the new reference</button>`}</div>
     </section>`;
   }
 
@@ -382,13 +403,15 @@
   async function act(a, ds, el) {
     ds = ds || {}; const L = S.lib, c = cur();
     switch (a) {
-      case 'tab': if (S.rec) await stopRec(); S.tab = ds.t; render(); window.scrollTo(0, 0); break;
+      case 'cold': S.cold = ds.v === '1'; try { localStorage.setItem('cps_cold', S.cold ? '1' : '0'); } catch (e) { } render(); break;
+      case 'itsback': if (c && S.visit && S.visit.id === c.id && S.visit.done == null) { const secs = Math.round((Date.now() - S.visit.t0) / 1000); S.visit.done = secs; c.backs = c.backs || []; c.backs.push({ at: now(), secs, cold: !!S.visit.coldDone }); c.state = 'inuse'; c.lastVisit = now(); touch(c); toast('Back in ' + E.clock(secs) + '.'); render(); } break;
+      case 'tab': if (S.rec) await stopRec(); if (ds.t !== 'back') S.visit = null; S.tab = ds.t; render(); window.scrollTo(0, 0); break;
       case 'theme': { const cu = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'); const nx = cu === 'light' ? 'dark' : 'light'; document.documentElement.dataset.theme = nx; try { localStorage.setItem('cps_theme', nx); } catch (e) { } break; }
       case 'quickrec': makeChar('', ''); S.tab = 'capture'; await startRec('voice'); break;
       case 'quickmemo': pendingNew = true; pendingMemoKind = 'voice'; $('#voicein').click(); break;
       case 'newchar': makeChar('', ''); S.tab = 'capture'; render(); { const n = $('#c_name'); if (n) n.focus(); } break;
       case 'frombd': { const r = S.bd.find(x => x.pid === ds.pid && x.role === ds.role); if (!r) break; const n = makeChar(r.role, r.title); n.bd = r; touch(n); S.tab = 'capture'; render(); break; }
-      case 'open': L.cur = ds.id; touch(); { const o = cur(); S.tab = E.autoState(o) === 'found' ? 'capture' : 'back'; } S.lastReturn = null; render(); window.scrollTo(0, 0); break;
+      case 'open': S.visit = null; L.cur = ds.id; touch(); { const o = cur(); S.tab = E.autoState(o) === 'found' ? 'capture' : 'back'; } S.lastReturn = null; render(); window.scrollTo(0, 0); break;
       case 'recstart': await startRec(ds.k); break;
       case 'recstop': await stopRec(); break;
       case 'memo': pendingNew = false; pendingMemoKind = ds.k; $('#voicein').click(); break;
@@ -440,6 +463,7 @@
   $('#zipin').addEventListener('change', async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; try { const n = await openPack(f); if (n) { S.tab = 'chars'; render(); toast(n === 1 ? 'Character opened.' : n + ' characters opened.'); } } catch (er) { toast(er.message); } });
 
   // ---------------------------------------------------------------- boot
+  setInterval(() => { const el = document.getElementById('backclock'); if (el && S.visit && S.visit.done == null) el.textContent = E.clock((Date.now() - S.visit.t0) / 1000); }, 1000);
   (async function boot() {
     try { const th = localStorage.getItem('cps_theme'); if (th) document.documentElement.dataset.theme = th; } catch (e) { }
     if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { });

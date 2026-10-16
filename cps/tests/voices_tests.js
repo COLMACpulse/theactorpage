@@ -45,4 +45,13 @@ ok('newest take on these lines is used; other lines and other takes are not', E.
 ok('same-lines takes are not the come-back reference', E.reference(c) && E.reference(c).id === 'd');
 ok('starter lines are plain words, three lines', E.DEFAULT_LINES.split('\n').length === 3 && !/PULSE|fleet|baseline/i.test(E.DEFAULT_LINES));
 
+
+// CPS 0.4: the body and the choices; how long it took to get back
+ok('body: only what you filled, in order, plain labels', JSON.stringify(E.body({ posture: 'Squared', eyes: ' ', neverDo: 'Plead' }).map(b => b.label + ':' + b.text)) === JSON.stringify(['Posture:Squared', 'What they never do:Plead']));
+ok('body: nothing filled, nothing shown', E.body({}).length === 0 && E.body(null).length === 0);
+ok('clock in plain words', E.clock(42) === '42 s' && E.clock(100) === '1 min 40 s' && E.clock(120) === '2 min' && E.clock(-3) === '0 s');
+const bw = E.backWords([{ at: '2026-10-10T09:00:00Z', secs: 100, cold: true }, { at: '2026-10-15T10:00:00Z', secs: 42 }], '2026-10-15T12:00:00Z');
+ok('come-backs newest first, cold said, days in words', bw[0] === 'Back in 42 s, today' && bw[1] === 'Back in 1 min 40 s, cold, 5 days ago', bw);
+ok('come-backs: no score words', !/score|%|grade|recover/i.test(bw.join(' ')));
+
 console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
