@@ -499,7 +499,14 @@ function vChars(p){
  if(!ds.length) return '<div class="panel">No script drafts yet.</div>';
  const C=T.characters(ds.map(d=>({id:d.id,scenes:scenesOf(d)})));
  return '<p class="note">Lines per draft. A name that disappears from a draft shows a dash.</p><div class="tbl"><table><tr><th>Character</th>'+ds.map(d=>'<th>'+esc(d.label)+'</th>').join('')+'</tr>'
-  +C.map(x=>'<tr><td><b>'+esc(x.name)+'</b>'+(x.voice?' <span class="tag">voice</span>':'')+'</td>'+ds.map(d=>'<td>'+(x.by[d.id]==null?'–':x.by[d.id])+'</td>').join('')+'</tr>').join('')+'</table></div>';
+  +C.map(x=>'<tr><td><b>'+esc(x.name)+'</b>'+(x.voice?' <span class="tag">voice</span>':'')+'</td>'+ds.map(d=>'<td>'+(x.by[d.id]==null?'–':x.by[d.id])+'</td>').join('')+'</tr>').join('')+'</table></div>'
+  +numbersBox(ds);
+}
+const NUMS={};
+function numbersBox(ds){
+ const N=ds.map(d=>NUMS[d.id+'|'+d.hash]||(NUMS[d.id+'|'+d.hash]=T.numbers(TEXT[d.id]||'')));
+ return '<h3 style="margin-top:22px">The numbers, draft by draft</h3><p class="note">Counts only. What they mean is yours.</p><div class="tbl" id="numbers"><table><tr><th></th>'+ds.map(d=>'<th>'+esc(d.label)+'</th>').join('')+'</tr>'
+  +T.NUMROWS.map(([k,l])=>'<tr><td>'+esc(l)+'</td>'+N.map(n=>'<td>'+esc(n?T.numberText(k,n[k]):'–')+'</td>').join('')+'</tr>').join('')+'</table></div>';
 }
 
 /* ---------- wiring ---------- */

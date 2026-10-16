@@ -117,6 +117,22 @@ T.compare=function(prev,cur){
    scene the same, nothing added or cut. Then it is one draft with two files, not two drafts. */
 T.sameDraft=function(a,b){ if(!a||!b||!a.length||a.length!==b.length) return false; const c=T.compare(a,b); return !c.added.length&&!c.removed.length&&!c.changed.length&&c.same.length===a.length; };
 
+/* the numbers for one draft: plain counts, side by side across drafts. Counts only; what they mean is yours.
+   (From WAF CORE's style counts, without its scores.) */
+T.numbers=function(text){
+ const F=FILM(); if(!F) return null;
+ const sc=F.scenes(String(text||'')), W=t=>String(t||'').split(/\s+/).filter(w=>/[A-Za-z0-9]/.test(w)).length;
+ let speeches=0, dWords=0, aWords=0, aSent=0, q=0, longest={n:0,who:''}; const who=new Set();
+ sc.forEach(s=>s.beats.forEach(b=>{ const t=String(b.text||'').replace(/\([^)]*\)/g,' '), n=W(t);
+  if(b.action){ aWords+=n; aSent+=(t.match(/[.!?]+(\s|$)/g)||[]).length||(n?1:0); return; }
+  speeches++; dWords+=n; who.add(b.who); if(/\?/.test(t)) q++; if(n>longest.n) longest={n,who:b.who}; }));
+ const all=dWords+aWords, r1=x=>Math.round(x*10)/10;
+ return {scenes:sc.length,speeches,words:all,dialoguePct:all?Math.round(dWords/all*100):null,perSpeech:speeches?r1(dWords/speeches):null,
+  longest:longest.n?longest:null,perActionSentence:aSent?r1(aWords/aSent):null,questions:speeches?q:null,speakers:who.size};
+};
+T.NUMROWS=[['scenes','Scenes'],['speeches','Speeches'],['words','Words'],['dialoguePct','Words that are dialogue'],['perSpeech','Words per speech'],['longest','Longest speech'],['perActionSentence','Words per action sentence'],['questions','Speeches that ask a question'],['speakers','Characters who speak']];
+T.numberText=function(k,v){ if(v==null) return '–'; if(k==='dialoguePct') return v+'%'; if(k==='longest') return v.n+' words ('+v.who+')'; return String(v); };
+
 /* characters across drafts: lines per draft. drafts: [{id,label,scenes}] */
 T.characters=function(drafts){
  const C={};

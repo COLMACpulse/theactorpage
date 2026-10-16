@@ -115,6 +115,14 @@ ok('a removed research item says so', /removed from Research/.test(T.receipt({qu
   ok('not the same draft: one line changed', !T.sameDraft(a,c));
   ok('not the same draft: a scene cut', !T.sameDraft(a,a.slice(0,2)));
   ok('not the same draft: nothing in one', !T.sameDraft([],[])); }
+// the numbers, draft by draft: counts checked by hand on LOW TIDE
+{ const fo=fs.readFileSync(path.join(__dirname,'../../shared/fixtures/low_tide.fountain'),'utf8'), n=T.numbers(fo);
+  ok('numbers: 3 scenes, 12 speeches, 4 speak, 3 questions, 72 dialogue words = 6 per speech, longest ANNA 28', n.scenes===3&&n.speeches===12&&n.speakers===4&&n.questions===3&&n.perSpeech===6&&n.longest.n===28&&n.longest.who==='ANNA', n);
+  const n2=T.numbers(fo.replace('Voss.','Voss. Who is this? Why now?'));
+  ok('numbers move with the draft: more words, more questions', n2.questions===4&&n2.perSpeech>6, n2);
+  ok('numbers in words: percent, longest with who, dash for none', T.numberText('dialoguePct',56)==='56%'&&T.numberText('longest',{n:28,who:'ANNA'})==='28 words (ANNA)'&&T.numberText('perSpeech',null)==='–');
+  const e=T.numbers(''); ok('numbers: an empty draft says nothing, invents nothing', e.speeches===0&&e.perSpeech===null&&e.longest===null&&e.dialoguePct===null, e);
+  ok('numbers: no score anywhere', !/score|similar|grade/i.test(JSON.stringify(T.NUMROWS))); }
 const lb=process.argv[2];
 if(lb&&fs.existsSync(lb)){
  const raw=fs.readFileSync(lb,'utf8');
