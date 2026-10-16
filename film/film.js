@@ -376,6 +376,58 @@ F.brief=function(title,scenes,fps){
  return L.join('\n');
 };
 
+/* ---------- call sheet and end credits ----------
+   Made from what the project already knows: the shoot day (place, time of day, wardrobe, who is on
+   camera), the sun, the parts. You add times, names and phone numbers. Nothing guessed, nothing scored. */
+F.clock=function(v){ const m=String(v||'').match(/^(\d{1,2}):(\d{2})/); if(!m) return ''; let h=+m[1]; const ap=h>=12?'PM':'AM'; h=h%12||12; return h+':'+m[2]+' '+ap; };
+F.dateWords=function(v){ const m=String(v||'').match(/^(\d{4})-(\d\d)-(\d\d)$/); if(!m) return ''; const d=new Date(+m[1],+m[2]-1,+m[3],12); return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}); };
+/* "Directed by: Sam Lee" / "Sound - Jo Park" / "Gaffer Jo" -> {job, name}; a line with no job is a name */
+F.crewLines=function(text){ return String(text||'').split(/\n+/).map(l=>l.trim()).filter(Boolean).map(l=>{ const m=l.match(/^(.+?)\s*(?::|\s[-–]\s)\s*(.+)$/); return m?{job:m[1].trim(),name:m[2].trim()}:{job:'',name:l}; }); };
+/* the parts in order of appearance, by scene; a part only ever heard is marked as a voice */
+F.parts=function(scenes){ const seen={}, out=[]; (scenes||[]).forEach(sc=>(sc.speakers||[]).forEach(sp=>{ if(!seen[sp.name]){ seen[sp.name]={role:sp.name,first:sc.n,voice:!!sp.voice}; out.push(seen[sp.name]); } else if(!sp.voice) seen[sp.name].voice=false; })); return out; };
+/* d: {title, date, call, wrap, sun:{sunrise,sunset}|null, blocks:[{where, address, tod, start, sun, items:[{n, heading, who, wardrobe, props}]}],
+       cast:[{role, actor, voice, first}], crew:[{job,name}], contacts:[lines], hospital, notes} */
+F.callSheet=function(d){
+ const L=[], miss=[], t=x=>x?x.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';
+ L.push('CALL SHEET: '+String(d.title||'Untitled'));
+ L.push('Date: '+(F.dateWords(d.date)||'not set')+'   Crew call: '+(F.clock(d.call)||'not set')+(d.wrap?'   Wrap: '+F.clock(d.wrap):''));
+ if(!d.date) miss.push('The shoot date (Shoot day, at the top).'); if(!d.call) miss.push('The crew call time.');
+ if(d.sun&&(d.sun.sunrise||d.sun.sunset)) L.push('Sunrise '+(t(d.sun.sunrise)||'none')+' · Sunset '+(t(d.sun.sunset)||'none'));
+ L.push('Nearest hospital: '+(d.hospital||'not set')); if(!d.hospital) miss.push('The nearest hospital.');
+ L.push('','SCHEDULE');
+ (d.blocks||[]).forEach((b,i)=>{
+  L.push((i+1)+'. '+(b.start?F.clock(b.start)+'  ':'')+b.where+(b.tod?' · '+b.tod:'')+(b.address?'   ('+b.address+')':''));
+  if(b.sun) L.push('   Sun: '+b.sun);
+  (b.items||[]).forEach(x=>{ L.push('   Sc '+x.n+'  '+x.heading); const bits=[];
+   if(x.who&&x.who.length) bits.push('on camera: '+x.who.join(', ')); if(x.wardrobe) bits.push(x.wardrobe); if(x.props&&x.props.length) bits.push('props: '+x.props.join(', '));
+   if(bits.length) L.push('      '+bits.join(' · ')); });
+ });
+ if(!(d.blocks||[]).length) L.push('   No scenes yet.');
+ const blockOf=n=>{ const i=(d.blocks||[]).findIndex(b=>(b.items||[]).some(x=>x.n===n)); return i<0?'':(i+1)+'. '+d.blocks[i].where; };
+ L.push('','CAST');
+ (d.cast||[]).forEach(c=>{ L.push(' '+c.role+(c.voice?' (voice)':'')+': '+(c.actor||'not cast')+(!c.voice&&blockOf(c.first)?' · first up: '+blockOf(c.first):'')); if(!c.actor) miss.push('Who plays '+c.role+'.'); });
+ if((d.crew||[]).length){ L.push('','CREW'); d.crew.forEach(c=>L.push(' '+(c.job?c.job+': ':'')+c.name)); }
+ if((d.contacts||[]).length){ L.push('','CONTACTS'); d.contacts.forEach(c=>L.push(' '+c)); }
+ if(d.notes){ L.push('','NOTES'); String(d.notes).split(/\n+/).filter(x=>x.trim()).forEach(x=>L.push(' '+x.trim())); }
+ if(miss.length){ L.push('','NOT FILLED IN YET'); miss.forEach(x=>L.push(' - '+x)); }
+ return {text:L.join('\n'), missing:miss};
+};
+/* d: {title, cast:[{role, actor, voice}], crew:[{job,name}], places:[names], thanks:[lines], owner, year} */
+F.credits=function(d){
+ const L=[String(d.title||'Untitled').toUpperCase(),''], miss=[];
+ const crew=d.crew||[], lead=crew.filter(c=>/^(written|directed|produced|a film by)/i.test(c.job)), rest=crew.filter(c=>!lead.includes(c));
+ lead.forEach(c=>{ L.push(c.job,c.name,''); });
+ const cast=d.cast||[];
+ if(cast.length){ L.push('CAST'); const w=Math.max(...cast.map(c=>(c.role+(c.voice?' (voice)':'')).length))+4;
+  cast.forEach(c=>{ const r=c.role+(c.voice?' (voice)':''); L.push(r.padEnd(w,' ')+(c.actor||'[name?]')); if(!c.actor) miss.push('Who plays '+c.role+'.'); }); L.push(''); }
+ if(rest.length){ L.push('CREW'); const w=Math.max(...rest.map(c=>c.job.length))+4; rest.forEach(c=>L.push(c.job?c.job.padEnd(w,' ')+c.name:c.name)); L.push(''); }
+ if((d.places||[]).length){ L.push('FILMED AT'); d.places.forEach(p=>L.push(p)); L.push(''); }
+ const th=(d.thanks||[]).filter(Boolean); if(th.length){ L.push('SPECIAL THANKS'); th.forEach(x=>L.push(x)); L.push(''); }
+ if(d.owner) L.push('© '+(d.year||new Date().getFullYear())+' '+d.owner); else miss.push('Who the film belongs to (the © line).');
+ if(!lead.length) miss.push('Written by / Directed by.');
+ return {text:L.join('\n').trim()+'\n', missing:miss};
+};
+
 /* ---------- notes made while watching the cut, pinned to the take that was playing ----------
    t.watch: [{id, at (seconds into the file), cut (seconds into the cut when you noted it), text, when}] */
 F.atInCut=function(pieces,i,t){ let c=0; for(let j=0;j<i&&j<(pieces||[]).length;j++) c+=Math.max(0,pieces[j].out-pieces[j].in); const p=(pieces||[])[i]; return p?c+Math.max(0,Math.min(t,p.out)-p.in):c; };

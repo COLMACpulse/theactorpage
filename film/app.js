@@ -314,13 +314,65 @@ function vOwn(){
  });
  return h;
 }
-function vDay(){
+function dayBlocks(){
  const c=cur();
  const list=SCENES.map(sc=>{ const s=(c.scenes||{})[sc.n]||{}; const o=s.where&&owned().find(x=>x.id===s.where);
   const way=s.way||'', who=way?F.onCamera(sc,way,c.me):F.seen(sc);
   const wd=who.map(w=>(s.cont&&s.cont[w]&&s.cont[w].wardrobe)?w+': '+s.cont[w].wardrobe:'').filter(Boolean).join(' · ');
-  return {scene:sc,where:o?o.name:(sc.place||'No place'),set:!!o,wardrobe:wd,way:way,who:who}; });
- const B=F.day(list);
+  return {scene:sc,where:o?o.name:(sc.place||'No place'),set:!!o,loc:o||null,wardrobe:wd,way:way,who:who}; });
+ return F.day(list);
+}
+function peopleOf(){ const c=cur(); c.people=c.people||{actors:{},crew:'',contacts:''}; c.people.actors=c.people.actors||{}; return c.people; }
+function callOf(){ const c=cur(); c.call=c.call||{call:'',wrap:'',starts:{},hospital:'',notes:''}; c.call.starts=c.call.starts||{}; return c.call; }
+function creditsOf(){ const c=cur(); c.credits=c.credits||{thanks:'',owner:'',year:''}; return c.credits; }
+function castOf(){ const pe=peopleOf(), c=cur(); return F.parts(SCENES).map(p=>Object.assign({},p,{actor:pe.actors[p.role]||(p.role===c.me&&pe.me?pe.me:'')})); }
+function callData(){
+ const c=cur(), k=callOf(), pe=peopleOf(), B=dayBlocks();
+ const firstLoc=B.map(b=>b.items[0]&&b.items[0].loc).find(o=>o&&F.coords(o.where));
+ return {title:String(c.file||'Untitled').replace(/\.(pdf|txt|fountain|fdx)$/i,'').replace(/_/g,' '), date:c.dayDate||'', call:k.call, wrap:k.wrap,
+  sun:firstLoc?sunOf(firstLoc):null, hospital:k.hospital, notes:k.notes,
+  blocks:B.map(b=>{ const o=b.items[0]&&b.items[0].loc, sn=o?sunOf(o):null;
+   return {key:b.key, where:b.where, address:o&&o.where?o.where:'', tod:b.tod, start:k.starts[b.key]||'', sun:sn?F.sunFor(b.tod,sn):'',
+    items:b.items.map(x=>({n:x.scene.n, heading:x.scene.heading, who:x.who, wardrobe:x.wardrobe, props:F.owns(x.scene,owned()).filter(o=>o.kind==='prop').map(o=>o.name)}))}; }),
+  cast:castOf(), crew:F.crewLines(pe.crew), contacts:String(pe.contacts||'').split(/\n+/).map(x=>x.trim()).filter(Boolean)};
+}
+function creditData(){
+ const c=cur(), pe=peopleOf(), k=creditsOf(), used={};
+ SCENES.forEach(sc=>{ const s=(c.scenes||{})[sc.n]; const o=s&&s.where&&owned().find(x=>x.id===s.where); if(o) used[o.name]=1; });
+ return {title:callData().title, cast:castOf(), crew:F.crewLines(pe.crew), places:Object.keys(used), thanks:String(k.thanks||'').split(/\n+/).map(x=>x.trim()).filter(Boolean), owner:k.owner, year:k.year};
+}
+function peopleBox(){
+ const pe=peopleOf(), P=castOf();
+ return '<div class="card"><p class="kicker">Who\'s who</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">For the call sheet and the end credits. Parts are in order of appearance.</p>'
+  +(P.length?P.map(p=>'<div class="row" style="margin-top:6px"><label style="flex:0 1 150px;font:700 13px/1.3 var(--mono)">'+esc(p.role)+(p.voice?' <small class="faint">(voice)</small>':'')+'</label><input class="field" data-actor="'+esc(p.role)+'" value="'+esc(pe.actors[p.role]||'')+'" placeholder="Who plays it"></div>').join(''):'<p class="faint" style="font-size:13px">No speaking parts in this script yet.</p>')
+  +'<label class="faint" style="font-size:12px;display:block;margin-top:10px">Crew, one per line</label><textarea class="field" rows="4" id="pcrew" placeholder="Written and directed by: Sam Lee\nCamera: Jo Park\nSound: Ray Cruz">'+esc(pe.crew||'')+'</textarea>'
+  +'<label class="faint" style="font-size:12px;display:block;margin-top:8px">Contacts for the day, one per line</label><textarea class="field" rows="3" id="pcontacts" placeholder="Sam Lee, director, 555-0100">'+esc(pe.contacts||'')+'</textarea></div>';
+}
+function callBox(){
+ const k=callOf(), D=callData(), r=F.callSheet(D);
+ return '<div class="card"><p class="kicker">Call sheet</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">Made from the shoot day above, the sun and who\'s who. Add the times.</p>'
+  +'<div class="row"><label class="faint" style="font-size:13px">Crew call</label><input type="time" class="field" id="kcall" value="'+esc(k.call||'')+'" style="flex:0 1 130px"><label class="faint" style="font-size:13px">Wrap</label><input type="time" class="field" id="kwrap" value="'+esc(k.wrap||'')+'" style="flex:0 1 130px"></div>'
+  +D.blocks.map((b,i)=>'<div class="row" style="margin-top:6px"><label class="faint" style="font-size:13px;flex:1 1 160px">'+(i+1)+'. '+esc(b.where)+(b.tod?' · '+esc(b.tod):'')+'</label><input type="time" class="field" data-kstart="'+esc(b.key)+'" value="'+esc(b.start||'')+'" style="flex:0 1 130px" aria-label="Start time"></div>').join('')
+  +'<label class="faint" style="font-size:12px;display:block;margin-top:8px">Nearest hospital</label><input class="field" id="khosp" value="'+esc(k.hospital||'')+'" placeholder="Name, address, phone">'
+  +'<label class="faint" style="font-size:12px;display:block;margin-top:8px">Notes (parking, weather, safety)</label><textarea class="field" rows="2" id="knotes">'+esc(k.notes||'')+'</textarea>'
+  +(r.missing.length?'<div class="msg" style="margin-top:8px">Not filled in yet: '+esc(r.missing.join(' '))+'</div>':'')
+  +'<div class="row" style="margin-top:8px"><button class="btn pri" id="kprint">PRINT CALL SHEET</button><button class="btn" id="ktxt">CALL SHEET (.TXT)</button></div></div>';
+}
+function callSheetHtml(D){
+ const t=x=>x?x.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';
+ let h='<h1>Call sheet: '+esc(D.title)+'</h1><p><b>'+esc(F.dateWords(D.date)||'Date not set')+'</b> · Crew call <b>'+esc(F.clock(D.call)||'not set')+'</b>'+(D.wrap?' · Wrap '+esc(F.clock(D.wrap)):'')
+  +(D.sun&&(D.sun.sunrise||D.sun.sunset)?' · Sunrise '+esc(t(D.sun.sunrise))+' · Sunset '+esc(t(D.sun.sunset)):'')+'</p><p>Nearest hospital: '+esc(D.hospital||'not set')+'</p>';
+ h+='<h2>Schedule</h2><table><tr><th>Time</th><th>Where</th><th>Scenes</th></tr>'+D.blocks.map((b,i)=>'<tr><td>'+esc(F.clock(b.start)||'')+'</td><td><b>'+(i+1)+'. '+esc(b.where)+'</b>'+(b.tod?'<br>'+esc(b.tod):'')+(b.address?'<br><small>'+esc(b.address)+'</small>':'')+(b.sun?'<br><small>Sun: '+esc(b.sun)+'</small>':'')+'</td><td>'
+  +b.items.map(x=>'<div><b>Sc '+x.n+'</b> '+esc(x.heading)+'<br><small>'+esc([x.who.length?'on camera: '+x.who.join(', '):'',x.wardrobe,x.props.length?'props: '+x.props.join(', '):''].filter(Boolean).join(' · '))+'</small></div>').join('')+'</td></tr>').join('')+'</table>';
+ h+='<h2>Cast</h2><table>'+D.cast.map(c=>'<tr><td><b>'+esc(c.role)+'</b>'+(c.voice?' (voice)':'')+'</td><td>'+esc(c.actor||'not cast')+'</td></tr>').join('')+'</table>';
+ if(D.crew.length) h+='<h2>Crew</h2><table>'+D.crew.map(c=>'<tr><td>'+esc(c.job)+'</td><td>'+esc(c.name)+'</td></tr>').join('')+'</table>';
+ if(D.contacts.length) h+='<h2>Contacts</h2>'+D.contacts.map(c=>'<div>'+esc(c)+'</div>').join('');
+ if(D.notes) h+='<h2>Notes</h2><div style="white-space:pre-wrap">'+esc(D.notes)+'</div>';
+ return h;
+}
+function vDay(){
+ const c=cur();
+ const B=dayBlocks();
  let h='<p class="kicker">Shoot day</p><p class="dim" style="font-size:14px;margin:-2px 0 10px">Same place together, then same time of day, then same wardrobe. Inside each: every angle of one part before you change clothes. Inserts and room tone last.</p>'
   +'<div class="row" style="margin-bottom:14px"><label class="faint" style="font-size:13px">Shooting on</label><input type="date" class="field" id="daydate" value="'+esc(c.dayDate||'')+'" style="flex:0 1 180px"></div>';
  B.forEach((b,i)=>{
@@ -328,8 +380,18 @@ function vDay(){
    +(()=>{ const it0=b.items[0], s0=it0&&(c.scenes||{})[it0.scene.n], o0=s0&&s0.where&&owned().find(x=>x.id===s0.where), sn=sunOf(o0); return sn?'<div class="faint" style="font-size:13px;margin:2px 0 6px">Sun'+(c.dayDate?'':' (today; set the date above)')+': '+esc(F.sunFor(b.tod,sn))+'</div>':''; })()
    +b.items.map(x=>{ const dn=doneOf(x.scene); return '<div class="it"><b>Scene '+x.scene.n+'</b> <small>'+esc(x.scene.heading)+'</small><br><small>'+(x.way?esc(F.WAYS.find(w=>w.id===x.way).name)+' · ':'Way not picked · ')+'on camera: '+esc(x.who.join(', ')||'nobody')+(x.wardrobe?' · '+esc(x.wardrobe):'')+(dn?' · '+dn.d+' of '+dn.t+' shot':'')+'</small></div>'; }).join('')+'</div>';
  });
+ if(SCENES.length) h+=peopleBox()+callBox();
  return h;
 }
+function creditsBox(){
+ const k=creditsOf(), r=F.credits(creditData());
+ return '<details class="brief" style="margin-top:12px"'+(CREDOPEN?' open':'')+' id="credbox"><summary>End credits</summary><p class="faint" style="font-size:13px;margin:6px 0">Cast in order of appearance and crew from Who\'s who (Shoot day tab), the places you shot from what you own.</p>'
+  +'<label class="faint" style="font-size:12px;display:block;margin-top:6px">Special thanks, one per line</label><textarea class="field" rows="3" id="cthanks">'+esc(k.thanks||'')+'</textarea>'
+  +'<div class="row" style="margin-top:6px"><label class="faint" style="font-size:13px">©</label><input class="field" id="cyear" value="'+esc(k.year||'')+'" placeholder="'+new Date().getFullYear()+'" style="flex:0 1 80px"><input class="field" id="cowner" value="'+esc(k.owner||'')+'" placeholder="Who the film belongs to"></div>'
+  +'<pre class="credpre">'+esc(r.text)+'</pre>'+(r.missing.length?'<div class="msg">Not filled in yet: '+esc(r.missing.join(' '))+'</div>':'')
+  +'<div class="row" style="margin-top:6px"><button class="btn" id="ccred">END CREDITS (.TXT)</button></div></details>';
+}
+let CREDOPEN=false;
 
 /* ---------- cut to length ---------- */
 const FILES={};   // the clip files picked this session, for the preview; only names and lengths are kept
@@ -357,7 +419,7 @@ function vCut(){
  });
  h+='<div class="card"><p class="kicker">Hand it to your editor</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">An EDL opens in DaVinci Resolve, Premiere and Avid. Point it at your footage and it relinks by file name. In and out count from the start of each file.</p>'
   +'<div class="row"><button class="btn pri" id="cedl"'+(P.length?'':' disabled')+'>EDIT LIST (.EDL)</button><button class="btn" id="ccsv"'+(P.length?'':' disabled')+'>LIST (.CSV)</button><button class="btn" id="cbrief">EDITOR BRIEF (.TXT)</button></div>'
-  +watchBox(P)
+  +watchBox(P)+creditsBox()
   +'<p class="faint" style="font-size:13px;margin:8px 0 0">The brief says, scene by scene, how much freedom the editor has, what must stay, which take to use, backups, never-use takes, what is missing and when to ask you first.</p></div>';
  return h;
 }
@@ -527,6 +589,11 @@ function wireCut(){
  document.querySelectorAll('[data-wdel]').forEach(b=>b.onclick=()=>{ const [n,id,wid]=b.dataset.wdel.split('|'); const r=findT(n+'|'+id); if(!r.t||!r.t.watch) return; r.t.watch=r.t.watch.filter(w=>w.id!==wid); if(!r.t.watch.length) delete r.t.watch; save(); render(); });
  document.querySelectorAll('[data-tnote]').forEach(i=>i.oninput=()=>{ const r=findT(i.dataset.tnote); if(!r.t) return; if(i.value.trim()) r.t.note=i.value; else delete r.t.note; save(); });
  document.querySelectorAll('[data-adr]').forEach(b=>b.onclick=()=>{ const [n,id]=b.dataset.adr.split('|'); openAdr(n,id); });
+ const cbx=$('credbox'); if(cbx) cbx.ontoggle=()=>{ CREDOPEN=cbx.open; };
+ const cth=$('cthanks'); if(cth) cth.onchange=()=>{ creditsOf().thanks=cth.value; save(); render(); };
+ const cyr=$('cyear'); if(cyr) cyr.onchange=()=>{ creditsOf().year=cyr.value.trim(); save(); render(); };
+ const cow=$('cowner'); if(cow) cow.onchange=()=>{ creditsOf().owner=cow.value.trim(); save(); render(); };
+ const ccr=$('ccred'); if(ccr) ccr.onclick=()=>dl(name()+' end credits.txt',F.credits(creditData()).text,'text/plain');
  const cb=$('cbrief'); if(cb) cb.onclick=()=>dl(name()+' editor brief.txt',F.brief(name(),SCENES.map(sc=>({n:sc.n,heading:sc.heading,brief:(k.brief||{})[sc.n]||{},takes:k.takes[sc.n]||[],shots:doneOf(sc)})),k.fps),'text/plain');
  document.querySelectorAll('[data-tmark]').forEach(b=>b.onchange=()=>{ const r=findT(b.dataset.tmark); if(!r.t) return; if(b.value) r.t.mark=b.value; else delete r.t.mark; if(b.value==='never') r.t.use=false; save(); render(); });
  document.querySelectorAll('[data-brief]').forEach(i=>{ const ev=i.tagName==='SELECT'?'onchange':'oninput'; i[ev]=()=>{ const [n,key]=i.dataset.brief.split('|'); const b=briefOf(+n); if(i.value) b[key]=i.value; else delete b[key]; save(); if(key==='free') render(); }; });
@@ -582,6 +649,17 @@ function wire(){
    ()=>{ oh.textContent='I\'M HERE'; toast('Location is off for this page. Paste a pin from your maps app instead.'); },{enableHighAccuracy:true,timeout:15000}); };
  const sd=$('osundate'); if(sd) sd.onchange=()=>{ const c=cur(); if(c){ c.dayDate=sd.value; save(); } render(); };
  const dd=$('daydate'); if(dd) dd.onchange=()=>{ cur().dayDate=dd.value; save(); render(); };
+ document.querySelectorAll('[data-actor]').forEach(i=>i.oninput=()=>{ const pe=peopleOf(); if(i.value.trim()) pe.actors[i.dataset.actor]=i.value; else delete pe.actors[i.dataset.actor]; save(); });
+ const pcr=$('pcrew'); if(pcr) pcr.oninput=()=>{ peopleOf().crew=pcr.value; save(); };
+ const pco=$('pcontacts'); if(pco) pco.oninput=()=>{ peopleOf().contacts=pco.value; save(); };
+ const kc=$('kcall'); if(kc) kc.onchange=()=>{ callOf().call=kc.value; save(); render(); };
+ const kw=$('kwrap'); if(kw) kw.onchange=()=>{ callOf().wrap=kw.value; save(); render(); };
+ document.querySelectorAll('[data-kstart]').forEach(i=>i.onchange=()=>{ const k=callOf(); if(i.value) k.starts[i.dataset.kstart]=i.value; else delete k.starts[i.dataset.kstart]; save(); });
+ const kh=$('khosp'); if(kh) kh.oninput=()=>{ callOf().hospital=kh.value; save(); };
+ const kn=$('knotes'); if(kn) kn.oninput=()=>{ callOf().notes=kn.value; save(); };
+ const sheetName=()=>String(callData().title||'Untitled').replace(/[^\w ]+/g,' ').trim()||'Untitled';
+ const kt=$('ktxt'); if(kt) kt.onclick=()=>{ const D=callData(); dl(sheetName()+' call sheet'+(D.date?' '+D.date:'')+'.txt',F.callSheet(D).text,'text/plain'); };
+ const kp=$('kprint'); if(kp) kp.onclick=()=>{ $('printsheet').innerHTML=callSheetHtml(callData()); window.print(); };
  if(TAB==='cut') wireCut();
  fillPhotos();
 }

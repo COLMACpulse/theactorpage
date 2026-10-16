@@ -179,4 +179,24 @@ ok('brief: ask-me-first gathered at the end; no scores or percents', /ASK ME FIR
  ok('watch note: in the editor brief under the take, with file timecode and cut time', /BUS_T3\.mov  00:00:05:00 to 00:00:20:00 \(0:15\)\n {7}at 00:00:06:12 \(0:11\.5 into the cut\): Love the look\.\n {7}at 00:00:14:06 \(0:23 into the cut\): Too much setup/.test(b), b);
  ok('watch note: no em-dash, no score', !/\u2014|score|%/.test(b));
 }
+{ // call sheet and end credits, from what the project knows
+ const sc=[{n:1,speakers:[{name:'CAL',lines:3},{name:'RENNIE',lines:2}]},{n:2,speakers:[{name:'MOM',lines:1,voice:'V.O.'},{name:'CAL',lines:1}]},{n:3,speakers:[{name:'RENNIE',lines:1}]}];
+ const P=F.parts(sc);
+ ok('parts in order of appearance; a part only heard is a voice', P.map(p=>p.role+(p.voice?'(v)':'')).join()==='CAL,RENNIE,MOM(v)'&&P[2].first===2, P);
+ ok('clock and date words', F.clock('07:05')==='7:05 AM'&&F.clock('19:30')==='7:30 PM'&&F.clock('00:15')==='12:15 AM'&&F.dateWords('2026-10-23')==='Fri, Oct 23, 2026');
+ ok('crew lines: "Job: Name", "Job - Name", a bare name', JSON.stringify(F.crewLines('Directed by: Sam Lee\nSound - Jo Park\nMom'))==='[{"job":"Directed by","name":"Sam Lee"},{"job":"Sound","name":"Jo Park"},{"job":"","name":"Mom"}]');
+ const D={title:'Last Bus',date:'2026-10-23',call:'06:30',wrap:'18:00',sun:{sunrise:new Date(2026,9,23,7,24),sunset:new Date(2026,9,23,18,31)},hospital:'County General, 555-0199',
+  blocks:[{where:'Bus shelter',address:'38.67, -97.12',tod:'NIGHT',start:'19:00',sun:'dark after 6:58 PM',items:[{n:1,heading:'EXT. BUS SHELTER - NIGHT',who:['CAL','RENNIE'],wardrobe:'CAL: work jacket',props:['duffel bag']}]},
+          {where:'Kitchen',address:'',tod:'DAY',start:'',sun:'',items:[{n:3,heading:'INT. KITCHEN - DAY',who:['RENNIE'],wardrobe:'',props:[]}]}],
+  cast:[{role:'CAL',actor:'Sam Actor',first:1},{role:'RENNIE',actor:'',first:1},{role:'MOM',actor:'Jo Voice',voice:true,first:2}],crew:F.crewLines('Directed by: Sam Lee'),contacts:['Sam Lee, director, 555-0100'],notes:'Park on the gravel.'};
+ const cs=F.callSheet(D).text;
+ ok('call sheet: date, crew call, wrap, sun, hospital', /Date: Fri, Oct 23, 2026   Crew call: 6:30 AM   Wrap: 6:00 PM/.test(cs)&&/Sunrise 7:24 AM · Sunset 6:31 PM/.test(cs)&&/Nearest hospital: County General/.test(cs), cs);
+ ok('call sheet: schedule by place with start, address, sun, scenes, who, wardrobe, props', /1\. 7:00 PM  Bus shelter · NIGHT   \(38\.67, -97\.12\)\n   Sun: dark after 6:58 PM\n   Sc 1  EXT\. BUS SHELTER - NIGHT\n      on camera: CAL, RENNIE · CAL: work jacket · props: duffel bag/.test(cs)&&/2\. Kitchen · DAY/.test(cs), cs);
+ ok('call sheet: cast with who plays it and their first place; voice marked', /CAL: Sam Actor · first up: 1\. Bus shelter/.test(cs)&&/MOM \(voice\): Jo Voice\n/.test(cs)&&/RENNIE: not cast/.test(cs), cs);
+ ok('call sheet: says what is not filled in yet', /NOT FILLED IN YET\n - Who plays RENNIE\./.test(cs)&&F.callSheet(D).missing.length===1, F.callSheet(D).missing);
+ const blank=F.callSheet({title:'X',blocks:[],cast:[]}); ok('call sheet with nothing set: asks for date, call, hospital', blank.missing.length===3&&/No scenes yet/.test(blank.text), blank.missing);
+ const cr=F.credits({title:'Last Bus',cast:D.cast,crew:F.crewLines('Written and directed by: Sam Lee\nCamera: Jo Park\nSound: Ray Cruz'),places:['Bus shelter','Kitchen'],thanks:['Mom and Dad'],owner:'Range Films',year:'2026'}).text;
+ ok('credits: title, lead credit, cast in a column, crew, filmed at, thanks, ©', /^LAST BUS\n\nWritten and directed by\nSam Lee\n\nCAST\nCAL {12}Sam Actor\nRENNIE {9}\[name\?\]\nMOM \(voice\) {4}Jo Voice\n\nCREW\nCamera {4}Jo Park\nSound {5}Ray Cruz\n\nFILMED AT\nBus shelter\nKitchen\n\nSPECIAL THANKS\nMom and Dad\n\n© 2026 Range Films\n$/.test(cr), cr);
+ ok('no em-dash in the call sheet or credits, no score anywhere', !/—/.test(cr+cs)&&!/score|%/.test(cs+cr));
+}
 console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail?1:0);

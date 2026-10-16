@@ -106,6 +106,9 @@ nav.tabs button.on{color:var(--tung-text)}
 .own{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
 .own div{min-width:0} .own small{display:block;color:var(--faint);font-size:13px}
 .x{min-width:var(--tap);min-height:var(--tap);border:0;background:none;color:var(--faint);font-size:20px}
+.credpre{white-space:pre-wrap;font:12px/1.45 var(--mono);background:var(--panel2);border-radius:8px;padding:10px;margin:8px 0;max-height:320px;overflow:auto}
+#printsheet{display:none}
+@media print{body>*:not(#printsheet){display:none!important}#printsheet{display:block;color:#000;background:#fff;font:11pt/1.35 Arial,sans-serif;padding:0}#printsheet h1{font-size:18pt;margin:0 0 4pt}#printsheet h2{font-size:12pt;margin:12pt 0 4pt;border-bottom:1px solid #000}#printsheet table{width:100%;border-collapse:collapse}#printsheet td,#printsheet th{border:1px solid #999;padding:4pt;vertical-align:top;text-align:left}#printsheet small{color:#333}body{background:#fff!important}}
 .blk{border-left:3px solid var(--tung);padding:4px 0 4px 12px;margin:0 0 16px}
 .blk.unset{border-left-color:var(--bad)}
 .blk h3{font-size:15px;letter-spacing:.04em}
@@ -175,6 +178,7 @@ details summary{cursor:pointer;color:var(--tung-text);min-height:var(--tap);disp
   <button data-t="cut"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 15.9M14.5 14.5L20 20M8.1 8.1L12 12"/></svg><span>CUT</span></button>
 </nav>
 <div class="toast" id="toast"></div>
+<div id="printsheet"></div>
 <input type="file" id="file" accept=".pdf,.txt,.fountain,.fdx,text/plain,application/pdf" class="hide">
 <script src="../shared/shelf.js"></script>
 <script src="../actor-os/sides.js"></script>
