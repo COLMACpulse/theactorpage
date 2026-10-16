@@ -107,7 +107,7 @@ function showYou(){
   +Y.FIELDS.map(([k,l])=>'<label class="yf"><span>'+esc(l)+'</span><input data-yf="'+k+'" value="'+esc(y[k]||'')+'"></label>').join('')
   +['skills','accents','training'].map(k=>'<label class="yf"><span>'+k[0].toUpperCase()+k.slice(1)+'</span><textarea data-yl="'+k+'" rows="2">'+esc(y[k].join(', '))+'</textarea></label>').join('')
   +(y.credits.length?'<div class="why" style="margin-top:8px">Credits: '+esc(Object.entries(by).map(([k,n])=>n+' '+k).join(', '))+'</div><ul class="ycr">'+y.credits.map((c,i)=>'<li><b>'+esc(c.title)+'</b> · '+esc(c.role||c.character)+(c.by?' · '+esc(c.by):'')+' <small>'+esc(c.section)+'</small> <button data-ycx="'+i+'" aria-label="Remove">×</button></li>').join('')+'</ul>':'')
-  +(y.photos.length?'<div class="parts">'+y.photos.map(p=>'<span style="display:inline-flex;flex-direction:column;gap:4px"><img data-photo="'+esc(p.id)+'" alt="" style="width:72px;height:90px;object-fit:cover;border:'+(p.id===y.primary?'2px solid var(--tungsten)':'1px solid var(--rule)')+'">'+(p.id===y.primary?'<small style="color:var(--tungsten)">MAIN</small>':'<button data-main="'+esc(p.id)+'">MAIN</button>')+'<button data-yphx="'+esc(p.id)+'">×</button></span>').join('')+'</div>':'')
+  +(y.photos.length?'<div class="parts">'+y.photos.map(p=>'<span style="display:inline-flex;flex-direction:column;gap:4px"><img data-photo="'+esc(p.id)+'" alt="" style="width:72px;height:90px;object-fit:cover;border:'+(p.id===y.primary?'2px solid var(--tungsten)':'1px solid var(--rule)')+'">'+(p.id===y.primary?'<small style="color:var(--tungsten)">MAIN</small>':'<button data-main="'+esc(p.id)+'">MAKE MAIN</button>')+'<button data-yphx="'+esc(p.id)+'">×</button></span>').join('')+'</div>':'')
   +'</details>';
  box.innerHTML=h; const d=$('ypd'); if(d) d.ontoggle=()=>{ YOPEN=d.open; };
  // saved as you type; the panel redraws only when its title line changes, never while you're in a field (a redraw on blur throws)
@@ -141,6 +141,8 @@ async function take(files,pasted){
  await route(items);
  // requests read first in the cards: they explain the rest
  LAST=items.sort((a,b)=>(a.kind==='request'?0:1)-(b.kind==='request'?0:1));
+ // a résumé or headshot just landed: open your profile so you see it
+ if(items.some(x=>(x.kind==='image'&&x.photo&&!x.dup)||(x.kind==='resume'&&x.changed&&x.changed.length))) YOPEN=true;
  showTook(); showPlay(); showYou();
  $('took').scrollIntoView({block:'nearest',behavior:'smooth'});
 }

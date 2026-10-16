@@ -170,7 +170,7 @@ X.unlocks=function(kind,o){
   ['Virtual Résumé','the top of your résumé, skills, training'+(o.photo?', headshot':''),'resume/'],
   ['Slate Maker','name, height, rep on the slate','slate/'],
   ['Actor OS','your name on every take','actor-os/']];
- if(kind==='image') return [['Project Hub','your headshots, the main one first','hub/'],['Virtual Résumé','the headshot at the top','resume/']];
+ if(kind==='image') return [['Project Hub','your headshots, the main one first','hub/'],['Virtual Résumé','the headshot at the top','resume/'],['Slate Maker','the headshot on your slate','slate/']];
  if(kind==='media') return [['Story Studio','footage check against the takes you logged, the cut, ADR','film/']];
  return [];
 };
