@@ -199,4 +199,33 @@ ok('brief: ask-me-first gathered at the end; no scores or percents', /ASK ME FIR
  ok('credits: title, lead credit, cast in a column, crew, filmed at, thanks, ©', /^LAST BUS\n\nWritten and directed by\nSam Lee\n\nCAST\nCAL {12}Sam Actor\nRENNIE {9}\[name\?\]\nMOM \(voice\) {4}Jo Voice\n\nCREW\nCamera {4}Jo Park\nSound {5}Ray Cruz\n\nFILMED AT\nBus shelter\nKitchen\n\nSPECIAL THANKS\nMom and Dad\n\n© 2026 Range Films\n$/.test(cr), cr);
  ok('no em-dash in the call sheet or credits, no score anywhere', !/—/.test(cr+cs)&&!/score|%/.test(cs+cr));
 }
-console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail?1:0);
+// footage log (made-up LOW TIDE log; openpyxl-written paths and Excel-written paths)
+(async()=>{
+ const X=require('../../shared/xlsx.js'), FX=f=>path.join(__dirname,'../../shared/fixtures',f);
+ for(const f of ['low_tide_footage_log.xlsx','low_tide_footage_log_rel.xlsx']){
+  const sh=await X.read(fs.readFileSync(FX(f))); const L=F.logRead(sh[0].rows); const r=L.rows;
+  ok(f+': header found under a title row, 6 rows', L.header===3&&r.length===6, [L.header,r.length]);
+  ok(f+': 1:08 typed in Excel (h:mm) = 68 s, said', r[0].dur===68&&/hours and minutes/.test(r[0].durNote), r[0]);
+  ok(f+': text 0:04 = 4 s, mm:ss 2:11 = 131 s, plain 12 = 12 s, text 2:30 = 150 s', r[1].dur===4&&r[2].dur===131&&r[3].dur===12&&r[4].dur===150, r.map(x=>x.dur));
+  ok(f+': gold x and Yes = gold, no = not, maybe and meh = unsure, blank = none', r[0].gold===true&&r[4].gold===true&&r[3].gold===false&&r[1].gold==='unsure'&&r[2].gold==='unsure'&&r[5].gold===null, r.map(x=>x.gold));
+  ok(f+': notes say the duration read and the unsure marks', L.notes.some(n=>/1 duration typed like 1:08/.test(n))&&L.notes.some(n=>/2 gold marks not clearly yes or no \("maybe", "meh"\)/.test(n))&&L.notes.some(n=>/1 row has no file name/.test(n)), L.notes);
+ }
+ const sh=await X.read(fs.readFileSync(FX('low_tide_footage_log.xlsx'))), R=F.logRead(sh[0].rows).rows;
+ const sc=F.logScenes(R); ok('log scenes in order, rows, gold, places', sc.map(s=>s.label+':'+s.rows+':'+s.gold).join()==='1TEASER:2:1,2:3:1,3:1:0'&&sc[1].locs.join()==='INT. SHED', sc);
+ const txt=F.logScript(R,'LOW TIDE'), S2=F.scenes(txt);
+ ok('no script: the log becomes the scene list, nothing invented', S2.length===3&&S2[0].heading==='SCENE 1TEASER - EXT. DOCK'&&S2[2].heading==='SCENE 3 - EXT. ROAD', S2.map(s=>s.heading));
+ const map=F.logSceneMap(R,S2); ok('log scenes map to those scenes', map['1TEASER']===S2[0].n&&map['2']===S2[1].n&&map['3']===S2[2].n, map);
+ const real=F.scenes('INT. HARBOR - NIGHT\n\nANNA\nGo.\n\nINT. SHED - NIGHT\n\nANNA\nNo.\n');
+ const m2=F.logSceneMap(R,real); ok('with a script: 1TEASER goes to scene 1, 2 to scene 2, 3 has no scene', m2['1TEASER']===1&&m2['2']===2&&m2['3']===null, m2);
+ const T=F.logTakes(R,m2,1000);
+ ok('takes: gold marked, length from the log, note is shot, place, action, notes', T.by[1].length===2&&T.by[1][0].mark==='gold'&&T.by[1][0].out===68&&T.by[1][1].mark===undefined&&T.by[2][2].note==='CU · INT. SHED · ANNA LAUGHS'&&T.by[2][3]===undefined&&T.unplaced.length===1, [T.by[1],T.unplaced.length]);
+ ok('find: "gold" finds the gold takes', F.findTakes('gold',[{id:'a',scene:1,name:'IMG_9211',mark:'gold',note:'FINDS THE ROPE'},{id:'b',scene:1,name:'IMG_9212',note:'PANTS'}]).hits.map(h=>h.take.id).join()==='a');
+ const csv=F.logCsv(R,{[F.nameKey('IMG_9211')]:'LOW_TIDE/IMG_9211.MOV'});
+ ok('editor CSV: what you wrote, m:ss, gold, where found', /^FILE,FOUND AT,SCENE,SHOT,LOCATION,DURATION,GOLD FOOTAGE,ACTION,NOTES\nIMG_9211,LOW_TIDE\/IMG_9211.MOV,1TEASER,POV,EXT. DOCK,1:08,GOLD,FINDS THE ROPE,\nIMG_9212,,1TEASER,WIDE,EXT. DOCK,0:04,maybe,/.test(csv)&&/"great take, use the end"/.test(csv), csv.slice(0,300));
+ const C=F.logRead(X.csv(fs.readFileSync(FX('low_tide_footage_log.csv'),'utf8'))).rows;
+ ok('CSV log: text 1:08 = 68 s, quoted comma kept, maybe unsure', C.length===2&&C[0].dur===68&&!C[0].durNote&&C[1].notes==='slow, then fast'&&C[1].gold==='unsure', C);
+ ok('no FILE column: says so', /No FILE column/.test(F.logRead([['A','B'],['1','2']]).notes[0]));
+ ok('duration words: 68s, 1m 8s, an hour checked', F.logDur('68s').sec===68&&F.logDur('1m 8s').sec===68&&/Over an hour/.test(F.logDur('1:08:00').note||''));
+ ok('time formats: h:mm, mm:ss, [h]:mm:ss, a date is not a time', F.timeKind('h:mm')==='hm'&&F.timeKind('mm:ss')==='ms'&&F.timeKind('[h]:mm:ss')==='hms'&&F.timeKind('m/d/yyyy h:mm')===''&&F.timeKind('General')==='');
+ console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail?1:0);
+})();

@@ -484,6 +484,7 @@ F.parseFind=function(q,now){
  take(/ (last |on )?(sunday|monday|tuesday|wednesday|thursday|friday|saturday) /,m=>{ const wd=F.WEEKDAYS.indexOf(m[2]); let back=(new Date(now).getDay()-wd+7)%7; if(back===0||m[1]==='last ') back+=back===0?7:0; const f=t0-back*D; out.when={from:f,to:f+D,say:'on '+m[2][0].toUpperCase()+m[2].slice(1)}; });
  take(/ scene (\d+) /,m=>{ out.scene=+m[1]; });
  take(/ never use /,()=>out.flags.push('never'));
+ take(/ (gold|selects?) /,()=>out.flags.push('gold'));
  take(/ (backups?) /,()=>out.flags.push('backup'));
  take(/ (in the cut|picked|used) /,()=>out.flags.push('use'));
  take(/ (adr|re ?recorded|dubbed) /,()=>out.flags.push('adr'));
@@ -497,8 +498,8 @@ F.findTakes=function(q,takes,now){
  const score=t=>{ const why=[];
   if(P.scene!=null){ if(t.scene!==P.scene) return null; why.push('scene '+t.scene); }
   if(P.when){ if(!t.at||t.at<P.when.from||t.at>=P.when.to) return null; why.push('logged '+ago(t.at)); }
-  for(const f of P.flags){ if(f==='never'&&t.mark!=='never') return null; if(f==='backup'&&t.mark!=='backup') return null; if(f==='use'&&!t.use) return null; if(f==='adr'&&!t.adr) return null;
-   why.push(f==='never'?'marked never use':f==='backup'?'marked backup':f==='use'?'in the cut':'has your ADR line'); }
+  for(const f of P.flags){ if(f==='gold'&&t.mark!=='gold') return null; if(f==='never'&&t.mark!=='never') return null; if(f==='backup'&&t.mark!=='backup') return null; if(f==='use'&&!t.use) return null; if(f==='adr'&&!t.adr) return null;
+   why.push(f==='gold'?'marked gold':f==='never'?'marked never use':f==='backup'?'marked backup':f==='use'?'in the cut':'has your ADR line'); }
   let got=0; const fields=[['heading','in the heading',t.heading],['people','',(t.people||[]).join(' ')],['note','in your note',t.note],['name','in the file name',t.name]];
   for(const w of P.words){ let hit=null;
    for(const [k,say,val] of fields){ const ws=wordsOf(val); const ok=/^\d+$/.test(w)?ws.includes(w):ws.some(x=>x.startsWith(w)); if(ok){ hit=k==='people'?(t.people||[]).find(n=>wordsOf(n).some(x=>x.startsWith(w)))+' is in the scene':'"'+w+'" '+say; break; } }
@@ -513,6 +514,78 @@ F.findTakes=function(q,takes,now){
  hits.sort((a,b)=>(a.take.scene-b.take.scene)||((b.take.at||0)-(a.take.at||0)));
  return {parsed:P,partial,hits:hits.map(x=>({take:x.take,why:x.r.why}))};
 };
+
+
+/* ---------- footage log: the spreadsheet you kept while shooting ----------
+   FILE, SCENE, SHOT, LOCATION, DURATION, GOLD FOOTAGE, ACTION, NOTES (any order, any case, common other names).
+   Rows come from shared/xlsx.js (cells {v,t,fmt}) or a CSV (plain strings). Nothing guessed: what you wrote
+   stays as you wrote it; a duration or a gold mark that could be read two ways is said, not decided. */
+F.LOGCOLS={file:['FILE','FILE NAME','FILENAME','CLIP','CLIP NAME','NAME'],scene:['SCENE','SC','SCN','SCENE #'],shot:['SHOT','SHOT TYPE','ANGLE'],loc:['LOCATION','LOC','WHERE','SET'],
+ dur:['DURATION','DUR','LENGTH','TIME','RUNTIME'],gold:['GOLD FOOTAGE','GOLD','SELECT','SELECTS','CIRCLE','CIRCLED','GOOD','KEEP','PICK'],action:['ACTION','DESCRIPTION','WHAT','CONTENT'],notes:['NOTES','NOTE','COMMENTS','COMMENT']};
+const cellV=c=>c==null?'':(typeof c==='object'&&'v' in c)?c.v:c;
+const cellS=c=>{ const v=cellV(c); return v==null?'':String(v).trim(); };
+/* what kind of time a number format is: 'hm' (h:mm, no seconds), 'hms', 'ms', or '' */
+F.timeKind=function(fmt){ let f=String(fmt||'').toLowerCase().replace(/"[^"]*"/g,'').replace(/\[(?!h\]|m\]|s\])[^\]]*\]/g,'').replace(/\\./g,'');
+ if(!f||/[dy]/.test(f.replace(/am\/pm|a\/p/g,''))) return ''; const h=/h/.test(f), s=/s/.test(f), m=/m/.test(f);
+ return h&&m&&!s?'hm':h&&s?'hms':m&&s?'ms':''; };
+/* -> {sec, note} ; note when the number could mean two things */
+F.logDur=function(c){
+ const v=cellV(c); if(v===''||v==null) return {sec:null};
+ if(typeof v==='number'){
+  const kind=typeof c==='object'?F.timeKind(c.fmt):'';
+  if(kind==='hm'&&v<1){ const sec=Math.round(v*86400/60*100)/100; return {sec,note:'Typed as '+F.mmss(sec)+'. Excel saved it as hours and minutes; read as minutes and seconds.'}; }
+  if((kind==='hms'||kind==='ms')&&v<1) return {sec:Math.round(v*86400*100)/100};
+  if(v>0&&v<1){ const raw=v*86400; if(raw>=3600&&Math.round(raw)%60===0) return {sec:Math.round(raw/60*100)/100,note:'Excel saved this as hours and minutes; read as minutes and seconds.'}; return {sec:Math.round(raw*100)/100}; }
+  return {sec:v};
+ }
+ const s=String(v).trim().replace(/^(\d+)'(\d+)"?$/,'$1:$2'); const p=s.split(':');
+ if(p.length>1&&p.every(x=>x!==''&&isFinite(+x))){ const n=p.map(Number); const sec=n.length===2?n[0]*60+n[1]:n.length===3?n[0]*3600+n[1]*60+n[2]:null; return sec==null?{sec:null,note:'Could not read "'+s+'".'}:{sec,note:sec>=3600?'Over an hour. Check it.':undefined}; }
+ const m=s.match(/^(\d+(?:\.\d+)?)\s*(s|sec|secs|seconds?)?$/i); if(m) return {sec:+m[1]};
+ const mm=s.match(/^(\d+)\s*m(?:in)?\s*(\d+)\s*s/i); if(mm) return {sec:+mm[1]*60+ +mm[2]};
+ return {sec:null,note:'Could not read "'+s+'".'};
+};
+const GOLD_YES=new Set(['yes','y','x','gold','good','best','select','selected','keep','pick','circle','circled','1','true','✓','✔','*','**','***']);
+const GOLD_NO=new Set(['no','n','0','false','bad','reject','nope','ng','no good','nogood','skip','cut']);
+/* true / false / null (blank) / 'unsure' (anything else, kept as you wrote it) */
+F.logGold=function(c){ const v=cellV(c); if(v===true) return true; if(v===false) return false; const s=String(v==null?'':v).trim().toLowerCase(); if(!s) return null; if(GOLD_YES.has(s)) return true; if(GOLD_NO.has(s)) return false; return 'unsure'; };
+/* rows: [[cell]] -> {rows:[...], cols:{key:index}, header:n, missing:[keys], notes:[]} */
+F.logRead=function(rows){
+ rows=rows||[]; const norm=x=>cellS(x).toUpperCase().replace(/\s+/g,' ').replace(/[:.]$/,'');
+ let hi=-1, cols={};
+ for(let i=0;i<Math.min(rows.length,12);i++){ const r=rows[i]||[], c={};
+  for(let j=0;j<r.length;j++){ const h=norm(r[j]); for(const k in F.LOGCOLS) if(c[k]==null&&F.LOGCOLS[k].includes(h)) c[k]=j; }
+  if(c.file!=null&&Object.keys(c).length>=2){ hi=i; cols=c; break; } }
+ if(hi<0) return {rows:[],cols:{},header:-1,missing:Object.keys(F.LOGCOLS),notes:['No FILE column found in the first rows. The log needs a header row with FILE (or CLIP) and SCENE.']};
+ const out=[], g=(r,k)=>cols[k]==null?null:r[cols[k]];
+ for(let i=hi+1;i<rows.length;i++){ const r=rows[i]||[]; if(!r.some(x=>cellS(x))) continue;
+  const d=F.logDur(g(r,'dur')), gold=F.logGold(g(r,'gold'));
+  out.push({row:i+1,file:cellS(g(r,'file')),scene:cellS(g(r,'scene')),shot:cellS(g(r,'shot')),loc:cellS(g(r,'loc')),dur:d.sec,durRaw:cellS(g(r,'dur')),durNote:d.note||'',gold,goldRaw:cellS(g(r,'gold')),action:cellS(g(r,'action')),notes:cellS(g(r,'notes'))}); }
+ const notes=[], hm=out.filter(x=>/hours and minutes/.test(x.durNote)).length, un=out.filter(x=>x.gold==='unsure'), nofile=out.filter(x=>!x.file).length, bad=out.filter(x=>/Could not read|Over an hour/.test(x.durNote)).length;
+ if(hm) notes.push(hm+' duration'+(hm===1?'':'s')+' typed like 1:08 Excel saved as 1 hour 8 minutes. Read as 1 min 8 s.');
+ if(un.length) notes.push(un.length+' gold mark'+(un.length===1?'':'s')+' not clearly yes or no ('+[...new Set(un.map(x=>'"'+x.goldRaw+'"'))].slice(0,5).join(', ')+'). Left unmarked; you decide.');
+ if(nofile) notes.push(nofile+' row'+(nofile===1?' has':'s have')+' no file name. Kept, but no file can be found for '+(nofile===1?'it':'them')+'.');
+ if(bad) notes.push(bad+' duration'+(bad===1?'':'s')+' to check.');
+ return {rows:out,cols,header:hi+1,missing:Object.keys(F.LOGCOLS).filter(k=>cols[k]==null),notes};
+};
+/* the scenes in the log, in the order they first appear */
+F.logScenes=function(rows){ const L=[]; (rows||[]).forEach(r=>{ const k=r.scene||'(no scene)'; let s=L.find(x=>x.label===k); if(!s){ s={label:k,rows:0,gold:0,locs:[]}; L.push(s); } s.rows++; if(r.gold===true) s.gold++; if(r.loc&&!s.locs.includes(r.loc)) s.locs.push(r.loc); }); return L; };
+/* no script? the log's scenes become the scene list (forced headings, so nothing is invented) */
+F.logScript=function(rows,title){ return (title?'Title: '+title+'\n\n':'')+F.logScenes(rows).map(s=>'.SCENE '+s.label+(s.locs.length?' - '+s.locs.slice(0,2).join(' / '):'')+'\n').join('\n'); };
+/* log scene label -> script scene number: SCENE <label> headings first, then the label's number */
+F.logSceneMap=function(rows,scenes){ const map={}; F.logScenes(rows).forEach(s=>{
+ const lab=s.label.toUpperCase(), byHead=(scenes||[]).find(sc=>new RegExp('^SCENE '+lab.replace(/[^A-Z0-9]/g,'.')+'(\\s|$)').test(String(sc.heading).toUpperCase()));
+ const num=(lab.match(/^\d+/)||[])[0], byNum=num&&(scenes||[]).find(sc=>String(sc.n)===String(+num)||String(sc.num||'')===lab);
+ map[s.label]=byHead?byHead.n:byNum?byNum.n:null; }); return map; };
+/* rows -> takes per script scene. Gold yes = marked gold. Unsure and no stay unmarked. */
+F.logTakes=function(rows,map,at){ const by={}, unplaced=[];
+ (rows||[]).forEach(r=>{ const n=map[r.scene||'(no scene)']; if(n==null){ unplaced.push(r); return; }
+  const note=[r.shot,r.loc,r.action,r.notes].filter(Boolean).join(' · ');
+  (by[n]=by[n]||[]).push({name:r.file||'(row '+r.row+')',dur:r.dur||0,in:0,out:r.dur||0,use:false,note,mark:r.gold===true?'gold':undefined,log:{row:r.row,shot:r.shot,loc:r.loc,action:r.action,notes:r.notes,goldRaw:r.goldRaw,durRaw:r.durRaw,durNote:r.durNote},at:at||Date.now()}); });
+ return {by,unplaced}; };
+const csvq=v=>{ const s=String(v==null?'':v); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+/* the log back out for an editor: what you wrote, durations in m:ss, and where each file was found */
+F.logCsv=function(rows,found){ found=found||{}; const H=['FILE','FOUND AT','SCENE','SHOT','LOCATION','DURATION','GOLD FOOTAGE','ACTION','NOTES'];
+ return H.join(',')+'\n'+(rows||[]).map(r=>[r.file,found[F.nameKey(r.file)]||'',r.scene,r.shot,r.loc,r.dur!=null?F.mmss(r.dur):r.durRaw,r.gold===true?'GOLD':r.gold===false?'no':r.goldRaw,r.action,r.notes].map(csvq).join(',')).join('\n')+'\n'; };
 
 if(typeof module!=='undefined') module.exports=F;
 g.FilmOS=F;

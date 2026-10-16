@@ -82,6 +82,7 @@ function render(){
  $('count').textContent=c?SCENES.length+' scene'+(SCENES.length===1?'':'s')+(c.me?' · you are '+c.me:''):'';
  const m=$('main');
  if(TAB==='script') m.innerHTML=vScript();
+ else if(!c&&TAB==='cut') m.innerHTML=logBox()+'<div class="msg">No script yet. Open your footage log above and make the scenes from it, or bring in the script.</div><button class="btn block" data-go="script">SCRIPT</button>';
  else if(!c&&TAB!=='own') m.innerHTML='<div class="msg">Bring in a script first.</div><button class="btn pri block" data-go="script">SCRIPT</button>';
  else if(TAB==='scenes') m.innerHTML=OPEN?vScene(OPEN):vScenes();
  else if(TAB==='own') m.innerHTML=vOwn();
@@ -403,12 +404,12 @@ function vCut(){
  h+='<div class="card"><div class="row"><label class="faint" style="font-size:13px">Aim for</label><input class="field" id="ctarget" value="'+esc(F.mmss(k.target))+'" style="flex:0 1 90px"><label class="faint" style="font-size:13px">Frame rate</label><select class="field" id="cfps" style="flex:0 1 110px">'+Object.keys(F.FPS).map(x=>'<option'+(x===k.fps?' selected':'')+'>'+x+'</option>').join('')+'</select></div>'
   +'<div class="runtime"><b>'+F.mmss(len)+'</b><span>'+(P.length?(Math.abs(diff)<0.05?'right on '+F.mmss(k.target):diff>0?F.mmss(diff)+' to go to '+F.mmss(k.target):F.mmss(-diff)+' over '+F.mmss(k.target)):'nothing in the cut yet')+' · '+P.length+' piece'+(P.length===1?'':'s')+'</span></div></div>';
  h+='<div class="card"><p class="kicker">Find a take</p><input class="field" id="cfind" placeholder="bus shelter · rennie · last week · the laugh · never use" value="'+esc(FINDQ)+'" autocomplete="off"><div id="cfindres">'+findHtml()+'</div></div>';
- h+=footBox();
+ h+=logBox()+footBox();
  SCENES.forEach(sc=>{
   const T=k.takes[sc.n]||[];
   h+='<div class="card"><div class="hd" style="font:700 14px/1.35 var(--mono)">'+sc.n+'. '+esc(sc.heading)+'</div>';
   h+=T.map(t=>{ const f=FILES[t.id];
-   return '<div class="take'+(t.use?' on':'')+(t.mark==='never'?' never':'')+'" data-trow="'+sc.n+'|'+t.id+'"><div class="row" style="justify-content:space-between"><label class="row" style="gap:8px"><input type="checkbox" data-tuse="'+sc.n+'|'+t.id+'"'+(t.use?' checked':'')+(t.mark==='never'?' disabled':'')+'><b style="font-size:14px;word-break:break-all">'+esc(t.name)+'</b></label><span class="faint" style="font-size:13px">'+(t.dur?F.mmss(t.dur):'length?')+'</span><select class="field mark" data-tmark="'+sc.n+'|'+t.id+'" aria-label="Mark this take">'+[['','—'],['backup','backup'],['never','never use']].map(o=>'<option value="'+o[0]+'"'+((t.mark||'')===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select><button class="x" data-tdel="'+sc.n+'|'+t.id+'" aria-label="Remove">×</button></div>'
+   return '<div class="take'+(t.use?' on':'')+(t.mark==='never'?' never':'')+'" data-trow="'+sc.n+'|'+t.id+'"><div class="row" style="justify-content:space-between"><label class="row" style="gap:8px"><input type="checkbox" data-tuse="'+sc.n+'|'+t.id+'"'+(t.use?' checked':'')+(t.mark==='never'?' disabled':'')+'><b style="font-size:14px;word-break:break-all">'+esc(t.name)+'</b></label><span class="faint" style="font-size:13px">'+(t.dur?F.mmss(t.dur):'length?')+'</span><select class="field mark" data-tmark="'+sc.n+'|'+t.id+'" aria-label="Mark this take">'+[['','—'],['gold','gold'],['backup','backup'],['never','never use']].map(o=>'<option value="'+o[0]+'"'+((t.mark||'')===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select><button class="x" data-tdel="'+sc.n+'|'+t.id+'" aria-label="Remove">×</button></div>'
     +(f?'<video class="tprev" data-tvid="'+t.id+'" playsinline controls preload="metadata"></video>':'')
     +'<div class="row" style="margin-top:6px"><label class="faint" style="font-size:12px">In</label><input class="field" data-tin="'+sc.n+'|'+t.id+'" value="'+F.mmss(t.in)+'" style="flex:1 1 70px">'+(f?'<button class="btn sm" data-tsetin="'+sc.n+'|'+t.id+'">HERE</button>':'')
     +'<label class="faint" style="font-size:12px">Out</label><input class="field" data-tout="'+sc.n+'|'+t.id+'" value="'+F.mmss(t.out)+'" style="flex:1 1 70px">'+(f?'<button class="btn sm" data-tsetout="'+sc.n+'|'+t.id+'">HERE</button>':'')+'</div>'
@@ -553,6 +554,54 @@ function clipLengthPlayer(file){ return new Promise(res=>{ try{ const v=document
  const fin=x=>{ if(done) return; done=true; URL.revokeObjectURL(u); res(x); };
  v.onloadedmetadata=()=>fin(isFinite(v.duration)?v.duration:0); v.onerror=()=>fin(0); setTimeout(()=>fin(0),8000); v.src=u; }catch(e){ res(0); } }); }
 function dl(name,text,type){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:type})); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),3000); }
+
+/* ---------- footage log: the spreadsheet you kept on the shoot (shared/xlsx.js reads Excel; CSV too) ---------- */
+let LOGMSG='';
+function logMap(){ const L=DB.log; if(!L) return {}; const auto=F.logSceneMap(L.rows,SCENES); return Object.assign(auto,L.map||{}); }
+function foundPaths(){ const o={}; if(FOOT) FOOT.files.forEach(f=>{ if(F.isMedia(f.name)) o[F.nameKey(f.name)]=f.webkitRelativePath||f.name; }); return o; }
+function logBox(){
+ const L=DB.log;
+ let h='<div class="card" id="logcard"><p class="kicker">Footage log</p>';
+ if(LOGMSG) h+='<div class="msg'+(/<b>/.test(LOGMSG)?' bad':'')+'" style="margin-bottom:8px">'+LOGMSG+'</div>';
+ if(!L) return h+'<p class="faint" style="font-size:13px;margin:-4px 0 8px">The spreadsheet you kept while shooting: FILE, SCENE, SHOT, LOCATION, DURATION, GOLD FOOTAGE, ACTION, NOTES. Excel or CSV. Every row becomes a take on its scene, gold ones marked gold, so you can find them, check the files are here and cut. Nothing leaves this device.</p>'
+  +'<label class="btn sm"><input type="file" accept=".xlsx,.csv,.tsv,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" class="hide" id="login">OPEN A FOOTAGE LOG</label></div>';
+ const sc=F.logScenes(L.rows), map=logMap(), gold=L.rows.filter(r=>r.gold===true).length;
+ h+='<div class="fsum">'+esc(L.file)+' · '+L.rows.length+' rows · '+sc.length+' scene'+(sc.length===1?'':'s')+' · '+gold+' gold</div>';
+ if(L.notes.length) h+=L.notes.map(n=>'<div class="fl">'+esc(n)+'</div>').join('');
+ if(cur()){
+  h+='<p class="faint" style="font-size:13px;margin:10px 0 4px">Log scene to script scene</p>'+sc.map(s=>'<div class="row" style="justify-content:space-between;margin:2px 0"><span style="font:600 13px var(--mono)">'+esc(s.label)+' <span class="faint">('+s.rows+(s.gold?', '+s.gold+' gold':'')+')</span></span><select class="field" data-lmap="'+esc(s.label)+'" style="flex:0 1 190px"><option value="">Not in the cut</option>'+SCENES.map(x=>'<option value="'+x.n+'"'+(map[s.label]===x.n?' selected':'')+'>'+x.n+'. '+esc(x.heading.slice(0,26))+'</option>').join('')+'</select></div>').join('');
+  const T=F.logTakes(L.rows,map), n=Object.values(T.by).reduce((a,x)=>a+x.length,0);
+  h+='<div class="row" style="margin-top:10px"><button class="btn pri sm" id="logadd"'+(n?'':' disabled')+'>ADD '+n+' TO THE CUT</button><button class="btn sm" id="logcsv">LOG FOR THE EDITOR (.CSV)</button><button class="btn sm" id="logdrop">CLOSE THE LOG</button></div>';
+  h+='<p class="faint" style="font-size:13px;margin:8px 0 0">'+(T.unplaced.length?T.unplaced.length+' row'+(T.unplaced.length===1?'':'s')+' not on a script scene stay in the log only. ':'')+'Takes already added are not added twice. Then type gold in Find a take, or pick your footage folder to see what is here.'+(FOOT?'':' The editor CSV says where each file was found once you pick the folder.')+'</p>';
+ } else {
+  h+='<div class="row" style="margin-top:10px"><button class="btn pri sm" id="logscript">MAKE THE SCENES FROM THE LOG</button><button class="btn sm" id="logdrop">CLOSE THE LOG</button></div><p class="faint" style="font-size:13px;margin:8px 0 0">One scene per log scene, named the way you wrote it. Bring in the real script any time.</p>';
+ }
+ return h+'</div>';
+}
+async function readLog(f){
+ LOGMSG='';
+ try{
+  let rows;
+  if(/\.xlsx$/i.test(f.name)){ const sh=await window.XLSX.read(await f.arrayBuffer()); let best=null; for(const s of sh){ const r=F.logRead(s.rows); if(r.rows.length&&(!best||r.rows.length>best.r.rows.length)) best={s,r}; } if(!best){ LOGMSG='<b>No footage log in that workbook.</b> '+esc((F.logRead((sh[0]||{}).rows||[]).notes||[])[0]||''); render(); return; } rows=best.r; rows.sheet=best.s.name; }
+  else { rows=F.logRead(window.XLSX.csv(await f.text())); if(!rows.rows.length){ LOGMSG='<b>Nothing read.</b> '+esc(rows.notes[0]||''); render(); return; } }
+  DB.log={file:f.name+(rows.sheet&&rows.sheet!=='Sheet1'?' ('+rows.sheet+')':''),at:Date.now(),rows:rows.rows,notes:rows.notes,map:{}}; save();
+  toast(rows.rows.length+' rows from '+f.name+'.'); render();
+ }catch(e){ LOGMSG='<b>Could not read that file.</b> '+esc(e.message); render(); }
+}
+function addLog(){
+ const L=DB.log, k=cutOf(), T=F.logTakes(L.rows,logMap()); let n=0, skip=0;
+ Object.keys(T.by).forEach(sn=>{ k.takes[sn]=k.takes[sn]||[]; T.by[sn].forEach(t=>{ if(k.takes[sn].some(x=>x.log&&x.log.row===t.log.row&&x.name===t.name)){ skip++; return; } const o=Object.assign({id:rid('t')},t); if(o.mark===undefined) delete o.mark; k.takes[sn].push(o); n++; }); });
+ save(); if(FOOT) runFoot(FOOT.files); render(); toast(n+' take'+(n===1?'':'s')+' added'+(skip?', '+skip+' already there':'')+'.');
+}
+function wireLog(){
+ const i=$('login'); if(i) i.onchange=()=>{ const f=i.files[0]; if(f) readLog(f); };
+ document.querySelectorAll('[data-lmap]').forEach(sel=>sel.onchange=()=>{ const L=DB.log; L.map=L.map||{}; L.map[sel.dataset.lmap]=sel.value?+sel.value:null; save(); render(); });
+ const a=$('logadd'); if(a) a.onclick=addLog;
+ const c=$('logcsv'); if(c) c.onclick=()=>dl(String(DB.log.file).replace(/\.[a-z]+(\s|$).*$/i,'')+' editor log.csv',F.logCsv(DB.log.rows,foundPaths()),'text/csv');
+ const d=$('logdrop'); if(d) d.onclick=()=>{ if(!confirm('Close the log? Takes already in the cut stay.')) return; DB.log=null; LOGMSG=''; save(); render(); };
+ const m=$('logscript'); if(m) m.onclick=()=>{ const L=DB.log, title=String(L.file).replace(/\.[a-z]+(\s|$).*$/i,'').replace(/[_]+/g,' ').trim(); open('log'+Date.now().toString(36),F.logScript(L.rows,title),title+' (from the log)'); addLog(); };
+}
+
 function wireCut(){
  const k=cutOf(); const findT=v=>{ const [n,id]=v.split('|'); return {n:+n,t:(k.takes[n]||[]).find(x=>x.id===id)}; };
  const tg=$('ctarget'); if(tg) tg.onchange=()=>{ const s=F.secs(tg.value); if(s!=null&&s>0){ k.target=s; save(); } render(); };
@@ -660,7 +709,7 @@ function wire(){
  const sheetName=()=>String(callData().title||'Untitled').replace(/[^\w ]+/g,' ').trim()||'Untitled';
  const kt=$('ktxt'); if(kt) kt.onclick=()=>{ const D=callData(); dl(sheetName()+' call sheet'+(D.date?' '+D.date:'')+'.txt',F.callSheet(D).text,'text/plain'); };
  const kp=$('kprint'); if(kp) kp.onclick=()=>{ $('printsheet').innerHTML=callSheetHtml(callData()); window.print(); };
- if(TAB==='cut') wireCut();
+ if(TAB==='cut'){ if(cur()) wireCut(); wireLog(); }
  fillPhotos();
 }
 document.addEventListener('visibilitychange',()=>{ if(document.hidden&&MC.stream) mcClose(); if(document.hidden&&ADRREC) adrStopRec(); });
