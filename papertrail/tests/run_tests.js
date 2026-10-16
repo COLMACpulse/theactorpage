@@ -134,6 +134,13 @@ ok('a removed research item says so', /removed from Research/.test(T.receipt({qu
   ok('other names for it: a character finds its chat (Mrs. O\'Neil); lowercase ordinary words do not', T.chatsFor(G,['DRY CREEK',"MRS. O'NEIL"]).map(m=>m.chat.id).join()==='g3'&&!T.chatsFor(G,['HEIST']).length);
   ok('a long message is trimmed and says so', /… \(trimmed\)$/.test(T.chatNote({chat:{from:'Claude',msgs:[{who:'ai',text:'word '.repeat(600)}]},hits:[0]})));
   ok('not an export: nothing', T.chatsOf({hello:1}).length===0&&T.chatsOf('x').length===0); }
+// how they talk: LOW TIDE counted by hand
+{ const fo=fs.readFileSync(path.join(__dirname,'../../shared/fixtures/low_tide.fountain'),'utf8'), L=T.talk(fo), by={}; L.forEach(x=>by[x.name]=x);
+  ok('talk: ANNA 6 speeches, 7.5 words each, 5 per sentence, 2 questions, longest 28; most words first', L[0].name==='ANNA'&&by.ANNA.speeches===6&&by.ANNA.perSpeech===7.5&&by.ANNA.perSentence===5&&by.ANNA.questions===2&&by.ANNA.longest===28, by.ANNA);
+  ok('talk: MR. DELL (a voice) counted, 4.3 per speech, 2.6 per sentence, no questions', by['MR. DELL'].perSpeech===4.3&&by['MR. DELL'].perSentence===2.6&&by['MR. DELL'].questions===0, by['MR. DELL']);
+  ok("talk: \"Mrs. O'Neil's boy\" is one sentence (COP #2: 11 words, 3 sentences)", by['COP #2'].perSentence===3.7, by['COP #2']);
+  ok('talk: parentheticals are not words spoken', T.talk('INT. A - DAY\n\nBO\n(quietly)\nGo.\n')[0].perSpeech===1);
+  ok('talk: nothing spoken, nothing listed', T.talk('INT. A - DAY\n\nRain.\n').length===0); }
 const lb=process.argv[2];
 if(lb&&fs.existsSync(lb)){
  const raw=fs.readFileSync(lb,'utf8');

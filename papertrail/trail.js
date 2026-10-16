@@ -130,6 +130,18 @@ T.numbers=function(text){
  return {scenes:sc.length,speeches,words:all,dialoguePct:all?Math.round(dWords/all*100):null,perSpeech:speeches?r1(dWords/speeches):null,
   longest:longest.n?longest:null,perActionSentence:aSent?r1(aWords/aSent):null,questions:speeches?q:null,speakers:who.size};
 };
+/* how each character talks on the page: counts only. Voices (V.O. / O.S.) count as the character. */
+T.talk=function(text){
+ const F=FILM(); if(!F) return [];
+ const W=t=>String(t||'').split(/\s+/).filter(w=>/[A-Za-z0-9]/.test(w)).length, by={};
+ F.scenes(String(text||'')).forEach(s=>s.beats.forEach(b=>{ if(b.action) return; const who=b.who; if(!who) return;
+  const t=String(b.text||'').replace(/\([^)]*\)/g,' '), n=W(t); if(!n) return;
+  const c=by[who]=by[who]||{name:who,speeches:0,words:0,sentences:0,questions:0,longest:0,scenes:new Set()};
+  c.speeches++; c.words+=n; c.sentences+=(t.replace(/\b(Mr|Mrs|Ms|Dr|St|Jr|Sr|Lt|Sgt|Capt|Gen|Col|Det|Prof|Rev|Mt|vs|etc|No)\./gi,'$1').match(/[.!?]+(?=\s|$)|[-–]{2,}\s*$/g)||[]).length||1; if(/\?/.test(t)) c.questions++; if(n>c.longest) c.longest=n; c.scenes.add(s.n); }));
+ const r1=x=>Math.round(x*10)/10;
+ return Object.values(by).map(c=>({name:c.name,speeches:c.speeches,perSpeech:r1(c.words/c.speeches),perSentence:r1(c.words/c.sentences),questions:c.questions,longest:c.longest,scenes:c.scenes.size,words:c.words}))
+  .sort((a,b)=>b.words-a.words||a.name.localeCompare(b.name));
+};
 T.NUMROWS=[['scenes','Scenes'],['speeches','Speeches'],['words','Words'],['dialoguePct','Words that are dialogue'],['perSpeech','Words per speech'],['longest','Longest speech'],['perActionSentence','Words per action sentence'],['questions','Speeches that ask a question'],['speakers','Characters who speak']];
 T.numberText=function(k,v){ if(v==null) return '–'; if(k==='dialoguePct') return v+'%'; if(k==='longest') return v.n+' words ('+v.who+')'; return String(v); };
 

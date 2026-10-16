@@ -528,7 +528,13 @@ function vChars(p){
  const C=T.characters(ds.map(d=>({id:d.id,scenes:scenesOf(d)})));
  return '<p class="note">Lines per draft. A name that disappears from a draft shows a dash.</p><div class="tbl"><table><tr><th>Character</th>'+ds.map(d=>'<th>'+esc(d.label)+'</th>').join('')+'</tr>'
   +C.map(x=>'<tr><td><b>'+esc(x.name)+'</b>'+(x.voice?' <span class="tag">voice</span>':'')+'</td>'+ds.map(d=>'<td>'+(x.by[d.id]==null?'–':x.by[d.id])+'</td>').join('')+'</tr>').join('')+'</table></div>'
-  +numbersBox(ds);
+  +talkBox(ds)+numbersBox(ds);
+}
+function talkBox(ds){
+ const p=DB.projects[VIEW.p], cur=p&&current(p), c=ds.find(d=>cur&&d.id===cur.id)||ds[ds.length-1];
+ const L=T.talk(TEXT[c.id]||''); if(!L.length) return '';
+ return '<h3 style="margin-top:22px">How they talk</h3><p class="note">'+esc(c.label)+'. Counts only, from the page. Questions = speeches that ask one. Longest = words in the longest speech. What they mean is yours.</p><div class="tbl" id="talk"><table><tr><th>Character</th><th>Speeches</th><th>Words a speech</th><th>Words a sentence</th><th>Questions</th><th>Longest</th></tr>'
+  +L.map(x=>'<tr><td><b>'+esc(x.name)+'</b></td><td>'+x.speeches+'</td><td>'+x.perSpeech+'</td><td>'+x.perSentence+'</td><td>'+x.questions+'</td><td>'+x.longest+'</td></tr>').join('')+'</table></div>';
 }
 const NUMS={};
 function numbersBox(ds){
