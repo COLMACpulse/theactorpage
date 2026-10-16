@@ -107,3 +107,15 @@ The Audacity step, as plain maths on the samples (runs in Node for the tests).
 # Office history · `shared/offices.js`
 
 Your real history with a casting office, in one line, from the Project Hub's records on this device: reads before this one, confirmed, callbacks, booked, the last read when it has a date. On every new request (home and the Hub). Tests: `node shared/test_offices.js` (8).
+
+# Notes from the room · `shared/notes.js`
+
+For the actor who takes a class, a workshop, a callback, mostly on Zoom. THEACTORPAGE doesn't run the room; it keeps what you get from it. Used by NOTES (/notes/), the Hub and home.
+
+- **A session:** date, kind of room (class or workshop, callback, set, other), who was in it (name and role: casting, director, coach), the scene and your part, the sides (on the shelf).
+- **Marks and tapes:** MARK pins the moment a note starts; if TAPE IT was rolling, the mark lands on that tape at that second. Tapes go on the takes shelf as `session` (Actor OS doesn't copy them in).
+- **A note:** their words, who gave it, the moment, an optional voice memo.
+- **Back out:** by person, by scene, and what more than one person told you (`repeats()`: words and two-word phrases in notes from 2+ different people; your own notes to yourself don't count; "rush", "rushing" and "rushed" are one word). No scores.
+- **Elsewhere:** the Hub counts a casting director you were in a room with as "has seen me", shows the rooms and notes in their drawer, and puts "Dana Pell gave you 2 notes, the last in Mar 2026: ..." on a new request (home too).
+- **Storage:** localStorage `theactorpage_notes_v1`, text only. Nothing uploaded. Speech to text is optional and says first that it goes through Apple or Google.
+- **Tests:** `node shared/test_notes.js` (16), `notes/tests/notes_e2e.js` (17, fake camera and mic).

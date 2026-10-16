@@ -1,6 +1,6 @@
 /* Offline shell. Bump CACHE on every deploy or installed users stay frozen
    on the old build - the failure mode I flagged in v0.2. */
-const CACHE='actor-os-pwa-v5_33_3';
+const CACHE='actor-os-pwa-v5_33_4';
 const SHELL=['./','./index.html','../shared/hot.js','../shared/shelf.js','../shared/takes.js','../shared/scenes.js','./performer_camera_v08.js','./sides.js','./pdf.js','./reader.js','./slatemove.js','./compress.js','./vendor/pdf.min.js','./vendor/pdf.worker.min.js',
              './manifest.webmanifest','./icon-192.png','./icon-512.png',
              './gauntlet/PHYSICAL_DEVICE_GAUNTLET.html','./gauntlet/gauntlet_core.js','./gauntlet/WEB_CAPABILITY_PROBE.html'];

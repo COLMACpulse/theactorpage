@@ -11,7 +11,7 @@
 (function(g){
 const KEY='theactorpage_takes_v1', MAX=60;
 const T={};
-T.FOR={selftape:'Self-tape',practice:'Practice',scene:'Scene take',clip:'Reel clip',voice:'Voice note',headshot:'Headshot'};
+T.FOR={selftape:'Self-tape',practice:'Practice',scene:'Scene take',clip:'Reel clip',voice:'Voice note',headshot:'Headshot',session:'Session tape (NOTES)'};
 function read(){ try{ const d=JSON.parse(localStorage.getItem(KEY)||'null'); if(d&&Array.isArray(d.list)) return d; }catch(e){} return {list:[]}; }
 function write(d){ d.list.sort((a,b)=>b.at-a.at); if(d.list.length>MAX) d.list.length=MAX; try{ localStorage.setItem(KEY,JSON.stringify(d)); return true; }catch(e){ return false; } }
 let dbp=null;

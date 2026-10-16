@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script src="../shared/hot.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NOTES · What they told you</title>
+<meta name="description" content="For the class, the workshop, the callback on Zoom: who was in the room, a Zoom check, a tape of you, and the notes they gave you, kept and lined up over time.">
+<meta name="theme-color" content="#121110">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NOTES">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+@font-face{font-family:Jost;font-weight:400;font-display:swap;src:url(fonts/jost-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:Jost;font-weight:500;font-display:swap;src:url(fonts/jost-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:Jost;font-weight:600;font-display:swap;src:url(fonts/jost-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Courier Prime';font-weight:400;font-display:swap;src:url(fonts/courier-prime-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Courier Prime';font-weight:700;font-display:swap;src:url(fonts/courier-prime-latin-700-normal.woff2) format('woff2')}
+:root{
+  --bg:#121110; --panel:#1b1916; --panel2:#24211d; --ink:#ece7dc; --dim:#a39c8e; --faint:#6e675c; --line:#2f2b26;
+  --tung:#e0a23c; --tung-ink:#1a1206; --tung-soft:rgba(224,162,60,.14); --tung-text:#e9b25a;
+  --bad:#e0785f; --good:#8fbf8a; --blue:#7fa6d6;
+  --sans:Jost,system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"Courier Prime","Courier New",Courier,monospace;
+  --r:12px; --tap:44px; --nav:64px; color-scheme:dark;
+}
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){
+  --bg:#ece7dc; --panel:#f6f2ea; --panel2:#e3dccd; --ink:#1d1a15; --dim:#5f584b; --faint:#8a8273; --line:#d3cab8;
+  --tung-soft:rgba(224,162,60,.22); --tung-text:#8a5a08; --bad:#a8432c; --good:#3d7a3a; --blue:#2f5f99; color-scheme:light;
+}}
+:root[data-theme="light"]{
+  --bg:#ece7dc; --panel:#f6f2ea; --panel2:#e3dccd; --ink:#1d1a15; --dim:#5f584b; --faint:#8a8273; --line:#d3cab8;
+  --tung-soft:rgba(224,162,60,.22); --tung-text:#8a5a08; --bad:#a8432c; --good:#3d7a3a; --blue:#2f5f99; color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--sans);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+h1,h2,h3{font-weight:600;letter-spacing:.02em;margin:0}
+.dim{color:var(--dim)} .faint{color:var(--faint)} .hide{display:none!important}
+.btn{min-height:var(--tap);padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:500;text-align:center}
+.btn:active{transform:translateY(1px)}
+.btn.pri{background:var(--tung);color:var(--tung-ink);border-color:var(--tung)}
+.btn.ghost{background:transparent} .btn.block{width:100%} .btn.sm{padding:0 12px;font-size:14px}
+.btn.big{min-height:60px;font-size:17px}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{min-height:var(--tap);padding:0 14px;border-radius:999px;border:1px solid var(--line);background:transparent;display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--dim)}
+.chip.on{background:var(--tung);color:var(--tung-ink);border-color:var(--tung)}
+.chip i{font-style:normal;font-size:12px;opacity:.75}
+.kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 8px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.msg{padding:12px 14px;border-radius:10px;background:var(--panel2);border-left:3px solid var(--tung);margin:12px 0;font-size:14px}
+.msg.bad{border-left-color:var(--bad)}
+.field{width:100%;border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:10px 12px;font-size:16px;min-height:var(--tap)}
+textarea.field{min-height:120px;resize:vertical;font-size:15px}
+select.field{appearance:auto}
+
+.shell{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
+.top{position:sticky;top:0;z-index:20;padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top .k{font-size:11px;letter-spacing:.22em;color:var(--faint)}
+.top b{display:block;font-size:16px;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .count{font-size:13px;color:var(--tung-text);margin-top:1px}
+main{flex:1;min-width:0;padding:16px 16px calc(var(--nav) + 24px + env(safe-area-inset-bottom));max-width:720px;width:100%;margin:0 auto}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(3,1fr);background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs button{min-height:var(--nav);border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;letter-spacing:.12em;color:var(--faint)}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button.on{color:var(--tung-text)}
+
+
+/* notes */
+.lab{display:block;font-size:13px;color:var(--dim);margin:0 0 4px}
+.small{font-size:13.5px}
+.chip.sm{min-height:36px;padding:0 12px}
+.whorow{margin:0 0 10px}.whorow .row{margin-top:6px}
+.field.half{flex:1 1 140px;min-width:0}
+.field.sel{width:auto;flex:1 1 140px;min-height:40px;padding:6px 10px}
+.pc{display:block;width:100%;text-align:left;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 8px}
+.pc b{display:block;font-weight:600}.pc small{color:var(--faint)}
+.recb{min-height:56px;padding:0 20px;border-radius:999px;border:2px solid #e0574a;background:transparent;color:#e0574a;font:700 16px var(--sans);letter-spacing:.06em}
+.recb.on{background:#e0574a;color:#fff}
+.rt{font:700 20px var(--mono);color:#e0574a}
+#mark{min-height:72px;font-size:20px;letter-spacing:.12em;flex-direction:column;gap:2px}#mark small{font-size:12px;letter-spacing:.04em;opacity:.8;font-weight:500}
+.slot{border-top:1px solid var(--line);padding:12px 0 4px}.slot:first-of-type{border-top:0;padding-top:0}
+.slot textarea{min-height:84px;margin-bottom:8px}
+.btn.rec{border-color:#e0574a;color:#e0574a}
+.lnk{background:none;border:0;color:var(--tung-text);padding:6px 4px;font-size:13.5px}
+.lnk.faint{color:var(--faint)}
+.note{padding:10px 0;border-bottom:1px solid var(--line)}.note:last-child{border-bottom:0}
+.nt{margin:0 0 4px;font-size:16px;line-height:1.45}.nm{margin:0;font-size:12.5px;color:var(--faint)}
+details.rep{border-bottom:1px solid var(--line);padding:8px 0}details.rep summary{cursor:pointer;list-style:none}details.rep summary::-webkit-details-marker{display:none}
+.tips{margin:8px 0;padding-left:18px;color:var(--dim);font-size:14.5px}.tips li{margin:4px 0}
+.frame{position:relative}.vid{width:100%;max-height:52vh;border-radius:10px;background:#000;display:block;object-fit:cover}.vid.mirror{transform:scaleX(-1)}
+.thirds{position:absolute;inset:0;pointer-events:none;background:linear-gradient(to bottom,transparent 32.8%,rgba(255,255,255,.35) 33%,transparent 33.4%,transparent 66.4%,rgba(255,255,255,.2) 66.6%,transparent 67%)}
+.meter{height:8px;background:var(--panel2);border-radius:999px;overflow:hidden;margin:10px 0}.meter span{display:block;height:100%;width:2%;background:var(--good);transition:width .2s}
+.sides{white-space:pre-wrap;font:15px/1.5 var(--mono);margin:12px 0 0}
+.ov{position:fixed;inset:0;z-index:60;background:var(--bg);padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px);overflow:auto}
+.recbox{max-width:640px;margin:0 auto}
+body.ovopen{overflow:hidden}
+.bad{color:var(--bad)}
+.toast{position:fixed;left:50%;bottom:calc(var(--nav) + 18px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(10px);background:var(--panel2);border:1px solid var(--tung);color:var(--ink);padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;transition:.2s;pointer-events:none;z-index:70;max-width:calc(100vw - 32px)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+body:has(#hotbar) .top{padding-top:calc(env(safe-area-inset-top) + 50px)}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="top">
+    <div class="k">NOTES</div>
+    <b id="title">A room you're in</b>
+    <div class="count" id="count"></div>
+  </header>
+  <main id="main"></main>
+</div>
+<nav class="tabs" id="tabs">
+  <button data-t="session"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="13" height="12" rx="2"/><path d="M16 9l5-3v10l-5-3"/></svg><span>SESSION</span></button>
+  <button data-t="notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg><span>NOTES</span></button>
+  <button data-t="people"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.3c2.9.3 5.5 2.6 5.5 5.7"/></svg><span>PEOPLE</span></button>
+</nav>
+<div class="ov" id="ov" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="../shared/capture.js"></script>
+<script src="../shared/takes.js"></script>
+<script src="../shared/shelf.js"></script>
+<script src="../actor-os/sides.js"></script>
+<script src="../actor-os/pdf.js"></script>
+<script src="../shared/intake.js"></script>
+<script src="../shared/notes.js"></script>
+<script src="app.js"></script>
+<script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
+</body>
+</html>
