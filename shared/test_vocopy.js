@@ -1,0 +1,31 @@
+/* node shared/test_vocopy.js : reading voice over copy. All copy here is made up. */
+global.window=globalThis;
+const fs=require('fs'), path=require('path'); const D=f=>path.join(__dirname,'fixtures',f);
+require('../actor-os/sides.js'); require('../actor-os/pdf.js'); const V=require('./vocopy.js');
+let pass=0,fail=0; const ok=(n,c,x)=>{ if(c){pass++;console.log('PASS',n);} else {fail++;console.log('FAIL',n,x===undefined?'':JSON.stringify(x).slice(0,600));} };
+(async()=>{
+ const r=V.read(fs.readFileSync(D('dry_creek_vo_copy.txt'),'utf8'));
+ ok('two spots with their lengths, "TITLE:15" with no space too', r.spots.map(s=>s.title+':'+s.secs).join('|')==='Morning Ride:30|LAST CALL:15', r.spots.map(s=>[s.title,s.secs]));
+ ok('the voice is the one with the most lines; STING and ENDCARD are not voices', r.you==='DC'&&r.voices.DC===6&&r.voices.HAL===1&&!r.voices.STING&&!r.voices.ENDCARD, r.voices);
+ const l=r.spots[0].lines.find(x=>/doesn't/.test(x.text));
+ ok('ALT lines go under the line they replace', l&&l.alts.length===2&&l.alts[1]==='Dry Creek Coffee? Not a chance.', l);
+ ok('directions kept as notes before the line', r.spots[0].lines[1].notes.join(' ')==='HAL STEPS OUT ONTO THE PORCH WITH A TIN CUP.', r.spots[0].lines[1].notes);
+ ok('the note under the spot title (the revision) is not a line', r.spots[0].lines[0].text==='Some mornings start slow.'&&r.spots[0].lines[0].notes.some(n=>/R2/.test(n)));
+ const b=fs.readFileSync(D('salt_flats_vo_copy.pdf')); const px=await window.ActorPDF.extract(b.buffer.slice(b.byteOffset,b.byteOffset+b.length));
+ const wrap=px.lines.find(x=>/^Just the road/.test(x.text));
+ ok('PDF reader: a tab-stop jump moves the words to their column (Pages / Keynote layout)', wrap&&wrap.x>150, wrap);
+ const vo=px.lines.find(x=>/^VO/.test(x.text));
+ ok('PDF reader: "VO:" and the words after the jump are separate cells', vo&&vo.cells&&vo.cells.length===2&&vo.cells[1].x>150, vo);
+ const p=V.read(px.lines.map(x=>({text:x.text,x:x.x})));
+ ok('a wrapped line in a PDF joins its line of copy', p.spots[0].lines[0].text==='Nothing out here but you Just the road.', p.spots[0].lines[0]);
+ ok('PDF: ALT under its line; another speaker kept', p.spots[0].lines[1].alts[0]==='Salt Flats Trucks. Made for nowhere.'&&p.voices.DRIVER===1&&p.you==='VO', p);
+ ok('run-on lines: open quote, little joining word, lower case; not a full direction', V.runsOn('It’s “two hundred miles','missing the live game” streaming.')&&V.runsOn('Get started for $25 a month when','You bundle with TV.')&&V.runsOn('Built for','Nowhere')&&!V.runsOn('Nothing out here.','A truck passes.')&&!V.runsOn('It’s a fast truck','A truck passes on the left and the driver waves at the camera.'));
+ const n=V.note('This is due tomorrow, Tuesday 1/31, 10am\nNorthgate Coffee - please read all 3 scripts on one MP3 (Last Call, Morning Ride, Salt Flats - in that order)');
+ ok('the agent note: client, due, one MP3, order', n.client==='Northgate Coffee'&&n.due==='tomorrow, Tuesday 1/31, 10am'&&n.oneFile&&n.format==='mp3'&&n.order.join('|')==='Last Call|Morning Ride|Salt Flats', n);
+ const m=V.merge([r,p],n.order);
+ ok('several files, put in the order asked', m.spots.map(s=>s.title).join('|')==='LAST CALL|Morning Ride|Salt Flats', m.spots.map(s=>s.title));
+ ok('file name the way casting reads it', V.fileName('Northgate Coffee','Sam Actor')==='Northgate Coffee - Sam Actor.mp3'&&V.fileName('A/B','Sam')==='A B - Sam.mp3');
+ ok('a rough read time before recording (words / 2.7 a second)', Math.abs(V.guess(r.spots[1],'DC')-5.2)<0.1, V.guess(r.spots[1],'DC'));
+ ok('a clock time is not a spot length', !V.isHead('Call time 10:30')&&!V.isHead('VO: That is the plan.')&&V.isHead('Morning Ride :30').secs===30);
+ console.log('\n'+pass+' passed, '+fail+' failed'); process.exit(fail?1:0);
+})();

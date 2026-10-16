@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script src="../shared/hot.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VO BOOTH · Voice over, from a closet</title>
+<meta name="description" content="A voice over audition from your phone: read the copy line by line, ALTs too, check the room, and send one file in the order asked, levelled and named the way casting reads it.">
+<meta name="theme-color" content="#121110">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VO BOOTH">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+@font-face{font-family:Jost;font-weight:400;font-display:swap;src:url(fonts/jost-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:Jost;font-weight:500;font-display:swap;src:url(fonts/jost-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:Jost;font-weight:600;font-display:swap;src:url(fonts/jost-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Courier Prime';font-weight:400;font-display:swap;src:url(fonts/courier-prime-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Courier Prime';font-weight:700;font-display:swap;src:url(fonts/courier-prime-latin-700-normal.woff2) format('woff2')}
+:root{
+  --bg:#121110; --panel:#1b1916; --panel2:#24211d; --ink:#ece7dc; --dim:#a39c8e; --faint:#6e675c; --line:#2f2b26;
+  --tung:#e0a23c; --tung-ink:#1a1206; --tung-soft:rgba(224,162,60,.14); --tung-text:#e9b25a;
+  --bad:#e0785f; --good:#8fbf8a; --blue:#7fa6d6;
+  --sans:Jost,system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"Courier Prime","Courier New",Courier,monospace;
+  --r:12px; --tap:44px; --nav:64px; color-scheme:dark;
+}
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){
+  --bg:#ece7dc; --panel:#f6f2ea; --panel2:#e3dccd; --ink:#1d1a15; --dim:#5f584b; --faint:#8a8273; --line:#d3cab8;
+  --tung-soft:rgba(224,162,60,.22); --tung-text:#8a5a08; --bad:#a8432c; --good:#3d7a3a; --blue:#2f5f99; color-scheme:light;
+}}
+:root[data-theme="light"]{
+  --bg:#ece7dc; --panel:#f6f2ea; --panel2:#e3dccd; --ink:#1d1a15; --dim:#5f584b; --faint:#8a8273; --line:#d3cab8;
+  --tung-soft:rgba(224,162,60,.22); --tung-text:#8a5a08; --bad:#a8432c; --good:#3d7a3a; --blue:#2f5f99; color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--sans);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+h1,h2,h3{font-weight:600;letter-spacing:.02em;margin:0}
+.dim{color:var(--dim)} .faint{color:var(--faint)} .hide{display:none!important}
+.btn{min-height:var(--tap);padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:500;text-align:center}
+.btn:active{transform:translateY(1px)}
+.btn.pri{background:var(--tung);color:var(--tung-ink);border-color:var(--tung)}
+.btn.ghost{background:transparent} .btn.block{width:100%} .btn.sm{padding:0 12px;font-size:14px}
+.btn.big{min-height:60px;font-size:17px}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{min-height:var(--tap);padding:0 14px;border-radius:999px;border:1px solid var(--line);background:transparent;display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--dim)}
+.chip.on{background:var(--tung);color:var(--tung-ink);border-color:var(--tung)}
+.chip i{font-style:normal;font-size:12px;opacity:.75}
+.kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 8px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.msg{padding:12px 14px;border-radius:10px;background:var(--panel2);border-left:3px solid var(--tung);margin:12px 0;font-size:14px}
+.msg.bad{border-left-color:var(--bad)}
+.field{width:100%;border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:10px 12px;font-size:16px;min-height:var(--tap)}
+textarea.field{min-height:120px;resize:vertical;font-size:15px}
+select.field{appearance:auto}
+
+.shell{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
+.top{position:sticky;top:0;z-index:20;padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top .k{font-size:11px;letter-spacing:.22em;color:var(--faint)}
+.top b{display:block;font-size:16px;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .count{font-size:13px;color:var(--tung-text);margin-top:1px}
+main{flex:1;min-width:0;padding:16px 16px calc(var(--nav) + 24px + env(safe-area-inset-bottom));max-width:720px;width:100%;margin:0 auto}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(3,1fr);background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs button{min-height:var(--nav);border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;letter-spacing:.12em;color:var(--faint)}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button.on{color:var(--tung-text)}
+
+
+/* booth */
+.lab{display:block;font-size:13px;color:var(--dim);margin:0 0 4px}
+.small{font-size:13.5px}
+.it{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.it .n{width:24px;flex:none;font:700 14px var(--mono);color:var(--faint)}
+.it .w{flex:1;min-width:0}.it .w b{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.it .w small{color:var(--faint);font-size:12.5px}
+.ib{width:40px;height:40px;flex:none;border-radius:8px;border:1px solid var(--line);background:transparent;font-size:16px}
+.ib[disabled]{opacity:.3}
+.chip.sm{min-height:36px;padding:0 12px}
+.pill{font-size:11px;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--line);border-radius:999px;padding:2px 9px;white-space:nowrap;color:var(--dim)}
+.cnt{font:700 30px var(--mono);text-align:center;margin:14px 0 0;color:var(--tung-text)}
+.tips{margin:0;padding-left:18px;color:var(--dim);font-size:15px}.tips li{margin:4px 0}
+.brief{white-space:pre-wrap;font-size:14px;color:var(--dim);margin:8px 0 0}
+details.card summary{cursor:pointer;margin:0}
+.spot{margin:0 0 22px}
+.time{font:700 15px var(--mono);color:var(--good);margin:-2px 0 10px}.time.off{color:var(--tung-text)}
+.dir{font-size:12.5px;letter-spacing:.04em;color:var(--faint);margin:10px 0 4px;text-transform:uppercase}
+.other{font-size:14px;color:var(--faint);margin:6px 0}
+.line{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 12px 10px;margin:8px 0}
+.line.alt{margin-left:18px;background:var(--panel2)}
+.line.rec{border-color:#e0574a;box-shadow:0 0 0 1px #e0574a inset}
+.copy{font:400 19px/1.45 var(--sans);margin:4px 0 10px}
+.line.alt .copy{font-size:17px}
+.recb{width:52px;height:52px;flex:none;border-radius:50%;border:2px solid #e0574a;background:transparent;color:#e0574a;font-size:22px;line-height:1}
+.recb.on{background:#e0574a;color:#fff}
+.rt{font:700 15px var(--mono);color:#e0574a}
+.tk{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;overflow:hidden;font-size:13px}
+.tk.kept{border-color:var(--tung)}
+.tk button{border:0;background:transparent;min-height:36px;padding:0 9px}
+.tk em{font-style:normal;font-size:11px;letter-spacing:.1em;color:var(--tung-text);padding:0 6px}
+.tkk{color:var(--dim);font-size:11px;letter-spacing:.08em}
+.tkx{color:var(--faint)}
+.fn{display:block;font-weight:600;word-break:break-word;margin-bottom:8px}
+.aud{width:100%;margin:4px 0 8px}
+.chk{margin:6px 0;padding-left:0;list-style:none}.chk li{padding:6px 0 6px 26px;position:relative;font-size:15px;border-bottom:1px solid var(--line)}
+.chk li:before{position:absolute;left:2px;top:6px;font-weight:700}.chk li.ok:before{content:'✓';color:var(--good)}.chk li.no:before{content:'!';color:var(--bad)}
+.bad{color:var(--bad)}
+.toast{position:fixed;left:50%;bottom:calc(var(--nav) + 18px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(10px);background:var(--panel2);border:1px solid var(--tung);color:var(--ink);padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;transition:.2s;pointer-events:none;z-index:70;max-width:calc(100vw - 32px)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+nav.tabs{grid-template-columns:repeat(4,1fr)!important}
+a{color:var(--tung-text)}
+body:has(#hotbar) .top{padding-top:calc(env(safe-area-inset-top) + 50px)}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="top">
+    <div class="k">VO BOOTH</div>
+    <b id="title">Voice over</b>
+    <div class="count" id="count"></div>
+  </header>
+  <main id="main"></main>
+</div>
+<nav class="tabs" id="tabs">
+  <button data-t="copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg><span>COPY</span></button>
+  <button data-t="room"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V8l8-5 8 5v12"/><path d="M9 20v-6h6v6"/></svg><span>ROOM</span></button>
+  <button data-t="read"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>READ</span></button>
+  <button data-t="send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l16-8-6 16-3-7z"/></svg><span>SEND</span></button>
+</nav>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="../shared/capture.js"></script>
+<script src="../shared/you.js"></script>
+<script src="../actor-os/sides.js"></script>
+<script src="../actor-os/pdf.js"></script>
+<script src="../shared/intake.js"></script>
+<script src="../shared/vocopy.js"></script>
+<script src="../shared/voaudio.js"></script>
+<script src="../shared/vendor/lame.min.js"></script>
+<script src="app.js"></script>
+<script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
+</body>
+</html>

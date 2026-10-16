@@ -79,3 +79,31 @@ Three big buttons on home. Shoot first; it already knows what's in play and offe
 - **The one camera and mic (`capture.js`):** MP4 first, WebM when the browser can't; raw mic (no echo cancelling, noise gate or auto gain); a chosen device falls back to any; screen kept awake while recording; released when you leave; plain words for every refusal. Built from Actor OS's performer camera, Slate Maker, Story Studio's rough cut and Match Camera.
 - **Not yet:** each tool's own camera and mic inside the tool (Actor OS, Slate Maker, the Hub's tape, CPS, Paper Trail, Story Studio's ADR and Match Camera) still runs its own code. Next: switch them to `capture.js` one at a time.
 - **Tests:** `node shared/test_capture.js` (7); browser home03 16 (fake camera and mic: self-tape, scene take, photo, voice note; Actor OS, Hub and Story Studio pick them up; the scene take plays after a reload).
+
+# Voice over copy · `shared/vocopy.js`
+
+Reads ad and VO copy the way it comes in, which isn't screenplay format. Used by VO BOOTH.
+
+- **A spot:** a title with its length: "Morning Ride :30", "LAST CALL:15", "Salt Flats :30 (Hero)". A clock time (10:30) is not a length.
+- **A line:** starts with who says it: "VO:", or the character ("DC:"). STING, ENDCARD, SUPER, SFX and the like are not voices.
+- **ALT:** "ALT:", "ALT VO:", "ALT 2:" is another way to read the line just above it, and stays with that line.
+- **Directions** ("HE WINKS") are kept as notes before the next line.
+- **Wrapped lines:** a PDF line that carries on the copy above it joins it: indented past the directions, or the copy plainly runs on (an open quote, a little joining word, lower case).
+- **The agent's note:** due, client ("Northgate Coffee - please read..."), one MP3, the order ("(A, B, C - in that order)").
+- **Your voice:** each script's main voice (VO first, then the most lines) unless you pick one.
+- **Tests:** `node shared/test_vocopy.js` (15). Checked privately on two real jobs (3 PDFs + a brief, and a Word file with 7 spots); not in the repo.
+
+# Voice over sound · `shared/voaudio.js`
+
+The Audacity step, as plain maths on the samples (runs in Node for the tests).
+
+- **room():** the closet with you quiet. -60 dB or under is the usual bar.
+- **trim():** cuts the dead air, keeps 0.15 s of room before and 0.25 s after.
+- **loudness():** LUFS by ITU BS.1770 (the libebur128 filters). Matches ffmpeg's meter to 0.1 LU on test tones and on a real audition file.
+- **build():** kept takes in reading order; rumble cut; gaps (0.6 s between lines, 1.5 s between spots) filled with your own room, not dead silence; one level for the whole read (-20 LUFS by default); every sample held under -3 dB.
+- **mp3():** LAME (`shared/vendor/lame.min.js`, lamejs 1.2.1, LGPL, used unchanged as a separate file). **wav():** 16-bit mono.
+- **Tests:** `node shared/test_voaudio.js` (15, including ffprobe and ffmpeg's loudness meter on the MP3 when they're installed).
+
+# Office history · `shared/offices.js`
+
+Your real history with a casting office, in one line, from the Project Hub's records on this device: reads before this one, confirmed, callbacks, booked, the last read when it has a date. On every new request (home and the Hub). Tests: `node shared/test_offices.js` (8).

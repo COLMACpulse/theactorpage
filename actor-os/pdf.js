@@ -107,7 +107,7 @@ function a85(bytes){
    combined regex do not line up and Tm silently never fired. */
 function readContent(txt){
  const items=[];
- let tx=0,ty=0,lead=14,stack=[],curFont='';
+ let tx=0,ty=0,lead=14,stack=[],curFont='',tfs=1,tma=1;
  /* the graphics state: q / Q / cm move and scale everything drawn after them. A page laid out in tables
     (a résumé from a document tool) places each cell with cm and draws its text at 0,0, so without this
     every word lands in the corner. */
@@ -125,10 +125,10 @@ function readContent(txt){
    case 'q': MS.push(M.slice()); break;
    case 'Q': if(MS.length) M=MS.pop(); break;
    case 'cm': { const v=[6,5,4,3,2,1].map(k=>n(k)); if(v.every(isFinite)) M=[v[0]*M[0]+v[1]*M[2], v[0]*M[1]+v[1]*M[3], v[2]*M[0]+v[3]*M[2], v[2]*M[1]+v[3]*M[3], v[4]*M[0]+v[5]*M[2]+M[4], v[4]*M[1]+v[5]*M[3]+M[5]]; break; }
-   case 'Tf': { const f=stack[stack.length-2]; if(f&&f[0]==='/')curFont=f.slice(1); break; }
+   case 'Tf': { const f=stack[stack.length-2]; if(f&&f[0]==='/')curFont=f.slice(1); const z=n(1); if(isFinite(z)&&z>0) tfs=z; break; }
    case 'Td': ty+=n(1); tx+=n(2); break;
    case 'TD': lead=-n(1); ty+=n(1); tx+=n(2); break;
-   case 'Tm': ty=n(1); tx=n(2); TR=Math.abs(n(5))>0.01||Math.abs(n(4))>0.01; break;
+   case 'Tm': ty=n(1); tx=n(2); TR=Math.abs(n(5))>0.01||Math.abs(n(4))>0.01; { const sc=Math.abs(n(6)); tma=isFinite(sc)&&sc>0?sc:1; } break;
    case 'ET': TR=false; break;
    case 'TL': lead=n(1); break;
    case 'T*': ty-=lead; break;
@@ -141,17 +141,24 @@ function readContent(txt){
      if(t!=='Tj')ty-=lead;
      break; }
    case 'TJ': {
+     /* a big negative number in TJ moves the pen right: that's how some apps (Pages, Keynote, Word on a Mac)
+        lay out tab stops. "VO:" then a jump to the words' column; a wrapped line starts with the jump alone.
+        The jump moves where the words start, and a jump wider than a couple of letters starts a new cell.
+        Letter widths aren't known here, so a letter counts as half the type size (near enough to keep columns). */
      const a=stack[stack.length-1]||'';
      if(a[0]==='['){
-       let out='';
+       const fs=tfs*tma; let cur='', curX=null, adv=0;
+       const put=()=>{ if(cur){ const p=at(tx+curX,ty); if(!p.rot) items.push({x:p.x,y:p.y,s:fixPunct(cur),font:curFont}); } cur=''; curX=null; };
        const pr=/\((?:\\.|[^\\()])*\)|<[0-9a-fA-F\s]*>|-?[\d.]+/g; let q;
        while((q=pr.exec(a.slice(1,-1)))){
          const v=q[0];
-         if(v[0]==='(') out+=unesc(v.slice(1,-1));
-         else if(v[0]==='<') out+=hexStr(v);
-         else if(parseFloat(v)<-120) out+=' ';
+         if(v[0]==='('||v[0]==='<'){ const str=v[0]==='('?unesc(v.slice(1,-1)):hexStr(v); if(!str) continue;
+           if(curX===null){ if(!str.trim()){ adv+=str.length*0.25*fs; continue; } curX=adv; }
+           cur+=str; adv+=str.length*0.5*fs; }
+         else { const k=parseFloat(v); if(!isFinite(k)) continue; const d=-k/1000*fs; adv+=d;
+           if(k<-120&&cur){ if(d>1.5*fs) put(); else cur+=' '; } }
        }
-       if(out){ const p=at(tx,ty); if(!p.rot) items.push({x:p.x,y:p.y,s:fixPunct(out),font:curFont}); }
+       put();
      }
      break; }
   }
