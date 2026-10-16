@@ -161,6 +161,7 @@ small.note{display:block;padding:0 15px 13px;color:var(--faint);font-size:10.5px
 <div class="toast" id="toast"></div>
 <script src="request.js"></script>
 <script src="../shared/inbox.js"></script>
+<script src="../shared/you.js"></script>
 <script>
 var restoreReport=null;
 var CREDIT_TOMBS=[];   // titles the user has deleted; never re-seed these
@@ -1320,6 +1321,23 @@ function addRequestFrom(r,quiet){
    workflow:{rep_email:true,audition_request:true,actor_ingest:true,character_breakdown:!!r.roleDesc,sides:!!r.sides.length}});
  Object.assign(p,{request:r,dirDone:{},brief:r.roleDesc,roleSize:r.roleSize,episode:r.episode,studios:r.studio,union:r.union,director:r.director,eps:r.producers,shootDates:r.shootDates,location:r.location,sidesFile:r.sides[0]||''});
  projects.unshift(p);saveProjects();return true;}
+/* your profile from the home page (shared/you.js): the demo actor goes, then only the Hub's blanks are filled;
+   credits and headshots the Hub doesn't have yet come in once each */
+async function fromYou(){ const Y=window.You; if(!Y||!Y.has()) return; const y=Y.get(), got=[];
+ if(isDemo()&&!DEMO_CLEARED){ await dropDemoData(); got.push('the demo actor cleared'); }
+ profile=profile||{}; const map={name:y.name,union:y.union,rep:y.rep,phone:y.repPhone||y.phone,locals:y.locations,height:y.height,weight:y.weight};
+ Object.keys(map).forEach(k=>{ if(map[k]&&!profile[k]){ profile[k]=map[k]; got.push(k); } });
+ ['skills','accents'].forEach(k=>{ if(!(profile[k]||[]).length&&y[k].length){ profile[k]=y[k].slice(); got.push(k); } });
+ const have=new Set((credits||[]).map(c=>String(c.title||'').toLowerCase().trim())); let nc=0;
+ y.credits.forEach(c=>{ const k=String(c.title||'').toLowerCase().trim(); if(!k||have.has(k)) return; have.add(k); nc++;
+  credits.push({title:c.title,role:c.role||'',character:c.character||'',net:c.by||'',kind:'credit',medium:c.section==='TV'?'TV':c.section==='Film'?'Film':c.section,state:'archived',from:'résumé'}); });
+ if(nc){ ensureCids(); await saveCredits(); got.push(nc+' credits'); }
+ profile.youPhotos=profile.youPhotos||[]; let np=0;
+ for(const ph of y.photos){ if(profile.youPhotos.includes(ph.id)) continue; const b=await Y.photoBlob(ph.id); if(!b) continue;
+  const rec={id:'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),scope:'library',category:'headshot',label:String(ph.name||'headshot').replace(/\.[^.]+$/,''),filename:ph.name||'headshot.jpg',type:'image/jpeg',size:b.size||0,added:new Date().toISOString(),blob:b};
+  try{ await DB.put(rec); ARTS.push(rec); profile.youPhotos.push(ph.id); np++; if(ph.id===y.primary&&!profile.primaryHeadshot) profile.primaryHeadshot=rec.id; }catch(e){} }
+ if(np) got.push(np+' headshot'+(np===1?'':'s'));
+ if(got.length){ await saveProfile(); toast('From your profile: '+got.join(', ')); } }
 /* what you dropped on the home page (shared/inbox.js), taken once */
 function fromInbox(){ if(!window.Inbox||!window.HubReq) return; const L=Inbox.pending('hub','request'); let n=0, last='';
  L.forEach(it=>{ let r=null; try{ r=HubReq.read(it.data.raw||''); }catch(e){} if(r&&(r.title||r.role)&&addRequestFrom(r,true)){ n++; last=(r.title||r.show||'')+(r.role?' · '+r.role:''); } Inbox.take('hub',it.id); });
@@ -3663,5 +3681,5 @@ function reelRoomView(){
    wrong tombstone list - so the vault was correcting the record instead of being
    it. Now: browser cache, then folder, then the seeding and filtering run on
    whatever won. */
-seed();render();loadArts().then(()=>loadMeta()).then(()=>vaultAuto()).then(()=>{const n=credits.length;credits=credits.filter(c=>!isTombed(c.title));if(credits.length!==n)saveCredits();}).then(()=>seedAuditions()).then(()=>fromInbox()).then(render);
+seed();render();loadArts().then(()=>loadMeta()).then(()=>vaultAuto()).then(()=>{const n=credits.length;credits=credits.filter(c=>!isTombed(c.title));if(credits.length!==n)saveCredits();}).then(()=>seedAuditions()).then(()=>fromInbox()).then(()=>fromYou()).then(render);
 </script></body></html>

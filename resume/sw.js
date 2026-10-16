@@ -1,6 +1,6 @@
 /* VIRTUAL RESUME service worker: opens with no signal. Your work never touches the network. */
-const CACHE = 'resume-0.4.0';
-const FILES = ['./', 'index.html', 'app.js', 'engine.js', 'manifest.webmanifest',
+const CACHE = 'resume-0.5.0';
+const FILES = ['./', 'index.html', '../shared/you.js', 'app.js', 'engine.js', 'manifest.webmanifest',
   'fonts/jost-latin-400-normal.woff2', 'fonts/jost-latin-500-normal.woff2', 'fonts/jost-latin-600-normal.woff2',
   'fonts/courier-prime-latin-400-normal.woff2', 'fonts/courier-prime-latin-700-normal.woff2',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];

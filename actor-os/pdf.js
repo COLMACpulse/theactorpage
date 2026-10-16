@@ -108,6 +108,12 @@ function a85(bytes){
 function readContent(txt){
  const items=[];
  let tx=0,ty=0,lead=14,stack=[],curFont='';
+ /* the graphics state: q / Q / cm move and scale everything drawn after them. A page laid out in tables
+    (a résumé from a document tool) places each cell with cm and draws its text at 0,0, so without this
+    every word lands in the corner. */
+ let M=[1,0,0,1,0,0]; const MS=[];
+ let TR=false;   // the text itself turned (Tm with rotation): a watermark, never the script
+ const at=(x,y)=>({x:M[0]*x+M[2]*y+M[4], y:M[1]*x+M[3]*y+M[5], rot:TR||Math.abs(M[1])>0.01||Math.abs(M[2])>0.01});
  const TOK=/\((?:\\.|[^\\()])*\)|<[0-9a-fA-F\s]*>|\[(?:[^\]\\]|\\.)*\]|-?[\d.]+|\/[^\s\/\[\]<>()]+|[A-Za-z*'"]+/g;
  let m;
  while((m=TOK.exec(txt))){
@@ -116,10 +122,14 @@ function readContent(txt){
   const n=k=>parseFloat(stack[stack.length-k]);
   switch(t){
    case 'BT': tx=0;ty=0; break;
+   case 'q': MS.push(M.slice()); break;
+   case 'Q': if(MS.length) M=MS.pop(); break;
+   case 'cm': { const v=[6,5,4,3,2,1].map(k=>n(k)); if(v.every(isFinite)) M=[v[0]*M[0]+v[1]*M[2], v[0]*M[1]+v[1]*M[3], v[2]*M[0]+v[3]*M[2], v[2]*M[1]+v[3]*M[3], v[4]*M[0]+v[5]*M[2]+M[4], v[4]*M[1]+v[5]*M[3]+M[5]]; break; }
    case 'Tf': { const f=stack[stack.length-2]; if(f&&f[0]==='/')curFont=f.slice(1); break; }
    case 'Td': ty+=n(1); tx+=n(2); break;
    case 'TD': lead=-n(1); ty+=n(1); tx+=n(2); break;
-   case 'Tm': ty=n(1); tx=n(2); break;
+   case 'Tm': ty=n(1); tx=n(2); TR=Math.abs(n(5))>0.01||Math.abs(n(4))>0.01; break;
+   case 'ET': TR=false; break;
    case 'TL': lead=n(1); break;
    case 'T*': ty-=lead; break;
    case 'Tj': case '\'': case '"': {
@@ -127,7 +137,7 @@ function readContent(txt){
      let v='';
      if(a[0]==='(') v=unesc(a.slice(1,-1));
      else if(a[0]==='<') v=hexStr(a);
-     if(v)items.push({x:tx,y:ty,s:fixPunct(v),font:curFont});
+     if(v){ const p=at(tx,ty); if(!p.rot) items.push({x:p.x,y:p.y,s:fixPunct(v),font:curFont}); }
      if(t!=='Tj')ty-=lead;
      break; }
    case 'TJ': {
@@ -141,7 +151,7 @@ function readContent(txt){
          else if(v[0]==='<') out+=hexStr(v);
          else if(parseFloat(v)<-120) out+=' ';
        }
-       if(out)items.push({x:tx,y:ty,s:fixPunct(out),font:curFont});
+       if(out){ const p=at(tx,ty); if(!p.rot) items.push({x:p.x,y:p.y,s:fixPunct(out),font:curFont}); }
      }
      break; }
   }
@@ -217,12 +227,14 @@ function toLines(items){
   .sort((a,b)=>desc?b[0]-a[0]:a[0]-b[0])          // top of the page first
   .map(([y,arr])=>{
     arr.sort((a,b)=>a.x-b.x);
-    let s='',prev=null;
+    let s='',prev=null; const cells=[];
     arr.forEach(it=>{
       if(prev!==null && it.x-prev>6) s+=' ';
+      // columns (a résumé's TITLE / ROLE / NETWORK): a gap wider than a couple of letters starts a new cell
+      if(prev===null||it.x-prev>14) cells.push({x:it.x,s:it.s}); else cells[cells.length-1].s+=(it.x-prev>2&&!/\s$/.test(cells[cells.length-1].s)?' ':'')+it.s;
       s+=it.s; prev=it.x+it.s.length*6;
     });
-    return {y, x:arr[0].x, x1:Math.max(prev||0, arr[0].x+s.trim().length*6), text:s.replace(/\s+/g,' ').trim()};
+    return {y, x:arr[0].x, x1:Math.max(prev||0, arr[0].x+s.trim().length*6), text:s.replace(/\s+/g,' ').trim(), cells:cells.map(c=>({x:c.x,text:c.s.replace(/\s+/g,' ').trim()})).filter(c=>c.text)};
   })
   .filter(r=>r.text);
 }

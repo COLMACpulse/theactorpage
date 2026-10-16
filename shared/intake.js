@@ -60,8 +60,11 @@ X.scriptOf=function(text){
 };
 
 /* What is this text? pdf: {pages, sides:true when the page carries sides markings, struck} */
-X.what=function(text,pdf){
- const t=String(text||''), sc=X.scriptOf(t);
+X.what=function(text,pdf,rows){
+ const t=String(text||'');
+ const rr=rows||X.rowsOfText(t), rz=X.looksLikeResume(rr);
+ if(rz.yes){ const P=X.resumeRead(rr); return {kind:'resume', why:rz.why.concat([P.credits.length+' credits']), profile:P}; }
+ const sc=X.scriptOf(t);
  let req=null; try{ req=R()?R().read(t):null; }catch(e){ req=null; }
  const reqSigns=req?[req.due&&'a tape due date',req.confirmOnEcoCast&&'Eco Cast',/Audition (Instructions|Deadline)|self[- ]?tape/i.test(t)&&'self-tape instructions',req.role&&'the role ('+req.role+')'].filter(Boolean):[];
  // a request carries few speeches; sides pasted under a request are still sides, read on their own
@@ -75,6 +78,64 @@ X.what=function(text,pdf){
  }
  if(reqSigns.length) return {kind:'request', why:reqSigns, req, script:sc};
  return {kind:'unknown', why:[t.trim()?'no scene, no speeches, no tape due date':'no text in it'], script:sc};
+};
+
+/* ---------- a résumé ----------
+   rows: [{cells:[{x,text}]}] from the PDF reader (columns kept), or from text (a tab or 2+ spaces is a column). */
+X.rowsOfText=function(text){ return String(text||'').replace(/\r/g,'').split('\n').map(l=>{ const cells=[]; const re=/[^\t]+?(?=\t| {2,}|$)/g; let m; const L=l.replace(/\s+$/,'');
+ while((m=re.exec(L))){ const t=m[0].trim(); if(t) cells.push({x:m.index*6,text:t}); if(re.lastIndex===m.index) re.lastIndex++; } return {cells}; }).filter(r=>r.cells.length); };
+const SECTION=/^(TELEVISION|TV|FILMS?|FEATURES?|FEATURE FILMS?|SHORTS?|SHORT FILMS?|NEW MEDIA|WEB(?: SERIES)?|THEAT(?:RE|ER)|STAGE|COMMERCIALS?|VOICE ?OVER|VO|MUSIC VIDEOS?|INDUSTRIALS?|VIDEO GAMES?|TRAINING|EDUCATION|SPECIAL SKILLS|SKILLS|ACCENTS?(?: ?\/ ?DIALECTS)?|DIALECTS|LANGUAGES|AWARDS)$/i;
+const LABEL=/^(Special Skills|Skills|Accents ?\/ ?Dialects|Accents|Dialects|Languages|Training|Education)\s*:?\s*/i;
+const SECT_OF=h=>{ h=h.toUpperCase(); if(/^(TELEVISION|TV)$/.test(h)) return 'TV'; if(/FILM|FEATURE|SHORT/.test(h)) return 'Film'; if(/THEAT|STAGE/.test(h)) return 'Theatre'; if(/COMMERCIAL/.test(h)) return 'Commercial'; if(/NEW MEDIA|WEB/.test(h)) return 'New Media';
+ if(/VOICE|^VO$/.test(h)) return 'Voiceover'; if(/MUSIC/.test(h)) return 'Music Video'; if(/INDUSTRIAL/.test(h)) return 'Industrial'; if(/GAME/.test(h)) return 'Video Game'; if(/TRAINING|EDUCATION/.test(h)) return 'training';
+ if(/SKILL/.test(h)) return 'skills'; if(/ACCENT|DIALECT/.test(h)) return 'accents'; if(/LANGUAGE/.test(h)) return 'languages'; return 'other'; };
+const ROLE_SIZE=/^(Series Regular|Recurring(?: Guest Star| Co-?Star)?|Guest Star|Co-?Star|Lead|Strong Supporting|Supporting|Featured|Principal|Day Player|Under-?5|Under-?Five|Starring|Ensemble|Understudy|Swing|Narrator|Host|Voice)\b/i;
+X.resumeRead=function(rows){
+ const P={name:'',union:'',phone:'',email:'',rep:'',repPhone:'',height:'',weight:'',hair:'',eyes:'',locations:'',credits:[],training:[],skills:[],accents:[],languages:[]};
+ const txt=c=>c.map(x=>x.text).join(' ');
+ const first=rows.findIndex(r=>r.cells.length===1&&SECTION.test(r.cells[0].text.replace(/[:\s]+$/,''))||LABEL.test(txt(r.cells))&&r.cells[0].x<200);
+ const head=rows.slice(0,first<0?Math.min(rows.length,6):first);
+ head.forEach((r,i)=>{ const line=txt(r.cells); const parts=line.split(/\s+[·•|]\s+|\s{3,}/).map(x=>x.trim()).filter(Boolean);
+  if(i===0&&!P.name&&/^[A-Za-z][A-Za-z .'\-]{2,40}$/.test(line)&&line.split(/\s+/).length<=5){ P.name=line.replace(/\b([A-Z])([A-Z']+)\b/g,(m,a,b)=>a+b.toLowerCase()).replace(/\bMc([a-z])/g,(m,a)=>'Mc'+a.toUpperCase()); return; }
+  parts.forEach(pt=>{
+   let m=pt.match(/\b(SAG-?AFTRA|SAG-?E|SAG|AFTRA|AEA|EQUITY|EMC|NON-?UNION)\b/i); if(m&&!P.union) P.union=m[1].toUpperCase().replace(/^SAGAFTRA$/,'SAG-AFTRA');
+   m=pt.match(/[\w.+-]+@[\w-]+\.[\w.]+/); if(m&&!P.email) P.email=m[0];
+   const ph=(pt.match(/\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]\d{4}/)||[])[0];
+   if(/(Management|Mgmt|Agency|Talent|Artists|Entertainment|Agent|Manager|Representation)\b/i.test(pt)){ P.rep=pt.replace(/\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]\d{4}/,'').replace(/[,:·\s]+$/,'').trim(); if(ph) P.repPhone=ph; }
+   else if(ph){ if(P.rep&&!P.repPhone&&parts.some(x=>/(Management|Mgmt|Agency|Talent|Artists)/i.test(x))) P.repPhone=ph; else if(!P.phone) P.phone=ph; }
+   m=pt.match(/(\d)\s*['’′]\s*(\d{1,2})\s*["”″]?/); if(m&&!P.height&&/height|^\s*\d\s*['’]/i.test(pt)) P.height=m[1]+"'"+m[2]+'"';
+   m=pt.match(/(\d{2,3})\s*(lbs?|pounds)\b/i); if(m&&!P.weight) P.weight=m[1]+' lbs';
+   m=pt.match(/Hair\s*:?\s*([A-Za-z\/ ]{3,20})/i); if(m&&!P.hair) P.hair=m[1].trim();
+   m=pt.match(/Eyes\s*:?\s*([A-Za-z\/ ]{3,20})/i); if(m&&!P.eyes) P.eyes=m[1].trim();
+   if(/\blocal\b|based|\bhire\b/i.test(pt)&&!P.locations) P.locations=pt;
+  });
+ });
+ let sect='', listKey='', listX=null;
+ const addList=(k,v)=>String(v||'').split(/\s*[,;]\s*/).map(x=>x.replace(/\.$/,'').trim()).filter(Boolean).forEach(x=>{ if(!P[k].includes(x)) P[k].push(x); });
+ rows.slice(first<0?rows.length:first).forEach(r=>{
+  const line=txt(r.cells), h=r.cells.length===1?r.cells[0].text.replace(/[:\s]+$/,''):'';
+  if(h&&SECTION.test(h)){ sect=SECT_OF(h); listKey=['skills','accents','languages'].includes(sect)?sect:''; listX=null; return; }
+  const lm=line.match(LABEL);
+  if(lm&&r.cells[0].x<200){ const k=SECT_OF(lm[1]); const rest=line.slice(lm[0].length);
+   if(k==='training'){ sect='training'; if(rest) P.training.push(rest); return; }
+   listKey=k; listX=r.cells.length>1?r.cells[r.cells.length-1].x:null; addList(k,rest); return; }
+  if(listKey&&(r.cells.length===1)&&(listX===null||Math.abs(r.cells[0].x-listX)<40||!['TV','Film','Theatre'].includes(sect))){ addList(listKey,line); return; }
+  listKey='';
+  if(sect==='training'){ P.training.push(r.cells.map(c=>c.text).join(' · ')); return; }
+  if(['skills','accents','languages'].includes(sect)){ addList(sect,line); return; }
+  if(sect&&sect!=='other'&&r.cells.length>=2){ const c=r.cells.map(x=>x.text); const two=c[1]||''; const cr={section:sect,title:c[0],role:'',character:'',by:c.slice(2).join(' · ')};
+   const rs=two.match(ROLE_SIZE); if(rs){ cr.role=two; } else cr.character=two;
+   P.credits.push(cr); }
+ });
+ return P;
+};
+X.looksLikeResume=function(rows){
+ const lines=rows.map(r=>r.cells.map(c=>c.text).join(' '));
+ const sections=lines.filter(l=>SECTION.test(l.replace(/[:\s]+$/,''))).length+lines.filter(l=>LABEL.test(l)).length;
+ const head=lines.slice(0,8).join(' · ');
+ const signs=[/\b(SAG-?AFTRA|AEA|EQUITY|NON-?UNION)\b/i.test(head)&&'a union',/height|\d\s*['’]\s*\d{1,2}\s*["”]/i.test(head)&&'height',/(Management|Mgmt|Agency|Talent|Artists)\b/i.test(head)&&'a rep',/@|\(?\d{3}\)?[\s.\-]\d{3}[\s.\-]\d{4}/.test(head)&&'contact'].filter(Boolean);
+ const three=rows.filter(r=>r.cells.length>=3).length;
+ return {yes:sections>=2&&(signs.length>=1)&&(three>=3||sections>=3), why:signs.concat([sections+' sections'])};
 };
 
 /* Your part in these sides, from the role in a request: "HAL BRODY" is BRODY, "DET. ANNA VOSS" is ANNA. */
@@ -104,6 +165,12 @@ X.unlocks=function(kind,o){
  if(kind==='request') return [
   ['Project Hub','the audition, the tape due in your time, their directions as a checklist','hub/'],
   ['Actor OS','your name on the slate'+(o.name?' ('+o.name+')':''),'actor-os/']];
+ if(kind==='resume') return [
+  ['Project Hub','your profile and credits, for packages and submissions','hub/'],
+  ['Virtual Résumé','the top of your résumé, skills, training'+(o.photo?', headshot':''),'resume/'],
+  ['Slate Maker','name, height, rep on the slate','slate/'],
+  ['Actor OS','your name on every take','actor-os/']];
+ if(kind==='image') return [['Project Hub','your headshots, the main one first','hub/'],['Virtual Résumé','the headshot at the top','resume/']];
  if(kind==='media') return [['Story Studio','footage check against the takes you logged, the cut, ADR','film/']];
  return [];
 };

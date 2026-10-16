@@ -56,3 +56,13 @@ The YOU room on the home page. Drop or paste anything; it reads what each thing 
 - Dropped together, scripts go first so the audition sides end up current.
 - **Inbox:** localStorage `theactorpage_inbox_v1`, newest 40; each tool takes an item once. **Offline:** `sw.js` at the root, home files only.
 - **Tests:** `node shared/test_intake.js` (16); browser home01 18 (drop five things, Actor OS, Hub, Paper Trail pick them up, offline).
+
+# Your profile · `shared/you.js`
+
+One profile on this phone: name, union, rep and rep phone, your phone, email, height, weight, hair, eyes, local hire, credits, training, skills, accents, headshots.
+
+- **Filled from:** your résumé dropped on home (PDF with columns, Word, or pasted text: `Intake.resumeRead`), your headshots (kept at up to 1600 px; the first is the main one), and the name on a self-tape request.
+- **Read by:** the Hub (clears the demo actor, then fills its blanks; credits and headshots come in once each), Virtual Résumé (the top, skills with accents, training, headshot), Slate Maker (name, height, rep, headshot), Actor OS (your name on the slate).
+- **Rules:** a tool only fills its own blanks, never overwrites what you typed there. A line you fix in the profile stays fixed; a later résumé only adds what's new.
+- **Storage:** localStorage `theactorpage_you_v1`, IndexedDB `theactorpage_you` (photos). Nothing uploaded, nothing to brendanmccarthyactor.com.
+- **Tests:** `node shared/test_intake.js` (23, with a made-up résumé in `shared/fixtures/`); browser home02 13. Checked privately on a real 31-credit résumé and two headshots (31 of 31 credits, 10 skills, 11 accents), files deleted.

@@ -51,9 +51,9 @@ const lo = E.softness(plan, 1280, 720, '16:9', '1080');
 ok('720p webcam: close-up flagged soft', lo.verdict === 'soft', lo);
 
 // words + kit
-ok('script: reads naturally', E.slateScript({ name: 'Brendan McCarthy', height: "6'1\"", location: 'San Diego', rep: 'SK Management' }) === "Hi, I'm Brendan McCarthy. I'm 6'1\". I'm based in San Diego. I'm with SK Management.");
+ok('script: reads naturally', E.slateScript({ name: 'Sam Actor', height: "6'1\"", location: 'San Diego', rep: 'Northgate Talent' }) === "Hi, I'm Sam Actor. I'm 6'1\". I'm based in San Diego. I'm with Northgate Talent.");
 ok('script: empty profile still usable', /your name/.test(E.slateScript({})));
-ok('label: filename-safe', E.takeLabel({ name: 'Brendan P. McCarthy', role: 'Sheriff Collins', take: '1', date: '2026-10-14' }) === 'brendan_p_mccarthy__sheriff_collins__take_1__2026_10_14');
+ok('label: filename-safe', E.takeLabel({ name: 'Sam Q. Actor', role: 'Sheriff Collins', take: '1', date: '2026-10-14' }) === 'sam_q_actor__sheriff_collins__take_1__2026_10_14');
 const ck = E.checklist({ name: 'B', videos: 2, headshot: true });
 ok('checklist: lists what is missing, no score', ck.missing.join(',') === 'Résumé,Links', ck);
 

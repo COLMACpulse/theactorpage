@@ -303,6 +303,16 @@
     if (h && h.blob && !S.lib.headshot) await setHead(h.blob, h.name);
     touch(); render(); toast('Brought in from SLATE MAKER.');
   }
+  /* your profile (../shared/you.js), filled once on the home page: only this tool's blanks */
+  async function fromYou() {
+    const Y = window.You; if (!Y || !Y.has()) return; const y = Y.get(), m = S.lib.me; const got = [];
+    const map = { name: y.name, union: y.union, email: y.email, phone: y.phone, rep: [y.rep, y.repPhone].filter(Boolean).join(' · '), height: y.height, hair: y.hair, eyes: y.eyes, location: y.locations };
+    Object.keys(map).forEach(k => { if (map[k] && !m[k]) { m[k] = map[k]; got.push(k); } });
+    if (!S.lib.skills.length && (y.skills.length || y.accents.length)) { S.lib.skills = y.skills.concat(y.accents.map(a => a + ' accent')); got.push('skills'); }
+    if (!S.lib.training.length && y.training.length) { S.lib.training = y.training.map(t => { const p = t.split(/\s*·\s*/); return { course: p[0] || t, teacher: p.length > 2 ? p[1] : '', school: p.length > 2 ? p[2] : (p[1] || '') }; }); got.push('training'); }
+    if (!S.lib.headshot && y.primary) { const b = await Y.photoBlob(y.primary); if (b) { await setHead(b, (y.photos.find(p => p.id === y.primary) || {}).name); got.push('headshot'); } }
+    if (got.length) { touch(); setTimeout(() => toast('From your profile: ' + got.join(', ') + '.'), 400); }
+  }
   async function setHead(blob, name) {
     if (S.headUrl) URL.revokeObjectURL(S.headUrl);
     S.blobs.__head = blob; S.headUrl = URL.createObjectURL(blob); S.lib.headshot = { name: name || 'headshot.jpg' };
@@ -394,6 +404,7 @@
     S.lib = lib && lib.schema === SCHEMA ? Object.assign(emptyLib(), lib) : emptyLib();
     await loadMedia();
     await scanSources().catch(() => { });
+    await fromYou().catch(() => { });
     try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { }
     render();
     window.RESUME = { S, act, E, version: VERSION };

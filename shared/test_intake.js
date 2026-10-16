@@ -26,10 +26,24 @@ const ab=f=>{ const b=fs.readFileSync(D(f)); return b.buffer.slice(b.byteOffset,
  ok('role to part: "DET. ANNA VOSS" is ANNA; "HAL BRODY" is BRODY; no match is blank', X.matchRole('DET. ANNA VOSS',[{name:'ANNA',lines:6},{name:'COP #2',lines:2}])==='ANNA'&&X.matchRole('HAL BRODY',[{name:"MAE",lines:8},{name:"BRODY",lines:9}])==='BRODY'&&X.matchRole('MARCO',[{name:'BO',lines:1}])==='');
  ok('the request names its sides file', X.namesFile({sides:['ANNA VOSS.pdf']},'Anna_Voss.PDF')&&!X.namesFile({sides:['ANNA VOSS.pdf']},'other.pdf'));
  ok('what sides open up names your part', X.unlocks('sides',{me:'ANNA'})[0][1].includes('as ANNA')&&X.unlocks('script').length===4&&X.unlocks('other').length===0);
+ // a résumé, from the PDF (columns kept) and as pasted text
+ const rx=await ActorPDF.extract(ab('sam_actor_resume.pdf')); const rows=rx.lines.map(l=>({cells:l.cells}));
+ const wr2=X.what(rx.lines.map(l=>l.text).join('\n'),null,rows), P=wr2.profile||{};
+ ok('résumé PDF: read as a résumé', wr2.kind==='resume', wr2.why);
+ ok('résumé: name, union, rep and rep phone, email, height, hair, eyes, local hire', P.name==='Sam Actor'&&P.union==='SAG-AFTRA'&&P.rep==='Northgate Talent (LA)'&&P.repPhone==='(555) 010-0142'&&P.email==='sam@actor.example'&&P.height==="5'10\""&&P.hair==='Brown'&&P.eyes==='Green'&&/local hire/.test(P.locations), P);
+ ok('résumé: 7 credits by section; role size or character; network or director', P.credits.length===7&&P.credits.filter(c=>c.section==='TV').length===3&&P.credits.filter(c=>c.section==='Film').length===3&&P.credits[0].role==='Guest Star'&&P.credits[0].by==='ABN'&&P.credits.find(c=>c.title==='Bayside').character==='Duke Morrow'&&P.credits.find(c=>c.section==='Theatre').character==='George Gibbs', P.credits);
+ ok('résumé: training, skills, accents', P.training.length===2&&P.skills.join('|')==='Horseback (Western)|Firearms handling|Stage combat|Guitar'&&P.accents.join('|')==='Southern|Boston|Light Irish', [P.training,P.skills,P.accents]);
+ const wt=X.what(fs.readFileSync(D('sam_actor_resume.txt'),'utf8')), T=wt.profile||{};
+ ok('the same résumé pasted as text: same name, 7 credits, same skills', wt.kind==='resume'&&T.name==='Sam Actor'&&T.credits.length===7&&T.skills.length===4, wt.kind==='resume'?{n:T.name,c:T.credits.length,s:T.skills}:wt);
+ ok('sides are never a résumé, a résumé is never sides', X.what(ActorPDF.toSides(ex.lines),{pages:2}).kind==='sides');
  // the inbox
  const store={}; global.localStorage={getItem:k=>k in store?store[k]:null,setItem:(k,v)=>{store[k]=String(v)},removeItem:k=>{delete store[k]}};
  const I=require('./inbox.js'); const a=I.put('request',{raw:docx}); const b=I.put('request',{raw:docx});
  ok('inbox: the same request twice is one item', a.id===b.id&&I.all().length===1);
  ok('inbox: each tool takes it once', I.pending('hub','request').length===1&&(I.take('hub',a.id),I.pending('hub','request').length===0)&&I.pending('other','request').length===1);
+ // your profile: fills blanks, keeps your fixes
+ const Y=require('./you.js'); const c1=Y.fill(P,'résumé.pdf'); Y.set('name','Sam Q. Actor'); const c2=Y.fill(Object.assign({},P,{name:'SAM ACTOR',credits:P.credits.concat([{section:'TV',title:'New Show',role:'Co-Star'}])}),'second.pdf');
+ const y=Y.get();
+ ok('profile: first fill takes everything; a name you fixed stays; a second résumé adds only the new credit', c1.length>=9&&y.name==='Sam Q. Actor'&&y.credits.length===8&&c2.map(c=>c[0]).join()==='Credits', {c1:c1.length,c2,name:y.name,n:y.credits.length});
  console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail?1:0);
 })();

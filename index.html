@@ -230,6 +230,14 @@ body.has .scrollcue{display:none}
 .parts button{font:700 .78rem var(--script);letter-spacing:.06em;padding:7px 11px;background:transparent;color:var(--ink);border:1px solid var(--rule);cursor:pointer}
 .parts button.on{background:var(--tungsten);color:var(--stock);border-color:var(--tungsten)}
 .inplay{margin-top:26px}
+.yp{margin-top:22px;border-top:1px solid var(--rule);padding-top:12px}
+.yp summary{cursor:pointer;font:700 .78rem var(--script);letter-spacing:.14em;color:var(--tungsten)}
+.yf{display:flex;gap:10px;align-items:center;margin:6px 0;font-size:.85rem}
+.yf span{flex:0 0 96px;color:var(--grey)}
+.yf input,.yf textarea{flex:1;min-width:0;background:var(--stock-up);color:var(--ink);border:1px solid var(--rule);padding:6px 8px;font:13px/1.4 var(--title)}
+.ycr{list-style:none;padding:0;margin:6px 0;max-height:260px;overflow:auto;font-size:.84rem}
+.ycr li{padding:3px 0;border-bottom:1px solid var(--rule)}
+.ycr button{background:none;border:0;color:var(--faint);cursor:pointer;font-size:1rem}
 .inplay h3{font-family:var(--script);font-size:.72rem;letter-spacing:.2em;color:var(--tungsten);margin:0 0 8px}
 .ip{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid var(--rule);font-size:.92rem}
 .ip b{font-weight:500}
@@ -261,12 +269,13 @@ body.has .scrollcue{display:none}
       <p class="disc-what">Drop it once.<br>Every tool has it.</p>
     </div>
     <div>
-      <p class="you-lede">Drop anything here: sides, a script or a new draft, the self-tape request, your rep's email, your footage. It reads what each thing is, sends it where it belongs, and picks your part from the request. Nothing leaves this device.</p>
-      <label class="drop" id="drop"><input type="file" id="dropfile" multiple><b>DROP IT HERE</b><span>or tap to pick files · PDF, Final Draft, Fountain, Word, text, email, video</span></label>
+      <p class="you-lede">Drop anything here: sides, a script or a new draft, the self-tape request, your rep's email, your résumé, your headshots, your footage. It reads what each thing is, sends it where it belongs, and picks your part from the request. Nothing leaves this device.</p>
+      <label class="drop" id="drop"><input type="file" id="dropfile" multiple><b>DROP IT HERE</b><span>or tap to pick files · sides, scripts, requests, your résumé, headshots, footage</span></label>
       <textarea class="pastebox" id="pastebox" placeholder="Or paste it: the request, the email, the sides"></textarea>
       <button class="pastego" id="pastego">READ IT</button>
       <div class="took" id="took" aria-live="polite"></div>
       <div class="inplay" id="inplay"></div>
+      <div class="youpanel" id="youpanel"></div>
     </div>
   </div>
 </section>
@@ -660,6 +669,7 @@ body.has .scrollcue{display:none}
 <script src="shared/shelf.js"></script>
 <script src="shared/scenes.js"></script>
 <script src="shared/inbox.js"></script>
+<script src="shared/you.js"></script>
 <script src="actor-os/sides.js"></script>
 <script src="actor-os/pdf.js"></script>
 <script src="hub/request.js"></script>

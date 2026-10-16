@@ -478,6 +478,12 @@
     try { const k = await DB.get('kit'); if (k) S.kit = Object.assign(S.kit, k, { date: today() }); } catch (e) { }
     try { const h = await DB.get('headshot'); if (h && h.blob) S.headshot = { name: h.name, blob: h.blob, url: URL.createObjectURL(h.blob) }; } catch (e) { }
     try { const r = await DB.get('resume'); if (r && r.blob) S.resume = r; } catch (e) { }
+    // your profile (../shared/you.js): only the kit's blanks, and your main headshot if there's none
+    try { const Y = window.You; if (Y && Y.has()) { const y = Y.get(), got = [];
+      const map = { name: y.name, height: y.height, location: y.locations, rep: [y.rep, y.repPhone].filter(Boolean).join(' · ') };
+      Object.keys(map).forEach(k => { if (map[k] && !S.kit[k]) { S.kit[k] = map[k]; got.push(k); } });
+      if (!S.headshot && y.primary) { const b = await Y.photoBlob(y.primary); if (b) { const nm = (y.photos.find(p => p.id === y.primary) || {}).name || 'headshot.jpg'; S.headshot = { name: nm, blob: b, url: URL.createObjectURL(b) }; DB.put('headshot', { name: nm, blob: b }); got.push('headshot'); } }
+      if (got.length) { DB.put('kit', S.kit); } } } catch (e) { }
     render();
     window.SLATE = { S, act, E, loadTake, version: VERSION };
   })();
