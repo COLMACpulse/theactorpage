@@ -116,7 +116,7 @@ function showYou(){
   +['skills','accents','training'].map(k=>'<label class="yf"><span>'+k[0].toUpperCase()+k.slice(1)+'</span><textarea data-yl="'+k+'" rows="2">'+esc(y[k].join(', '))+'</textarea></label>').join('')
   +(y.credits.length?'<div class="why" style="margin-top:8px">Credits: '+esc(Object.entries(by).map(([k,n])=>n+' '+k).join(', '))+'</div><ul class="ycr">'+y.credits.map((c,i)=>'<li><b>'+esc(c.title)+'</b> · '+esc(c.role||c.character)+(c.by?' · '+esc(c.by):'')+' <small>'+esc(c.section)+'</small> <button data-ycx="'+i+'" aria-label="Remove">×</button></li>').join('')+'</ul>':'')
   +(y.photos.length?'<div class="parts">'+y.photos.map(p=>'<span style="display:inline-flex;flex-direction:column;gap:4px"><img data-photo="'+esc(p.id)+'" alt="" style="width:72px;height:90px;object-fit:cover;border:'+(p.id===y.primary?'2px solid var(--tungsten)':'1px solid var(--rule)')+'">'+(p.id===y.primary?'<small style="color:var(--tungsten)">MAIN</small>':'<button data-main="'+esc(p.id)+'">MAKE MAIN</button>')+'<button data-yphx="'+esc(p.id)+'">×</button></span>').join('')+'</div>':'')
-  +'</details>';
+  +(y.photos.length?'<p class="why" style="margin-top:8px"><a href="headshots/" style="color:var(--tungsten)">HEADSHOTS</a>: tag each one in your own words, check the light and focus, plan the next shoot.</p>':'')+'</details>';
  box.innerHTML=h; const d=$('ypd'); if(d) d.ontoggle=()=>{ YOPEN=d.open; };
  // saved as you type; the panel redraws only when its title line changes, never while you're in a field (a redraw on blur throws)
  box.querySelectorAll('[data-yf]').forEach(i=>i.oninput=()=>{ Y.set(i.dataset.yf,i.value); });

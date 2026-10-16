@@ -39,7 +39,7 @@ Y.shrink=async function(file,max){
  max=max||1600;
  try{ const bm=await createImageBitmap(file); const k=Math.min(1,max/Math.max(bm.width,bm.height)), w=Math.round(bm.width*k), h=Math.round(bm.height*k);
   const c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(bm,0,0,w,h);
-  const b=await new Promise(r=>c.toBlob(r,'image/jpeg',0.9)); return b?{blob:b,w,h}:null; }catch(e){ return null; }
+  const b=await new Promise(r=>c.toBlob(r,'image/jpeg',0.9)); return b?{blob:b,w,h,ow:bm.width,oh:bm.height}:null; }catch(e){ return null; }
 };
 /* a headshot in: kept once (same size and name = same photo); the first one is your main one */
 Y.addPhoto=async function(file){
@@ -47,10 +47,12 @@ Y.addPhoto=async function(file){
  const s=await Y.shrink(file); if(!s) return {error:/heic|heif/i.test(file.name||file.type||'')?'this browser can\'t open HEIC photos; export it as JPEG from Photos':'not a photo this browser can open'};
  const id='h'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
  if(!(await op('readwrite',st=>st.put(s.blob,id)))) return {error:'this phone would not keep the photo'};
- const p={id,sig,name:file.name||'headshot.jpg',w:s.w,h:s.h,added:Date.now()};
+ const p={id,sig,name:file.name||'headshot.jpg',w:s.w,h:s.h,ow:s.ow||s.w,oh:s.oh||s.h,added:Date.now(),roles:[],status:'',note:''};
  const e=Y.get(); e.photos.push(p); if(!e.primary) e.primary=id; put(e); return {photo:p,primary:e.primary===id};
 };
 Y.photoBlob=id=>op('readonly',st=>st.get(id));
+/* your words on a headshot: the roles it's for, keep / retest / retire, a note; and its photo check (HEADSHOTS) */
+Y.setPhoto=function(id,patch){ const d=Y.get(), p=d.photos.find(x=>x.id===id); if(!p) return null; Object.assign(p,patch); put(d); return p; };
 Y.setPrimary=function(id){ const d=Y.get(); if(d.photos.some(p=>p.id===id)){ d.primary=id; put(d); } return d; };
 Y.removePhoto=async function(id){ const d=Y.get(); d.photos=d.photos.filter(p=>p.id!==id); if(d.primary===id) d.primary=d.photos[0]?d.photos[0].id:''; put(d); await op('readwrite',st=>st.delete(id)); return d; };
 g.You=Y;

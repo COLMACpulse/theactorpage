@@ -119,3 +119,13 @@ For the actor who takes a class, a workshop, a callback, mostly on Zoom. THEACTO
 - **Elsewhere:** the Hub counts a casting director you were in a room with as "has seen me", shows the rooms and notes in their drawer, and puts "Dana Pell gave you 2 notes, the last in Mar 2026: ..." on a new request (home too).
 - **Storage:** localStorage `theactorpage_notes_v1`, text only. Nothing uploaded. Speech to text is optional and says first that it goes through Apple or Google.
 - **Tests:** `node shared/test_notes.js` (16), `notes/tests/notes_e2e.js` (17, fake camera and mic).
+
+# Headshots · `shared/headshots.js`
+
+Mined from HEADSHOT v1 to v4.2 (Col's own). Used by HEADSHOTS (/headshots/), on the same headshots as YOUR PROFILE (`shared/you.js`: each photo now carries `roles`, `status` keeper / retest / retire, `note`, its original size and its `check`).
+
+- **The photo check:** you (the middle of the frame, minus the backdrop showing round your head) measured apart from the background (side strips, top). A dark backdrop with you lit is "the moody look", not a dark face; a white wall with you in shadow is "you read dark" and "the background is brighter than you". Plus near-white and near-black areas on you, softness in the middle of the frame, and the original size. Plain words with the numbers; "Only you can say if it looks like you on a good day."
+- **Never:** a word about looks, type, age, skin or roles. Tested.
+- **Coverage:** "Law enforcement: covered (cop_03). Bartender: no keeper yet (1 to retest)." Your own tags only; no percent.
+- **Before / after**, the photographer **brief** and **shot sheet** (standalone pages; only what you put in, references only if ticked; the checks and your notes never go in).
+- **Tests:** `node shared/test_headshots.js` (16), `headshots/tests/headshots_e2e.js` (16, made-up photos).

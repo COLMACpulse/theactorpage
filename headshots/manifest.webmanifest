@@ -1,0 +1,12 @@
+{
+  "name": "HEADSHOTS · In your own words",
+  "short_name": "HEADSHOTS",
+  "description": "Your headshots tagged in your own words, a photo check, before and after tests, and a brief for the photographer.",
+  "start_url": "./", "scope": "./", "display": "standalone",
+  "background_color": "#121110", "theme_color": "#121110",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
