@@ -235,6 +235,7 @@ body.has .scrollcue{display:none}
 .drop span{display:block;color:var(--faint);font-size:.8rem;margin-top:6px}
 .drop input{display:none}
 .pastebox{width:100%;min-height:84px;margin-top:12px;background:var(--stock-up);color:var(--ink);border:1px solid var(--rule);padding:10px 12px;font:14px/1.5 var(--script);resize:vertical}
+.dirwhy{display:block;font-size:.8rem;color:var(--dim,#9a9286);margin:6px 0 0}.foldnote{font-size:.85rem;margin:8px 0 0}.foldnote:empty{display:none}.foldnote button{margin:6px 8px 0 0}
 .pastego{margin-top:8px;font-family:var(--script);font-weight:700;letter-spacing:.09em;font-size:.82rem;padding:10px 18px;background:transparent;color:var(--tungsten);border:1px solid var(--tungsten);cursor:pointer}
 .tools3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 16px}
 .t3{display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 8px 14px;background:var(--stock-up);border:1px solid var(--rule);color:var(--ink);text-decoration:none;cursor:pointer;font:inherit;text-align:center}
@@ -325,6 +326,8 @@ body.stopen{overflow:hidden}
         <a class="t3" href="write/writers-blockage.html"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="24" width="36" height="16" rx="2"/><path d="M14 24V8h20v16M10 32h28M18 36h12"/><path d="M18 13h12M18 18h9"/></svg><b>TYPEWRITER</b><span>write it, it reads everywhere</span></a>
       </div>
       <label class="drop" id="drop"><input type="file" id="dropfile" multiple><b>DROP IT HERE</b><span>or tap to pick files · sides, scripts, requests, your résumé, headshots, footage</span></label>
+      <input type="file" id="dirfile" webkitdirectory multiple hidden><button class="pastego" id="pickdir" hidden>PICK A FOLDER</button><span class="dirwhy" id="dirwhy" hidden>Your Downloads, say. It reads the newest sides, scripts, requests and résumés in it and leaves the rest alone.</span>
+      <div class="foldnote" id="foldnote" aria-live="polite"></div>
       <textarea class="pastebox" id="pastebox" placeholder="Or paste it: the request, the email, the sides"></textarea>
       <button class="pastego" id="pastego">READ IT</button>
       <div class="took" id="took" aria-live="polite"></div>

@@ -138,12 +138,16 @@ function showPlay(){
  $('inplay').innerHTML=h;
 }
 
-async function take(files,pasted){
+async function take(files,pasted,fromFolder){
  const items=[];
- for(const f of files) items.push(await readOne(f));
+ for(let i=0;i<files.length;i++){ if(fromFolder) $('foldnote').innerHTML='<p>Reading '+(i+1)+' of '+files.length+'…</p>'; items.push(await readOne(files[i])); }
  if(pasted&&pasted.trim()){ const w=X.what(pasted); items.push({name:'Pasted '+(w.kind==='request'?'request':w.kind==='script'?'script':'sides'),text:pasted,kind:w.kind,why:w.why,req:w.req||null,script:w.script||null,fk:'text'}); }
  if(!items.length) return;
  await route(items);
+ // from a folder: only the actor things get a card; the rest is counted and left alone
+ let left=0; if(fromFolder){ const n=items.length; for(let i=items.length-1;i>=0;i--) if(['other','unknown'].includes(items[i].kind)){ items.splice(i,1); } left=n-items.length; }
+ if(fromFolder&&FOLD){ FOLD.left=(FOLD.left||0)+left; folderNote(); }
+ if(!items.length){ return; }
  // requests read first in the cards: they explain the rest
  LAST=items.sort((a,b)=>(a.kind==='request'?0:1)-(b.kind==='request'?0:1));
  // a résumé or headshot just landed: open your profile so you see it
@@ -152,6 +156,23 @@ async function take(files,pasted){
  $('took').scrollIntoView({block:'nearest',behavior:'smooth'});
 }
 
+/* ---------- a whole folder (desktop): newest likely files first, 40 at a time ---------- */
+let FOLD=null;
+function folderNote(){ const box=$('foldnote'); if(!box||!FOLD) return; const r=FOLD.r, done=FOLD.done, left=FOLD.left||0;
+ const skip=[r.junk&&r.junk+' download junk',r.media&&r.media+' video or audio (left where it is)',r.images&&r.images+' picture'+(r.images===1?'':'s')+' not named as a headshot',r.other&&r.other+' other file'+(r.other===1?'':'s')].filter(Boolean);
+ let h='<p><b>'+esc(FOLD.name)+'</b>: '+r.total+' file'+(r.total===1?'':'s')+'. '+(FOLD.queue.length?'Read the '+done+' newest likely one'+(done===1?'':'s')+' ('+FOLD.queue.length+' older still to read).':'Read '+(done===1?'the one likely file.':'all '+done+' likely ones.'))
+  +(left?' '+left+' of them weren\'t sides, scripts, requests or a résumé, so they were left alone.':'')+'</p>'
+  +(skip.length?'<p class="dirwhy">Skipped: '+esc(skip.join(', '))+'. Nothing in the folder is moved or changed.</p>':'');
+ if(FOLD.queue.length) h+='<button class="pastego" id="foldmore">READ THE NEXT '+Math.min(40,FOLD.queue.length)+'</button>';
+ box.innerHTML=h; const m=$('foldmore'); if(m) m.onclick=()=>{ const next=FOLD.queue.splice(0,40); FOLD.done+=next.length; take(next,'',true); };
+}
+const di=$('dirfile'), pd=$('pickdir');
+if(di&&pd&&('webkitdirectory' in di)&&!(matchMedia&&matchMedia('(pointer:coarse)').matches)){ pd.hidden=false; $('dirwhy').hidden=false;
+ pd.onclick=e=>{ e.preventDefault(); di.click(); };
+ di.onchange=()=>{ const fl=[...di.files]; di.value=''; if(!fl.length) return; const r=X.folder(fl,40);
+  FOLD={r,queue:r.later.slice(),done:r.take.length,name:String(fl[0].webkitRelativePath||'').split('/')[0]||'Your folder'};
+  if(!r.take.length){ folderNote(); return; } take(r.take,'',true); };
+}
 const drop=$('drop'), fi=$('dropfile');
 fi.onchange=()=>{ const fl=[...fi.files]; fi.value=''; take(fl,''); };
 ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.add('over'); }));

@@ -45,5 +45,15 @@ const ab=f=>{ const b=fs.readFileSync(D(f)); return b.buffer.slice(b.byteOffset,
  const Y=require('./you.js'); const c1=Y.fill(P,'résumé.pdf'); Y.set('name','Sam Q. Actor'); const c2=Y.fill(Object.assign({},P,{name:'SAM ACTOR',credits:P.credits.concat([{section:'TV',title:'New Show',role:'Co-Star'}])}),'second.pdf');
  const y=Y.get();
  ok('profile: first fill takes everything; a name you fixed stays; a second résumé adds only the new credit', c1.length>=9&&y.name==='Sam Q. Actor'&&y.credits.length===8&&c2.map(c=>c[0]).join()==='Credits', {c1:c1.length,c2,name:y.name,n:y.credits.length});
+
+ // a whole folder (Downloads): what it reads, what it skips
+ { const F=(p,size,t,type)=>({name:p.split('/').pop(),webkitRelativePath:p,size:size==null?100:size,lastModified:t||0,type:type||''});
+  const files=[F('Downloads/ANNA VOSS.pdf',100,50),F('Downloads/LOW TIDE.fdx',100,40),F('Downloads/request.eml',100,30),F('Downloads/resume.docx',100,20),
+   F('Downloads/movie.crdownload',100,99),F('Downloads/.DS_Store',100,99),F('Downloads/~$draft.docx',100,99),F('Downloads/._ANNA VOSS.pdf',100,99),F('Downloads/empty.pdf',0,99),F('Downloads/.cache/x.pdf',100,99),
+   F('Downloads/take3.mov',100,99),F('Downloads/IMG_2231.jpg',100,99),F('Downloads/meme.png',100,99),F('Downloads/Sam Actor headshot.jpg',100,10),F('Downloads/setup.dmg',100,99),F('Downloads/notes',100,99)];
+  const r=X.folder(files,3);
+  ok('folder: newest likely files first, 3 at a time, the rest held for later', r.take.map(f=>f.name).join('|')==='ANNA VOSS.pdf|LOW TIDE.fdx|request.eml'&&r.later.map(f=>f.name).join('|')==='resume.docx|Sam Actor headshot.jpg', {take:r.take.map(f=>f.name),later:r.later.map(f=>f.name)});
+  ok('folder: junk, hidden folders, empty files skipped; video left; pictures only if named as a headshot', r.junk===6&&r.media===1&&r.images===2&&r.other===2&&r.total===16, r);
+ }
  console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail?1:0);
 })();

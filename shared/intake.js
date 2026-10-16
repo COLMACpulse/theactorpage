@@ -29,6 +29,25 @@ X.fileKind=function(f){
  return 'other';
 };
 
+/* A whole folder (your Downloads, say): which files are worth reading, newest first.
+   Junk from browsers and systems is skipped. Video and audio stay where they are (a page can't keep them).
+   Pictures are left alone unless the name says headshot: a folder pick never fills your headshots with screenshots.
+   -> {take:[files to read now], later:[the rest of the likely ones], junk, media, images, other, total} */
+X.JUNK=/^(\.ds_store|thumbs\.db|desktop\.ini|\.localized|icon\r?)$|^~\$|^\._|\.(crdownload|part|partial|download|tmp|temp|lock|opdownload)$/i;
+X.HEADSHOT=/head\s*shot|headshot|\bhs[\s_-]|portrait|theatrical|commercial[\s_-]?(look|shot)/i;
+X.folder=function(files,limit){
+ limit=limit||40; const r={take:[],later:[],junk:0,media:0,images:0,other:0,total:0}; const keep=[];
+ for(const f of files||[]){ r.total++;
+  const path=String(f.webkitRelativePath||f.name||''), parts=path.split('/'), name=parts[parts.length-1]||'';
+  if(X.JUNK.test(name)||parts.slice(0,-1).some(d=>/^\.|^__macosx$|^node_modules$/i.test(d))||(f.size===0)){ r.junk++; continue; }
+  const k=X.fileKind(f), e=X.ext(name);
+  if(k==='media'){ r.media++; continue; }
+  if(k==='image'){ if(X.HEADSHOT.test(name)) keep.push(f); else r.images++; continue; }
+  if(['fdx','fountain','pdf','docx'].includes(k)||(k==='text'&&['txt','text','eml','rtf'].includes(e))) keep.push(f); else r.other++; }
+ keep.sort((a,b)=>(b.lastModified||0)-(a.lastModified||0));
+ r.take=keep.slice(0,limit); r.later=keep.slice(limit); return r;
+};
+
 /* Word file to text (word/document.xml out of the zip). From Paper Trail's reader. */
 X.docxText=async function(buf){
  const u=new Uint8Array(buf), v=new DataView(u.buffer,u.byteOffset,u.byteLength);
