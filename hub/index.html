@@ -1730,6 +1730,11 @@ function repSheetText(){
    +(last&&last.title?' - last: '+last.title+(last.role?' / '+last.role:''):'')+(o.why?' - why: '+o.why:''); };
  const G=[['worked_with','Worked with'],['warm','Warm: they have had me in'],['seen_you','Has seen me: 3+ tapes, not in yet'],['want','Want to reach']];
  let t='Casting offices'+(name?' - '+name:'')+'\n'+new Date().toLocaleDateString()+'\n';
+ // v0.9.3: the spread, plain counts. How wide you have been seen, and how deep.
+ const seen=idx.filter(o=>o.reads.length), reads=seen.reduce((n,o)=>n+o.reads.length,0);
+ if(seen.length){ const once=seen.filter(o=>o.reads.length===1).length, top=seen.slice().sort((x,y)=>y.reads.length-x.reads.length).slice(0,10), topN=top.reduce((n,o)=>n+o.reads.length,0), pc=n=>Math.round(100*n/reads);
+  t+='\n'+seen.length+' office'+(seen.length===1?' has':'s have')+' had a tape from me ('+reads+' read'+(reads===1?'':'s')+'). '+once+' of them once, '+(seen.length-once)+' more than once.\n'
+   +(seen.length>10?'My top 10 offices hold '+topN+' of the '+reads+' reads ('+pc(topN)+'%).\n':''); }
  G.forEach(([g,l])=>{ const L=idx.filter(o=>officeGate(o.name)===g); if(!L.length) return; t+='\n'+l+' ('+L.length+')\n'+L.map(line).join('\n')+'\n'; });
  return t; }
 function repSheet(){
