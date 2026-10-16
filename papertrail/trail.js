@@ -289,12 +289,55 @@ T.search=function(q,src){
  return out;
 };
 
+/* ---------- AI chats: a ChatGPT or Claude export, read on this device ----------
+   Only the chats that name the project are kept, as research notes with their date. Nothing ranked or guessed. */
+const chatText=c=>{ if(c==null) return ''; if(typeof c==='string') return c; if(Array.isArray(c)) return c.map(chatText).filter(Boolean).join('\n');
+ if(typeof c==='object'){ if(Array.isArray(c.parts)) return c.parts.map(chatText).filter(Boolean).join('\n'); if(typeof c.text==='string') return c.text; if(c.content!=null) return chatText(c.content); } return ''; };
+const ms=t=>{ if(t==null||t==='') return 0; if(typeof t==='number') return t<1e12?Math.round(t*1000):t; const d=Date.parse(t); return isNaN(d)?0:d; };
+/* data: the parsed conversations.json -> [{id, title, at, from, msgs:[{who:'you'|'ai', text, at}]}] */
+T.chatsOf=function(data){
+ const L=Array.isArray(data)?data:(data&&Array.isArray(data.conversations)?data.conversations:[]), out=[];
+ L.forEach((c,i)=>{ if(!c||typeof c!=='object') return;
+  let msgs=[], from='';
+  if(c.mapping&&typeof c.mapping==='object'){ from='ChatGPT';
+   const M=c.mapping; let chain=[];
+   if(c.current_node&&M[c.current_node]){ let n=c.current_node, guard=0; while(n&&M[n]&&guard++<100000){ chain.push(M[n]); n=M[n].parent; } chain.reverse(); }
+   else chain=Object.values(M).sort((a,b)=>ms(a.message&&a.message.create_time)-ms(b.message&&b.message.create_time));
+   chain.forEach(n=>{ const m=n&&n.message; if(!m) return; const role=(m.author&&m.author.role)||''; if(role!=='user'&&role!=='assistant') return;
+    const t=chatText(m.content).trim(); if(t) msgs.push({who:role==='user'?'you':'ai',text:t,at:ms(m.create_time)}); }); }
+  else if(Array.isArray(c.chat_messages)){ from='Claude';
+   c.chat_messages.forEach(m=>{ const t=(typeof m.text==='string'&&m.text.trim()?m.text:chatText(m.content)).trim(); if(!t) return;
+    msgs.push({who:/^(human|user)$/i.test(m.sender||m.role||'')?'you':'ai',text:t,at:ms(m.created_at)}); }); }
+  else return;
+  out.push({id:String(c.id||c.uuid||c.conversation_id||('c'+i)),title:String(c.title||c.name||'Untitled chat').trim()||'Untitled chat',at:ms(c.create_time||c.created_at)||(msgs[0]&&msgs[0].at)||0,from,msgs});
+ });
+ return out;
+};
+/* the project's name written as a title: LOW TIDE, Low Tide, LOW_TIDE, Low-Tide, LowTide. Plain lowercase
+   ("low tide", "low-tide soap") is ordinary words, not the title, so it does not count. */
+T.nameRe=function(name){ const w=T.norm(name).replace(/^THE /,'').split(' ').filter(Boolean).map(x=>x.replace(/[^A-Z0-9']/g,'')).filter(Boolean); if(!w.length) return null;
+ const q=x=>x.replace(/'/g,"'?"), sep='[\\s_.-]*';
+ // each word starts with its capital; the rest of the word in any case (Low Tide, Mrs. O'Neil, McCLOUD)
+ const cap=x=>x[0]+x.slice(1).split('').map(c=>/[A-Z]/.test(c)?'['+c+c.toLowerCase()+']':c).join('');
+ const up=w.map(q).join(sep), ti=w.map(x=>q(cap(x))).join(sep);
+ return {test:s=>new RegExp('(^|[^A-Za-z0-9])((THE|The|the)[\\s_-]*)?(?:'+up+'|'+ti+')(?![A-Za-z0-9])').test(String(s||''))}; };
+/* chats that name any of the names -> [{chat, hits:[msg index]}]; a hit brings the reply after it along */
+T.chatsFor=function(chats,names){ const R=(names||[]).map(T.nameRe).filter(Boolean); if(!R.length) return [];
+ const hit=s=>R.some(r=>r.test(s));
+ return (chats||[]).map(c=>{ const idx=new Set(); c.msgs.forEach((m,i)=>{ if(hit(m.text)){ idx.add(i); if(c.msgs[i+1]) idx.add(i+1); } });
+  if(!idx.size&&hit(c.title)) c.msgs.slice(0,2).forEach((m,i)=>idx.add(i));
+  return idx.size?{chat:c,hits:[...idx].sort((a,b)=>a-b)}:null; }).filter(Boolean); };
+/* the note kept in Research: who said what, as it was said (long messages trimmed, said so) */
+T.chatNote=function(m,max){ max=max||1500; const c=m.chat, ai=c.from||'AI';
+ const lines=m.hits.slice(0,14).map(i=>{ const x=c.msgs[i]; let t=x.text.replace(/\n{3,}/g,'\n\n').trim(); if(t.length>max) t=t.slice(0,max).replace(/\s+\S*$/,'')+' … (trimmed)'; return (x.who==='you'?'You':ai)+': '+t; });
+ return lines.join('\n\n')+(m.hits.length>14?'\n\n('+(m.hits.length-14)+' more messages name it; see the chat in '+ai+'.)':''); };
+
 /* ---------- study tables: research placed on a table, connected by what you say connects it ----------
    table: {id, question, items:[{id, rid, x, y, w}], links:[{id, a, b, type, note}]}  (x, y, w on a 1000 x 700 table)
    The receipt is only what you wrote. Nothing is read into it. */
 T.LINKS=['unknown','same','opposite','bridge','cause','sequence','contains','echo'];
-T.itemLabel=function(r){ if(!r) return '(removed from Research)'; const K={photo:'Photo',audio:'Recording',video:'Video',pdf:'PDF',file:'File',link:'Link',note:'Note'};
- const what=r.note||r.text||r.name||r.url||''; return (K[r.kind]||'File')+(what?': '+String(what).replace(/\s+/g,' ').trim().slice(0,80):''); };
+T.itemLabel=function(r){ if(!r) return '(removed from Research)'; const K={photo:'Photo',audio:'Recording',video:'Video',pdf:'PDF',file:'File',link:'Link',note:'Note',chat:'AI chat'};
+ const what=r.note||(r.kind==='chat'?r.name:'')||r.text||r.name||r.url||''; return (K[r.kind]||'File')+(what?': '+String(what).replace(/\s+/g,' ').trim().slice(0,80):''); };
 T.receipt=function(table,research,title){
  const R={}; (research||[]).forEach(r=>R[r.id]=r);
  const name={}; (table.items||[]).forEach((it,i)=>name[it.id]=String(i+1)+'. '+T.itemLabel(R[it.rid]));

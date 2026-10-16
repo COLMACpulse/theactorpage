@@ -336,7 +336,7 @@ function searchAll(q){
  });
  return out;
 }
-const RKIND={photo:'Photo',audio:'Recording',video:'Video',pdf:'PDF',file:'File',link:'Link',note:'Note'};
+const RKIND={photo:'Photo',audio:'Recording',video:'Video',pdf:'PDF',file:'File',link:'Link',note:'Note',chat:'AI chat'};
 function rCard(p,r,sc,keys,names){
  const pin=(r.scene?'<span class="tag">'+esc((sc[keys.indexOf(r.scene)]||{}).heading||r.sceneHeading||'a cut scene')+'</span> ':'')+(r.who?'<span class="tag">'+esc(r.who)+'</span>':'');
  let prev='';
@@ -345,6 +345,7 @@ function rCard(p,r,sc,keys,names){
  else if(r.kind==='video') prev='<video controls preload="metadata" playsinline data-rblob="'+r.id+'" style="width:100%;max-height:260px;background:#000"></video>';
  else if(r.kind==='link') prev='<a href="'+esc(r.url)+'" target="_blank" rel="noopener noreferrer">'+esc(r.url)+'</a>';
  else if(r.kind==='note') prev='<p style="margin:0;white-space:pre-wrap">'+esc(r.text)+'</p>';
+ else if(r.kind==='chat') prev='<b style="display:block;margin-bottom:6px">'+esc(r.name)+'</b><span class="note">'+esc(r.from||'AI')+' chat</span><div class="chatx" style="white-space:pre-wrap;max-height:240px;overflow:auto;margin-top:6px;font-size:14px">'+esc(r.text)+'</div>';
  else prev='<a data-ropen="'+r.id+'" href="#">'+esc(r.name)+'</a> <span class="note">'+(r.size?Math.round(r.size/1024)+' KB':'')+'</span>';
  return '<div class="panel rcard" id="r_'+r.id+'" style="margin:0"><div class="fk"><span>'+(RKIND[r.kind]||'File')+'</span><span>'+esc(day(r.at))+'</span></div>'
   +'<div style="margin:8px 0">'+prev+'</div>'+(pin?'<div class="chips">'+pin+'</div>':'')
@@ -367,6 +368,8 @@ function vResearch(p){
  h+='<div class="drop" id="rdrop"><b>DROP RESEARCH</b><span class="note">Several at once is fine. Photos, screenshots, recordings, video, PDFs, anything.</span></div>';
  h+='<div class="row" style="margin-top:10px"><button class="btn" id="rcam">TAKE A PHOTO</button><button class="btn" id="rrec">'+(RECORDING?'STOP RECORDING':'RECORD A MEMO')+'</button></div>';
  h+='<div class="row" style="margin-top:10px"><input class="field" id="rlink" placeholder="Paste a link, or write a note" style="flex:1"><button class="btn pri" id="rkeep">KEEP</button></div>';
+ h+='<div class="panel" style="margin-top:12px"><b>Your AI chats</b><p class="note" style="margin:4px 0 8px">Brainstormed with ChatGPT or Claude? Bring in the export (the .zip it emails you, or conversations.json). Every chat that names '+esc(p.title)+(p.aka&&p.aka.length?' or '+esc(p.aka.join(', '))+'':'')+' comes in as a note with its date. The rest is not kept. It is read on this device; nothing is uploaded.</p>'
+  +'<div class="row"><label class="btn"><input type="file" accept=".zip,.json,application/zip,application/json" class="hide" id="rchats">BRING IN YOUR AI CHATS</label><input class="field" id="raka" placeholder="Other names for it (working title, a character)" value="'+esc((p.aka||[]).join(', '))+'" style="flex:1 1 220px"></div>'+(CHATMSG?'<p class="note" style="margin:8px 0 0">'+esc(CHATMSG)+'</p>':'')+'</div>';
  h+='<div class="stats" style="margin-top:14px"><div><b>'+p.research.length+'</b><span>kept</span></div><div><b>'+p.research.filter(r=>r.scene).length+'</b><span>pinned to a scene</span></div><div><b>'+p.research.filter(r=>r.who).length+'</b><span>pinned to a character</span></div></div>';
  h+='<div class="row"><select class="field" id="rf" style="flex:1 1 200px"><option value="">Everything</option><option value="none"'+(f==='none'?' selected':'')+'>Not pinned yet</option>'
   +sc.map((s,i)=>'<option value="s:'+esc(keys[i])+'"'+(f==='s:'+keys[i]?' selected':'')+'>SC '+(i+1)+' '+esc(s.heading)+'</option>').join('')
@@ -461,6 +464,31 @@ function researchBox(p,key){
   +'<div class="row" style="margin-top:8px"><button class="btn sm" id="raddhere">+ ADD RESEARCH TO THIS SCENE</button></div>';
 }
 let RECORDING=null;
+
+/* ---------- AI chats into Research ---------- */
+let CHATMSG='';
+async function chatsFromFile(f){
+ const buf=await f.arrayBuffer(), u=new Uint8Array(buf);
+ let txt=null;
+ if(u[0]===0x50&&u[1]===0x4b){ const Z=window.XLSX.zip(buf); const k=Object.keys(Z).find(n=>/(^|\/)conversations\.json$/i.test(n)); if(!k) throw new Error('no conversations.json inside that zip'); txt=await Z[k](); }
+ else txt=new TextDecoder().decode(u);
+ let data; try{ data=JSON.parse(txt); }catch(e){ throw new Error('that is not a chat export (not JSON)'); }
+ const chats=T.chatsOf(data); if(!chats.length) throw new Error('no ChatGPT or Claude chats found in it'); return chats;
+}
+async function addChats(p,f){
+ CHATMSG='Reading '+f.name+'…'; render();
+ try{
+  const chats=await chatsFromFile(f), names=[p.title].concat(p.aka||[]), M=T.chatsFor(chats,names);
+  p.research=p.research||[]; let n=0, again=0;
+  M.forEach(m=>{ const key=m.chat.from+'|'+m.chat.id+'|'+m.chat.at;
+   const text=T.chatNote(m), ex=p.research.find(r=>r.kind==='chat'&&r.chatKey===key);
+   if(ex){ if(ex.text!==text){ ex.text=text; } again++; return; }
+   p.research.push({id:rid('r'),kind:'chat',name:m.chat.title,from:m.chat.from,chatKey:key,text,at:m.chat.at||Date.now(),note:'',scene:'',who:''}); n++; });
+  p.updated=Date.now(); save();
+  CHATMSG=chats.length+' chat'+(chats.length===1?'':'s')+' read. '+(M.length?M.length+' name '+names.join(' or ')+': '+n+' kept'+(again?', '+again+' already here':'')+'.':'None name '+names.join(' or ')+'. Nothing kept. Add other names for it and bring the export in again.');
+ }catch(e){ CHATMSG='Could not read it: '+e.message+'.'; }
+ render();
+}
 async function addResearch(p,files,pin){
  p.research=p.research||[]; let n=0, bad=0;
  for(const f of files){
@@ -583,6 +611,8 @@ function wire(){
      const f=new File(parts,'Memo '+new Date().toLocaleString().replace(/[\/:]/g,'-')+'.'+ext,{type:type}); addResearch(p,[f]); };
     mr.start(); RECORDING=mr; render(); toast('Recording. Tap STOP RECORDING when you\'re done.'); }
    catch(e){ toast('The mic is blocked for this page. Allow it, or drop in a voice memo.'); } };
+  const rc=$('rchats'); if(rc) rc.onchange=()=>{ const f=rc.files[0]; if(f) addChats(p,f); };
+  const ra=$('raka'); if(ra) ra.onchange=()=>{ p.aka=ra.value.split(',').map(x=>x.trim()).filter(Boolean); save(); render(); };
   const rk=$('rkeep'); if(rk) rk.onclick=()=>{ const v=$('rlink').value.trim(); if(!v) return; const u=T.linkOf(v); p.research=p.research||[];
    p.research.push(u&&v.replace(u,'').trim().length<3?{id:rid('r'),kind:'link',url:u,name:u,at:Date.now(),note:'',scene:'',who:''}
      :{id:rid('r'),kind:'note',text:v,url:u,name:'',at:Date.now(),note:'',scene:'',who:''});

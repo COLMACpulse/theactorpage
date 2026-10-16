@@ -123,6 +123,17 @@ ok('a removed research item says so', /removed from Research/.test(T.receipt({qu
   ok('numbers in words: percent, longest with who, dash for none', T.numberText('dialoguePct',56)==='56%'&&T.numberText('longest',{n:28,who:'ANNA'})==='28 words (ANNA)'&&T.numberText('perSpeech',null)==='–');
   const e=T.numbers(''); ok('numbers: an empty draft says nothing, invents nothing', e.speeches===0&&e.perSpeech===null&&e.longest===null&&e.dialoguePct===null, e);
   ok('numbers: no score anywhere', !/score|similar|grade/i.test(JSON.stringify(T.NUMROWS))); }
+// AI chats: a made-up ChatGPT export and a made-up Claude export
+{ const X=path.join(__dirname,'../../shared/fixtures/'); const G=T.chatsOf(JSON.parse(fs.readFileSync(X+'low_tide_chatgpt_export.json','utf8'))), C=T.chatsOf(JSON.parse(fs.readFileSync(X+'low_tide_claude_export.json','utf8')));
+  ok('ChatGPT export: 4 chats, from ChatGPT, the kept branch only, no system message', G.length===4&&G[0].from==='ChatGPT'&&G[0].msgs.length===4&&!G[0].msgs.some(m=>/OLD BRANCH/.test(m.text))&&G[0].msgs[0].who==='you'&&G[0].at===1760000000000, G[0]);
+  ok('Claude export: 2 chats, text from content when text is empty', C.length===2&&C[0].from==='Claude'&&C[0].msgs[1].text==='Quiet is the point. Let the rain do it.'&&C[0].msgs[0].who==='you', C[0]);
+  const M=T.chatsFor(G.concat(C),['LOW TIDE']);
+  ok('chats that name LOW TIDE, written any way (Low Tide, LOW_TIDE); not a surf report, not low-tide soap', M.map(m=>m.chat.id).join()==='g1,g3,c1', M.map(m=>m.chat.id));
+  ok('a hit brings its reply, not the rest of the chat', JSON.stringify(M[1].hits)==='[2,3]', M[1].hits);
+  const note=T.chatNote(M[1]); ok('the note: who said what, as said', note==="You: Also, for LOW_TIDE: should Mrs. O'Neil be on the pier?\n\nChatGPT: Only as a voice.", note);
+  ok('other names for it: a character finds its chat (Mrs. O\'Neil); lowercase ordinary words do not', T.chatsFor(G,['DRY CREEK',"MRS. O'NEIL"]).map(m=>m.chat.id).join()==='g3'&&!T.chatsFor(G,['HEIST']).length);
+  ok('a long message is trimmed and says so', /… \(trimmed\)$/.test(T.chatNote({chat:{from:'Claude',msgs:[{who:'ai',text:'word '.repeat(600)}]},hits:[0]})));
+  ok('not an export: nothing', T.chatsOf({hello:1}).length===0&&T.chatsOf('x').length===0); }
 const lb=process.argv[2];
 if(lb&&fs.existsSync(lb)){
  const raw=fs.readFileSync(lb,'utf8');

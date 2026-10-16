@@ -1,7 +1,7 @@
 /* PAPER TRAIL offline shell. Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='paper-trail-0.8.0';
+const CACHE='paper-trail-0.9.0';
 const FILES=['./','index.html','app.js','trail.js','manifest.webmanifest',
- '../shared/shelf.js','../shared/inbox.js','../actor-os/sides.js','../actor-os/pdf.js','../film/film.js',
+ '../shared/shelf.js','../shared/inbox.js','../shared/xlsx.js','../actor-os/sides.js','../actor-os/pdf.js','../film/film.js',
  'icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];
 self.addEventListener('install',e=>{ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting())); });
 self.addEventListener('activate',e=>{ e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE&&k.startsWith('paper-trail-')).map(k=>caches.delete(k)))).then(()=>self.clients.claim())); });
