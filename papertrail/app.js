@@ -37,6 +37,7 @@ async function loadTexts(){ const d=await idb(); if(!d) return; await new Promis
 /* ---------- helpers ---------- */
 const projects=()=>Object.values(DB.projects).filter(p=>SHOWRET||!p.retired).sort((a,b)=>(b.updated||0)-(a.updated||0));
 const draftsOf=pid=>Object.values(DB.drafts).filter(d=>d.project===pid&&(SHOWRET||!d.retired)).sort((a,b)=>a.added-b.added);
+const filesOf=d=>[d.file].concat(d.also||[]).join(' + ');
 function scenesOf(d){ if(!d) return []; if(!CACHE[d.id]) CACHE[d.id]=T.scenes(TEXT[d.id]||'',d.kind); return CACHE[d.id]; }
 function current(p){ const ds=draftsOf(p.id).filter(d=>d.kind==='script'&&!d.retired); return DB.drafts[p.current]&&!DB.drafts[p.current].retired&&DB.drafts[p.current].kind==='script'?DB.drafts[p.current]:ds[ds.length-1]||null; }
 function board(p){ const b=draftsOf(p.id).filter(d=>d.kind==='storyboard'&&!d.retired); return b[b.length-1]||null; }
@@ -67,6 +68,9 @@ async function addDraft(text,fileName,source,opts){
  const title=opts.title||T.titleFrom(text,fileName);
  let p=Object.values(DB.projects).find(x=>T.sameTitle(x.title,title));
  let isNew=false;
+ if(p){ const twin=draftsOf(p.id).find(x=>x.kind===kind&&T.sameDraft(scenesOf(x),sc));
+  if(twin){ const f=String(fileName); if(f!==twin.file&&!(twin.also||[]).includes(f)){ twin.also=(twin.also||[]).concat(f); p.updated=Date.now(); save(); }
+   return {skip:fileName+': the same draft as '+p.title+', '+twin.label+', in another format. Kept once, with both files listed on it.'}; } }
  if(!p){ p={id:rid('p'),title:title,created:Date.now(),updated:Date.now(),current:'',pinned:false,cards:{}}; DB.projects[p.id]=p; isNew=true; }
  const d={id:rid('d'),project:p.id,label:opts.label||T.draftLabel(fileName,text)||('Draft '+(draftsOf(p.id).filter(x=>x.kind===kind).length+1)),file:fileName,kind:kind,source:source,added:Date.now(),hash:h,
    words:(text.match(/\S+/g)||[]).length,scenes:sc.length,shelfId:opts.shelfId||''};
@@ -216,7 +220,7 @@ function vScene(p,i){
   const k=keys[i];
   h+='<div class="eyebrow">In each draft</div><div class="list">'+ds.map(d=>{ const S=scenesOf(d), K=T.keys(S), j=K.indexOf(k);
    const mine=j>=0?S[j]:null, same=mine&&T.hashText(mine.text)===T.hashText(s.text);
-   return '<div class="li"><div class="w"><b>'+esc(d.label)+'</b>'+(d.id===(c&&c.id)?' <span class="tag cur">current</span>':'')+'<small>'+esc(d.file)+'</small></div>'+(!mine?'<span class="tag red">not in it</span>':same?'<span class="tag">same</span>':'<span class="tag ok">different</span>')+'</div>'; }).join('')+'</div>';
+   return '<div class="li"><div class="w"><b>'+esc(d.label)+'</b>'+(d.id===(c&&c.id)?' <span class="tag cur">current</span>':'')+'<small>'+esc(filesOf(d))+'</small></div>'+(!mine?'<span class="tag red">not in it</span>':same?'<span class="tag">same</span>':'<span class="tag ok">different</span>')+'</div>'; }).join('')+'</div>';
  }
  if(c){
   const mc=T.markCounts(DB.marks[c.id])[keys[i]];
@@ -482,7 +486,7 @@ function vDrafts(p){
     +(r.added.length?'<br><span class="note">Added: '+esc(r.added.slice(0,4).map(x=>x.heading).join(' · '))+'</span>':'')
     +(r.removed.length?'<br><span class="note">Cut: '+esc(r.removed.slice(0,4).map(x=>x.heading).join(' · '))+'</span>':''); }
   h+='<div class="li"><div class="w"><b>'+esc(d.label)+'</b> <span class="tag">'+d.kind+'</span>'+(c&&d.id===c.id?' <span class="tag cur">current</span>':'')+(d.retired?' <span class="tag red">retired</span>':'')
-   +'<small>'+esc(d.file)+' · '+esc(d.source)+' · added '+esc(day(d.added))+' · '+d.scenes+' scenes · '+d.words+' words</small>'+(cmp?'<small style="color:var(--ink-2)">'+cmp+'</small>':'')+'</div>'
+   +'<small>'+esc(filesOf(d))+' · '+esc(d.source)+' · added '+esc(day(d.added))+' · '+d.scenes+' scenes · '+d.words+' words</small>'+(cmp?'<small style="color:var(--ink-2)">'+cmp+'</small>':'')+'</div>'
    +'<div class="row">'+(d.kind==='script'&&!(c&&d.id===c.id)&&!d.retired?'<button class="btn sm" data-cur="'+d.id+'">MAKE CURRENT</button>':'')
    +'<button class="btn sm ghost" data-move="'+d.id+'">MOVE</button><button class="btn sm ghost" data-ret="'+d.id+'">'+(d.retired?'BRING BACK':'RETIRE')+'</button></div></div>';
   if(d.kind==='script'&&!d.retired) prev=d;
@@ -645,7 +649,7 @@ async function handoff(){
 
 /* drafts dropped on the home page (shared/inbox.js), taken once */
 async function fromInbox(){ if(!window.Inbox) return; const L=Inbox.pending(TOOL,'draft'); const got=[];
- for(const it of L){ try{ const r=await addDraft(it.data.text||'',it.data.file||'Untitled.fountain','Home'); if(r&&r.ok) got.push(r); }catch(e){} Inbox.take(TOOL,it.id); }
+ for(const it of L){ try{ const r=await addDraft(it.data.text||'',it.data.file||'Untitled.fountain',it.data.source||'Home',{title:it.data.title||undefined,label:it.data.label||undefined}); if(r&&r.ok) got.push(r); }catch(e){} Inbox.take(TOOL,it.id); }
  if(got.length){ ADDED=got; VIEW.tab='add'; toast(got.length===1?'From home: '+got[0].p.title+', '+got[0].d.label+'.':'From home: '+got.length+' drafts.'); } }
 (async()=>{ await loadTexts(); await handoff(); await fromInbox(); render(); })();
 window.__trail={DB:()=>DB,TEXT:()=>TEXT,addDraft:addDraft,docxText:docxText};

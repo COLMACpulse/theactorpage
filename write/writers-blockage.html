@@ -140,6 +140,11 @@ table.rep td.num{text-align:right;font-variant-numeric:tabular-nums;color:#dfe6e
 .diffline{font-family:"Courier New",monospace;font-size:12px;padding:2px 8px;white-space:pre-wrap;border-left:3px solid transparent}
 .diffline.add{background:rgba(79,157,105,.16);border-left-color:var(--add)}
 .diffline.del{background:rgba(194,90,78,.16);border-left-color:var(--del);text-decoration:line-through;opacity:.75}
+.hunk{border:1px solid var(--chrome-line,rgba(255,255,255,.12));border-radius:6px;margin:8px 0;padding:4px 0 6px}
+.hunk .diffline.del{text-decoration:none;opacity:1}
+.hunkhead{padding:2px 8px 4px}
+.hunkpick{display:flex;gap:6px;padding:6px 8px 0;flex-wrap:wrap}
+.hunkpick button.on{outline:2px solid var(--add);font-weight:700}
 .diffline .dt{color:var(--chrome-dim);font-size:10px;display:inline-block;min-width:9ch}
 
 #toast{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);background:#1b222a;
@@ -298,11 +303,11 @@ table.rep td.num{text-align:right;font-variant-numeric:tabular-nums;color:#dfe6e
 
 <dialog id="dlgDiff" class="wide"><h2>Compare drafts</h2>
   <div class="inner">
-    <p class="note-sm" id="diffIntro">Open another draft \u2014 including an old PDF \u2014 to compare against what is on screen. Nothing is changed &mdash; this is a read-only look at what moved.</p>
+    <p class="note-sm" id="diffIntro">Open another draft (a co-writer's pass, a notes draft, an old PDF) to see every change against what is on screen, and take what you want from it. Nothing changes until you make the merged draft.</p>
     <div id="diffOut"></div>
   </div>
   <footer><span class="note-sm grow" id="diffSum" style="text-align:left"></span>
-    <button id="diffPick">Choose a file&hellip;</button><button class="primary" data-close>Close</button></footer>
+    <button id="diffPick">Choose a file&hellip;</button><button id="diffMerge" hidden>MAKE THE MERGED DRAFT</button><button class="primary" data-close>Close</button></footer>
 </dialog>
 
 <dialog id="dlgPage"><h2>Page setup</h2>
@@ -398,6 +403,7 @@ table.rep td.num{text-align:right;font-variant-numeric:tabular-nums;color:#dfe6e
 </dialog>
 
 <script src="../actor-os/pdf.js"></script>
+<script src="../shared/inbox.js"></script>
 <script src="voice-engine.js"></script>
 <script src="voice.js" defer></script>
 <script src="panel-signalscript.js" defer></script>
@@ -3349,46 +3355,104 @@ $("repCopy").onclick = async () => {
 $("repSave").onclick = () => download(slugName() + "_" + repTab + ".txt", reportText(), "text/plain");
 
 /* ---------- compare drafts ---------- */
-$("btnDiff").onclick = () => { $("diffOut").textContent = ""; $("diffSum").textContent = ""; $("dlgDiff").showModal(); };
+$("btnDiff").onclick = () => { $("diffOut").textContent = ""; $("diffSum").textContent = ""; $("diffMerge").hidden = true; mergeState = null; $("dlgDiff").showModal(); };
+
+/* Take what you want from another draft: a co-writer's pass, a notes draft, an old PDF with a line you cut.
+   Every change is a piece of yours and the piece of theirs that sits in the same place. TAKE IT puts theirs
+   in, KEEP MINE leaves yours, LATER leaves yours and keeps theirs in the change trail. MAKE THE MERGED DRAFT
+   builds it in one undo step, each change where it was, and both drafts go to Paper Trail as they were. */
+let mergeState = null;          // {name, theirs, parts, picks:Map}
+const blockKey = b => b.type + "\u0001" + plainOf(b.text).trim().toLowerCase();
+function draftParts(mine, theirs){
+  const rows = diffBlocks(mine, theirs), out = [];
+  let i = 0, j = 0, cur = null, head = "";
+  rows.forEach(r => {
+    if(r.op === " "){ const b = mine[i]; if(b.type === "Scene Heading") head = plainOf(b.text).trim(); out.push({same:true, b}); i++; j++; cur = null; return; }
+    if(!cur){ cur = {mine:[], theirs:[], head}; out.push(cur); }
+    if(r.op === "-") cur.mine.push(mine[i++]); else cur.theirs.push(theirs[j++]);
+  });
+  out.filter(p => !p.same).forEach((p, n) => { p.n = n; p.key = p.mine.map(blockKey).join("\u0002") + "\u0003" + p.theirs.map(blockKey).join("\u0002"); });
+  return out;
+}
+function mergeParts(parts, picks){
+  const out = [];
+  parts.forEach(p => {
+    if(p.same){ out.push(p.b); return; }
+    if(picks.get(p.key) === "take") p.theirs.forEach(b => out.push({id:nid(), type: TYPES.includes(b.type) ? b.type : "Action", text:String(b.text || ""), ...(b.dual ? {dual:true} : {})}));
+    else p.mine.forEach(b => out.push(b));
+  });
+  return out;
+}
+const PICK = {take:"TAKE IT", keep:"KEEP MINE", later:"LATER"};
+function showDiff(){
+  const M = mergeState, host = $("diffOut"); host.textContent = "";
+  const changes = M.parts.filter(p => !p.same);
+  if(!changes.length){ host.innerHTML = '<p class="note-sm">These two drafts are identical.</p>'; $("diffSum").textContent = ""; $("diffMerge").hidden = true; return; }
+  const frag = document.createDocumentFragment(); let run = 0;
+  const flush = () => { if(!run) return; const d = document.createElement("div"); d.className = "note-sm"; d.style.padding = "6px 8px"; d.textContent = run + (run === 1 ? " element the same" : " elements the same"); frag.appendChild(d); run = 0; };
+  M.parts.forEach(p => {
+    if(p.same){ run++; return; }
+    flush();
+    const box = document.createElement("div"); box.className = "hunk"; box.dataset.n = p.n;
+    const top = document.createElement("div"); top.className = "hunkhead note-sm";
+    top.textContent = "Change " + (p.n + 1) + (p.head ? " · " + p.head : " · before the first scene");
+    box.appendChild(top);
+    const side = (L, cls, label) => { if(!L.length){ const d = document.createElement("div"); d.className = "diffline " + cls; d.innerHTML = '<span class="dt">' + label + '</span>'; d.append("(nothing here)"); box.appendChild(d); return; }
+      L.forEach(b => { const d = document.createElement("div"); d.className = "diffline " + cls; d.innerHTML = '<span class="dt">' + label + '</span>'; d.append(printedText(b, false) || "(" + b.type.toLowerCase() + ")"); box.appendChild(d); }); };
+    side(p.mine, "del", "yours"); side(p.theirs, "add", "theirs");
+    const row = document.createElement("div"); row.className = "hunkpick";
+    Object.keys(PICK).forEach(k => { const btn = document.createElement("button"); btn.textContent = PICK[k]; btn.dataset.pick = k; btn.className = M.picks.get(p.key) === k ? "on" : ""; btn.onclick = () => { if(M.picks.get(p.key) === k) M.picks.delete(p.key); else M.picks.set(p.key, k); showDiff(); }; row.appendChild(btn); });
+    box.appendChild(row); frag.appendChild(box);
+  });
+  flush(); host.appendChild(frag);
+  const c = {take:0, keep:0, later:0}; changes.forEach(p => { const k = M.picks.get(p.key); if(k) c[k]++; });
+  const open = changes.length - c.take - c.keep - c.later;
+  $("diffSum").textContent = changes.length + (changes.length === 1 ? " change" : " changes") + ": " + c.take + " taken, " + c.keep + " yours kept, " + c.later + " for later" + (open ? ", " + open + " not decided (yours stays)" : "") + ".";
+  $("diffMerge").hidden = false; $("diffMerge").disabled = !c.take && !c.later && !c.keep;
+}
+async function openOther(f){
+  // An old draft is usually a PDF, which is exactly the thing worth comparing.
+  return f.bytes ? await readPdfBlocks(f.bytes).then(g => ({blocks:g.blocks || g.r.blocks})) : parseAny(f.name, f.text);
+}
 $("diffPick").onclick = async () => {
   const f = await pickFile(".wbs,.json,.fountain,.spmd,.txt,.fdx,.pdf", true);
   if(!f) return;
   try{
     syncFromDom();
-    // An old draft is usually a PDF, which is exactly the thing worth comparing.
-    const other = f.bytes ? await readPdfBlocks(f.bytes).then(g => ({blocks:g.blocks || g.r.blocks})) : parseAny(f.name, f.text);
-    const rows = diffBlocks(other.blocks, doc.blocks);
-    let add = 0, del = 0;
-    const host = $("diffOut"); host.textContent = "";
-    const frag = document.createDocumentFragment();
-    let run = 0;
-    rows.forEach(r => {
-      if(r.op === " "){ run++; return; }
-      if(run){
-        const d = document.createElement("div");
-        d.className = "note-sm";
-        d.style.padding = "6px 8px";
-        d.textContent = run + (run === 1 ? " element unchanged" : " elements unchanged");
-        frag.appendChild(d); run = 0;
-      }
-      if(r.op === "+") add++; else del++;
-      const d = document.createElement("div");
-      d.className = "diffline " + (r.op === "+" ? "add" : "del");
-      d.innerHTML = `<span class="dt">${r.op === "+" ? "added" : "removed"}</span>`;
-      d.append(printedText(r.b, false) || "(" + r.b.type.toLowerCase() + ")");
-      frag.appendChild(d);
-    });
-    if(run){
-      const d = document.createElement("div");
-      d.className = "note-sm"; d.style.padding = "6px 8px";
-      d.textContent = run + (run === 1 ? " element unchanged" : " elements unchanged");
-      frag.appendChild(d);
-    }
-    host.appendChild(frag);
-    $("diffIntro").textContent = "Comparing " + f.name + " against what is on screen. Nothing has been changed.";
-    $("diffSum").textContent = add + " added, " + del + " removed.";
-    if(!add && !del) host.innerHTML = '<p class="note-sm">These two drafts are identical.</p>';
+    const other = await openOther(f);
+    mergeState = {name:f.name, title:other.title || "", theirs:other.blocks, parts:draftParts(doc.blocks, other.blocks), picks:new Map()};
+    $("diffIntro").textContent = "Yours is what is on screen. Theirs is " + f.name + ". Pick per change, then MAKE THE MERGED DRAFT. Nothing changes until you do.";
+    showDiff();
   }catch(err){ toast("Could not read that file: " + err.message); }
+};
+function keepForTrail(label, file, text, title){
+  if(!window.Inbox || !/^https?:$/.test(location.protocol) || !/\S/.test(text)) return false;
+  Inbox.put("draft", {title:doc.title || title || "", label, file, text, source:"Writer's Blockage"}, "merge" + file + text.length + text.slice(0, 200));
+  return true;
+}
+$("diffMerge").onclick = () => {
+  const M = mergeState; if(!M) return;
+  syncFromDom();
+  const before = toFountain(doc.blocks), theirsText = toFountain(M.theirs);
+  const merged = mergeParts(M.parts, M.picks);
+  const plain = L => L.map(b => printedText(b, false)).filter(Boolean).join("\n");
+  let took = 0;
+  M.parts.filter(p => !p.same).forEach(p => {
+    const k = M.picks.get(p.key) || "open";
+    if(k === "take") took++;
+    recordLedger({tool:"Merge", kind:k === "take" ? "taken" : k === "keep" ? "kept mine" : k === "later" ? "later" : "not decided", file:M.name, where:p.head || "", raw:plain(p.theirs), mine:plain(p.mine)});
+  });
+  snapshot();
+  doc.blocks.splice(0, doc.blocks.length, ...merged);
+  if(!doc.blocks.length) doc.blocks.push({id:nid(), type:"Action", text:""});
+  markDirty(); render(); autosave();
+  const kept = keepForTrail("Before merge " + new Date().toISOString().slice(0, 10), (doc.title || "Untitled") + " before merge.fountain", before)
+            && keepForTrail(M.name.replace(/\.[a-z0-9]+$/i, ""), M.name.replace(/\.[a-z0-9]+$/i, "") + ".fountain", theirsText, M.title);
+  // what is left: the changes you kept yours on, or left for later, still show, with your picks
+  const picks = M.picks; mergeState = {name:M.name, title:M.title, theirs:M.theirs, parts:draftParts(doc.blocks, M.theirs), picks};
+  showDiff();
+  $("diffIntro").textContent = "Merged: " + took + (took === 1 ? " change" : " changes") + " taken from " + M.name + ". Undo puts it back." + (kept ? " Both drafts as they were are waiting in Paper Trail." : "") + " What is left below is where yours still differs.";
+  toast("Merged draft made. " + took + " taken.");
 };
 
 /* ---------- page setup ---------- */

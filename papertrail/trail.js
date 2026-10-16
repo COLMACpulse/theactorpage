@@ -113,6 +113,10 @@ T.compare=function(prev,cur){
  return out;
 };
 
+/* the same draft in another format: a .fdx and its .pdf, a .fountain and its .fdx. Every scene there, every
+   scene the same, nothing added or cut. Then it is one draft with two files, not two drafts. */
+T.sameDraft=function(a,b){ if(!a||!b||!a.length||a.length!==b.length) return false; const c=T.compare(a,b); return !c.added.length&&!c.removed.length&&!c.changed.length&&c.same.length===a.length; };
+
 /* characters across drafts: lines per draft. drafts: [{id,label,scenes}] */
 T.characters=function(drafts){
  const C={};

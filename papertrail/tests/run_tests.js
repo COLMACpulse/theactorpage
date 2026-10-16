@@ -107,6 +107,14 @@ const RC=T.receipt(TB,RS,'LAST BUS');
 ok('receipt: question, what is on the table, the line and its note, what is not connected', /Question: What does Rennie leave behind\?/.test(RC)&&/1\. Photo: The real shelter/.test(RC)&&/1 CAUSE 2: she waits because Mom did/.test(RC)&&/Not connected to anything yet: 3/.test(RC), RC);
 ok('receipt invents nothing: no hypothesis, no confidence, no percent', !/hypothes|confidence|%/i.test(RC));
 ok('a removed research item says so', /removed from Research/.test(T.receipt({question:'',items:[{id:'i9',rid:'gone'}],links:[]},RS)));
+// the same draft in another format is one draft
+{ const X=path.join(__dirname,'../../shared/fixtures/'); const fx=globalThis.ActorSides.fromFdx(fs.readFileSync(X+'low_tide.fdx','utf8')), fo=fs.readFileSync(X+'low_tide.fountain','utf8');
+  const a=T.scenes(fx,'script'), b=T.scenes(fo,'script');
+  ok('same draft: LOW TIDE .fdx and .fountain', a.length===3&&T.sameDraft(a,b), [a.length,b.length]);
+  const c=T.scenes(fo.replace('ANNA','ANNA\nOne more line.\n\nANNA'),'script');
+  ok('not the same draft: one line changed', !T.sameDraft(a,c));
+  ok('not the same draft: a scene cut', !T.sameDraft(a,a.slice(0,2)));
+  ok('not the same draft: nothing in one', !T.sameDraft([],[])); }
 const lb=process.argv[2];
 if(lb&&fs.existsSync(lb)){
  const raw=fs.readFileSync(lb,'utf8');
