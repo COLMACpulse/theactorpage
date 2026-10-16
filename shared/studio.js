@@ -22,20 +22,22 @@ function purposes(kind){
 }
 const nameOf=()=>{ const y=Y&&Y.get(); return (y&&y.name)||localStorage.getItem('actor_os_name')||''; };
 
-let S=null;   // {kind, stream, rec, facing, timer, blob, result, purposes, pick}
+let S=null;   // {kind, stream, rec, facing, timer, cap, blob, result, purposes, pick}
+let CAP=0;    // 30 SECONDS: a hard stop at :30, remembered while the page is open
 function shell(){
  let o=$('studioOv'); if(o) return o;
  o=document.createElement('div'); o.id='studioOv'; o.className='stov'; document.body.appendChild(o); return o;
 }
 async function open(kind){
- S={kind, facing:'user', timer:0, purposes:purposes(kind)}; S.pick=0;
+ S={kind, facing:'user', timer:0, cap:CAP, purposes:purposes(kind)}; S.pick=0;
  const o=shell(); o.hidden=false; document.body.classList.add('stopen');
  o.innerHTML='<div class="stv">'+(kind==='video'?'<video id="stvid" playsinline muted autoplay></video>':'<canvas id="stmeter" width="600" height="160"></canvas>')+'<div class="stcount" id="stcount"></div><div class="stmsg" id="stmsg"></div></div>'
   +'<div class="stbar"><select id="stfor" aria-label="What it is for">'+S.purposes.map((p,i)=>'<option value="'+i+'">'+esc(p.label)+'</option>').join('')+'</select><label class="stscene" id="stscenel" hidden>Scene <input id="stscene" type="number" min="1" value="1" inputmode="numeric"></label>'
-  +'<div class="strow">'+(kind==='video'?'<button id="stflip">FLIP</button><button id="sttimer">TIMER: OFF</button><button id="stsnap">PHOTO</button>':'')+'<button class="strec" id="strec" aria-label="Record"><span></span></button><button id="stclose">CLOSE</button></div></div>';
+  +'<div class="strow">'+(kind==='video'?'<button id="stflip">FLIP</button><button id="sttimer">TIMER: OFF</button><button id="stsnap">PHOTO</button>':'')+'<button id="stcap" aria-pressed="'+(S.cap?'true':'false')+'">'+(S.cap?'30 SEC: ON':'30 SEC: OFF')+'</button>'+'<button class="strec" id="strec" aria-label="Record"><span></span></button><button id="stclose">CLOSE</button></div></div>';
  const sync=()=>{ S.pick=+$('stfor').value; $('stscenel').hidden=(S.purposes[S.pick]||{}).type!=='scene'; };
  $('stfor').onchange=sync; sync();
  $('stclose').onclick=close;
+ $('stcap').onclick=()=>{ if(S.rec) return; S.cap=CAP=S.cap?0:30; $('stcap').textContent=S.cap?'30 SEC: ON':'30 SEC: OFF'; $('stcap').setAttribute('aria-pressed',S.cap?'true':'false'); $('stmsg').textContent=S.cap?'Hard stop at :30. One take, then keep it or go again.':''; };
  $('strec').onclick=()=>S.rec?stopRec():startRec();
  if(kind==='video'){ $('stflip').onclick=()=>{ S.facing=S.facing==='user'?'environment':'user'; live(); }; $('sttimer').onclick=()=>{ S.timer=S.timer===0?3:S.timer===3?10:0; $('sttimer').textContent='TIMER: '+(S.timer?S.timer+'s':'OFF'); }; $('stsnap').onclick=snap; }
  await live();
@@ -54,19 +56,22 @@ async function startRec(){
  if(!S.stream) return;
  if(S.timer){ for(let i=S.timer;i>0;i--){ $('stcount').textContent=i; await new Promise(r=>setTimeout(r,1000)); if(!S) return; } $('stcount').textContent=''; }
  try{ S.rec=C.record(S.stream,S.kind); }catch(e){ $('stmsg').textContent=e.message; return; }
- $('strec').classList.add('on'); S.tick=setInterval(()=>{ if(S&&S.rec) $('stcount').textContent='● '+fmt(S.rec.secs()); },500);
+ $('strec').classList.add('on'); S.t0=Date.now(); const cb=$('stcap'); if(cb) cb.disabled=true;
+ const show=()=>{ if(!S||!S.rec) return; const el=(Date.now()-S.t0)/1000; $('stcount').textContent=S.cap?'● '+fmt(Math.ceil(Math.max(0,S.cap-el)))+' left':'● '+fmt(Math.floor(el)); };
+ S.tick=setInterval(show,250); show();
+ if(S.cap){ const me=S.rec; S.capT=setTimeout(()=>{ if(S&&S.rec===me){ S.capped=true; stopRec(); } },S.cap*1000); }
 }
 const fmt=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
 async function stopRec(){
- const r=await S.rec.stop(); clearInterval(S.tick); S.rec=null; $('strec').classList.remove('on'); $('stcount').textContent='';
+ clearTimeout(S.capT); const r=await S.rec.stop(); clearInterval(S.tick); S.rec=null; $('strec').classList.remove('on'); $('stcount').textContent='';
  C.stop(S.stream); S.stream=null; try{ S.ac&&S.ac.close(); }catch(e){} S.ac=null;
  S.result=r; review();
 }
 function review(){
  const r=S.result, url=URL.createObjectURL(r.blob); S.url=url;
- $('studioOv').querySelector('.stv').innerHTML=(S.kind==='video'?'<video src="'+url+'" controls playsinline></video>':'<audio src="'+url+'" controls></audio>')+'<div class="stmsg">'+fmt(Math.round(r.secs))+' · '+(r.blob.size/1048576).toFixed(1)+' MB · '+esc(r.mime.split(';')[0])+'</div>';
+ $('studioOv').querySelector('.stv').innerHTML=(S.kind==='video'?'<video src="'+url+'" controls playsinline></video>':'<audio src="'+url+'" controls></audio>')+'<div class="stmsg">'+(S.capped?'Stopped at :30. ':'')+fmt(Math.round(r.secs))+' · '+(r.blob.size/1048576).toFixed(1)+' MB · '+esc(r.mime.split(';')[0])+'</div>';
  $('studioOv').querySelector('.strow').innerHTML='<button class="strec keep" id="stkeep">KEEP</button><button id="stagain">AGAIN</button><button id="stclose2">CLOSE</button>';
- $('stkeep').onclick=keep; $('stagain').onclick=()=>{ URL.revokeObjectURL(url); open(S.kind); }; $('stclose2').onclick=close;
+ $('stkeep').onclick=keep; $('stagain').onclick=()=>{ URL.revokeObjectURL(url); open(S.kind); };   // AGAIN keeps 30 SEC as it was $('stclose2').onclick=close;
 }
 async function keep(){
  const p=Object.assign({},S.purposes[S.pick]||{type:'voice'}), r=S.result; if(p.type==='scene') p.scene=Math.max(1,+(($('stscene')||{}).value)||1);
@@ -81,7 +86,7 @@ async function snap(){
  const f=new File([b],'headshot '+new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')+'.jpg',{type:'image/jpeg'});
  const r=await Y.addPhoto(f); $('stmsg').textContent=r.error?r.error:(Y.get().primary===r.photo.id?'Kept as your main headshot.':'Kept in your headshots.');
 }
-function close(){ if(!S) return; try{ S.rec&&S.rec.cancel(); }catch(e){} clearInterval(S.tick); C.stop(S.stream); try{ S.ac&&S.ac.close(); }catch(e){} S=null; const o=$('studioOv'); if(o){ o.hidden=true; o.innerHTML=''; } document.body.classList.remove('stopen'); }
+function close(){ if(!S) return; clearTimeout(S.capT); try{ S.rec&&S.rec.cancel(); }catch(e){} clearInterval(S.tick); C.stop(S.stream); try{ S.ac&&S.ac.close(); }catch(e){} S=null; const o=$('studioOv'); if(o){ o.hidden=true; o.innerHTML=''; } document.body.classList.remove('stopen'); }
 document.addEventListener('visibilitychange',()=>{ if(document.hidden&&S&&!S.rec) close(); });
 
 const WHERE={selftape:[['Actor OS','in your takes, to trim, slate and send','actor-os/'],['Project Hub','on the audition','hub/']],practice:[['Actor OS','in your takes','actor-os/']],scene:[['Story Studio','on the scene in CUT, the file kept','film/']],clip:[['Project Hub','in your library as a clip','hub/']],voice:[]};
@@ -97,5 +102,5 @@ function shown(it){
 }
 $('stcam').onclick=()=>open('video');
 $('stmic').onclick=()=>open('audio');
-window.__studio={purposes,open,close};
+window.__studio={purposes,open,close,cap:()=>CAP};
 })();
