@@ -51,6 +51,11 @@ async function route(items){
   x.went='In the Hub next time you open it.'; x.inboxId=it.id;
   if(r.invitedActor){ if(Y) Y.fill({name:title(r.invitedActor)},'a self-tape request'); try{ if(!localStorage.getItem('actor_os_name')){ localStorage.setItem('actor_os_name',r.invitedActor); x.named=r.invitedActor; } }catch(e){} }
  });
+ // your real history with the office on the request, from the Hub on this device (plain counts)
+ if(reqs.length&&window.Offices){ const D=await Offices.load();
+  if(D) reqs.forEach(x=>{ const r=x.req, k=[r.title||r.show,r.role].map(v=>String(v||'').toLowerCase().replace(/[^a-z0-9]+/g,'')).join('|');
+   const names=(r.castingDirectors||[]).filter(Boolean); if(!names.length) return;
+   x.offWords=Offices.words(Offices.history(D.projects,D.credits,names,p=>[p.project||p.title,p.role].map(v=>String(v||'').toLowerCase().replace(/[^a-z0-9]+/g,'')).join('|')===k)); }); }
  const known=reqs.map(x=>x.req).concat(I.all('request').map(it=>({role:it.data.role,sides:it.data.sides||[],title:it.data.title})));
  // scripts first, then sides: the sides for an audition end up current, which is what Actor OS opens
  items.filter(x=>x.kind==='script').concat(items.filter(x=>x.kind==='sides')).forEach(x=>{
@@ -86,7 +91,7 @@ function card(x,i){
    +(x.changed&&x.changed.length?'<div class="why">Filled: '+esc(x.changed.map(c=>c[0]).join(', '))+'.</div>':'<div class="why">Your profile already had all of this.</div>'); }
  if(x.photo) h+='<div class="parts"><img data-photo="'+esc(x.photo.id)+'" alt="" style="width:72px;height:90px;object-fit:cover;border:1px solid var(--rule)">'+(Y&&Y.get().primary!==x.photo.id?'<button data-main="'+esc(x.photo.id)+'">MAKE IT THE MAIN ONE</button>':'')+'</div>';
  if(x.why&&x.why.length&&!['image','other','unknown','resume'].includes(x.kind)) h+='<div class="why">Read as '+esc(x.why.join(', '))+(x.struck?'. '+x.struck+' crossed-out line'+(x.struck===1?'':'s')+' left out':'')+'.</div>';
- if(x.kind==='request'&&x.req) h+='<div class="why">Tape due: '+esc(HubReq.dueWords(x.req.due))+'</div>'+(x.named?'<div class="why">Your name for the slate: '+esc(x.named)+'.</div>':'');
+ if(x.kind==='request'&&x.req) h+='<div class="why">Tape due: '+esc(HubReq.dueWords(x.req.due))+'</div>'+(x.offWords?'<div class="why">'+esc(x.offWords)+'</div>':'')+(x.named?'<div class="why">Your name for the slate: '+esc(x.named)+'.</div>':'');
  h+='<div class="went">'+esc(x.went||'')+'</div>';
  if(x.shelfId&&x.parts&&x.parts.length){
   h+='<div class="why" style="margin-top:6px">'+(x.me?'Your part: <b>'+esc(x.me)+'</b>'+(x.meFrom?' (from '+esc(x.meFrom)+')':'')+'. Tap another to change it.':'Which part is yours? One tap, and every tool knows.')+'</div><div class="parts">'
