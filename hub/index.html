@@ -162,6 +162,7 @@ small.note{display:block;padding:0 15px 13px;color:var(--faint);font-size:10.5px
 <script src="request.js"></script>
 <script src="../shared/inbox.js"></script>
 <script src="../shared/you.js"></script>
+<script src="../shared/takes.js"></script>
 <script>
 var restoreReport=null;
 var CREDIT_TOMBS=[];   // titles the user has deleted; never re-seed these
@@ -1321,6 +1322,16 @@ function addRequestFrom(r,quiet){
    workflow:{rep_email:true,audition_request:true,actor_ingest:true,character_breakdown:!!r.roleDesc,sides:!!r.sides.length}});
  Object.assign(p,{request:r,dirDone:{},brief:r.roleDesc,roleSize:r.roleSize,episode:r.episode,studios:r.studio,union:r.union,director:r.director,eps:r.producers,shootDates:r.shootDates,location:r.location,sidesFile:r.sides[0]||''});
  projects.unshift(p);saveProjects();return true;}
+/* takes recorded with CAMERA on the home page (shared/takes.js): a self-tape goes on its audition,
+   a clip into the library */
+async function fromTakes(){ const T=window.Takes; if(!T) return; let n=0;
+ for(const it of T.pending('hub',['selftape','clip'])){ const b=await T.blob(it.id); if(!b){ T.take('hub',it.id); continue; }
+  let scope='library', cat='clip';
+  if(it.for.type==='selftape'){ cat='take'; const lc=x=>String(x||'').toLowerCase().trim(); const p=projects.find(p=>p.request&&lc(p.role)===lc(it.for.role)&&(!it.for.title||lc(p.title)===lc(it.for.title)))||projects.find(p=>p.request&&lc(p.role)===lc(it.for.role)); if(p) scope=p.id; }
+  const rec={id:'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),scope:scope,category:cat,label:String(it.name).replace(/\.[^.]+$/,''),filename:it.name,type:b.type,size:b.size,added:new Date(it.at).toISOString(),blob:b,from:'home'};
+  try{ if(String(b.type).startsWith('video/')){ try{ rec.dur=await probeDur(b); }catch(_){} } await DB.put(rec); ARTS.push(rec); n++; if(String(b.type).startsWith('video/')&&typeof ensureThumb==='function') ensureThumb(rec).then(()=>render()); }catch(e){}
+  T.take('hub',it.id); }
+ if(n) toast(n===1?'From home: a take':'From home: '+n+' takes'); }
 /* your profile from the home page (shared/you.js): the demo actor goes, then only the Hub's blanks are filled;
    credits and headshots the Hub doesn't have yet come in once each */
 async function fromYou(){ const Y=window.You; if(!Y||!Y.has()) return; const y=Y.get(), got=[];
@@ -3681,5 +3692,5 @@ function reelRoomView(){
    wrong tombstone list - so the vault was correcting the record instead of being
    it. Now: browser cache, then folder, then the seeding and filtering run on
    whatever won. */
-seed();render();loadArts().then(()=>loadMeta()).then(()=>vaultAuto()).then(()=>{const n=credits.length;credits=credits.filter(c=>!isTombed(c.title));if(credits.length!==n)saveCredits();}).then(()=>seedAuditions()).then(()=>fromInbox()).then(()=>fromYou()).then(render);
+seed();render();loadArts().then(()=>loadMeta()).then(()=>vaultAuto()).then(()=>{const n=credits.length;credits=credits.filter(c=>!isTombed(c.title));if(credits.length!==n)saveCredits();}).then(()=>seedAuditions()).then(()=>fromInbox()).then(()=>fromYou()).then(()=>fromTakes()).then(render);
 </script></body></html>

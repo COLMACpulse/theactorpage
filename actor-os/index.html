@@ -665,6 +665,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 </script>
 </script>
 <script src="../shared/shelf.js"></script>
+<script src="../shared/takes.js"></script>
 <script src="../shared/scenes.js"></script>
 <script src="sides.js"></script>
 <script src="pdf.js"></script>
@@ -920,6 +921,18 @@ async function rehydrateTakes(){
  try{ renderTakes(); }catch(e){}
  if(lost) console.warn(lost+' take(s) have no stored video');
 }
+/* takes recorded with CAMERA on the home page (shared/takes.js): a self-tape or practice run lands in TAKES */
+async function fromHomeTakes(){
+ const T=window.Takes; if(!T) return; let n=0;
+ for(const it of T.pending('actor-os',['selftape','practice'])){
+  const b=await T.blob(it.id); if(!b){ T.take('actor-os',it.id); continue; }
+  await importTakes([new File([b],it.name,{type:b.type,lastModified:it.at})]);
+  const t=(state.takes||[]).filter(x=>x.originalName===it.name).pop();
+  if(t){ t.savedToDevice=!!it.saved; t.mode='HOME'; t.imported=false; if(it.for.role) t.role=it.for.role; }
+  T.take('actor-os',it.id); n++; }
+ if(n){ try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){} try{ renderTakes(); renderSave(); }catch(e){} try{ stageToast(n===1?'A take from home is in TAKES.':n+' takes from home are in TAKES.'); }catch(e){} }
+}
+window.addEventListener('load',()=>{ setTimeout(fromHomeTakes,700); });
 window.addEventListener('load',()=>{ setTimeout(rehydrateTakes,300); setTimeout(()=>{try{navState();}catch(e){}},420); });
 /* Sides sent from Writer's Blockage on the same site. Taken once, then cleared. */
 window.addEventListener('load',()=>{ setTimeout(()=>{

@@ -235,6 +235,32 @@ body.has .scrollcue{display:none}
 .drop input{display:none}
 .pastebox{width:100%;min-height:84px;margin-top:12px;background:var(--stock-up);color:var(--ink);border:1px solid var(--rule);padding:10px 12px;font:14px/1.5 var(--script);resize:vertical}
 .pastego{margin-top:8px;font-family:var(--script);font-weight:700;letter-spacing:.09em;font-size:.82rem;padding:10px 18px;background:transparent;color:var(--tungsten);border:1px solid var(--tungsten);cursor:pointer}
+.tools3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 16px}
+.t3{display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 8px 14px;background:var(--stock-up);border:1px solid var(--rule);color:var(--ink);text-decoration:none;cursor:pointer;font:inherit;text-align:center}
+.t3:hover{border-color:#6b4f21}
+.t3 svg{width:44px;height:44px;fill:none;stroke:var(--tungsten);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.t3 b{font:700 .8rem var(--script);letter-spacing:.16em;color:var(--tungsten)}
+.t3 span{font-size:.72rem;color:var(--grey);line-height:1.3}
+@media(max-width:420px){.t3 span{display:none}}
+.stov{position:fixed;inset:0;z-index:90;background:#000;display:flex;flex-direction:column}
+.stov[hidden]{display:none}
+body.stopen{overflow:hidden}
+.stv{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center}
+.stv video{max-width:100%;max-height:100%}
+.stv video.mirror{transform:scaleX(-1)}
+.stv canvas{width:90%;max-width:600px}
+.stcount{position:absolute;top:14px;left:0;right:0;text-align:center;font:700 1.6rem var(--script);color:#ff6a5c;text-shadow:0 1px 4px #000}
+.stmsg{position:absolute;bottom:10px;left:12px;right:12px;text-align:center;color:#ddd;font-size:.85rem;text-shadow:0 1px 3px #000}
+.stbar{background:#111;padding:10px 12px calc(12px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px}
+.stbar select{width:100%;background:#1a1a1a;color:#eee;border:1px solid #333;padding:9px;font:14px var(--title)}
+.stscene{color:#ccc;font-size:.85rem}.stscene input{width:70px;margin-left:6px;background:#1a1a1a;color:#eee;border:1px solid #333;padding:6px}
+.strow{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.strow button{background:transparent;color:#eee;border:1px solid #444;padding:9px 10px;font:700 .72rem var(--script);letter-spacing:.08em;cursor:pointer}
+.strec{width:64px;height:64px;border-radius:50%!important;border:3px solid #eee!important;padding:0!important;display:grid;place-items:center}
+.strec span{width:44px;height:44px;border-radius:50%;background:#e5483a;transition:all .15s}
+.strec.on span{width:24px;height:24px;border-radius:4px}
+.strec.keep{width:auto;height:auto;border-radius:0!important;border:1px solid var(--tungsten)!important;background:var(--tungsten);color:var(--stock);padding:12px 22px!important}
+.tk.k-take{border-color:#e5483a}
 .took{margin-top:18px}
 .tk{border-left:3px solid var(--tungsten);padding:10px 14px;margin:0 0 14px;background:var(--stock-up)}
 .tk.k-request{border-color:var(--daylight)}.tk.k-script{border-color:var(--paper)}.tk.k-unknown,.tk.k-image,.tk.k-other{border-color:var(--faint)}
@@ -292,12 +318,18 @@ body.has .scrollcue{display:none}
     </div>
     <div>
       <p class="you-lede">Drop anything here: sides, a script or a new draft, the self-tape request, your rep's email, your résumé, your headshots, your footage. It reads what each thing is, sends it where it belongs, and picks your part from the request. Nothing leaves this device.</p>
+      <div class="tools3">
+        <button class="t3" id="stcam"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="5" y="14" width="38" height="26" rx="3"/><path d="M17 14l3-5h8l3 5"/><circle cx="24" cy="27" r="8"/><circle cx="24" cy="27" r="3"/></svg><b>CAMERA</b><span>a self-tape, a take, a headshot</span></button>
+        <button class="t3" id="stmic"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="17" y="5" width="14" height="24" rx="7"/><path d="M11 23a13 13 0 0 0 26 0M24 36v7M17 43h14"/></svg><b>MIC</b><span>a voice note, a line run</span></button>
+        <a class="t3" href="write/writers-blockage.html"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="24" width="36" height="16" rx="2"/><path d="M14 24V8h20v16M10 32h28M18 36h12"/><path d="M18 13h12M18 18h9"/></svg><b>TYPEWRITER</b><span>write it, it reads everywhere</span></a>
+      </div>
       <label class="drop" id="drop"><input type="file" id="dropfile" multiple><b>DROP IT HERE</b><span>or tap to pick files · sides, scripts, requests, your résumé, headshots, footage</span></label>
       <textarea class="pastebox" id="pastebox" placeholder="Or paste it: the request, the email, the sides"></textarea>
       <button class="pastego" id="pastego">READ IT</button>
       <div class="took" id="took" aria-live="polite"></div>
       <div class="inplay" id="inplay"></div>
       <div class="youpanel" id="youpanel"></div>
+      <div id="studio" hidden></div>
     </div>
   </div>
 </section>
@@ -697,6 +729,9 @@ body.has .scrollcue{display:none}
 <script src="hub/request.js"></script>
 <script src="shared/intake.js"></script>
 <script src="shared/home.js"></script>
+<script src="shared/capture.js"></script>
+<script src="shared/takes.js"></script>
+<script src="shared/studio.js"></script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
 <script>
 /* Today's scene: one original two-hander a day. Any button puts it on the sides shelf,

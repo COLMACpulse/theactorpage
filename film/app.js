@@ -670,5 +670,23 @@ window.addEventListener('storage',e=>{ if(e.key&&/shelf/.test(e.key)){ const p=S
 
 adopt(); if(cur()&&TAB==='script'&&SCENES.length) TAB='scenes';
 render();
+/* takes recorded with CAMERA on the home page (shared/takes.js): a scene take lands on its scene in CUT,
+   and its file is kept, so it plays again after the page is closed */
+async function fromTakes(){
+ const T=window.Takes; if(!T||!cur()) return; let n=0, lastHere=true; const here0=()=>lastHere;
+ for(const it of T.pending(TOOL,['scene'])){
+  // it goes on the script it was shot for, even if another one is open now
+  const sc=(it.for.script&&DB.scripts[it.for.script])||cur(), here=sc===cur();
+  const b=await T.blob(it.id); if(!b){ T.take(TOOL,it.id); continue; }
+  sc.cut=sc.cut||{target:300,fps:'30',takes:{}}; const k=sc.cut, sn=(!here||SCENES.some(x=>x.n===+it.for.scene))?(+it.for.scene||1):((SCENES[0]&&SCENES[0].n)||1); k.takes[sn]=k.takes[sn]||[];
+  const id=rid('t'), d=Math.round((it.secs||0)*100)/100;
+  k.takes[sn].push({id:id,name:it.name,size:b.size,dur:d,in:0,out:d,use:!k.takes[sn].some(x=>x.use),at:it.at,takeId:it.id});
+  FILES[id]=new File([b],it.name,{type:b.type,lastModified:it.at}); lastHere=here; T.take(TOOL,it.id); n++; }
+ // and the files of earlier ones, back from the takes shelf
+ const k=cur().cut; if(k&&k.takes) for(const L of Object.values(k.takes)) for(const t of L){ if(t.takeId&&!FILES[t.id]){ const b=await T.blob(t.takeId); if(b) FILES[t.id]=new File([b],t.name,{type:b.type}); } }
+ if(n){ save(); toast(n===1?'A take from home is on its scene in CUT'+(here0()?'.':' of the script it was shot for.'):n+' takes from home are in CUT.'); }
+ if(n||TAB==='cut') render();
+}
+fromTakes();
 window.__film={DB:()=>DB,SCENES:()=>SCENES};
 })();

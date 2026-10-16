@@ -66,3 +66,16 @@ One profile on this phone: name, union, rep and rep phone, your phone, email, he
 - **Rules:** a tool only fills its own blanks, never overwrites what you typed there. A line you fix in the profile stays fixed; a later résumé only adds what's new.
 - **Storage:** localStorage `theactorpage_you_v1`, IndexedDB `theactorpage_you` (photos). Nothing uploaded, nothing to brendanmccarthyactor.com.
 - **Tests:** `node shared/test_intake.js` (23, with a made-up résumé in `shared/fixtures/`); browser home02 13. Checked privately on a real 31-credit résumé and two headshots (31 of 31 credits, 10 skills, 11 accents), files deleted.
+
+# CAMERA, MIC, TYPEWRITER · `shared/capture.js`, `shared/takes.js`, `shared/studio.js`
+
+Three big buttons on home. Shoot first; it already knows what's in play and offers it.
+
+- **CAMERA:** the self-tape for a request that's due (named NAME_ROLE_take1_date.mp4), a practice run of the sides on the shelf, a scene take for the script open in Story Studio (pick the scene), a reel clip, or just keep it. **PHOTO** keeps a headshot in your profile. Front camera mirrored on screen, not in the file. Timer 3 or 10 s.
+- **MIC:** a voice note, a practice run, a self-tape's sound.
+- **TYPEWRITER:** Writer's Blockage.
+- **Where takes go:** the takes shelf (localStorage `theactorpage_takes_v1`, IndexedDB `theactorpage_takes`). Actor OS takes self-tapes and practice runs into TAKES; the Hub puts a self-tape on its audition and a clip in the library; Story Studio puts a scene take on its scene in CUT, on the script it was shot for, and the file stays, so it plays after the page is closed. Each tool takes a take once.
+- **SAVE TO PHONE** on every take: the share sheet on a phone, a download on a computer. A phone limits what a page keeps and an iPhone can clear it.
+- **The one camera and mic (`capture.js`):** MP4 first, WebM when the browser can't; raw mic (no echo cancelling, noise gate or auto gain); a chosen device falls back to any; screen kept awake while recording; released when you leave; plain words for every refusal. Built from Actor OS's performer camera, Slate Maker, Story Studio's rough cut and Match Camera.
+- **Not yet:** each tool's own camera and mic inside the tool (Actor OS, Slate Maker, the Hub's tape, CPS, Paper Trail, Story Studio's ADR and Match Camera) still runs its own code. Next: switch them to `capture.js` one at a time.
+- **Tests:** `node shared/test_capture.js` (7); browser home03 16 (fake camera and mic: self-tape, scene take, photo, voice note; Actor OS, Hub and Story Studio pick them up; the scene take plays after a reload).
