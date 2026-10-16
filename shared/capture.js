@@ -17,6 +17,8 @@ C.pickMime=function(kind,isSupported){ const L=kind==='audio'?C.AUDIO:C.VIDEO; f
 C.ext=m=>/mp4/.test(m||'')?(/^audio/.test(m)?'m4a':'mp4'):/ogg/.test(m||'')?'ogg':'webm';
 C.errorWords=function(e,kind){
  const n=e&&e.name||'', what=kind==='audio'?'mic':'camera';
+ if(e&&e.hot==='notnow') return 'Not now. Tap again when you are ready.';
+ if(e&&e.hot==='blocked') return 'The '+what+' is blocked for this site. The steps to allow it are above; then try again.';
  if(n==='NotAllowedError'||n==='SecurityError') return 'The '+what+' is blocked for this site. Allow it in the browser\'s site settings (the icon by the address), then try again.';
  if(n==='NotFoundError'||n==='DevicesNotFoundError') return 'No '+what+' found on this device.';
  if(n==='NotReadableError'||n==='TrackStartError') return 'Another app is using the '+what+'. Close it (FaceTime, Zoom, the Camera app) and try again.';
