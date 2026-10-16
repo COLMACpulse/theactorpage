@@ -106,8 +106,11 @@
     if (!plainName(role)) role = '';
     let desc = seg['Role Description'] || '';
     if (!desc) { m = text.match(/\[([A-Z][A-Z0-9 .'\-]{1,40})\]\s*([^\n]+)/); if (m) { if (!role) role = m[1].trim(); desc = m[2].trim(); } }
-    if (!role) { m = text.match(/the role (?:is|of)\s+([A-Z][A-Z .'\-]{1,40}?)(?=[.,\n]| I | and )/); if (m) role = m[1].trim(); }
+    if (!role) { m = text.match(/\b(?:the )?role (?:is|of)\s+([A-Z][A-Z .'\-]{1,40}?)(?=[.,\n]| I | and )/); if (m) role = m[1].trim(); }
     out.role = role;
+    // the invited actor: Eco Cast lists you under Invited Actors (Actor / Role Name / AA Member / Deadline, then the rows)
+    m = text.match(/Invited Actors\s*\n(?:\s*(?:Actor|Role Name|AA Member|Deadline)\s*\n){2,4}\s*([A-Z][A-Za-z .'\-]{2,40})\s*\n/);
+    out.invitedActor = m && !/^(Actor|Role Name|AA Member|Deadline|Eco Cast)/i.test(m[1]) && m[1].trim().toUpperCase() !== role.toUpperCase() ? m[1].trim() : '';
     m = desc.match(/\(([^()]*(?:\([^()]*\)[^()]*)*)\)\s*$/);
     if (m && (ROLE_SIZE.test(m[1]) || /\$/.test(m[1]))) { const inner = m[1]; const rs = inner.match(ROLE_SIZE); if (rs) out.roleSize = rs[1].toUpperCase().replace(/^(\d+ SCENE )?/, ''); const pay = inner.match(/\$[\d,]+(?:\.\d+)?(?:\s*\([^)]*\))?(?:\s*-\s*\$[\d,]+(?:\.\d+)?(?:\s*\([^)]*\))?)?/); if (pay) out.pay = pay[0].trim(); desc = desc.slice(0, m.index).trim(); }
     if (!out.roleSize) { const rs = desc.match(ROLE_SIZE); if (rs) out.roleSize = rs[1].toUpperCase(); }

@@ -160,6 +160,7 @@ small.note{display:block;padding:0 15px 13px;color:var(--faint);font-size:10.5px
 <input id="bkin" type="file" accept=".zip,application/zip" class="hide"><input id="jsonin" type="file" accept=".json,application/json" class="hide"><input id="sidesin" type="file" accept=".txt,.fountain,.fdx,.fdr,.xml,text/plain" class="hide">
 <div class="toast" id="toast"></div>
 <script src="request.js"></script>
+<script src="../shared/inbox.js"></script>
 <script>
 var restoreReport=null;
 var CREDIT_TOMBS=[];   // titles the user has deleted; never re-seed these
@@ -1306,17 +1307,23 @@ function reqPreview(r){
  h+=`<div class="row" style="padding:10px 0 0"><button class="act" onclick="addRequest()">ADD THIS AUDITION</button><button class="ghost act" onclick="REQ=null;render()">CLEAR</button></div></div>`;
  return h;}
 function readRequest(){const t=($('reqtext')||{}).value||'';if(!t.trim())return toast('Paste the request first');REQ=HubReq.read(t);const o=$('reqout');if(o)o.innerHTML=reqPreview(REQ);}
-function addRequest(){const r=REQ;if(!r)return;
+function addRequest(){const r=REQ;if(!r)return;if(addRequestFrom(r,false)){REQ=null;toast('Added: '+(r.title||r.show||'(untitled)')+(r.role?' · '+r.role:''));render();}}
+/* quiet: from the home page inbox; an audition already here is not added twice */
+function addRequestFrom(r,quiet){
  const title=r.title||r.show||'(untitled)', cast=r.castingDirectors.join(', ');
  const key=[title,r.role,cast].map(x=>String(x||'').toLowerCase().replace(/[^a-z0-9]+/g,'')).join('|');
  const have=projects.find(p=>p.request&&[p.title,p.role,p.casting].map(x=>String(x||'').toLowerCase().replace(/[^a-z0-9]+/g,'')).join('|')===key);
- if(have&&!confirm('This audition is already here. Add it again?'))return;
+ if(have&&(quiet||!confirm('This audition is already here. Add it again?')))return false;
  const due=r.due?(r.due.utc||r.due.local||''):'';
  const p=newProject({aaid:'req:'+h32(key+'|'+Date.now()),title:title,project:title,role:r.role,casting:cast,office:cast,kind:'audition',
    type:'Self-Tape',status:r.sent?'Submitted':'Received',deadline:due,when:r.due?HubReq.dueWords(r.due,myTZ()):'',date:new Date().toISOString().slice(0,10),
    workflow:{rep_email:true,audition_request:true,actor_ingest:true,character_breakdown:!!r.roleDesc,sides:!!r.sides.length}});
  Object.assign(p,{request:r,dirDone:{},brief:r.roleDesc,roleSize:r.roleSize,episode:r.episode,studios:r.studio,union:r.union,director:r.director,eps:r.producers,shootDates:r.shootDates,location:r.location,sidesFile:r.sides[0]||''});
- projects.unshift(p);saveProjects();REQ=null;toast('Added: '+title+(r.role?' · '+r.role:''));render();}
+ projects.unshift(p);saveProjects();return true;}
+/* what you dropped on the home page (shared/inbox.js), taken once */
+function fromInbox(){ if(!window.Inbox||!window.HubReq) return; const L=Inbox.pending('hub','request'); let n=0, last='';
+ L.forEach(it=>{ let r=null; try{ r=HubReq.read(it.data.raw||''); }catch(e){} if(r&&(r.title||r.role)&&addRequestFrom(r,true)){ n++; last=(r.title||r.show||'')+(r.role?' · '+r.role:''); } Inbox.take('hub',it.id); });
+ if(n){ toast(n===1?'From home: '+last:'From home: '+n+' auditions'); render(); } }
 function reqChecklist(a){const r=a.request;const items=[];
  if(r.confirmOnEcoCast)items.push('Confirm on Eco Cast that you are taping');
  if(r.conflicts)items.push('Tell them any conflicts with the shoot dates');
@@ -3656,5 +3663,5 @@ function reelRoomView(){
    wrong tombstone list - so the vault was correcting the record instead of being
    it. Now: browser cache, then folder, then the seeding and filtering run on
    whatever won. */
-seed();render();loadArts().then(()=>loadMeta()).then(()=>vaultAuto()).then(()=>{const n=credits.length;credits=credits.filter(c=>!isTombed(c.title));if(credits.length!==n)saveCredits();}).then(()=>seedAuditions()).then(render);
+seed();render();loadArts().then(()=>loadMeta()).then(()=>vaultAuto()).then(()=>{const n=credits.length;credits=credits.filter(c=>!isTombed(c.title));if(credits.length!==n)saveCredits();}).then(()=>seedAuditions()).then(()=>fromInbox()).then(render);
 </script></body></html>

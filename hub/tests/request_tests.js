@@ -90,6 +90,7 @@ PLEASE SUBMIT ELECTRONICALLY ASAP.
 const b = R.read(GLUED);
 ok('glued: title stops at the line, no instructions stuck to it', b.title === 'HARBOR LINE #304 "LOW TIDE" (1 ADDED ROLE)', b.title);
 ok('glued: role is not the table header ("AA Member...")', b.role === 'ANNA VOSS', b.role);
+ok('the invited actor comes off the Invited Actors table; none on a page without one', b.invitedActor === 'SAM ACTOR' && a.invitedActor === '', [b.invitedActor, a.invitedActor]);
 ok('glued: keys split even with no line breaks', b.director === 'Lena Marsh' && b.castingDirectors.join('|') === 'Dana Pell|Ross Okafor' && b.shootDates === 'November 9-17, 2026' && b.location === 'Atlanta, GA' && b.castingAssistant === 'Jo Finch', [b.director, b.castingDirectors, b.shootDates, b.location]);
 ok('glued: type, studio and union pulled apart', b.type === 'Episodic, One Hour Drama' && b.studio === 'Northlight Television for ABN' && b.union === 'SAG-AFTRA', [b.type, b.studio, b.union]);
 ok('glued: role description from [ROLE] line, pay with cents', /^Can play the role of woman/.test(b.roleDesc) && b.pay === '$1,100.00 (one day) - $3,400.00 (TOS)' && b.roleSize === 'CO-STAR', [b.roleDesc, b.pay, b.roleSize]);
@@ -101,6 +102,7 @@ ok('rep email with a different time: flagged, Eco Cast still the due', c.due.utc
 
 // 3) only the rep's email
 const E = R.read('Hi! New self-tape for BAYSIDE, role of MARCO. The deadline is Tuesday, March 3rd at 8am PST. Sides attached.');
+ok('email only: "role of MARCO" is the role', E.role === 'MARCO', E.role);
 ok('email only: due from the rep, 8am PST = 16:00 UTC, year taken from now', E.due && E.due.hh === 8 && E.due.zone === 'PST' && /T16:00:00/.test(E.due.utc) && E.dueFrom === "your rep's email", E.due);
 // 4) dates
 ok('PT means PDT in summer and PST in winter', R.parseWhen('July 13, 2026 1:00 PM PT').utc === '2026-07-13T20:00:00.000Z' && R.parseWhen('Jan 13, 2026 1:00 PM PT').utc === '2026-01-13T21:00:00.000Z');

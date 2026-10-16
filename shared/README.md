@@ -43,3 +43,16 @@ One reader for a script, whatever form it comes in. **Who uses it:** ACTOR OS, M
 - **Pasted text:** with the page layout kept, it reads each line by its column, like the PDF reader. Without it, a line wider than a speech line ends the speech when no blank line does.
 - **What it can't fix:** a cross in pasted text (the marks don't paste), and pasted text where the PDF viewer put words in the wrong order (a name below its action, two speeches on one line). Open the PDF instead.
 - **Tests:** `node shared/test_reader.js` (21): LOW TIDE, made up, in eight forms (`shared/fixtures/`), including two crossed-out PDFs. Also checked on a real feature .fdx (108 of 108 scenes, 427 of 427 speeches) and real Breakdown Services sides (17 of 17 lines from the PDF with the crossed-out speech left out; 17 of 17 pasted with layout, 15 of 17 pasted plain). Those files are private and not in the repo.
+
+# Home: drop it once · `shared/home.js`, `shared/intake.js`, `shared/inbox.js`
+
+The YOU room on the home page. Drop or paste anything; it reads what each thing is and sends it where it belongs, so nothing is typed twice.
+
+- **Sides** go on the sides shelf with your part picked from the request that names them (DET. ANNA VOSS is ANNA). No request: one tap on the part. Actor OS, Memorizer, Breakdown, CPS have them.
+- **A script or draft** (a title page, or many scenes) goes on the shelf and into the inbox for Paper Trail. Story Studio and Actor OS have it.
+- **A self-tape request or rep email** (pasted, .txt, .eml, Word, or an Eco Cast page saved as PDF) goes into the inbox for the Hub, which adds the audition once with the tape due in your time. Your name off the Invited Actors table goes on the Actor OS slate.
+- **Footage**: a page can't keep video, so Story Studio reads it from the folder. **Photos** and other files: not placed, and it says so.
+- **In play**: the next tape due, the sides on the shelf and your part, the drafts.
+- Dropped together, scripts go first so the audition sides end up current.
+- **Inbox:** localStorage `theactorpage_inbox_v1`, newest 40; each tool takes an item once. **Offline:** `sw.js` at the root, home files only.
+- **Tests:** `node shared/test_intake.js` (16); browser home01 18 (drop five things, Actor OS, Hub, Paper Trail pick them up, offline).

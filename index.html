@@ -204,6 +204,37 @@ footer a{color:var(--grey);text-decoration:none;border-bottom:1px solid var(--ru
 footer a:hover{color:var(--tungsten)}
 .maker{display:flex;gap:12px;align-items:center}
 .maker img{display:block;opacity:.85;flex:none}
+
+/* ───────── YOU: one place to drop anything ───────── */
+body.has .titlecard{min-height:auto;padding:46px 28px 30px}
+body.has .scrollcue{display:none}
+.you .disc-name{color:var(--paper)}
+.you-lede{max-width:34em;margin:0 0 18px;color:#c3c8d0}
+.drop{display:block;border:1px dashed #6b4f21;background:rgba(224,162,60,.04);padding:26px 18px;text-align:center;font-family:var(--script);letter-spacing:.06em;cursor:pointer;transition:background .14s}
+.drop.over{background:rgba(224,162,60,.14)}
+.drop b{display:block;color:var(--tungsten);font-size:1.05rem;letter-spacing:.14em}
+.drop span{display:block;color:var(--faint);font-size:.8rem;margin-top:6px}
+.drop input{display:none}
+.pastebox{width:100%;min-height:84px;margin-top:12px;background:var(--stock-up);color:var(--ink);border:1px solid var(--rule);padding:10px 12px;font:14px/1.5 var(--script);resize:vertical}
+.pastego{margin-top:8px;font-family:var(--script);font-weight:700;letter-spacing:.09em;font-size:.82rem;padding:10px 18px;background:transparent;color:var(--tungsten);border:1px solid var(--tungsten);cursor:pointer}
+.took{margin-top:18px}
+.tk{border-left:3px solid var(--tungsten);padding:10px 14px;margin:0 0 14px;background:var(--stock-up)}
+.tk.k-request{border-color:var(--daylight)}.tk.k-script{border-color:var(--paper)}.tk.k-unknown,.tk.k-image,.tk.k-other{border-color:var(--faint)}
+.tk h4{margin:0;font:700 .92rem/1.4 var(--script);letter-spacing:.03em;word-break:break-word}
+.tk .why{font-size:.84rem;color:var(--grey);margin-top:2px}
+.tk .went{font-size:.9rem;margin-top:6px}
+.tk ul{list-style:none;padding:0;margin:8px 0 0}
+.tk li{font-size:.88rem;margin:3px 0}
+.tk li a{color:var(--tungsten);font-family:var(--script);font-weight:700;text-decoration:none;letter-spacing:.04em}
+.parts{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.parts button{font:700 .78rem var(--script);letter-spacing:.06em;padding:7px 11px;background:transparent;color:var(--ink);border:1px solid var(--rule);cursor:pointer}
+.parts button.on{background:var(--tungsten);color:var(--stock);border-color:var(--tungsten)}
+.inplay{margin-top:26px}
+.inplay h3{font-family:var(--script);font-size:.72rem;letter-spacing:.2em;color:var(--tungsten);margin:0 0 8px}
+.ip{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid var(--rule);font-size:.92rem}
+.ip b{font-weight:500}
+.ip .go a{color:var(--tungsten);font:700 .78rem var(--script);letter-spacing:.06em;text-decoration:none;margin-left:12px}
+.ip small{color:var(--grey)}
 </style>
 </head>
 <body>
@@ -220,6 +251,25 @@ footer a:hover{color:var(--tungsten)}
   <p class="verbs">keep. showcase. send it.</p>
   <div class="scrollcue">ROLL</div>
 </header>
+
+<hr class="hair">
+
+<section class="band you" id="you">
+  <div class="wrap disc">
+    <div>
+      <h2 class="disc-name">YOU</h2>
+      <p class="disc-what">Drop it once.<br>Every tool has it.</p>
+    </div>
+    <div>
+      <p class="you-lede">Drop anything here: sides, a script or a new draft, the self-tape request, your rep's email, your footage. It reads what each thing is, sends it where it belongs, and picks your part from the request. Nothing leaves this device.</p>
+      <label class="drop" id="drop"><input type="file" id="dropfile" multiple><b>DROP IT HERE</b><span>or tap to pick files · PDF, Final Draft, Fountain, Word, text, email, video</span></label>
+      <textarea class="pastebox" id="pastebox" placeholder="Or paste it: the request, the email, the sides"></textarea>
+      <button class="pastego" id="pastego">READ IT</button>
+      <div class="took" id="took" aria-live="polite"></div>
+      <div class="inplay" id="inplay"></div>
+    </div>
+  </div>
+</section>
 
 <hr class="hair">
 
@@ -609,6 +659,13 @@ footer a:hover{color:var(--tungsten)}
 
 <script src="shared/shelf.js"></script>
 <script src="shared/scenes.js"></script>
+<script src="shared/inbox.js"></script>
+<script src="actor-os/sides.js"></script>
+<script src="actor-os/pdf.js"></script>
+<script src="hub/request.js"></script>
+<script src="shared/intake.js"></script>
+<script src="shared/home.js"></script>
+<script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
 <script>
 /* Today's scene: one original two-hander a day. Any button puts it on the sides shelf,
    so the tool it opens already has it, with your part picked. */

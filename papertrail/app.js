@@ -643,6 +643,10 @@ async function handoff(){
  if(r.ok) toast('Kept: '+r.p.title+', '+r.d.label+'.');
 }
 
-(async()=>{ await loadTexts(); await handoff(); render(); })();
+/* drafts dropped on the home page (shared/inbox.js), taken once */
+async function fromInbox(){ if(!window.Inbox) return; const L=Inbox.pending(TOOL,'draft'); const got=[];
+ for(const it of L){ try{ const r=await addDraft(it.data.text||'',it.data.file||'Untitled.fountain','Home'); if(r&&r.ok) got.push(r); }catch(e){} Inbox.take(TOOL,it.id); }
+ if(got.length){ ADDED=got; VIEW.tab='add'; toast(got.length===1?'From home: '+got[0].p.title+', '+got[0].d.label+'.':'From home: '+got.length+' drafts.'); } }
+(async()=>{ await loadTexts(); await handoff(); await fromInbox(); render(); })();
 window.__trail={DB:()=>DB,TEXT:()=>TEXT,addDraft:addDraft,docxText:docxText};
 })();
