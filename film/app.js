@@ -82,7 +82,7 @@ function render(){
  $('count').textContent=c?SCENES.length+' scene'+(SCENES.length===1?'':'s')+(c.me?' · you are '+c.me:''):'';
  const m=$('main');
  if(TAB==='script') m.innerHTML=vScript();
- else if(!c&&TAB==='cut') m.innerHTML=logBox()+'<div class="msg">No script yet. Open your footage log above and make the scenes from it, or bring in the script.</div><button class="btn block" data-go="script">SCRIPT</button>';
+ else if(!c&&TAB==='cut') m.innerHTML=logBox()+'<div class="msg">'+(DB.log?'Or bring in the script first, and the log goes on its scenes.':'No script yet. Open your footage log above and make the scenes from it, or bring in the script.')+'</div><button class="btn block" data-go="script">SCRIPT</button>';
  else if(!c&&TAB!=='own') m.innerHTML='<div class="msg">Bring in a script first.</div><button class="btn pri block" data-go="script">SCRIPT</button>';
  else if(TAB==='scenes') m.innerHTML=OPEN?vScene(OPEN):vScenes();
  else if(TAB==='own') m.innerHTML=vOwn();
