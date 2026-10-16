@@ -27,7 +27,7 @@ await p.setInputFiles('#hf',['moody_cop.jpg','white_wall_dad.jpg','small_old.jpg
 await p.waitForFunction(()=>You.get().photos.length===3&&You.get().photos.every(x=>x.check),null,{timeout:15000});
 const words=await p.evaluate(()=>You.get().photos.map(x=>[x.name,Headshots.words(x.check).map(l=>(l.ok?'+':'-')+l.t).join(' | ')]));
 console.log(JSON.stringify(words));
-want('moody shot: the look, not "too dark"', /moody/.test(words[0][1])&&!/read dark/.test(words[0][1]), words[0]);
+want('moody shot: dark background, you lit, not "too dark"', /Dark background, you lit/.test(words[0][1])&&!/read dark/.test(words[0][1]), words[0]);
 want('white wall, face in shadow: you read dark, the wall is brighter', /read dark/.test(words[1][1])&&/brighter than you/.test(words[1][1]), words[1]);
 want('small original: its size', /Small/.test(words[2][1]), words[2]);
 want('the first headshot is your main one (same as YOUR PROFILE)', await p.evaluate(()=>You.get().primary===You.get().photos[0].id));
@@ -50,7 +50,7 @@ await p.setInputFiles('#rf',T+'/ref_window_light.jpg'); await p.waitForTimeout(6
 const dl=p.waitForEvent('download'); await p.click('#bdl'); const d=await dl; const f=T+'/brief.html'; await d.saveAs(f); const html=fs.readFileSync(f,'utf8');
 want('the brief downloads as a standalone page', /^Headshot_brief_|_headshot_brief_\d/.test(d.suggestedFilename())||/headshot_brief/.test(d.suggestedFilename()), d.suggestedFilename());
 want('the brief has the plan, your boundaries, the shot list and the chosen reference', /Two looks/.test(html)&&/No retouching/.test(html)&&/Tight, grey crew/.test(html)&&/Window light from the left/.test(html)&&/data:image\/jpeg;base64/.test(html)&&/Roles I want to be seen for/.test(html));
-want('the brief leaves out the photo checks and your headshot notes', !/read dark|moody|Small:|\bcheck\b/i.test(html.replace(/PRINT \/ SAVE AS PDF/,'')));
+want('the brief leaves out the photo checks and your headshot notes', !/read dark|Dark background|Small:|\bcheck\b/i.test(html.replace(/PRINT \/ SAVE AS PDF/,'')));
 await p.click(`[data-rs="${rid}"]`); const dl2=p.waitForEvent('download'); await p.click('#bdl'); const d2=await dl2; await d2.saveAs(T+'/b2.html');
 want('untick a reference and it stays out', !/data:image/.test(fs.readFileSync(T+'/b2.html','utf8')));
 const dl3=p.waitForEvent('download'); await p.click('#sdl'); const d3=await dl3; await d3.saveAs(T+'/sheet.html');

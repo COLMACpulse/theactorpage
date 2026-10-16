@@ -220,7 +220,6 @@ function roomView(){
  let h='<div class="card"><p class="kicker">Check the room</p><p class="dim">Stand where you\'ll read, phone where it\'ll be. Tap, then stay quiet for 5 seconds. It measures the closet with you silent.</p>'
   +'<button class="btn pri big block" id="roomgo">CHECK THE ROOM</button><div id="roomnow"></div></div>';
  if(S.room) h+='<div class="msg'+(S.room.verdict==='quiet'?'':' bad')+'">'+esc(A.roomWords(S.room))+'</div><p class="faint small">That 5 seconds is kept and used to fill the gaps between your lines, so they sound like your room, not a hole.</p>';
- h+='<div class="card"><p class="kicker">A closet that works</p><ul class="tips"><li>Clothes all around you soak up the echo. The more, the better.</li><li>Phone about a hand-width from your mouth, a little off to the side so your breath doesn\'t hit it.</li><li>Fan, AC, fridge off. Phone on Do Not Disturb.</li><li>Same spot, same distance, every line.</li></ul></div>';
  return h;
 }
 function readView(J){

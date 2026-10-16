@@ -918,32 +918,27 @@ function tapeStrip(){
  h+=`</div>`;return h;
 }
 
-/* ---- camera lighting judge (offline pixel math) ---- */
-function scoreLighting(s){
- let score=100;const tips=[];
- if(s.mean<70){score-=Math.min(48,(70-s.mean)*0.95);tips.push('Too dark - add a key light or turn to face a window.');}
- else if(s.mean>188){score-=Math.min(35,(s.mean-188)*0.9);tips.push('Too bright - pull the key back or lower exposure.');}
- if(s.clipHigh>5){score-=Math.min(30,(s.clipHigh-5)*1.4);tips.push('Blown highlights - reduce the key or move it further off.');}
- if(s.clipLow>28){score-=Math.min(20,(s.clipLow-28)*0.6);tips.push('Crushed shadows - lift your fill or raise exposure.');}
- if(s.contrast<18){score-=14;tips.push('Flat / hazy - add separation between key and fill, or a hair light.');}
- else if(s.contrast>80){score-=14;tips.push('Harsh - soften the source or add fill on the shadow side.');}
- if(s.balance>0.18){score-=Math.min(22,(s.balance-0.18)*90);tips.push('Uneven - one side is hotter; add fill on the dark side.');}
- score=Math.max(0,Math.min(100,Math.round(score)));
- const band=score>=80?'good':(score>=55?'ok':'poor');
- if(!tips.length)tips.push('Clean, even light. Shoot it.');
- return {score:score,band:band,tips:tips};
+/* ---- camera light check (offline pixel math) ---- */
+/* the light check: what it measured, in plain words. The middle of the frame is you, the edges are the room. No score. */
+function lightWords(s){
+ const L=[];
+ if(s.you<70)L.push('Dark on you: '+Math.round(s.you)+' of 255 in the middle of the frame.');
+ else if(s.you>215)L.push('Very bright on you: '+Math.round(s.you)+' of 255 in the middle of the frame.');
+ if(s.edge-s.you>45)L.push('Brighter behind you than on you ('+Math.round(s.edge)+' against '+Math.round(s.you)+').');
+ if(s.clipHigh>5)L.push(Math.round(s.clipHigh)+'% of the frame is pure white.');
+ if(s.balance>0.18)L.push('The '+(s.left>s.right?'left':'right')+' side of the frame is brighter than the other.');
+ return {flags:L,words:L.length?L:['Light: nothing flagged.']};
 }
 function frameStats(video){
  const w=64,h=48;const cv=document.createElement('canvas');cv.width=w;cv.height=h;const cx=cv.getContext('2d');
  cx.drawImage(video,0,0,w,h);const d=cx.getImageData(0,0,w,h).data;
- let sum=0,sum2=0,lo=0,hi=0,lsum=0,rsum=0,ln=0,rn=0;const n=w*h,half=w/2;
- for(let i=0,px=0;i<d.length;i+=4,px++){const L=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];sum+=L;sum2+=L*L;if(L<16)lo++;if(L>240)hi++;const col=px%w;if(col<half){lsum+=L;ln++;}else{rsum+=L;rn++;}}
- const mean=sum/n;const variance=Math.max(0,sum2/n-mean*mean);
- return {mean:mean,contrast:Math.sqrt(variance),clipLow:lo/n*100,clipHigh:hi/n*100,balance:Math.abs((lsum/ln)-(rsum/rn))/255};
+ let hi=0,lsum=0,rsum=0,ln=0,rn=0,c=0,cn=0,e=0,en=0;const n=w*h,half=w/2;
+ for(let i=0,px=0;i<d.length;i+=4,px++){const L=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];if(L>240)hi++;const col=px%w,row=(px/w)|0;if(col<half){lsum+=L;ln++;}else{rsum+=L;rn++;}if(col>20&&col<44&&row>8&&row<36){c+=L;cn++;}else if(col<10||col>54||row<6){e+=L;en++;}}
+ return {you:c/cn,edge:e/en,clipHigh:hi/n*100,left:lsum/ln,right:rsum/rn,balance:Math.abs((lsum/ln)-(rsum/rn))/255};
 }
 async function openCam(){if(camOpen)return closeCam();if(tapePhase!=='off')finishTake();try{_tapeStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});}catch(e){toast('Camera blocked - allow access in the browser');return;}camOpen=true;lastLight=null;render();attachTapePreview();}
 function closeCam(){try{if(_tapeStream)_tapeStream.getTracks().forEach(function(t){t.stop();});}catch(e){}_tapeStream=null;camOpen=false;render();}
-function checkLighting(){const v=$('tapecam');if(!v||!v.videoWidth){toast('Open the camera first, give it a second to warm up');return;}try{lastLight=scoreLighting(frameStats(v));}catch(e){toast('Could not read the frame');}render();}
+function checkLighting(){const v=$('tapecam');if(!v||!v.videoWidth){toast('Open the camera first, give it a second to warm up');return;}try{lastLight=lightWords(frameStats(v));}catch(e){toast('Could not read the frame');}render();}
 
 /* ---- panels ---- */
 function takeMetaLabel(a){const r=a.meta&&a.meta.rating;return (r?' &middot; '+r+'/5':'')+((a.meta&&(a.meta.preNote||a.meta.postNote))?' &middot; noted':'');}
@@ -980,12 +975,11 @@ function setRow(s){
  h+=`</div>`;return h;
 }
 function cameraPanel(){
- let h=`<div class="panel"><h2>Camera &middot; light check before you shoot</h2>`;
- h+=`<small class="note">Ask the room before a take. Open the camera, get set, then check your light. It reads brightness, contrast, blown highlights and left/right balance, scores it, and tells you what to fix. All on your machine.</small>`;
- h+=`<div class="row" style="gap:8px;padding:8px 0">${camOpen?`<button class="act" onclick="checkLighting()">how's my lighting?</button> <button class="ghost act sm" onclick="closeCam()">close camera</button>`:`<button class="act" onclick="openCam()">open camera</button>`}</div>`;
+ let h=`<div class="panel"><h2>Camera &middot; light check</h2>`;
+ h+=`<small class="note">Measures the light on you against the room, pure white, and left against right. On your machine.</small>`;
+ h+=`<div class="row" style="gap:8px;padding:8px 0">${camOpen?`<button class="act" onclick="checkLighting()">check the light</button> <button class="ghost act sm" onclick="closeCam()">close camera</button>`:`<button class="act" onclick="openCam()">open camera</button>`}</div>`;
  if(camOpen&&tapePhase==='off')h+=`<video id="tapecam" autoplay playsinline muted style="width:100%;max-height:300px;background:#000;border-radius:6px"></video>`;
- if(lastLight){const c=lastLight.band==='good'?'var(--go)':(lastLight.band==='ok'?'var(--tung)':'var(--bad)');const lbl=lastLight.band==='good'?'good to shoot':(lastLight.band==='ok'?'workable':'fix it');
-  h+=`<div style="border:1px solid ${c};border-radius:7px;padding:11px;margin-top:9px"><div style="display:flex;align-items:baseline;gap:11px"><div style="font-size:32px;font-weight:700;color:${c};line-height:1">${lastLight.score}</div><div style="color:${c};text-transform:uppercase;letter-spacing:.09em;font-size:12px">${lbl}</div></div><ul style="margin:9px 0 0;padding-left:18px;font-size:12px;line-height:1.65">`+lastLight.tips.map(function(t){return `<li>${esc(t)}</li>`;}).join('')+`</ul></div>`;}
+ if(lastLight)h+=`<ul style="margin:9px 0 0;padding-left:18px;font-size:12px;line-height:1.65">`+lastLight.words.map(function(t){return `<li>${esc(t)}</li>`;}).join('')+`</ul>`;
  h+=`</div>`;return h;
 }
 /* ===== TRAIN: waveform + emotion delivery + voice bank ===== */
@@ -1184,20 +1178,11 @@ const SCENE_WEIGHTS={quick:{c:0.15,pages:2},standard:{c:0.35,pages:4},heavy:{c:0
 
 function sceneReadiness(p){
  const pr=p.prep||{};const core=['reader','backdrop','frame','light','sound'];
- const setupReady=core.filter(function(k){return pr[k];}).length/core.length;
- const lightReady=(typeof lastLight!=='undefined'&&lastLight)?clamp01(lastLight.score/100):(pr.light?0.6:0.3);
- const perfReady=bestTakeRating(p)/5;
- const chars=p.shootChars||1;
- const weight=SCENE_WEIGHTS[p.sceneWeight||'standard'];
- const complexity=clamp01(weight.c+0.08*(chars-1));
- // v2 shootability weights, fed by real hub state instead of authored scalars
- const score=clamp01(0.34*perfReady+0.28*lightReady+0.20*setupReady+0.18*(1-complexity));
  const missing=[];
- if(perfReady<0.6)missing.push('performance - tape a take and rate it 4-5');
- if(lightReady<0.7)missing.push('lighting - run the light check in Set up the shot');
- if(setupReady<0.8){const left=core.filter(function(k){return !pr[k];});missing.push('setup - '+left.join(', '));}
- if(complexity>0.5)missing.push('heavy scene - budget more time');
- return {score:Math.round(score*100),band:(score>=0.8?'good':(score>=0.6?'ok':'poor')),perfReady:perfReady,lightReady:lightReady,setupReady:setupReady,complexity:complexity,missing:missing};
+ if(!projectTakes(p).length)missing.push('no take yet');else if(!bestTakeRating(p))missing.push('no take rated');
+ if(!lastLight)missing.push('light not checked');else if(lastLight.flags.length)missing.push('light: '+lastLight.flags.length+' flagged');
+ const left=core.filter(function(k){return !pr[k];});if(left.length)missing.push('prep bench: '+left.join(', ')+' not ticked');
+ return {missing:missing};
 }
 function coverageItems(p){
  const chars=p.shootChars||1;
@@ -1220,15 +1205,10 @@ function togCoverage(k){const p=projects.find(function(x){return x.id===openId;}
 function shootPlannerPanel(p){
  const r=sceneReadiness(p);const items=coverageItems(p);const done=p.coverageDone||{};
  const doneN=items.filter(function(x){return done[x.k];}).length;
- const c=r.band==='good'?'var(--go)':(r.band==='ok'?'var(--tung)':'var(--bad)');
- let h=`<div class="panel"><h2>Shoot planner &middot; can you shoot this today?</h2>`;
- h+=`<small class="note">Reads your real signals - the lighting-judge score, your take ratings, the prep bench - and tells you the shot list, how long it'll take, and what's missing. The shots are ordered so you shoot every angle of one role in a single pass.</small>`;
+ let h=`<div class="panel"><h2>Shoot planner</h2>`;
+ h+=`<small class="note">The shot list, ordered so every angle of one role is one pass, and a rough time.</small>`;
  h+=`<div class="row" style="gap:6px;padding:8px 0;flex-wrap:wrap;align-items:center"><span style="font-size:11px;color:var(--mut)">Roles you're playing:</span>${[1,2,3].map(function(n){return `<button class="act sm ${(p.shootChars||1)===n?'':'ghost'}" onclick="setShootChars(${n})">${n}</button>`;}).join(' ')}<span style="font-size:11px;color:var(--mut);margin-left:10px">Scene:</span>${['quick','standard','heavy'].map(function(w){return `<button class="act sm ${(p.sceneWeight||'standard')===w?'':'ghost'}" onclick="setSceneWeight('${w}')">${w}</button>`;}).join(' ')}</div>`;
- h+=`<div style="border:1px solid ${c};border-radius:7px;padding:11px;margin-top:4px"><div style="display:flex;align-items:baseline;gap:11px"><div style="font-size:31px;font-weight:700;color:${c};line-height:1">${r.score}</div><div style="color:${c};text-transform:uppercase;letter-spacing:.08em;font-size:12px">${r.band==='good'?'shoot it':(r.band==='ok'?'workable':'not ready')}</div></div>`;
- const bar=function(lbl,v){const pct=Math.round(clamp01(v)*100);return `<div style="margin-top:7px"><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mut)"><span>${lbl}</span><span>${pct}%</span></div><div style="height:5px;background:var(--p2);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${c}"></div></div></div>`;};
- h+=bar('performance (your take ratings)',r.perfReady)+bar('lighting (light check)',r.lightReady)+bar('setup (prep bench)',r.setupReady)+bar('simplicity',1-r.complexity);
- if(r.missing.length)h+=`<div style="font-size:11px;color:var(--hold);padding:9px 0 0">Missing: ${r.missing.map(esc).join(' &middot; ')}</div>`;
- h+=`</div>`;
+ if(r.missing.length)h+=`<div style="font-size:11px;color:var(--mut);padding:4px 0 0">Not done yet: ${r.missing.map(esc).join(' &middot; ')}</div>`;
  h+=`<div class="matgroup" style="border-bottom:0;margin-top:10px"><div class="mathdr"><span>Coverage plan &middot; ${doneN}/${items.length} shots</span><span style="font-size:11px;color:var(--tung)">~${shootMinutes(p)} min</span></div>`;
  h+=`<div class="road" style="padding:6px 0">`+items.map(function(x){const dn=!!done[x.k];return `<div class="station" style="cursor:pointer" onclick="togCoverage('${x.k}')"><span class="dot ${dn?'done':''}"></span><div class="nm">${esc(x.label)}</div><span class="tg">${dn?'got it':'open'}</span></div>`;}).join('')+`</div></div>`;
  h+=`</div>`;return h;
@@ -2064,7 +2044,7 @@ function keyArtView(){
         <button class="ghost act sm" onclick="artSkip()">Skip &rarr;</button>
         <span class="tag">${q.length} left</span>
       </div>
-      <small class="note" style="margin-top:14px;display:block">Tip: on Windows hit <b>Win+Shift+S</b>, drag a box around the poster, then Paste here.</small>
+      <small class="note" style="margin-top:14px;display:block">On Windows: <b>Win+Shift+S</b>, drag a box around the poster, then Paste here.</small>
     </div></div></div>`;
  h+=`<div class="panel"><h2>Still missing art &middot; ${q.length}</h2>
   <div class="artgrid" style="padding:13px">`+q.map((x,i)=>`<div class="credit dz" data-scope="credit:${x.cid}" data-cat="poster" onclick="artIdx=${i};render()" style="${x.cid===c.cid?'border-color:var(--tung)':''}">

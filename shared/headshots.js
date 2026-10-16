@@ -36,14 +36,14 @@ H.measure=function(rgba,w,h,ow,oh){
 H.SOFT=3; H.SMALL=800;
 H.words=function(m){
  const L=[], add=(ok,t)=>L.push({ok,t});
- if(m.you<85) add(false,'You read dark: '+Math.round(m.you)+' of 255 in the middle of the frame. More light on your face, or open up the exposure.');
- else if(m.you>215||m.clipped>6) add(false,'Bright on you: detail is washing out'+(m.clipped>6?' ('+Math.round(m.clipped)+'% of the middle is pure white)':'')+'. Bring the light down or back it off.');
- if(m.background-m.you>25) add(false,'The background is brighter than you ('+Math.round(m.background)+' against '+Math.round(m.you)+'). The eye goes to the wall first.');
- else if(m.background<60&&m.you-m.background>60&&m.you>=85) add(true,'Dark background, you lit: the moody look. Fine if that\'s the plan.');
- if(m.crushed>15&&m.you>=85) add(false,'Deep shadow on part of you ('+Math.round(m.crushed)+'% of the middle is near black). Check that both eyes read.');
- if(m.detail<H.SOFT) add(false,'Looks soft in the middle of the frame. Check focus on the eyes at full size.');
- const sh=Math.min(m.ow,m.oh); if(sh<H.SMALL) add(false,'Small: '+m.ow+' × '+m.oh+'. Fine as a thumbnail; soft when shown big or printed. Keep the original file.');
- if(!L.some(x=>!x.ok)) add(true,'Light, focus and size look fine. Only you can say if it looks like you on a good day.');
+ if(m.you<85) add(false,'You read dark: '+Math.round(m.you)+' of 255 in the middle of the frame.');
+ else if(m.you>215||m.clipped>6) add(false,'Bright on you: detail is washing out'+(m.clipped>6?' ('+Math.round(m.clipped)+'% of the middle is pure white)':'')+'.');
+ if(m.background-m.you>25) add(false,'The background is brighter than you ('+Math.round(m.background)+' against '+Math.round(m.you)+').');
+ else if(m.background<60&&m.you-m.background>60&&m.you>=85) add(true,'Dark background, you lit.');
+ if(m.crushed>15&&m.you>=85) add(false,'Deep shadow on part of you ('+Math.round(m.crushed)+'% of the middle is near black).');
+ if(m.detail<H.SOFT) add(false,'Soft in the middle of the frame.');
+ const sh=Math.min(m.ow,m.oh); if(sh<H.SMALL) add(false,'Small: '+m.ow+' × '+m.oh+'.');
+ if(!L.some(x=>!x.ok)) add(true,'Light, focus and size: nothing flagged.');
  return L;
 };
 
@@ -86,7 +86,7 @@ H.briefHtml=function(o){ const b=o.plan.brief, sec=(t,v)=>v&&String(v).trim()?'<
  if(b.roles&&o.plan.called.length) h+='<h2>What I\'m called in for now</h2><p>'+esc(o.plan.called.join(', '))+'</p>';
  h+=sec('Wardrobe',b.wardrobe)+sec('Light',b.light)+sec('Framing',b.framing)+sec('Please don\'t',b.boundaries)+sec('Notes',b.notes);
  if(shots.length) h+='<h2>Shot list</h2><ol>'+shots.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ol>';
- if((o.refs||[]).length) h+='<h2>References</h2><p class="sub">For the light, the wardrobe or the mood. Not a face to copy.</p><div class="refs">'+o.refs.map(r=>'<figure><img src="'+r.src+'" alt=""><figcaption>'+esc(r.note||r.name||'')+'</figcaption></figure>').join('')+'</div>';
+ if((o.refs||[]).length) h+='<h2>References</h2><p class="sub">For the light, the wardrobe or the mood.</p><div class="refs">'+o.refs.map(r=>'<figure><img src="'+r.src+'" alt=""><figcaption>'+esc(r.note||r.name||'')+'</figcaption></figure>').join('')+'</div>';
  return page('Headshot brief'+(o.name?' - '+o.name:''),h); };
 H.shotSheetHtml=function(o){ const shots=String(o.plan.brief.shots||'').split(/\n/).map(x=>x.trim()).filter(Boolean);
  return page('Shot sheet'+(o.name?' - '+o.name:''),'<h1>Shot sheet'+(o.name?': '+esc(o.name):'')+'</h1><p class="sub">Tick it off on the day.</p>'+(shots.length?'<ul class="shots">'+shots.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ul>':'<p>No shots listed yet.</p>')); };

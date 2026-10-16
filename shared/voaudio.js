@@ -47,8 +47,8 @@ A.room=function(d,rate){
 A.roomWords=function(r){
  if(!r) return '';
  if(r.verdict==='quiet') return 'Quiet enough: '+r.level+' dB with you silent. The usual bar is -60.';
- if(r.verdict==='some') return 'A little noisy: '+r.level+' dB with you silent (the usual bar is -60). Close the door, turn off the fan or AC, hang a blanket behind you, and check again.';
- return 'Too noisy to send: '+r.level+' dB with you silent (the usual bar is -60). Something is running: a fan, a fridge, traffic. Find it and check again.';
+ if(r.verdict==='some') return 'A little noisy: '+r.level+' dB with you silent (the usual bar is -60).';
+ return 'Too noisy to send: '+r.level+' dB with you silent (the usual bar is -60). Something is running nearby.';
 };
 /* where the voice starts and stops in a take: 10 ms frames over a line set from the take itself
    (35 dB under its loudest frame, never below -55 dB); keep 0.15 s of room before and 0.25 s after */

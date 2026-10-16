@@ -139,7 +139,7 @@ const P={
   else if(r.subject>220||r.clip>0.10) n.push(['FIX','Part of you is blowing out to white. Ease the light on you.']);
   if(r.separation<14) n.push(['FIX','You blend into the wall. Light yourself more than the wall, or step forward.']);
   if(r.wall>228) n.push(['CHECK','The wall behind you is blown out. A window or lamp in frame?']);
-  if(r.busy>0.085) n.push(['CHECK','Busy background. Casting wants plain. Check what is in frame.']);
+  if(r.busy>0.085) n.push(['CHECK','Busy background. Check what is in frame.']);
   else if(r.evenness>40) n.push(['CHECK','The wall is lit unevenly behind you.']);
   if(r.wallColour>46) n.push(['CHECK','The wall is a strong colour. Neutral reads better on tape.']);
   if(r.wall<30&&r.subject>=60) n.push(['INFO','Dark wall behind you. Fine if that is the look; it can go murky on a small screen.']);
@@ -163,7 +163,7 @@ const P={
   if(!bg)return [];
   const n=[];
   if(bg.busy>0.085) n.push(['FIX','Busy background. Move closer to a plain wall, or turn so the clutter is out of frame.']);
-  else if(bg.busy>0.045) n.push(['CHECK','Some detail behind you. Casting wants plain - check what is in frame.']);
+  else if(bg.busy>0.045) n.push(['CHECK','Some detail behind you. Check what is in frame.']);
   if(bg.evenness>34) n.push(['CHECK','The wall is lit unevenly. Move your light back, or step away from the wall so it falls off less.']);
   if(bg.meanLuma<42) n.push(['CHECK','Background is very dark. You may separate, but it can read as murky.']);
   if(bg.meanLuma>212) n.push(['FIX','Background is blown out. Bring the light down or step away from the window.']);

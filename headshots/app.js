@@ -56,14 +56,14 @@ function photosView(y){
  y.photos.forEach(p=>{ const main=y.primary===p.id, roles=p.roles||[];
   h+='<div class="card hs"><div class="hsrow"><img data-src="'+p.id+'" class="big" alt=""><div class="hsside"><b class="fn">'+esc(plain(p.name))+'</b>'
    +(main?'<span class="pill on">MAIN</span>':'<button class="btn sm ghost" data-main="'+p.id+'">MAKE MAIN</button>')
-   +'<p class="lab" style="margin-top:10px">At thumbnail size</p><img data-src="'+p.id+'" class="thumb" alt=""><p class="faint small">How casting first sees it, in a grid of fifty.</p></div></div>'
+   +'<p class="lab" style="margin-top:10px">At thumbnail size</p><img data-src="'+p.id+'" class="thumb" alt=""></div></div>'
    +'<p class="lab">Status</p><div class="row">'+H.STATUS.map(([k,l])=>chip(p.status===k,'data-st="'+p.id+'|'+k+'"',l)).join('')+'</div>'
    +'<p class="lab" style="margin-top:10px">The roles it\'s for (your words)</p><div class="row">'+V.map(r=>chip(roles.some(x=>x.toLowerCase()===r.toLowerCase()),'data-role="'+p.id+'|'+esc(r)+'"',r)).join('')+'</div>'
    +'<div class="row" style="margin-top:6px"><input class="field" data-newrole="'+p.id+'" placeholder="Another role word"><button class="btn sm" data-addrole="'+p.id+'">ADD</button></div>'
    +'<p class="lab" style="margin-top:10px">Note</p><input class="field" data-note="'+p.id+'" value="'+esc(p.note||'')+'" placeholder="What it says, where it came from, who shot it">'
    +'<p class="lab" style="margin-top:10px">Photo check</p>'+(p.check?'<ul class="chk">'+H.words(p.check).map(l=>'<li class="'+(l.ok?'ok':'no')+'">'+esc(l.t)+'</li>').join('')+'</ul>':'<p class="faint small">Checking…</p>')
    +'<div class="row" style="justify-content:flex-end"><button class="lnk faint" data-rm="'+p.id+'">remove</button></div></div>'; });
- h+='<p class="faint small">The check measures light on you against the background, focus in the middle of the frame, and size. It can be wrong on unusual light; your eye wins. It never looks at who you are.</p>';
+ h+='<p class="faint small">Measures light on you against the background, focus in the middle of the frame, and size. Never looks at who you are.</p>';
  return h;
 }
 function planView(y){
@@ -72,7 +72,7 @@ function planView(y){
   +'<p class="kicker" style="margin-top:14px">What you want to be seen for</p><div class="row">'+V.map(r=>chip(P.want.some(x=>x.toLowerCase()===r.toLowerCase()),'data-want="'+esc(r)+'"',r)).join('')+'</div>'
   +'<div class="row" style="margin-top:8px"><input class="field" id="nw" placeholder="Another role word"><button class="btn sm" id="nwadd">ADD</button></div></div>';
  h+='<div class="card"><p class="kicker">Which have a keeper</p>'+(cov.length?'<ul class="chk">'+cov.map(c=>'<li class="'+(c.keepers.length?'ok':'no')+'">'+esc(H.coverWords(c))+'</li>').join('')+'</ul><p class="faint small">From your own tags on PHOTOS. "No keeper yet" means no photo you\'ve marked for it, nothing more.</p>':'<p class="faint small">Pick the roles you want to be seen for, above.</p>')+'</div>';
- h+='<div class="card"><p class="kicker">Before / after</p><p class="dim small">Change one thing per shoot (the jacket, the light, the background) and put the two side by side.</p>';
+ h+='<div class="card"><p class="kicker">Before / after</p><p class="dim small">Two photos side by side: what changed, and how it went.</p>';
  P.tests.forEach(t=>{ const opt=sel=>'<option value="">Pick a photo</option>'+ph.map(p=>'<option value="'+p.id+'"'+(sel===p.id?' selected':'')+'>'+esc(plain(p.name))+'</option>').join('');
   h+='<div class="test"><input class="field" data-tf="'+t.id+'|change" value="'+esc(t.change)+'" placeholder="The one change (e.g. darker jacket)"><input class="field" data-tf="'+t.id+'|hypothesis" value="'+esc(t.hypothesis)+'" placeholder="What you think it does (e.g. reads more authority)" style="margin-top:6px">'
    +'<div class="ba"><div><p class="lab">Before</p><select class="field" data-tf="'+t.id+'|before">'+opt(t.before)+'</select>'+(t.before?'<img data-src="'+t.before+'" class="baimg" alt="">':'')+'</div><div><p class="lab">After</p><select class="field" data-tf="'+t.id+'|after">'+opt(t.after)+'</select>'+(t.after?'<img data-src="'+t.after+'" class="baimg" alt="">':'')+'</div></div>'
@@ -84,15 +84,15 @@ function planView(y){
 function briefView(y){
  const b=P.brief, f=(k,l,ph,ta)=>'<p class="lab" style="margin-top:10px">'+l+'</p>'+(ta?'<textarea class="field" data-bf="'+k+'" placeholder="'+esc(ph)+'">'+esc(b[k])+'</textarea>':'<input class="field" data-bf="'+k+'" value="'+esc(b[k])+'" placeholder="'+esc(ph)+'">');
  let h='<div class="card"><p class="kicker">The session</p><p class="dim small">A page for the photographer, or for you if you\'re shooting it yourself. Only what you put here goes in.</p>'
-  +f('objective','What you\'re after','Two looks: a cop and a dad. Thumbnail has to read.',true)
+  +f('objective','What you\'re after','Two looks: a cop and a dad.',true)
   +f('wardrobe','Wardrobe','Grey crew neck, navy work jacket, plain button-down',true)
   +f('light','Light','Soft window light, background darker than me',true)
-  +f('framing','Framing','Chest up, eyes a third down, a little room above the head',true)
+  +f('framing','Framing','Chest up',true)
   +f('boundaries','Please don\'t','No retouching that changes my face. No smiling on the cop look.',true)
   +f('notes','Notes','',true)
   +f('shots','Shot list (one per line)','Tight, grey crew, no smile\nWaist up, jacket, leaning on the wall',true)
   +'<label class="tog"><input type="checkbox" id="broles"'+(b.roles?' checked':'')+'> Put in the roles you want and the ones you\'re called in for'+(P.want.length||P.called.length?'':' (none picked yet, on PLAN)')+'</label></div>';
- h+='<div class="card"><p class="kicker">References</p><p class="dim small">Other people\'s photos for the light, the wardrobe or the mood. Not a face to copy. Kept on this phone; ticked ones go in the brief.</p>'
+ h+='<div class="card"><p class="kicker">References</p><p class="dim small">Other people\'s photos for the light, the wardrobe or the mood. Kept on this phone; ticked ones go in the brief.</p>'
   +'<label class="btn block"><input type="file" id="rf" accept="image/*" multiple hidden>ADD REFERENCES</label>'
   +P.refs.map(r=>'<div class="refrow"><img data-src="'+r.id+'" data-ref class="ref" alt=""><div class="refside"><input class="field" data-rn="'+r.id+'" value="'+esc(r.note)+'" placeholder="What to take from it: the light, the jacket"><div class="row"><label class="tog"><input type="checkbox" data-rs="'+r.id+'"'+(r.share?' checked':'')+'> In the brief</label><button class="lnk faint" data-rrm="'+r.id+'">remove</button></div></div></div>').join('')+'</div>';
  h+='<div class="card"><button class="btn block" id="bprev">PREVIEW THE BRIEF</button><button class="btn pri block" id="bdl" style="margin-top:8px">DOWNLOAD THE BRIEF</button><button class="btn block" id="sdl" style="margin-top:8px">DOWNLOAD THE SHOT SHEET</button>'

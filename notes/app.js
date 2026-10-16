@@ -42,7 +42,7 @@ async function zoomCheck(){
  try{ await cam(); }catch(e){ return toast(C.errorWords(e,'video')); }
  const box=$('ov'); box.hidden=false; document.body.classList.add('ovopen');
  box.innerHTML='<div class="recbox"><p class="kicker">Zoom check</p><div class="frame"><video id="zv" class="vid mirror" playsinline muted autoplay></video><div class="thirds"></div></div><p class="meter"><span id="mlv"></span></p><p id="lw" class="dim small"></p>'
-  +'<ul class="tips"><li>Eyes on the camera, a third down from the top. Lens at eye level.</li><li>Headphones in, so the room doesn\'t echo you back.</li><li>Your name in Zoom the way casting knows you.</li><li>Phone and laptop on Do Not Disturb.</li></ul><button class="btn pri block" id="zcoff">DONE</button></div>';
+  +'<button class="btn pri block" id="zcoff">DONE</button></div>';
  const v=$('zv'); v.srcObject=CAM; v.play().catch(()=>{});
  const AC=window.AudioContext||window.webkitAudioContext, ac=new AC(), an=ac.createAnalyser(); an.fftSize=1024; ac.createMediaStreamSource(CAM).connect(an);
  const buf=new Float32Array(an.fftSize), cv=document.createElement('canvas'); cv.width=64; cv.height=48; const x=cv.getContext('2d',{willReadFrequently:true});
@@ -50,7 +50,7 @@ async function zoomCheck(){
   an.getFloatTimeDomainData(buf); let s=0; for(const y of buf) s+=y*y; const dbv=10*Math.log10(Math.max(s/buf.length,1e-9)); const m=$('mlv'); if(m) m.style.width=Math.max(2,Math.min(100,(dbv+60)/60*100))+'%';
   if(v.videoWidth){ x.drawImage(v,0,0,64,48); const d=x.getImageData(0,0,64,48).data; let c=0,cn=0,e=0,en=0;
    for(let yy=0;yy<48;yy++) for(let xx=0;xx<64;xx++){ const i=(yy*64+xx)*4, l=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2]; if(xx>20&&xx<44&&yy>8&&yy<36){ c+=l; cn++; } else if(xx<10||xx>54||yy<6){ e+=l; en++; } }
-   c/=cn; e/=en; const w=$('lw'); if(w) w.textContent=c<60?'Dark on you. Face a window or put a lamp in front of you.':e-c>45?'The light is behind you. Turn around, or put a light in front.':c>215?'Very bright on you. Back off the light a little.':'Light on you looks fine.'; }
+   c/=cn; e/=en; const w=$('lw'); if(w) w.textContent=c<60?'Dark on you.':e-c>45?'Brighter behind you than on you.':c>215?'Very bright on you.':'Light on you: nothing flagged.'; }
  },400);
  $('zcoff').onclick=()=>{ clearInterval(CHK); CHK=null; try{ ac.close(); }catch(e){} box.hidden=true; box.innerHTML=''; document.body.classList.remove('ovopen'); if(!REC) camOff(); render(); };
 }
