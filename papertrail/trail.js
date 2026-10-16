@@ -19,7 +19,7 @@ T.titleFrom=function(text,fileName){
  if(m) return T.clean(T.bare(m[1]));
  // a title page: the first all-caps line before the first scene heading that isn't a credit line
  const head=[];
- for(const raw of t.split('\n')){ const x=raw.trim(); if(/^(\d+[A-Z]?\s+)?(INT|EXT|I\/E)[.\s]/i.test(x)) break; if(x) head.push(x); if(head.length>=12) break; }
+ for(const raw of t.split('\n')){ const x=raw.trim(); if(/^(\d+[A-Z]?\s+)?(INT|EXT|I\/E)(?:[.\s]|\s*:\s*\S)/i.test(x)) break; if(x) head.push(x); if(head.length>=12) break; }
  for(const l of head){
   if(l.length<3||l.length>60) continue;
   if(l!==l.toUpperCase()||!/[A-Z]{2}/.test(l)) continue;

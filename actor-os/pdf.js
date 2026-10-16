@@ -459,7 +459,7 @@ A.trimToScene=function(lines){
  if(first<=0) return lines;
  /* keep the scene heading and its action above the first cue (STORY STUDIO needs the place,
     the time of day and what's in the action); the instructions page has no heading */
- for(let i=first-1;i>=0;i--){ if(/^\s*(\d+[A-Z]?\s+)?(INT|EXT|I\/E)[.\s]/.test(lines[i].text||'')) return lines.slice(i); }
+ for(let i=first-1;i>=0;i--){ if(/^\s*(\d+[A-Z]?\s+)?(INT|EXT|I\/E)(?:[.\s]|\s*:\s*\S)/.test(lines[i].text||'')) return lines.slice(i); }
  return lines.slice(first);
 };
 
@@ -488,7 +488,7 @@ A.toSides=function(lines){
  lines=lines.filter(l=>!(l.text!==l.text.toUpperCase() && l.text.length>=12 && /\d/.test(l.text) && seen[norm(l.text)]>1));
  lines=lines.filter(l=>!(l.text===l.text.toUpperCase() && seen[norm(l.text)]>1 && !/^[A-Z][A-Z0-9 .'#&\-]{0,30}(\(.*\))?$/.test(l.text)));
  /* Scene headings carry their number in both margins: "2 INT. PICKUP - DAY 2". */
- lines=lines.map(l=>{ const m=l.text.match(/^\d+[A-Z]?\s+((?:INT|EXT|I\/E)[.\s].*?)(?:\s+\d+[A-Z]?)?$/); return m?Object.assign({},l,{text:m[1]}):l; });
+ lines=lines.map(l=>{ const m=l.text.match(/^\d+[A-Z]?\s+((?:INT|EXT|I\/E)(?:[.\s]|\s*:).*?)(?:\s+\d+[A-Z]?)?$/); return m?Object.assign({},l,{text:m[1]}):l; });
  /* The action margin is where the prose sits, not the leftmost thing on the page
     (scene numbers and headers hang further out). */
  const prose={}; lines.forEach(l=>{ if(/[a-z]/.test(l.text)&&l.text.length>20){ const k=Math.round(l.x/4)*4; prose[k]=(prose[k]||0)+1; } });
@@ -496,7 +496,7 @@ A.toSides=function(lines){
  const xs=lines.map(l=>l.x).sort((a,b)=>a-b);
  const actionX=pk.find(k=>prose[k]>=3) ?? xs[0];
  /* left of the prose margin is page furniture: running headers, draft dates ("LOW TIDE - Blue Rev. 10/12/26 2.") */
- if(pk.some(k=>prose[k]>=3)) lines=lines.filter(l=>l.x>=actionX-12 || /^(INT|EXT|EST|I\/E)[.\s]/i.test(l.text));
+ if(pk.some(k=>prose[k]>=3)) lines=lines.filter(l=>l.x>=actionX-12 || /^(INT|EXT|EST|I\/E)(?:[.\s]|\s*:\s*\S)/i.test(l.text));
  const TRANS=/(^(FADE|SMASH|MATCH|DISSOLVE|CUT)\b.*|\bTO:|:)$/;
  const capIndents=lines.filter(l=>l.text===l.text.toUpperCase()&&l.text.length<34&&/[A-Z]{2}/.test(l.text)&&!TRANS.test(l.text)&&l.x>actionX+20).map(l=>l.x);
  const cueX = capIndents.length ? capIndents.sort((a,b)=>b-a)[Math.floor(capIndents.length*0.25)] : actionX+150;
@@ -504,7 +504,7 @@ A.toSides=function(lines){
  lines.forEach(l=>{
   const txt=l.text.replace(/’/g,"'").replace(/‘/g,"'").replace(/[“”]/g,'"').replace(/Õ/g,"'");
   const isCue = l.x>=cueX-16 && txt===txt.toUpperCase() && txt.length<34 && /[A-Z]{2}/.test(txt)
-                && !/^(INT|EXT|I\/E)[\.\s]/.test(txt) && !TRANS.test(txt);
+                && !/^(INT|EXT|I\/E)(?:[\.\s]|\s*:\s*\S)/.test(txt) && !TRANS.test(txt);
   const isAction = !isCue && (l.x<=actionX+12 || (txt===txt.toUpperCase() && TRANS.test(txt)));   // CUT TO: is a transition
   if(isCue){
    const name=txt.replace(/\s*\(CONT'?D\)\s*/i,'').trim();

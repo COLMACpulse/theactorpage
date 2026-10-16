@@ -59,5 +59,10 @@ function score(text){
  const typed=S.parse('BO\nI drove all night to get here and I am not leaving until you tell me what happened to the truck.\n\nAL\nFine.');
  ok('typed sides with one long line per speech still read whole', typed[0].text.length>80&&typed[1].who==='AL', typed);
  const colon=S.parse('BO: Get in.\nAL: No.'); ok('colon sides still read (BO: line)', colon.map(b=>b.who+':'+b.text).join('|')==='BO:Get in.|AL:No.', colon);
+ // colon-form scene headings ("INT: DAY. City jailhouse"), the way some writers set them: a heading, never a character
+ const CF='INT: DAY. City jailhouse\n\nHal sits on the cot.\n\nHAL\nLet me out.\n\nEXT: NIGHT. Hal waits by the gate\n\nRain.\n\nDEPUTY\nGo home.\n\n5A INT. SALOON - NIGHT\n\nA piano.\n\nHAL\nWhiskey.\n';
+ const cfp=S.parse(CF); ok('colon headings: not read as a character INT or EXT saying the place', cfp.filter(b=>!b.action).map(b=>b.who+':'+b.text).join('|')==='HAL:Let me out.|DEPUTY:Go home.|HAL:Whiskey.', cfp.filter(b=>!b.action));
+ const cfs=F.scenes(CF); ok('colon headings: 3 scenes, each with its own place and time', cfs.length===3&&cfs[0].heading==='INT: DAY. City jailhouse'&&cfs[0].place==='City jailhouse'&&cfs[0].tod==='DAY'&&cfs[1].place==='Hal waits by the gate'&&cfs[1].tod==='NIGHT'&&cfs[2].place==='SALOON'&&cfs[2].tod==='NIGHT', cfs.map(x=>[x.heading,x.place,x.tod]));
+ ok('colon headings: prose with a colon is not a heading', !S.SLUG.test('Interesting: he said no.')&&!S.SLUG.test('Ext:')&&S.SLUG.test('EXT: NIGHT. Gate'));
  console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail?1:0);
 })();

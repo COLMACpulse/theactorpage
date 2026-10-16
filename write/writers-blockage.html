@@ -850,7 +850,8 @@ function tidy(text){
    RECOGNITION AND INTERCHANGE
    ============================================================ */
 
-const SCENE_RE = /^(INT|EXT|EST|INT\.?\/EXT|EXT\.?\/INT|I\/E)[\.\s]/i;
+const SCENE_RE = /^(INT|EXT|EST|INT\.?\/EXT|EXT\.?\/INT|I\/E)(?:[\.\s]|\s*:\s*\S)/i;   // INT. BAR - NIGHT, and the colon form INT: NIGHT. Bar
+const SCENE_STD_RE = /^(INT|EXT|EST|INT\.?\/EXT|EXT\.?\/INT|I\/E)[\.\s]/i;   // what other Fountain apps read without a forcing dot
 const TRANS_RE = /^(CUT|SMASH CUT|MATCH CUT|HARD CUT|DISSOLVE|FADE|WIPE|JUMP CUT)\b.*(TO:|OUT\.|IN:|TO BLACK\.?)$/i;
 const CUE_RE   = /^[A-Z0-9][A-Z0-9 .'\-#&]*(\s*\([A-Z0-9 .'\-]+\))?\s*\^?$/;
 
@@ -872,7 +873,7 @@ function parseFountain(src){
   const meta = {};
   let i = 0;
 
-  if(/^[A-Za-z ]+:/.test(lines[0] || "")){
+  if(/^[A-Za-z ]+:/.test(lines[0] || "") && !SCENE_RE.test(lines[0].trim())){   // "INT: DAY. Jailhouse" is a scene, not a title page
     let key = null;
     for(; i < lines.length; i++){
       const raw = lines[i];
@@ -960,7 +961,7 @@ function toFountain(blocks, withTitle){
     if(b.type === "Synopsis"){ out.push("= " + t); out.push(""); return; }
     if(!t && b.type !== "Action") return;
     switch(b.type){
-      case "Scene Heading": out.push(SCENE_RE.test(t) ? t : "." + t); break;
+      case "Scene Heading": out.push(SCENE_STD_RE.test(t) ? t : "." + t); break;
       case "Character":     out.push((looksLikeCue(plainOf(t)) ? t : "@" + t) + (b.dual ? " ^" : "")); break;
       case "Transition":    out.push(TRANS_RE.test(t) ? t : "> " + t); break;
       case "Parenthetical": out.push(t.startsWith("(") ? t : "(" + t + ")"); break;
@@ -1847,16 +1848,19 @@ const DAYPART = "DAY|NIGHT|MORNING|AFTERNOON|EVENING|DAWN|PRE-?DAWN|DUSK|SUNSET|
                 "LATER|MOMENTS LATER|CONTINUOUS|SAME|MAGIC HOUR|NIGHTFALL|EARLY MORNING|LATE NIGHT";
 const DAYPART_RE = new RegExp("[\\s\u2013\u2014-]*[-\u2013\u2014][\\s]*(" + DAYPART + ")\\s*$", "i");
 function stripPrefix(h){
-  return h.replace(/^(INT\.?\/EXT\.?|EXT\.?\/INT\.?|I\/E\.?|INT\.?|EXT\.?|EST\.?)[\s.]*/i,"").trim();
+  return h.replace(/^(INT\.?\/EXT\.?|EXT\.?\/INT\.?|I\/E\.?|INT\.?|EXT\.?|EST\.?)[\s.:]*/i,"").trim();
 }
 function locationOf(heading){
+  const cf = colonForm(heading); if(cf) return cf.place;
   let t = stripPrefix(heading);
   const m = t.match(DAYPART_RE);
   if(m) t = t.slice(0, t.length - m[0].length);
   else t = t.replace(/\s+[-\u2013\u2014]\s+[^-\u2013\u2014]*$/,"");
   return t.replace(/[\s\-\u2013\u2014]+$/,"").trim() || stripPrefix(heading) || heading;
 }
+function colonForm(h){ const m = String(h).match(new RegExp("^(?:INT|EXT|EST|I/E|INT\\.?/EXT|EXT\\.?/INT)\\.?\\s*:\\s*(" + DAYPART + ")\\s*[.,]\\s+(.+)$", "i")); return m ? {tod:m[1].toUpperCase(), place:m[2].trim()} : null; }
 function timeOf(heading){
+  const cf = colonForm(heading); if(cf) return cf.tod;
   const m = stripPrefix(heading).match(DAYPART_RE);
   if(m) return m[1].trim().toUpperCase();
   const g = heading.match(/\s+[-\u2013\u2014]\s+([^-\u2013\u2014]+)$/);

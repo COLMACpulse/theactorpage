@@ -9,7 +9,7 @@ const F={};
 const SIDES=()=>g.ActorSides;   // ../actor-os/sides.js, loaded first
 
 /* ---------- scenes ---------- */
-const SLUG=/^\s*(INT|EXT|EST|I\/E|INT\.?\/EXT|EXT\.?\/INT)[\.\s]|^\s*\.[A-Za-z0-9]/i;   // .TITLE CARD is a heading Final Draft or Fountain forced
+const SLUG=/^\s*(INT|EXT|EST|I\/E|INT\.?\/EXT|EXT\.?\/INT)(?:[\.\s]|\s*:\s*\S)|^\s*\.[A-Za-z0-9]/i;   // .TITLE CARD is a heading Final Draft or Fountain forced
 const TODS=['DAY','NIGHT','DAWN','DUSK','MORNING','EVENING','AFTERNOON','SUNSET','SUNRISE','CONTINUOUS','LATER','MOMENTS LATER','SAME'];
 
 /* Scene numbers hang off both margins of a heading in a real script:
@@ -19,16 +19,19 @@ F.prep=function(text){
   .replace(/[‘’]/g,"'").replace(/[“”]/g,'"')
   .split('\n').map(l=>{
    l=l.replace(/\s+#[\w.\-]+#\s*$/,'');   // Fountain scene number: INT. BAR - NIGHT #12#
-   const m=l.match(/^\s*\d+[A-Z]?\.?\s+((?:INT|EXT|I\/E)[.\s].*?)(?:\s+\d+[A-Z]?\.?)?\s*$/i);
+   const m=l.match(/^\s*\d+[A-Z]?\.?\s+((?:INT|EXT|I\/E)(?:[.\s]|\s*:).*?)(?:\s+\d+[A-Z]?\.?)?\s*$/i);
    return m?m[1]:l;
   }).join('\n');
 };
 
 F.heading=function(h){
  const t=String(h||'').trim().replace(/^\.(?=[A-Za-z0-9])/,'').replace(/\s+/g,' ');
- const m=t.match(/^(INT\.?\/EXT\.?|I\/E\.?|INT\.?|EXT\.?)\s*(.*)$/i);
+ const m=t.match(/^(INT\.?\/EXT\.?|I\/E\.?|INT\.?|EXT\.?)\s*(:?)\s*(.*)$/i);
  const ie=m?m[1].toUpperCase().replace(/\.$/,'').replace('INT/EXT','I/E').replace('INT./EXT','I/E'):'';
- const parts=(m?m[2]:t).split(/\s+[-–—]\s+/).map(s=>s.trim()).filter(Boolean);
+ // colon form puts the time first: "INT: DAY. City jailhouse"
+ const cm=m&&m[2]&&m[3].match(/^([A-Za-z][A-Za-z \-]*?)\s*[.,]\s+(.+)$/);
+ if(cm&&TODS.includes(cm[1].trim().toUpperCase())) return {ie:ie.replace(/\.$/,''),place:cm[2].trim(),tod:cm[1].trim().toUpperCase(),heading:t};
+ const parts=(m?m[3]:t).split(/\s+[-–—]\s+/).map(s=>s.trim()).filter(Boolean);
  let tod='';
  const ups=parts.map(p=>p.toUpperCase());
  for(let i=ups.length-1;i>0;i--){ if(TODS.includes(ups[i])){ tod=tod||ups[i]; } }

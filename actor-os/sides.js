@@ -8,7 +8,7 @@
 const A={};
 
 const STAGE=/^\s*[\(\[].*[\)\]]\s*$/;                    // (beat) / [door slams]
-const SLUG=/^\s*(\d+[A-Z]?\.?\s+)?(INT\.?\s*\/\s*EXT|EXT\.?\s*\/\s*INT|INT|EXT|EST|I\/E)[\.\s]/i;  // INT. KITCHEN - DAY, 12 INT./EXT. CAR
+const SLUG=/^\s*(\d+[A-Z]?\.?\s+)?(INT\.?\s*\/\s*EXT|EXT\.?\s*\/\s*INT|INT|EXT|EST|I\/E)(?:[\.\s]|\s*:\s*\S)/i;  // INT. KITCHEN - DAY, 12 INT./EXT. CAR, INT: DAY. City jailhouse (colon form)
 const PAGE=/^\s*\d+[A-Z]?\.?\s*$|^\s*\(?\s*(CONTINUED|CONT'?D|MORE)\s*\)?\s*:?\s*(\(\d+\))?\s*$|^\s*\d+\s*\/\s*\d+\s*$|^\s*Sides by Breakdown Services/i;
 const MORE=/^\s*\(\s*MORE\s*\)\s*$/i;
 /* a sides watermark comes through pasted text as bits: "E417-E417-", "4:15 PM - 55120 - Mar 3, 2026" */
