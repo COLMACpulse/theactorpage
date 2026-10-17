@@ -29,7 +29,7 @@ A.keyFor=function(scriptId,who,text){
 };
 A.putTakeFor=async function(lineId,blob,meta){
  const db=await open();
- const id=lineId+'#'+Date.now().toString(36);
+ const id=lineId+'#'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);   // several files can land in the same millisecond
  return new Promise((res,rej)=>{
   const tx=db.transaction(STORE,'readwrite');
   tx.objectStore(STORE).put(Object.assign({id,line:lineId,blob,at:Date.now()},meta||{}));

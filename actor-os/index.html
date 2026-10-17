@@ -66,6 +66,9 @@ body{padding-bottom:env(safe-area-inset-bottom);padding-left:env(safe-area-inset
 /* the reader by the lens: you, as the other character, or a mark for your eyes. Screen only, never on the take. */
 #sPartner{position:absolute;z-index:3;width:min(30vw,190px);height:auto;max-height:42vh;aspect-ratio:3/4;object-fit:cover;border-radius:12px;border:1px solid rgba(255,255,255,.35);background:#000;display:none;touch-action:none;box-shadow:0 4px 18px rgba(0,0,0,.5)}
 #sPartner.on{display:block}
+.fbtn{display:inline-block;border:1px solid var(--line2);background:var(--p1);color:var(--ink);border-radius:10px;padding:6px 8px;font-weight:700;font-size:10px;letter-spacing:.08em;cursor:pointer;white-space:nowrap}
+.fbtn input{display:none}.vq{display:flex;gap:6px;flex-wrap:wrap}
+.bmsg{font-size:12px;color:var(--gold);padding:6px 0 2px}
 .vmix{display:flex;flex-wrap:wrap;gap:6px;width:100%;margin-top:6px}
 /* the camera / mic bar (shared/hot.js) is always on top; the take's own top row sits under it, not behind it */
 body:has(#hotbar) #stage .sTop{top:calc(env(safe-area-inset-top) + 48px)}
@@ -353,6 +356,7 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
    that uses the browser's speech service (Chrome sends your voice to Google, Safari to Apple), so it asks first.
    Tap again for off, and run the scene on the clicker or the arrows.</p>
    <p>Each voice can sound different from how you read it (HOW EACH VOICE SOUNDS): Lower, Higher, Deep, Slower, Faster, Darker, Brighter, or your own mix of pitch, pace and tone. Slower and Faster keep the pitch; higher and lower keep the timing. Your recording, never a computer voice.</p>
+   <p>Someone else can read the other part from anywhere: they record each line as a voice memo and send them. FILES on that character brings them all in, in file-name order (memos are named by when they were recorded); FILE on a line brings in just that one. Your own memos work the same way.</p>
 
    <h4>03 &middot; CUT</h4>
    <p>Pick a take, set the handles, choose a size. It really re-encodes &mdash; this is the step
@@ -2373,6 +2377,19 @@ function pitchFor(who){ return vfxFor(who).pitch; }
 function setVfx(who,patch){ SIDES.vfx=SIDES.vfx||{}; SIDES.vfx[who]=Object.assign(vfxFor(who),patch); if(SIDES.vpitch) delete SIDES.vpitch[who]; saveRange(); boothRefresh(); }
 function setVoicePick(who,id){ if(id==='custom'){ SIDES.vcustom=SIDES.vcustom||{}; SIDES.vcustom[who]=true; return boothRefresh(); } const v=ActorReader.VOICES.find(x=>x.id===id); if(SIDES.vcustom) delete SIDES.vcustom[who]; if(v) setVfx(who,{pitch:v.pitch,pace:v.pace,tone:v.tone}); }
 function setPitch(who,v){ setVfx(who,{pitch:+v||0}); }
+/* reader lines from files: someone reads the other part on their phone and sends the memos (a real reader, from anywhere),
+   or your own memos. One file to one line, or a character's files at once in file-name order (memos are named by date). */
+let BOOTHMSG='';
+const AUDIO_ACCEPT='audio/*,video/*,.m4a,.mp3,.wav,.aac,.caf,.mov,.mp4,.webm,.ogg';
+async function boothFileFor(k,file){ let dur=0; try{ dur=await ActorReader.duration(file); }catch(e){} if(!dur) return false; await ActorReader.putTakeFor(k,file,{dur,from:'file',name:file.name||'file'}); if(SIDES.pick) delete SIDES.pick[k]; return true; }
+async function boothFileLine(k,input){ const f=input.files&&input.files[0]; input.value=''; if(!f) return; BOOTHMSG=(await boothFileFor(k,f))?'In: '+f.name+'.':'Can\u2019t play '+f.name+' in this browser.'; saveRange(); await boothRefresh(); }
+async function boothFilesWho(who,input){
+ const fl=[...(input.files||[])].sort((a,b)=>String(a.name).localeCompare(String(b.name),undefined,{numeric:true,sensitivity:'base'})); input.value=''; if(!fl.length) return;
+ const om=SIDES.omit||[], lines=activeScript().filter(b=>!b.mine&&b.who===who&&om.indexOf(b.who)<0); let n=0, bad=[];
+ for(let i=0;i<Math.min(fl.length,lines.length);i++){ if(await boothFileFor(boothKey(lines[i]),fl[i])) n++; else bad.push(fl[i].name); }
+ BOOTHMSG=who+': '+n+' of '+lines.length+' line'+(lines.length===1?'':'s')+' in, in file-name order.'+(fl.length>lines.length?' '+(fl.length-lines.length)+' extra file'+(fl.length-lines.length===1?'':'s')+' left out.':'')+(fl.length<lines.length?' '+(lines.length-fl.length)+' still to come.':'')+(bad.length?' Can\u2019t play: '+bad.join(', ')+'.':'');
+ saveRange(); await boothRefresh();
+}
 function vopts(who){ if(!who) return null; const v=vfxFor(who); return {sound:voiceFor(who),pitch:v.pitch,pace:v.pace,tone:v.tone}; }
 async function voicePreview(who){
  const om=SIDES.omit||[];
@@ -2390,12 +2407,13 @@ function voiceRows(others){
   return `<div class="vrow"><b>${esc2(w)}</b>
    <select onchange="setVoice('${w.replace(/'/g,"\\'")}',this.value)">${ActorReader.SOUNDS.map(o=>`<option value="${o.id}" ${o.id===cur?'selected':''}>${o.label}</option>`).join('')}</select>
    ${(()=>{ const q=w.replace(/'/g,"\\'"), v=vfxFor(w), id=(SIDES.vcustom&&SIDES.vcustom[w])?'custom':ActorReader.voiceId(v);
-     let o=`<select aria-label="Voice for ${esc2(w)}" onchange="setVoicePick('${q}',this.value)">${ActorReader.VOICES.map(x=>`<option value="${x.id}" ${x.id===id?'selected':''}>${x.label}</option>`).join('')}<option value="custom" ${id==='custom'?'selected':''}>Your own mix</option></select>`;
+     let o=`<span class="vq">${['as','lower','higher','slower'].map(x=>{ const vv=ActorReader.VOICES.find(y=>y.id===x); return `<button class="mini ${x===id?'':'ghost'}" onclick="setVoicePick('${q}','${x}')">${x==='as'?'AS READ':vv.label.toUpperCase()}</button>`; }).join('')}</span><select aria-label="Voice for ${esc2(w)}" onchange="setVoicePick('${q}',this.value)">${ActorReader.VOICES.map(x=>`<option value="${x.id}" ${x.id===id?'selected':''}>${x.label}</option>`).join('')}<option value="custom" ${id==='custom'?'selected':''}>Your own mix</option></select>`;
      if(id==='custom') o+=`<span class="vmix"><select aria-label="Pitch for ${esc2(w)}" onchange="setPitch('${q}',this.value)">${ActorReader.PITCHES.map(n=>`<option value="${n}" ${n===v.pitch?'selected':''}>${n===0?'Pitch as read':(n>0?'Higher ':'Lower ')+Math.abs(n)}</option>`).join('')}</select>`
       +`<select aria-label="Pace for ${esc2(w)}" onchange="setVfx('${q}',{pace:+this.value})">${ActorReader.PACES.map(([n,l])=>`<option value="${n}" ${Math.abs(n-v.pace)<0.001?'selected':''}>${n===1?'Pace as read':l}</option>`).join('')}</select>`
       +`<select aria-label="Tone for ${esc2(w)}" onchange="setVfx('${q}',{tone:this.value})">${ActorReader.TONES.map(([n,l])=>`<option value="${n}" ${n===v.tone?'selected':''}>${n===''?'Tone as read':l}</option>`).join('')}</select></span>`;
      return o; })()}
    <button class="mini ghost" onclick="voicePreview('${w.replace(/'/g,"\\'")}')" title="hear it">&#9654;</button>
+   <label class="fbtn" title="Bring in ${esc2(w)}'s lines from files, in file-name order">FILES<input type="file" multiple accept="${AUDIO_ACCEPT}" onchange="boothFilesWho('${w.replace(/'/g,"\\'")}',this)"></label>
    ${!set&&sg[w]?'<small>from the script</small>':''}</div>`;
  }).join('')+`</div>`;
 }
@@ -2463,6 +2481,7 @@ async function boothRefresh(){
       </div>
       <button class="mini ${busy?'':'ghost'}" style="${busy?'border-color:#d9694e;color:#d9694e':''}"
         onclick="boothToggle('${k}',${i})">${busy?'&#9632; STOP':(arr.length?'ANOTHER':'&#9679; REC')}</button>
+      <label class="fbtn" title="Bring in a recording of this line">FILE<input type="file" accept="${AUDIO_ACCEPT}" onchange="boothFileLine('${k}',this)"></label>
     </div>${busy&&ActorReader.hasVideo()?'<video class="bcam" id="boothCam" muted playsinline autoplay></video>':''}`;
   if(arr.length){
    h+=`<div class="takepills">`;
@@ -2470,7 +2489,7 @@ async function boothRefresh(){
     const on=sel&&sel.id===c.id;
     h+=`<span class="tpill${on?' on':''}">
       <button onclick="boothPlayId('${c.id}','${b.who.replace(/'/g,"\\'")}')" title="listen">&#9654;</button>
-      <button onclick="boothPick('${k}','${c.id}')">Take ${n+1}${ActorReader.isVideo(c.blob)?' &middot; video':''}${c.dur?' &middot; '+c.dur.toFixed(1)+'s':''}</button>
+      <button onclick="boothPick('${k}','${c.id}')">${c.from==='file'?esc2(String(c.name||'file').replace(/\.[a-z0-9]+$/i,'').slice(0,18)):'Take '+(n+1)}${ActorReader.isVideo(c.blob)?' &middot; video':''}${c.dur?' &middot; '+c.dur.toFixed(1)+'s':''}</button>
       <button onclick="boothDrop('${k}','${c.id}')" title="delete">&times;</button></span>`;
    });
    h+=`</div>`;
@@ -2478,6 +2497,7 @@ async function boothRefresh(){
   h+='</div>';
  });
  h+='</div>';
+ if(BOOTHMSG){ h='<div class="bmsg" id="boothMsg">'+esc2(BOOTHMSG)+'</div>'+h; }
  $('boothList').innerHTML=h;
  try{ const bc=$('boothCam'); if(bc&&ActorReader.stream()){ bc.srcObject=ActorReader.stream(); bc.play().catch(()=>{}); } }catch(e){}
  try{syncGain();}catch(e){}
