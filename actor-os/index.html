@@ -63,6 +63,14 @@ body{padding-bottom:env(safe-area-inset-bottom);padding-left:env(safe-area-inset
 #stage{position:fixed;inset:0;z-index:9000;background:#000;display:none;flex-direction:column}
 #stage.on{display:flex}
 #stageVid{flex:1;width:100%;height:100%;object-fit:cover;background:#000}
+/* the reader by the lens: you, as the other character, or a mark for your eyes. Screen only, never on the take. */
+#sPartner{position:absolute;z-index:3;width:min(30vw,190px);height:auto;max-height:42vh;aspect-ratio:3/4;object-fit:cover;border-radius:12px;border:1px solid rgba(255,255,255,.35);background:#000;display:none;touch-action:none;box-shadow:0 4px 18px rgba(0,0,0,.5)}
+#sPartner.on{display:block}
+/* the camera / mic bar (shared/hot.js) is always on top; the take's own top row sits under it, not behind it */
+body:has(#hotbar) #stage .sTop{top:calc(env(safe-area-inset-top) + 48px)}
+#sMark{position:absolute;z-index:3;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;border:2px solid #E0A23C;box-shadow:0 0 0 4px rgba(0,0,0,.35);display:none;touch-action:none}
+#sMark.on{display:block}
+.bcam{width:min(46vw,200px);height:auto;aspect-ratio:3/4;object-fit:cover;border-radius:10px;background:#000;display:block;margin:8px 0 0;transform:scaleX(-1)}
 .sTop{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;
  align-items:center;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;gap:10px;
  background:linear-gradient(to bottom,rgba(0,0,0,.72),transparent)}
@@ -362,7 +370,9 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
    <p>It does not measure your framing. Without a face detector, headroom and eyeline are
    unknown, and it says so rather than guessing.</p>
    <p>It does not judge your acting. Selection and sequencing only.</p>
-   <p>It does not use an AI voice for your reader.</p>
+   <p>It does not use an AI voice for your reader. Your reader is you: the lines you record as the other
+   character, on camera, play in a small window by the lens during the take (or a mark sits there, or nothing).
+   The window is on the screen only. The take records the camera.</p>
    <p>It does not upload for you.</p>
 
    <h4>Where things live</h4>
@@ -2371,6 +2381,7 @@ async function boothRefresh(){
  }
  h+=`<div class="row" style="gap:8px;flex-wrap:wrap;margin:11px 0">
    <button class="ghost" onclick="boothUnready()">UNLOCK SCENE</button>
+   <button class="ghost" id="boothVid" onclick="ActorReader.setWantVideo(!ActorReader.wantVideo());boothRefresh()">${ActorReader.wantVideo()?'LINES ON CAMERA':'LINES: SOUND ONLY'}</button>
    <span class="gainwrap">READER VOLUME
      <input type="range" id="readerGain" min="0.5" max="6" step="0.1"
        oninput="ActorReader.setGain(parseFloat(this.value));document.getElementById('gainVal').textContent=parseFloat(this.value).toFixed(1)+'x'">
@@ -2389,14 +2400,14 @@ async function boothRefresh(){
       </div>
       <button class="mini ${busy?'':'ghost'}" style="${busy?'border-color:#d9694e;color:#d9694e':''}"
         onclick="boothToggle('${k}',${i})">${busy?'&#9632; STOP':(arr.length?'ANOTHER':'&#9679; REC')}</button>
-    </div>`;
+    </div>${busy&&ActorReader.hasVideo()?'<video class="bcam" id="boothCam" muted playsinline autoplay></video>':''}`;
   if(arr.length){
    h+=`<div class="takepills">`;
    arr.forEach((c,n)=>{
     const on=sel&&sel.id===c.id;
     h+=`<span class="tpill${on?' on':''}">
       <button onclick="boothPlayId('${c.id}','${b.who.replace(/'/g,"\\'")}')" title="listen">&#9654;</button>
-      <button onclick="boothPick('${k}','${c.id}')">Take ${n+1}${c.dur?' &middot; '+c.dur.toFixed(1)+'s':''}</button>
+      <button onclick="boothPick('${k}','${c.id}')">Take ${n+1}${ActorReader.isVideo(c.blob)?' &middot; video':''}${c.dur?' &middot; '+c.dur.toFixed(1)+'s':''}</button>
       <button onclick="boothDrop('${k}','${c.id}')" title="delete">&times;</button></span>`;
    });
    h+=`</div>`;
@@ -2405,6 +2416,7 @@ async function boothRefresh(){
  });
  h+='</div>';
  $('boothList').innerHTML=h;
+ try{ const bc=$('boothCam'); if(bc&&ActorReader.stream()){ bc.srcObject=ActorReader.stream(); bc.play().catch(()=>{}); } }catch(e){}
  try{syncGain();}catch(e){}
 }
 function syncGain(){
@@ -2415,7 +2427,7 @@ function syncGain(){
 function micFlag(on){
  let el=$('liveDot');
  if(!el||!el.parentNode){ el=document.createElement('div'); el.id='liveDot'; el.className='livedot'; document.body.appendChild(el); }
- el.textContent = on ? 'MIC ON' : '';
+ el.textContent = on ? (ActorReader.hasVideo()?'CAMERA + MIC ON':'MIC ON') : '';
  el.classList.toggle('on',!!on);
 }
 function boothReady(){ SIDES.ready=true; saveRange(); boothRefresh(); }
@@ -2458,7 +2470,7 @@ async function boothToggle(k,i){
  }
  if(boothBusy){ await ActorReader.stop(); boothBusy=null; }
  try{ await ActorReader.start(); boothBusy=k; micFlag(true); await boothRefresh(); }
- catch(e){ alert('Microphone unavailable: '+e.message); }
+ catch(e){ alert((ActorReader.wantVideo()?'Camera and microphone':'Microphone')+' unavailable: '+e.message); }
 }
 async function boothRunAll(){
  const om=SIDES.omit||[];
@@ -2847,6 +2859,7 @@ async function openStage(){
    $('stageVid').srcObject=await navigator.mediaDevices.getUserMedia({video:videoConstraint(),audio:audioConstraint()});
   }
  }catch(e){ alert('Camera unavailable: '+e.message); return exitStage(); }
+ try{ ActorReader.setScreen($('sPartner')); partnerDrag($('sPartner')); partnerDrag($('sMark')); addEventListener('resize',partnerPlace); }catch(e){}
  drawStage(); liveFlag(true); try{ showNext(); }catch(e){}
  try{ refreshInputs(); }catch(e){}
  try{ const r=$('stageRemote'); if(r&&r.style)r.style.display=REMOTE_ON?'':'none'; }catch(e){}
@@ -2874,8 +2887,38 @@ function stageFlip(){ window.camFacing=(window.camFacing==='environment')?'user'
  const v=$('stageVid'); if(v.srcObject){v.srcObject.getTracks().forEach(t=>t.stop());}
  openStage(); }
 
+/* where the reader sits: by the lens. Top middle to start (the front camera on a phone held upright);
+   drag it next to your lens if it's somewhere else, and it stays there. */
+function partnerPlace(){
+ const pv=$('sPartner'), mk=$('sMark'), st=$('stage'); if(!pv||!mk||!st) return;
+ const W=st.clientWidth||innerWidth, H=st.clientHeight||innerHeight, p=ActorReader.pos()||{x:0.5,y:0.12};
+ const pw=pv.offsetWidth||Math.min(W*0.3,190), ph=pv.offsetHeight||pw*4/3;
+ const cx=Math.max(pw/2,Math.min(W-pw/2,p.x*W)), cy=Math.max(ph/2+(document.getElementById('hotbar')?100:52),Math.min(H-ph/2,p.y*H+ph/2));
+ pv.style.left=(cx-pw/2)+'px'; pv.style.top=(cy-ph/2)+'px';
+ mk.style.left=(p.x*W)+'px'; mk.style.top=Math.max(64,p.y*H+20)+'px';
+}
+function partnerShow(){
+ const on=(MODE==='PARTNER'||MODE==='PROMPTER'), v=ActorReader.view(), b=$('sView'), mk=$('sMark');
+ if(b){ b.style.display=on?'':'none'; b.innerHTML='READER<br>'+(ActorReader.VIEWS.find(x=>x[0]===v)||[0,''])[1].toUpperCase(); b.setAttribute('aria-label','Reader: '+(ActorReader.VIEWS.find(x=>x[0]===v)||[0,''])[1]); }
+ if(mk) mk.classList.toggle('on',on&&v==='mark');
+ if(!on||v!=='partner'){ try{ if(ActorReader.screenOn()) ActorReader.stopPlay(); }catch(e){} }
+ partnerPlace();
+}
+function partnerViewNext(){
+ const V=ActorReader.VIEWS.map(x=>x[0]), v=ActorReader.view();
+ ActorReader.setView(V[(V.indexOf(v)+1)%V.length]); partnerShow();
+}
+function partnerDrag(el){
+ if(!el||el._drag) return; el._drag=true;
+ el.addEventListener('pointerdown',e=>{ e.preventDefault(); e.stopPropagation(); el.setPointerCapture(e.pointerId);
+  const st=$('stage'), W=st.clientWidth, H=st.clientHeight;
+  const mv=ev=>{ ActorReader.setPos({x:Math.max(0,Math.min(1,ev.clientX/W)),y:Math.max(0,Math.min(0.9,(ev.clientY-(el.id==='sMark'?20:el.offsetHeight/2))/H))}); partnerPlace(); };
+  const up=()=>{ el.removeEventListener('pointermove',mv); el.removeEventListener('pointerup',up); el.removeEventListener('pointercancel',up); };
+  el.addEventListener('pointermove',mv); el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up); });
+}
 function drawStage(){
  const T=$('sText'), N=$('sNav');
+ try{ partnerShow(); }catch(e){}
  if(MODE==='READER'){ T.innerHTML=''; N.innerHTML=''; return; }
  const b=(SIDES.run||SIDES.script)[sIdx]; if(!b){T.innerHTML='';N.innerHTML='';return;}
  if(MODE==='PARTNER'){
@@ -3335,12 +3378,15 @@ document.addEventListener('keydown',e=>{
 </script>
 <div id="stage">
   <video id="stageVid" autoplay muted playsinline onclick="stageTap()"></video>
+  <video id="sPartner" muted playsinline></video>
+  <div id="sMark"></div>
   <div class="sTop">
     <button class="sBtn" onclick="exitStage()">&times; DONE</button>
     <span class="sTC" id="sTC">00:00</span>
     <button class="sBtn" id="listenBtn" onclick="listenToggle()">LISTEN FOR MY CUE</button>
     <span class="listen" id="sListen"></span>
     <span class="sBtn" id="stageRemote" style="display:none;pointer-events:none">&#9679; REMOTE</span>
+    <button class="sBtn" id="sView" onclick="partnerViewNext()" style="display:none"></button>
     <button class="sBtn" onclick="stageFlip()">FLIP</button>
   </div>
   <div class="sCoach" id="sCoach"></div>

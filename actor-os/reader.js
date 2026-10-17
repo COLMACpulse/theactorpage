@@ -73,14 +73,28 @@ A.all=async function(){
 /* --- capture one line --- */
 let mic=null, rec=null, chunks=[];
 A.armed=function(){return !!mic;};
+/* Lines are recorded on camera by default: you, playing the other character, looking into the lens.
+   During the take that clip plays in a small window by the lens, so you play opposite yourself.
+   If there is no camera, or you turn it off, the line is sound only, as before. */
+const VKEY='actor_os_reader_video', PVKEY='actor_os_partner_view', PPKEY='actor_os_partner_pos';
+A.wantVideo=function(){ try{ return localStorage.getItem(VKEY)!=='0'; }catch(e){ return true; } };
+A.setWantVideo=function(on){ try{ localStorage.setItem(VKEY,on?'1':'0'); }catch(e){} if(mic&&!A.recording()) A.disarm(); };
 A.arm=async function(){
  if(mic)return mic;
- mic=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+ const au={echoCancellation:false,noiseSuppression:false,autoGainControl:false};
+ if(A.wantVideo()){
+  try{ mic=await navigator.mediaDevices.getUserMedia({audio:au,video:{facingMode:'user',width:{ideal:640},height:{ideal:480}}}); return mic; }catch(e){}
+ }
+ mic=await navigator.mediaDevices.getUserMedia({audio:au});
  return mic;
 };
+A.stream=function(){ return mic; };
+A.hasVideo=function(){ try{ return !!(mic&&mic.getVideoTracks().some(t=>t.readyState==='live')); }catch(e){ return false; } };
+A.isVideo=b=>!!(b&&/^video\//i.test(b.type||''));
 A.disarm=function(){ if(mic){mic.getTracks().forEach(t=>t.stop());mic=null;} };
 A.mime=function(){
- for(const m of ['audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus']){
+ const L=A.hasVideo()?['video/mp4','video/webm;codecs=vp8,opus','video/webm;codecs=vp9,opus','video/webm']:['audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus'];
+ for(const m of L){
   try{ if(MediaRecorder.isTypeSupported(m))return m; }catch(e){}
  }
  return '';
@@ -88,7 +102,7 @@ A.mime=function(){
 A.start=async function(){
  await A.arm(); chunks=[];
  const m=A.mime();
- rec = m ? new MediaRecorder(mic,{mimeType:m}) : new MediaRecorder(mic);
+ rec = m ? new MediaRecorder(mic,{mimeType:m,videoBitsPerSecond:1200000}) : new MediaRecorder(mic);
  rec.ondataavailable=e=>{ if(e.data.size)chunks.push(e.data); };
  rec.start();
  return true;
@@ -98,7 +112,7 @@ A.stop=function(opts){
  return new Promise(res=>{
   const done=b=>{ if(!keep)A.disarm(); res(b); };
   if(!rec||rec.state==='inactive')return done(null);
-  rec.onstop=()=>done(new Blob(chunks,{type:rec.mimeType||'audio/webm'}));
+  const vid=A.hasVideo(); rec.onstop=()=>done(new Blob(chunks,{type:(rec.mimeType||(vid?'video/webm':'audio/webm')).split(';')[0]}));
   rec.stop();
  });
 };
@@ -176,14 +190,33 @@ A.soundChain=function(c,id){
  }
  return null;
 };
+/* The window by the lens. 'partner' plays the line's video there, 'mark' shows a still mark for your eyes, 'off' shows nothing.
+   It is on the screen only. The take records the camera, never the screen. */
+let SCREEN=null, SCREENURL='';
+A.VIEWS=[['partner','You'],['mark','Mark'],['off','Off']];
+A.view=function(){ try{ const v=localStorage.getItem(PVKEY); return A.VIEWS.some(x=>x[0]===v)?v:'partner'; }catch(e){ return 'partner'; } };
+A.setView=function(v){ try{ localStorage.setItem(PVKEY,v); }catch(e){} };
+A.pos=function(){ try{ const p=JSON.parse(localStorage.getItem(PPKEY)||'null'); if(p&&isFinite(p.x)&&isFinite(p.y)) return p; }catch(e){} return null; };
+A.setPos=function(p){ try{ localStorage.setItem(PPKEY,JSON.stringify(p)); }catch(e){} };
+A.setScreen=function(el){ SCREEN=el||null; };
+function screenOff(){ if(!SCREEN) return; try{ SCREEN.pause(); }catch(e){} SCREEN.classList.remove('on'); SCREEN.removeAttribute('src'); try{ SCREEN.load(); }catch(e){} if(SCREENURL){ try{URL.revokeObjectURL(SCREENURL);}catch(e){} SCREENURL=''; } }
+function screenLoad(blob){
+ if(!SCREEN||A.view()!=='partner'||!A.isVideo(blob)) return Promise.resolve(false);
+ SCREENURL=URL.createObjectURL(blob); SCREEN.muted=true; SCREEN.playsInline=true; SCREEN.src=SCREENURL;
+ return new Promise(res=>{ let done=false; const go=v=>{ if(!done){ done=true; res(v); } };
+  SCREEN.oncanplay=()=>go(true); SCREEN.onerror=()=>go(false); setTimeout(()=>go(true),900); });
+}
+function screenGo(){ if(!SCREEN||!SCREENURL) return; SCREEN.classList.add('on'); try{ SCREEN.currentTime=0; }catch(e){} const p=SCREEN.play(); if(p&&p.catch) p.catch(()=>{}); }
+A.screenOn=function(){ return !!(SCREEN&&SCREEN.classList.contains('on')); };
 A.play=async function(blob,onended,opts){
  A.stopPlay();
+ const vidReady=screenLoad(blob);
  // the mic holds the route to the earpiece on iOS - let it go before playing
  try{ if(mic && !A.recording()) A.disarm(); }catch(e){}
  A.getGain();
  try{
   const c=ctx();
-  const buf=await c.decodeAudioData(await blob.arrayBuffer());
+  const [buf]=await Promise.all([c.decodeAudioData(await blob.arrayBuffer()),vidReady]);
   let pk=0;
   const d0=buf.getChannelData(0);
   for(let i=0;i<d0.length;i+=64){ const v=Math.abs(d0[i]); if(v>pk)pk=v; }
@@ -197,8 +230,8 @@ A.play=async function(blob,onended,opts){
   src.connect(g); g.connect(comp);
   const ch=(opts&&opts.sound)?A.soundChain(c,opts.sound):null;
   if(ch){ comp.connect(ch.in); ch.out.connect(c.destination); } else comp.connect(c.destination);
-  src.onended=()=>{ curSrc=null; curPos=null; if(onended)onended(); };
-  src.start(0);
+  src.onended=()=>{ curSrc=null; curPos=null; screenOff(); if(onended)onended(); };
+  screenGo(); src.start(0);
   curSrc=src; curGain=g;
   /* Where the playback actually is, read from the audio clock rather than a timer.
      A timer drifts against the sound; the context clock IS the sound. */
@@ -209,9 +242,10 @@ A.play=async function(blob,onended,opts){
   el=new Audio(URL.createObjectURL(blob));
   el.volume=1;
   curPos={el};
-  el.onended=()=>{ curPos=null; try{URL.revokeObjectURL(el.src)}catch(e2){}; if(onended)onended(); };
-  el.onerror=()=>{ if(onended)onended(); };
-  el.play().catch(()=>{ if(onended)onended(); });
+  el.onended=()=>{ curPos=null; screenOff(); try{URL.revokeObjectURL(el.src)}catch(e2){}; if(onended)onended(); };
+  el.onerror=()=>{ screenOff(); if(onended)onended(); };
+  await vidReady; screenGo();
+  el.play().catch(()=>{ screenOff(); if(onended)onended(); });
   return el;
  }
 };
@@ -226,13 +260,13 @@ A.playPos=function(){
   return {t:Math.max(0,curPos.ctx.currentTime-curPos.t0), dur:curPos.dur};
  }catch(e){ return null; }
 };
-A.stopPlay=function(){ curPos=null;
+A.stopPlay=function(){ curPos=null; screenOff();
  if(curSrc){ try{curSrc.onended=null;curSrc.stop();}catch(e){} curSrc=null; }
  if(el){ try{el.pause();URL.revokeObjectURL(el.src);}catch(e){} el=null; }
 };
 A.duration=function(blob){
  return new Promise(res=>{
-  const a=new Audio(URL.createObjectURL(blob));
+  const a=document.createElement(A.isVideo(blob)?'video':'audio'); a.preload='metadata'; a.src=URL.createObjectURL(blob);
   a.onloadedmetadata=()=>{const d=a.duration;URL.revokeObjectURL(a.src);res(isFinite(d)?d:0)};
   a.onerror=()=>res(0);
  });
