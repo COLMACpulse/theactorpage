@@ -1,5 +1,5 @@
 /* FILM HUB offline shell. Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='filmhub-0.1.3';
+const CACHE='filmhub-0.1.4';
 const FILES=['./','index.html','app.js','manifest.webmanifest','../shared/hot.js','../actor-os/sides.js','../film/film.js','../shared/you.js','../shared/filmhub.js',
  'fonts/jost-latin-400-normal.woff2','fonts/jost-latin-500-normal.woff2','fonts/jost-latin-600-normal.woff2',
  'fonts/courier-prime-latin-400-normal.woff2','fonts/courier-prime-latin-700-normal.woff2',
