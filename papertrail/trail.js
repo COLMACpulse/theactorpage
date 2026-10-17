@@ -409,6 +409,28 @@ T.ntHits=function(fact,scenes){
  return out;
 };
 
+/* ---------- PROOF OF DRAFT: every draft, the day it came in, its fingerprint. (The idea from Truthsource.) ----------
+   items: [{title, drafts:[{label,kind,file,added,words,sha,ok}]}]; ok=false: the words kept here no longer give the
+   fingerprint they came in with. made: a time. Dates are this device's clock, in UTC, and the receipt says so. */
+T.utc=t=>{ const d=new Date(t); return isNaN(d)?'':d.toISOString().slice(0,16).replace('T',' ')+' UTC'; };
+T.proof=function(items,made){
+ const L=['PROOF OF DRAFT',(items||[]).length===1?items[0].title:(items||[]).length+' projects','Made '+T.utc(made)+' in Paper Trail (theactorpage).','',
+  'Each fingerprint is SHA-256 of the draft\'s words, with spacing ignored. Change one word and the fingerprint changes completely.',''];
+ let n=0;
+ (items||[]).forEach(p=>{ if((items||[]).length>1) L.push(p.title.toUpperCase());
+  (p.drafts||[]).forEach(d=>{ n++;
+   L.push(n+'. '+d.label+' ('+d.kind+')'+(d.file?' · '+d.file:''),'   Came in '+T.utc(d.added)+' · '+Number(d.words||0).toLocaleString('en-US')+' words',
+    '   SHA-256 '+(d.sha||'none'));
+   if(d.ok===false) L.push('   The words kept here no longer give the fingerprint this draft came in with.');
+   L.push(''); });
+  if(!(p.drafts||[]).length) L.push('No drafts.','');
+ });
+ L.push('What this proves: a file whose words give the same fingerprint is that draft, word for word.',
+  'What it does not prove: when you wrote it. The dates come from this device\'s clock. For a date someone else will stand behind, email this receipt to yourself or register the script.',
+  'To check a file later: Paper Trail, Drafts, CHECK A FILE.');
+ return L.join('\n');
+};
+
 /* ---------- SOUNDS LIKE YOU: one scene next to everything else you wrote. Counts and your closest lines. No score. ----------
    (The one part of AUTHORIAL VOICE ENGINE that held up: quote your own lines back, cited. Its labels are not here.) */
 /* scenes from T.scenes -> lines: {who (null = action), text, i, heading, pid, title} */

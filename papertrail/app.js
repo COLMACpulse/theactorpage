@@ -181,7 +181,7 @@ function vProjects(){
  h+='<div class="grid">'+P.map(p=>{ const c=current(p), ds=draftsOf(p.id), b=board(p);
   return '<button class="frame" data-open="'+p.id+'">'+perf()+'<div class="fb"><div class="fk"><span>'+ds.length+' draft'+(ds.length===1?'':'s')+(b?' · storyboard':'')+'</span><span>'+(p.retired?'retired':esc(day(p.updated)))+'</span></div>'
    +'<div class="ft">'+esc(p.title)+'</div><div class="fl">'+(c?'Current: '+esc(c.label)+' · '+scenesOf(c).length+' scenes · '+c.words+' words':'No script draft yet')+'</div></div></button>'; }).join('')+'</div>';
- h+='<div class="eyebrow">Your copy</div><div class="row"><button class="btn ghost" id="exp">Export everything (.json)</button><button class="btn ghost" id="impb">Bring in an export</button>'
+ h+='<div class="eyebrow">Your copy</div><div class="row"><button class="btn ghost" id="exp">Export everything (.json)</button><button class="btn ghost" id="impb">Bring in an export</button><button class="btn ghost" id="proofall">Proof of every draft (.txt)</button>'
   +'<label class="note"><input type="checkbox" id="showret"'+(SHOWRET?' checked':'')+'> show retired</label></div>'
   +'<p class="note">Bringing in an export adds what you don\'t have. It never removes or replaces anything here.</p>';
  return h;
@@ -537,6 +537,14 @@ async function addResearch(p,files,pin){
 function fillBlobs(){
  document.querySelectorAll('[data-rblob]').forEach(async el=>{ const u=await urlOf(el.dataset.rblob); if(u) el.src=u; else if(el.tagName==='IMG') el.alt='(file missing on this device)'; });
 }
+/* PROOF OF DRAFT: fingerprints from the words kept here, checked against the ones they came in with */
+async function proofItems(ps){ const out=[];
+ for(const p of ps){ const ds=Object.values(DB.drafts).filter(d=>d.project===p.id).sort((a,b)=>a.added-b.added), list=[];
+  for(const d of ds){ const s=await sha(TEXT[d.id]||''), real=/^[0-9a-f]{64}$/.test(s); list.push({label:d.label+(d.retired?', retired':''),kind:d.kind,file:filesOf(d),added:d.added,words:d.words,sha:real?s:'',ok:real&&/^[0-9a-f]{64}$/.test(d.hash||'')?d.hash===s:undefined}); }
+  out.push({title:p.title,drafts:list}); }
+ return out; }
+const stamp=()=>new Date().toISOString().slice(0,10);
+function saveText(name,text){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'})); a.download=name.replace(/[^\w .-]+/g,'').trim()+'.txt'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); }
 function vDrafts(p){
  const ds=draftsOf(p.id), c=current(p);
  let h='<p class="note">Every draft you brought in, oldest first. None is ever replaced. The current draft is the one Scenes reads.</p><div class="list">';
@@ -549,12 +557,14 @@ function vDrafts(p){
     +(r.added.length?'<br><span class="note">Added: '+esc(r.added.slice(0,4).map(x=>x.heading).join(' · '))+'</span>':'')
     +(r.removed.length?'<br><span class="note">Cut: '+esc(r.removed.slice(0,4).map(x=>x.heading).join(' · '))+'</span>':''); }
   h+='<div class="li"><div class="w"><b>'+esc(d.label)+'</b> <span class="tag">'+d.kind+'</span>'+(c&&d.id===c.id?' <span class="tag cur">current</span>':'')+(d.retired?' <span class="tag red">retired</span>':'')
-   +'<small>'+esc(filesOf(d))+' · '+esc(d.source)+' · added '+esc(day(d.added))+' · '+d.scenes+' scenes · '+d.words+' words</small>'+(cmp?'<small style="color:var(--ink-2)">'+cmp+'</small>':'')+'</div>'
+   +'<small>'+esc(filesOf(d))+' · '+esc(d.source)+' · added '+esc(day(d.added))+' · '+d.scenes+' scenes · '+d.words+' words'+(/^[0-9a-f]{64}$/.test(d.hash||'')?' · fingerprint '+d.hash.slice(0,8)+'…'+d.hash.slice(-4):'')+'</small>'+(cmp?'<small style="color:var(--ink-2)">'+cmp+'</small>':'')+'</div>'
    +'<div class="row">'+(d.kind==='script'&&!(c&&d.id===c.id)&&!d.retired?'<button class="btn sm" data-cur="'+d.id+'">MAKE CURRENT</button>':'')
    +'<button class="btn sm ghost" data-move="'+d.id+'">MOVE</button><button class="btn sm ghost" data-ret="'+d.id+'">'+(d.retired?'BRING BACK':'RETIRE')+'</button></div></div>';
   if(d.kind==='script'&&!d.retired) prev=d;
  });
  h+='</div><div class="row" style="margin-top:12px"><button class="btn" data-tab="add">ADD A DRAFT</button><button class="btn ghost" id="rename">RENAME PROJECT</button><button class="btn ghost" id="retp">'+(p.retired?'BRING PROJECT BACK':'RETIRE PROJECT')+'</button></div>';
+ h+='<div class="eyebrow">Proof of draft</div><div class="panel" id="proof"><p class="note" style="margin-top:0">A receipt of every draft in '+esc(p.title)+': the day it came in and its fingerprint. A file with the same words gives the same fingerprint. It proves the words, not the date. For the date, email the receipt to yourself or register the script.</p>'
+  +'<div class="row"><button class="btn pri" id="proofmk">PROOF OF DRAFT</button><label class="btn ghost"><input type="file" class="hide" id="proofchk" accept=".pdf,.fdx,.fountain,.txt,.md,.docx,text/plain,application/pdf">CHECK A FILE</label></div><div id="proofout"></div></div>';
  return h;
 }
 /* one character: every line they say, what the action lines say about them, their scenes, who they share scenes with.
@@ -658,6 +668,22 @@ function wire(){
  document.querySelectorAll('[data-scene]').forEach(b=>b.onclick=()=>{ VIEW.scene=Number(b.dataset.scene); render(); window.scrollTo(0,0); });
  document.querySelectorAll('[data-goscene]').forEach(b=>b.onclick=()=>{ VIEW.tab='scenes'; VIEW.scene=Number(b.dataset.goscene); render(); window.scrollTo(0,0); });
  document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>{ VIEW.scene=null; render(); });
+ /* PROOF OF DRAFT */
+ const pm=$('proofmk'); if(pm) pm.onclick=async()=>{ const p=DB.projects[VIEW.p]; if(!p) return; const t=T.proof(await proofItems([p]),Date.now()), o=$('proofout');
+  o.innerHTML='<div class="read" style="margin-top:10px">'+esc(t)+'</div><div class="row" style="margin-top:8px"><button class="btn sm" id="pcopy">COPY</button><button class="btn sm ghost" id="psave">SAVE AS TEXT</button></div>';
+  $('pcopy').onclick=()=>{ try{ navigator.clipboard.writeText(t).then(()=>toast('Copied.'),()=>toast('Could not copy. Save it as text.')); }catch(e){ toast('Could not copy. Save it as text.'); } };
+  $('psave').onclick=()=>saveText(p.title+' proof of draft '+stamp(),t); };
+ const pc=$('proofchk'); if(pc) pc.onchange=async()=>{ const f=pc.files[0]; if(!f) return; const p=DB.projects[VIEW.p], o=$('proofout'); let t;
+  try{ t=await readFile(f); }catch(e){ o.innerHTML='<p class="note">'+esc(f.name+': '+e.message)+'</p>'; return; }
+  const s=await sha(t), m=Object.values(DB.drafts).find(d=>d.hash===s);
+  let h='<div class="read" style="margin-top:10px">'+esc(f.name)+'\nSHA-256 '+esc(s)+'</div>';
+  if(m){ const mp=DB.projects[m.project]; h+='<p><b>Same words as '+esc(mp?mp.title:'')+', '+esc(m.label)+'.</b> Word for word. It came in '+esc(T.utc(m.added))+'.</p>'; }
+  else { h+='<p><b>No draft here has these exact words.</b></p>';
+   const L=x=>String(x||'').split('\n').map(y=>y.trim()).filter(Boolean), mine=L(t);
+   const near=Object.values(DB.drafts).filter(d=>p&&d.project===p.id).map(d=>{ const A=new Set(L(TEXT[d.id]).map(T.lineHash)), B=new Set(mine.map(T.lineHash)); return {d,n:{added:mine.filter(x=>!A.has(T.lineHash(x))).length,cut:L(TEXT[d.id]).filter(x=>!B.has(T.lineHash(x))).length}}; }).sort((a,b)=>(a.n.added+a.n.cut)-(b.n.added+b.n.cut))[0];
+   if(near) h+='<p class="note">Nearest in '+esc(p.title)+': '+esc(near.d.label)+'. This file has '+near.n.added+' line'+(near.n.added===1?'':'s')+' new or changed and '+near.n.cut+' cut against it.</p>'; }
+  o.innerHTML=h; pc.value=''; };
+ const pa=$('proofall'); if(pa) pa.onclick=async()=>{ const ps=Object.values(DB.projects).sort((a,b)=>String(a.title).localeCompare(String(b.title))); if(!ps.length) return toast('No drafts yet.'); saveText('Paper Trail proof of every draft '+stamp(),T.proof(await proofItems(ps),Date.now())); };
  /* SOUNDS LIKE YOU */
  const vf=$('vfrom'); if(vf) vf.onchange=()=>{ VOICE.from=vf.value; VOICE.who=''; render(); };
  const vg=$('vgo'); if(vg) vg.onclick=()=>{ VOICE.text=$('vtext').value; VOICE.on=true; VOICE.who=''; render(); };
