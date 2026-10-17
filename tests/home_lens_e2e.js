@@ -1,4 +1,4 @@
-/* Home: the lens. Your main headshot in the glass, focus pull, tap for YOUR PROFILE. Made-up face. Needs a server on :8811.
+/* Home: the headshot. Your main headshot as an 8x10 with your name, develops in, tap for YOUR PROFILE. Made-up face. Needs a server on :8811.
    NODE_PATH=... node tests/home_lens_e2e.js */
 const {chromium}=require('playwright');
 (async()=>{const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
@@ -14,6 +14,12 @@ for(const [w,h,tag] of [[1400,900,'desk'],[390,844,'phone']]){
  await p.setInputFiles('#dropfile',S+'/made_up_face.jpg'); await p.waitForTimeout(1500);
  const got=await p.evaluate(()=>({on:document.getElementById('lensimg').classList.contains('on'),pull:document.getElementById('lens').classList.contains('pull'),why:document.getElementById('lenswhy').hidden}));
  want(tag+': a headshot lands: it is in the lens, it pulls focus, the line goes', got.on&&got.pull&&got.why, got);
+ want(tag+': no name yet: the print says "Your name"', await p.evaluate(()=>document.getElementById('lensname').textContent)==='Your name');
+ await p.fill('[data-yf="name"]','Sam Actor'); await p.waitForTimeout(200);
+ want(tag+': type your name: it is printed under the headshot', await p.evaluate(()=>document.getElementById('lensname').textContent)==='Sam Actor'&&await p.getAttribute('#lens','aria-label')==='Your profile, Sam Actor');
+ const r=await p.evaluate(()=>{ const g=document.querySelector('#lens .glass').getBoundingClientRect(); return g.height/g.width; });
+ want(tag+': an 8x10 (4 by 5)', Math.abs(r-1.25)<0.02, r);
+ await p.screenshot({path:require('path').join(require('os').tmpdir(),'headshot_'+tag+'.png'),clip:await p.evaluate(()=>{ const b=document.getElementById('you').getBoundingClientRect(); return {x:0,y:b.top+scrollY,width:innerWidth,height:Math.min(520,b.height)}; })});
  await p.waitForTimeout(1300); 
  await p.reload(); await p.waitForTimeout(1500);
  want(tag+': after a reload it is still there', await p.evaluate(()=>document.getElementById('lensimg').classList.contains('on')));

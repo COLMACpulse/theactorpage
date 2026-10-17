@@ -123,7 +123,7 @@ function showYou(){
   +(y.photos.length?'<p class="why" style="margin-top:8px"><a href="headshots/" style="color:var(--tungsten)">HEADSHOTS</a>: tag each one in your own words, check the light and focus, plan the next shoot.</p>':'')+'</details>';
  box.innerHTML=h; const d=$('ypd'); if(d) d.ontoggle=()=>{ YOPEN=d.open; };
  // saved as you type; the panel redraws only when its title line changes, never while you're in a field (a redraw on blur throws)
- box.querySelectorAll('[data-yf]').forEach(i=>i.oninput=()=>{ Y.set(i.dataset.yf,i.value); });
+ box.querySelectorAll('[data-yf]').forEach(i=>i.oninput=()=>{ Y.set(i.dataset.yf,i.value); if(i.dataset.yf==='name') drawLens(); });
  box.querySelectorAll('[data-yl]').forEach(i=>i.oninput=()=>{ Y.setList(i.dataset.yl,i.value.split(/\s*,\s*/)); });
  box.querySelectorAll('[data-yf="name"]').forEach(i=>i.onchange=()=>setTimeout(()=>{ if(!box.contains(document.activeElement)||document.activeElement===document.body) showYou(); },0));
  box.querySelectorAll('[data-ycx]').forEach(b=>b.onclick=()=>{ Y.removeCredit(+b.dataset.ycx); showYou(); });
@@ -149,13 +149,14 @@ function keepLine(){
   +(ios&&!off?'<span class="ios">On an iPhone, add this site to your Home Screen (Share, then Add to Home Screen). Safari can clear a site\'s saved things after a stretch of not visiting; a Home Screen app is kept.<button id="iosx" aria-label="Hide this">\u2715</button></span>':'');
  el.hidden=false; const x=$('iosx'); if(x) x.onclick=()=>{ try{ localStorage.setItem('theactorpage_ios_note','off'); }catch(e){} keepLine(); };
 }
-/* the lens: your main headshot in the glass. A new one pulls focus. Tap it for YOUR PROFILE; drop a photo on it like the drop box. */
+/* the headshot: your main headshot as an 8x10, your name under it. A new one develops in. Tap it for YOUR PROFILE; drop a photo on it like the drop box. */
 let LENSID=null;
 async function drawLens(){
  const L=$('lens'), im=$('lensimg'), why=$('lenswhy'); if(!L||!im||!Y) return;
  const y=Y.get(), id=y.primary&&y.photos.some(p=>p.id===y.primary)?y.primary:(y.photos[0]&&y.photos[0].id)||'';
  if(why) why.hidden=!!id;
- L.setAttribute('aria-label',id?'Your profile':'Your profile. No headshot yet.');
+ const nm=$('lensname'); if(nm){ nm.textContent=y.name||'Your name'; nm.classList.toggle('none',!y.name); }
+ L.setAttribute('aria-label',id?'Your profile'+(y.name?', '+y.name:''):'Your profile. No headshot yet.');
  if(id===LENSID) return; LENSID=id;
  if(!id){ im.classList.remove('on'); im.removeAttribute('src'); return; }
  if(!URLS[id]){ const b=await Y.photoBlob(id); if(b) URLS[id]=URL.createObjectURL(b); }
