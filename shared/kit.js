@@ -1,7 +1,7 @@
 /* THEACTORPAGE KIT: the camera, mic and typewriter a tool uses, on its first screen, as tiles.
    You see what the tool can do with them before you go looking, and each tile says, live, whether
    it's OFF, ON, RECORDING or LISTENING. Tap a tile: straight to that thing.
-   Tiles: [{id, dev:'camera'|'mic'|'typewriter'|'photo', label:'CAMERA', what:'shoot a take', note:'', off:false}]
+   Tiles: [{id, dev:'camera'|'mic'|'typewriter'|'photo', label:'CAMERA', what:'shoot a take', note:'', off:false, icon:'mic'}]  (icon: draw another device's picture, e.g. a mic for speech)
    dev 'typewriter' is speech turned into words (your browser's speech service: Chrome sends it to
    Google, Safari to Apple), so its tile says so. The live state comes from shared/hot.js.
    Kit.html(tiles) -> markup. Kit.wire(root, {id: fn}) -> taps. Nothing here turns anything on. */
@@ -40,7 +40,7 @@ K.html=function(tiles){
  css();
  return '<div class="kit" role="group" aria-label="Camera and mic">'+(tiles||[]).map(t=>{ const w=K.state(t.dev);
   return '<button type="button" class="kt'+(t.off?' off':'')+'" data-kit="'+esc(t.id)+'" data-kdev="'+esc(t.dev)+'">'+(w?'<i class="'+cls(w)+'" data-kst>'+w+'</i>':'')
-   +(K.ICON[t.dev]||'')+'<b>'+esc(t.label||t.dev.toUpperCase())+'</b><span>'+esc(t.what||'')+'</span>'+(t.note?'<small>'+esc(t.note)+'</small>':'')+'</button>'; }).join('')+'</div>';
+   +(K.ICON[t.icon||t.dev]||'')+'<b>'+esc(t.label||t.dev.toUpperCase())+'</b><span>'+esc(t.what||'')+'</span>'+(t.note?'<small>'+esc(t.note)+'</small>':'')+'</button>'; }).join('')+'</div>';
 };
 K.wire=function(root,fns){
  (root||document).querySelectorAll('[data-kit]').forEach(b=>{ const f=fns&&fns[b.dataset.kit]; if(f) b.onclick=e=>{ e.preventDefault(); f(e); }; });

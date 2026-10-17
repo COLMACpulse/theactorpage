@@ -91,6 +91,25 @@ function tab(t){
  render(); window.scrollTo(0,0);
 }
 document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>tab(b.dataset.t));
+/* ---------- the front: what the mic can do here, before you go looking (../shared/kit.js) ---------- */
+function tiles(){
+ if(!window.Kit) return '';
+ const t={id:'say',dev:'typewriter',icon:'mic',label:'MIC',what:'Say your lines'};
+ if(!SC){ t.note='Bring in your sides first'; t.off=true; }
+ else if(!Rec){ t.note='This browser can\'t hear you here. Try Chrome or Safari.'; t.off=true; }
+ else t.note='Checks your words. Chrome sends it to Google, Safari to Apple.';
+ return Kit.html([t]);
+}
+function wireTiles(){ if(window.Kit) Kit.wire($('main'),{say:sayTile}); }
+function sayTile(){
+ if(!SC){ if(DB.tab!=='sides') tab('sides'); const d=$('drop'); if(d&&d.scrollIntoView) d.scrollIntoView({block:'center'}); toast('Bring in your sides first.'); return; }
+ if(!Rec){ if(DB.tab!=='drill') tab('drill'); toast('This browser can\'t hear you here. Try Chrome or Safari.'); return; }
+ if(LIS&&DB.tab==='drill'){ listen(); return; }
+ if(DB.tab!=='drill') tab('drill');
+ if(!current()){ D.anyway=true; D.key=''; renderDrill(); }
+ if(D.revealed||D.typing){ D.revealed=false; D.heard=''; D.typing=false; renderDrill(); }
+ if(current()) listen();
+}
 function render(){
  paintTop();
  const t=DB.tab||'drill';
@@ -129,10 +148,10 @@ function renderDrill(){
  const m=$('main');
  if(!it){
   const nx=E.nextDue(ITEMS,SC.states);
-  m.innerHTML=`<div class="card"><h2 style="font-size:20px">Nothing due right now.</h2>
+  m.innerHTML=tiles()+`<div class="card"><h2 style="font-size:20px">Nothing due right now.</h2>
    <p class="dim">${isFinite(nx)?'The next line comes back in '+E.inWords(Math.max(0,nx-Date.now()))+'.':''} Run the whole scene, or keep going anyway.</p>
    <div class="row"><button class="btn pri" onclick="MEM.tab('scene')">RUN THE SCENE</button><button class="btn" onclick="MEM.anyway()">KEEP GOING</button></div></div>`;
-  return;
+  wireTiles(); return;
  }
  const beats=E.beats(it.text);
  const target=D.beat!=null?beats[D.beat]:it.text;
@@ -170,7 +189,7 @@ function renderDrill(){
   h+='</div>';
  }
  h+=`<p class="faint" style="font-size:13px;margin-top:16px">Line ${it.n} of ${ITEMS.length}${D.round?' · '+D.round+' done this sitting':''}</p>`;
- m.innerHTML=h;
+ m.innerHTML=tiles()+h; wireTiles();
 }
 function diffHtml(target,c){
  // show the line as written, words marked from the comparison
@@ -246,7 +265,7 @@ function renderScene(){
   m.innerHTML=`<div class="card"><h2 style="font-size:20px">Run the scene</h2>
    <p class="dim">The other lines in full, in order. Yours hidden at the level you pick. Say each one, show it, and mark it. It stops where you drop.</p>
    ${levelRow()}<button class="btn pri block big" onclick="MEM.scene('top')">FROM THE TOP</button></div>`;
-  return;
+  m.innerHTML=tiles()+m.innerHTML; wireTiles(); return;
  }
  let h=levelRow();
  const end=R.pos<0?SCRIPT.length-1:R.pos;
@@ -308,7 +327,7 @@ function renderLines(){
    <select class="field" onchange="MEM.verb('${it.key}',this.value)"><option value="">action word</option>${verbs.map(x=>`<option ${x===v?'selected':''}>${esc(x)}</option>`).join('')}<option value="__own">+ your own word</option></select></div>`;
  });
  h+=`<div class="row" style="margin-top:18px"><button class="btn ghost sm" onclick="MEM.resetProgress()">Start this script over</button></div>`;
- $('main').innerHTML=h;
+ $('main').innerHTML=tiles()+h; wireTiles();
 }
 function setVerb(key,v){
  if(v==='__own'){ v=(prompt('Your action word (one verb you play)')||'').trim().toLowerCase(); if(!v){ renderLines(); return; } DB.myVerbs=DB.myVerbs||[]; if(DB.myVerbs.indexOf(v)<0) DB.myVerbs.push(v); }
@@ -361,7 +380,7 @@ function renderSides(){
     <button class="btn sm ghost" aria-label="remove" onclick="MEM.remove('${s.id}')">&times;</button></div></div>`;
   });
  }
- $('main').innerHTML=h;
+ $('main').innerHTML=tiles()+h; wireTiles();
  const d=$('drop');
  d.onclick=()=>$('file').click();
  d.ondragover=e=>{ e.preventDefault(); d.classList.add('over'); };

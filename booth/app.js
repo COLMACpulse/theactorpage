@@ -194,7 +194,12 @@ function render(){
  wire(J);
 }
 function copyView(J){
- let h='<div class="card"><p class="kicker">The copy</p><p class="dim">Drop the scripts, the brief and the agent\'s email. Word, PDF or pasted. It finds the spots, your lines and the ALTs, and reads the order they want.</p>'
+ const n=J.spots.length;
+ let h=window.Kit?Kit.html([
+  {id:'room',dev:'mic',label:'MIC',what:'Check the room',note:'Hear your room before you read'},
+  {id:'read',dev:'mic',label:'MIC',what:'Record the reads',note:n?n+' spot'+(n===1?'':'s')+' ready':'Add the copy first',off:!n}
+ ]):'';
+ h+='<div class="card"><p class="kicker">The copy</p><p class="dim">Drop the scripts, the brief and the agent\'s email. Word, PDF or pasted. It finds the spots, your lines and the ALTs, and reads the order they want.</p>'
   +'<label class="btn pri block"><input type="file" id="files" multiple accept=".pdf,.docx,.txt,.text,.rtf,.eml,.md" hidden>ADD FILES</label>'
   +'<textarea class="field" id="paste" placeholder="Or paste: the copy, or the agent\'s note (due, one MP3, the order)"></textarea><button class="btn block" id="pastego">READ IT</button></div>';
  if(S.job.client||S.job.due||S.job.order.length||S.job.oneFile){
@@ -289,11 +294,17 @@ function wire(J){
  [nm,cl].forEach(x=>{ if(x) x.addEventListener('input',()=>{ const f=$('fnp'); if(f) f.innerHTML=fnLine(J); }); });
  const mg=$('makego'); if(mg) mg.onclick=make;
  const cf=$('chkf'); if(cf) cf.onchange=()=>{ const f=cf.files[0]; cf.value=''; if(f) checkFile(f); };
+ if(window.Kit) Kit.wire($('main'),{
+  room:()=>{ goTab('room'); checkRoom(); },
+  read:()=>{ if(!J.spots.length){ toast('Add the copy first. Drop it or paste it below.'); const f=$('paste'); if(f) f.focus(); return; }
+   goTab('read'); const b=document.querySelector('[data-rec]'); if(b&&b.scrollIntoView) b.scrollIntoView({block:'center'}); }
+ });
 }
-$('tabs').addEventListener('click',e=>{ const b=e.target.closest('button[data-t]'); if(!b) return; S.tab=b.dataset.t;
+function goTab(t){ S.tab=t;
  // the mic is only on where you record: leave READ or ROOM and it goes off
  if(MIC&&!['read','room'].includes(S.tab)){ if(REC) stopRec(); C.stop(MIC); MIC=null; }
- save(); render(); window.scrollTo(0,0); });
+ save(); render(); window.scrollTo(0,0); }
+$('tabs').addEventListener('click',e=>{ const b=e.target.closest('button[data-t]'); if(b) goTab(b.dataset.t); });
 window.addEventListener('pagehide',()=>{ C.stop(MIC); });
 window.__booth={get S(){return S;},job,plan,addText,make,checkFile,render};
 render();
