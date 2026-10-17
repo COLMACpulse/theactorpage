@@ -48,8 +48,41 @@ function render(){
  wire(); fillImgs();
 }
 const chip=(on,attr,label,extra)=>'<button class="chip sm'+(on?' on':'')+'" '+attr+'>'+esc(label)+(extra||'')+'</button>';
+/* ---------- TEST SHOT: the camera, where you're standing. The light and focus, read live; a still if you want one.
+   Nothing is kept unless you add it to your headshots or save it to the phone. ---------- */
+const C=window.Capture; let TS=null;
+async function testShot(){
+ if(!C) return toast('This browser can\'t open the camera here.');
+ const ov=$('ov'); ov.hidden=false; document.body.classList.add('ovopen');
+ ov.innerHTML='<div class="recbox"><p class="dim small" style="margin:0 0 8px">A test shot, where you\'re standing. The light and focus are read as you frame it. Nothing is kept unless you add it.</p><video id="tsv" playsinline muted autoplay class="tsv mirror"></video><img id="tsi" class="tsv" alt="" hidden><div id="tsw" class="tsw"></div><div class="row" id="tsbar" style="margin-top:10px"><button class="btn pri" id="tsgo">SNAP</button><button class="btn" id="tsflip">FLIP CAMERA</button><button class="btn ghost" id="tsx">CLOSE</button></div></div>';
+ TS={facing:'user'}; await tsOpen(); tsWire();
+}
+async function tsOpen(){
+ try{ if(TS.stream) C.stop(TS.stream); TS.stream=await C.open({video:true,audio:false,facing:TS.facing}); const v=$('tsv'); v.srcObject=TS.stream; v.classList.toggle('mirror',TS.facing==='user'); v.play().catch(()=>{}); tsLive(); }
+ catch(e){ $('tsw').innerHTML='<p class="faint small">'+esc(C.errorWords(e,'video'))+'</p>'; }
+}
+function tsRead(src,w0,h0){ const k=Math.min(1,320/Math.max(w0,h0)), w=Math.max(1,Math.round(w0*k)), h=Math.max(1,Math.round(h0*k)); const c=document.createElement('canvas'); c.width=w; c.height=h; const x=c.getContext('2d',{willReadFrequently:true}); x.drawImage(src,0,0,w,h); return H.measure(x.getImageData(0,0,w,h).data,w,h,w0,h0); }
+const tsWords=m=>H.words(m).map(x=>'<p class="'+(x.ok?'ok':'flag')+' small" style="margin:3px 0">'+esc(x.t)+'</p>').join('');
+function tsLive(){ clearInterval(TS.tick); TS.tick=setInterval(()=>{ const v=$('tsv'); if(!TS||!v||!v.videoWidth||TS.blob) return; try{ $('tsw').innerHTML='<p class="lab" style="margin:8px 0 2px">Right now</p>'+tsWords(tsRead(v,v.videoWidth,v.videoHeight)); }catch(e){} },700); }
+function tsClose(){ if(!TS) return; clearInterval(TS.tick); C.stop(TS.stream); if(TS.url) URL.revokeObjectURL(TS.url); TS=null; const ov=$('ov'); ov.hidden=true; ov.innerHTML=''; document.body.classList.remove('ovopen'); }
+function tsWire(){
+ $('tsx').onclick=tsClose;
+ const fl=$('tsflip'); if(fl) fl.onclick=async()=>{ TS.facing=TS.facing==='user'?'environment':'user'; await tsOpen(); };
+ const go=$('tsgo'); if(go) go.onclick=async()=>{ const v=$('tsv'); if(!v.videoWidth) return; const b=await C.snap(v,false); if(!b) return;
+  TS.blob=b; TS.url=URL.createObjectURL(b); clearInterval(TS.tick); const m=tsRead(v,v.videoWidth,v.videoHeight); C.stop(TS.stream); TS.stream=null;
+  v.hidden=true; const im=$('tsi'); im.src=TS.url; im.hidden=false;
+  $('tsw').innerHTML='<p class="lab" style="margin:8px 0 2px">This shot</p>'+tsWords(m);
+  $('tsbar').innerHTML='<button class="btn pri" id="tsadd">ADD TO MY HEADSHOTS</button><button class="btn" id="tssave">SAVE TO PHONE</button><button class="btn" id="tsagain">AGAIN</button><button class="btn ghost" id="tsx">CLOSE</button>';
+  $('tsx').onclick=tsClose;
+  $('tsagain').onclick=async()=>{ const f=TS.facing; tsClose(); await testShot(); if(TS&&f!==TS.facing){ TS.facing=f; await tsOpen(); } };
+  $('tssave').onclick=async()=>{ const f=new File([TS.blob],H.fileName('test_shot',Y.get().name).replace(/\.html$/,'.jpg'),{type:'image/jpeg'});
+   try{ if(/Android|iPhone|iPad/i.test(navigator.userAgent)&&navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:f.name}); return; } }catch(e){ if(e&&e.name==='AbortError') return; }
+   const a=document.createElement('a'); a.href=URL.createObjectURL(f); a.download=f.name; document.body.appendChild(a); a.click(); a.remove(); };
+  $('tsadd').onclick=async()=>{ const f=new File([TS.blob],'Test shot '+new Date().toISOString().slice(0,16).replace('T',' ').replace(':','.')+'.jpg',{type:'image/jpeg'}); tsClose(); await addPhotos([f]); };
+ };
+}
 function photosView(y){
- let h='<div class="card"><p class="dim small">The same headshots as YOUR PROFILE on home. The Hub, Virtual Résumé and Slate Maker use your main one. Tag each in your own words: the roles it\'s for, and keep, retest or retire.</p>'
+ let h=(window.Kit?Kit.html([{id:'tshot',dev:'camera',label:'CAMERA',what:'Take a test shot',note:'Front or back camera. Reads the light and focus where you\'re standing. Kept only if you add it'}]):'')+'<div class="card"><p class="dim small">The same headshots as YOUR PROFILE on home. The Hub, Virtual Résumé and Slate Maker use your main one. Tag each in your own words: the roles it\'s for, and keep, retest or retire.</p>'
   +'<label class="btn pri block"><input type="file" id="hf" accept="image/*" multiple hidden>ADD HEADSHOTS</label></div>';
  if(!y.photos.length) return h+'<p class="faint small">No headshots yet. Add them here, or drop them on home.</p>';
  const V=H.vocab(y.photos,P);
@@ -121,12 +154,14 @@ function wire(){
  q('[data-rn]',el=>el.oninput=()=>{ const r=P.refs.find(x=>x.id===el.dataset.rn); if(r){ r.note=el.value; saveP(); } });
  q('[data-rs]',el=>el.onchange=()=>{ const r=P.refs.find(x=>x.id===el.dataset.rs); if(r){ r.share=el.checked; saveP(); } });
  q('[data-rrm]',b=>b.onclick=async()=>{ await H.delRef(b.dataset.rrm); P.refs=P.refs.filter(x=>x.id!==b.dataset.rrm); saveP(); render(); });
+ if(window.Kit) Kit.wire($('main'),{tshot:testShot});
  const bp=$('bprev'); if(bp) bp.onclick=preview;
  const bd=$('bdl'); if(bd) bd.onclick=()=>exportBrief('brief');
  const sd=$('sdl'); if(sd) sd.onclick=()=>exportBrief('sheet');
 }
 $('tabs').addEventListener('click',e=>{ const b=e.target.closest('button[data-t]'); if(!b) return; U.tab=b.dataset.t; saveU(); P=H.plan(); render(); window.scrollTo(0,0); });
 window.addEventListener('storage',e=>{ if(e.key&&/you_v1|headshots_v1/.test(e.key)){ P=H.plan(); render(); } });
-window.__hs={render,check,get P(){return P;}};
+window.__hs={render,check,testShot,get P(){return P;}};
+document.addEventListener('visibilitychange',()=>{ if(document.hidden&&TS&&!TS.blob) tsClose(); });
 render(); checkAll();
 })();

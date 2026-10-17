@@ -89,7 +89,7 @@ nav.tabs button.on{color:var(--tung-text)}
 .tog{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--dim);margin-top:12px}.tog input{width:20px;height:20px}
 .refrow{display:flex;gap:10px;margin-top:10px;align-items:flex-start}.ref{width:84px;height:105px;object-fit:cover;border-radius:6px;flex:none;background:var(--panel2)}.refside{flex:1;min-width:0}
 .ov{position:fixed;inset:0;z-index:60;background:var(--bg);padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px);overflow:auto}
-.recbox{max-width:760px;margin:0 auto}.pvf{width:100%;height:78vh;border:1px solid var(--line);border-radius:10px;background:#fff;margin-top:10px}
+.recbox{max-width:760px;margin:0 auto}.tsv{width:100%;max-height:62vh;object-fit:contain;background:#000;border-radius:10px;display:block}.tsv.mirror{transform:scaleX(-1)}.tsw .ok{color:#5cae7e}.tsw .flag{color:#e0a23c}.pvf{width:100%;height:78vh;border:1px solid var(--line);border-radius:10px;background:#fff;margin-top:10px}
 body.ovopen{overflow:hidden}
 .toast{position:fixed;left:50%;bottom:calc(var(--nav) + 18px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(10px);background:var(--panel2);border:1px solid var(--tung);color:var(--ink);padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;transition:.2s;pointer-events:none;z-index:70;max-width:calc(100vw - 32px)}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -111,6 +111,8 @@ body.ovopen{overflow:hidden}
 </nav>
 <div class="ov" id="ov" hidden></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="../shared/capture.js"></script>
+<script src="../shared/kit.js"></script>
 <script src="../shared/you.js"></script>
 <script src="../shared/headshots.js"></script>
 <script src="app.js"></script>

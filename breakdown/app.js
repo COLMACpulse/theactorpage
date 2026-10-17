@@ -510,6 +510,10 @@
     const contradictions = w.ledger.filter(l => l.kind === 'contradiction');
     const otherChars = Object.keys(d.characters).filter(n => !M.isMe(n));
     return `
+      ${!RO() && window.Kit ? Kit.html([
+        { id: 'saynote', dev: 'typewriter', label: 'SAY IT', what: 'Say a note', note: SR ? 'Speech into a new note. Chrome sends it to Google, Safari to Apple' : "This browser can't turn speech into words", off: !SR },
+        { id: 'runout', dev: 'mic', label: 'MIC', what: 'Run lines out loud', note: 'In Memorizer, with these sides and your role' },
+        { id: 'tapeit', dev: 'camera', label: 'CAMERA', what: 'Tape it', note: 'In Actor OS, with these sides and your role' }]) : ''}
       <div class="kicker">Your role</div>
       <div class="row" style="align-items:flex-end;justify-content:space-between">
         <h1 style="font-size:28px;letter-spacing:.06em">${esc(M.names.join(' + '))}</h1>
@@ -882,7 +886,23 @@
     sh.innerHTML = '<div class="grab"></div><button class="iconbtn x" data-a="closesheet" aria-label="Close">' + ICON.close + '</button>' + html;
     requestAnimationFrame(() => { scrim.classList.add('on'); sh.classList.add('on'); });
   }
+  /* SAY IT: speech into the note being written. Only while you hold it on; STOP or closing the note stops it. */
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+  let DICT = null;
+  function dictStop() { if (!DICT) return; const r = DICT; DICT = null; try { r.stop(); } catch (e) {} const b = $('#nt_say'), w = $('#nt_sayw'); if (b) b.textContent = 'SAY IT'; if (w) w.textContent = 'Stopped. Edit it, then save.'; }
+  function dictStart() {
+    const ta = $('#nt_text'); if (!SR || !ta) return;
+    const r = new SR(); r.continuous = true; r.interimResults = true; r.lang = navigator.language || 'en-US';
+    const base = ta.value.trim(); let fin = '';
+    r.onresult = ev => { let inter = ''; for (let i = ev.resultIndex; i < ev.results.length; i++) { const x = ev.results[i]; if (x.isFinal) fin += (fin ? ' ' : '') + x[0].transcript.trim(); else inter += x[0].transcript; }
+      const t = $('#nt_text'); if (t) t.value = [base, fin, inter.trim()].filter(Boolean).join(base || fin ? ' ' : ''); };
+    r.onerror = ev => { const w = $('#nt_sayw'); if (w) w.textContent = ev && ev.error === 'not-allowed' ? 'The mic is blocked for this site.' : 'Speech stopped.'; };
+    r.onend = () => { if (DICT === r) dictStop(); };
+    DICT = r; try { r.start(); } catch (e) { DICT = null; return; }
+    const b = $('#nt_say'), w = $('#nt_sayw'); if (b) b.textContent = 'STOP'; if (w) w.textContent = 'Listening. What you say goes in the note.';
+  }
   function closeSheet(instant) {
+    dictStop();
     const scrim = $('.scrim'), sh = $('.sheet');
     if (!sh) return;
     scrim.classList.remove('on'); sh.classList.remove('on');
@@ -923,6 +943,7 @@
     openSheet(`
       <div class="kicker">${isNew ? 'New note' : 'Edit note'}</div>
       <textarea class="field" id="nt_text" placeholder="What does this tell you?" style="min-height:96px">${esc(note.text)}</textarea>
+      ${SR ? `<div class="row" style="margin-top:6px"><button class="btn sm" data-a="dictate" id="nt_say">${DICT ? 'STOP' : 'SAY IT'}</button><span class="faint" style="font-size:13px" id="nt_sayw">${DICT ? 'Listening. What you say goes in the note.' : 'Speech to words: Chrome sends it to Google, Safari to Apple.'}</span></div>` : ''}
       ${note.kind === 'contradiction' ? `<div class="sdgrid"><div><label class="lab">Says</label><textarea class="field" id="nt_says" placeholder="${note.links[0] ? 'Optional, the line covers it' : 'What they claim'}">${esc(note.says || '')}</textarea></div><div><label class="lab">Does</label><textarea class="field" id="nt_does" placeholder="${note.links[1] ? 'Optional, the line covers it' : 'What undercuts it, on the page or in your read'}">${esc(note.does || '')}</textarea></div></div>` : ''}
       <label class="lab">Tier</label><div class="row" id="nt_tiers">${tiers}</div>
       <p class="faint" style="font-size:13px;margin:6px 0 0" id="nt_hint">${esc(tierHint)}</p>
@@ -1178,7 +1199,8 @@
       }
       case 'setkind': syncNoteForm(); S.editing.kind = S.editing.kind === ds.v ? '' : ds.v; noteSheet(S.editing, S.editingNew); break;
       case 'unlink': syncNoteForm(); S.editing.links.splice(+ds.i, 1); noteSheet(S.editing, S.editingNew); break;
-      case 'savenote': {
+      case 'dictate': if (DICT) dictStop(); else dictStart(); break;
+      case 'savenote': { dictStop();
         syncNoteForm(); const n = S.editing; const err = $('#nt_err');
         const fail = m => { err.textContent = m; err.classList.remove('hide'); };
         if (n.kind === 'contradiction' && !((n.links[0] || (n.says || '').trim()) && (n.links[1] || (n.does || '').trim()))) return fail('A contradiction needs both sides: a Says and a Does, as lines or in your words.');
@@ -1257,6 +1279,11 @@
 
   // ---------------------------------------------------------------- events
   document.addEventListener('click', e => {
+    const k = e.target.closest('.kt[data-kit]');
+    if (k) { e.preventDefault(); if (k.classList.contains('off')) return;
+      if (k.dataset.kit === 'saynote') { act('newnote', {}, k); setTimeout(dictStart, 60); }
+      else location.href = k.dataset.kit === 'runout' ? '../memorizer/' : '../actor-os/';
+      return; }
     const t = e.target.closest('[data-a]');
     if (!t || t.disabled) return;
     if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA') return;

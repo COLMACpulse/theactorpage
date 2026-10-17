@@ -41,7 +41,8 @@ function render(){
 function setsWith(id){ return DB.sets.filter(s=>(s.items||[]).includes(id)).length; }
 function vMaterial(){
  const B=byId(), c={all:DB.pieces.length}; L.LEVELS.forEach(l=>c[l.id]=DB.pieces.filter(p=>p.level===l.id).length);
- let h='<p class="dim" style="margin:0 0 12px;font-size:15px">Your funny material. A clip becomes a joke, jokes become a bit, bits become an act. Put any of it in a set.</p>';
+ let h=(window.Kit?'<div class="slkit">'+Kit.html([{id:'vjoke',dev:'camera',label:'CAMERA',what:'Tape a joke',note:'30 seconds. Starts a new joke, kept with it'},{id:'ajoke',dev:'mic',label:'MIC',what:'Say a joke',note:'Voice only. 30 seconds. A new joke'}])+'</div>':'')
+ +'<p class="dim" style="margin:0 0 12px;font-size:15px">Your funny material. A clip becomes a joke, jokes become a bit, bits become an act. Put any of it in a set.</p>';
  h+='<div class="row" style="margin-bottom:10px">'+[['all','ALL']].concat(L.LEVELS.map(l=>[l.id,l.name])).map(([id,nm])=>'<button class="chip'+(FILTER===id?' on':'')+'" data-a="filter" data-v="'+id+'">'+nm+' <i>'+c[id]+'</i></button>').join('')+'</div>';
  h+='<div class="row" style="margin-bottom:12px"><input class="field" id="q" placeholder="Find in your material" value="'+esc(Q)+'" style="flex:1 1 200px"><button class="btn pri" data-a="new">+ NEW '+(FILTER==='all'?'JOKE':levelName(FILTER))+'</button></div>';
  const q=Q.trim().toLowerCase();
@@ -69,8 +70,8 @@ function vPiece(p){
    +(can.length?'<select class="field" id="padd" style="margin-top:8px"><option value="">+ Add a '+(p.level==='bit'?'clip or joke':'clip, joke or bit')+'</option>'+can.map(q=>'<option value="'+q.id+'">'+levelName(q.level)+': '+esc(nameOf(q).slice(0,50))+'</option>').join('')+'</select>':'<p class="faint" style="font-size:13px;margin:8px 0 0">Write some '+(p.level==='bit'?'jokes':'jokes or bits')+' first; they show up here to add.</p>')+'</div>';
  }
  h+='<div class="card"><p class="kicker">Your take</p>'+(p.repId
-  ?'<video data-take="'+p.repId+'" controls playsinline preload="metadata" class="vid"></video><p class="faint" style="font-size:13px;margin:6px 0 10px">'+L.mmss(p.repSecs)+' · '+esc(day(p.repAt||p.at))+'</p><div class="row"><button class="btn" data-a="rec">RECORD AGAIN</button><button class="btn ghost" data-a="savetake">SAVE TO PHONE</button><button class="btn ghost" data-a="rmtake">REMOVE</button></div>'
-  :'<p class="dim" style="font-size:14px;margin:0 0 10px">Do it out loud. 30 seconds, hard stop. The take sets its real time.</p><div class="row"><button class="btn pri" data-a="rec">RECORD A 30-SECOND TAKE</button><label class="btn ghost"><input type="file" accept="video/*,audio/*" class="hide" id="tfile">ADD A CLIP</label></div>')+'</div>';
+  ?''+(/^audio/.test(p.repType||'')?'<audio data-take="'+p.repId+'" controls preload="metadata" style="width:100%"></audio>':'<video data-take="'+p.repId+'" controls playsinline preload="metadata" class="vid"></video>')+'<p class="faint" style="font-size:13px;margin:6px 0 10px">'+L.mmss(p.repSecs)+' · '+esc(day(p.repAt||p.at))+'</p><div class="row"><button class="btn" data-a="rec">RECORD AGAIN</button><button class="btn ghost" data-a="savetake">SAVE TO PHONE</button><button class="btn ghost" data-a="rmtake">REMOVE</button></div>'
+  :'<p class="dim" style="font-size:14px;margin:0 0 10px">Do it out loud. 30 seconds, hard stop. The take sets its real time.</p><div class="row"><button class="btn pri" data-a="rec">RECORD A 30-SECOND TAKE</button><button class="btn" data-a="arec">VOICE ONLY</button><label class="btn ghost"><input type="file" accept="video/*,audio/*" class="hide" id="tfile">ADD A CLIP</label></div>')+'</div>';
  if(DB.sets.length) h+='<div class="card"><p class="kicker">Put it in a set</p><select class="field" id="toset"><option value="">Pick a set</option>'+DB.sets.map(s=>'<option value="'+s.id+'">'+esc(s.name||'Untitled set')+((s.items||[]).includes(p.id)?' (in it)':'')+'</option>').join('')+'</select></div>';
  const done=(p.done||[]).slice().sort((a,b)=>b.at-a.at);
  if(done.length) h+='<div class="card"><p class="kicker">How it went</p><p style="margin:0 0 8px">'+esc(L.howCounts(p))+'</p>'+done.slice(0,12).map(d=>'<div class="faint" style="font-size:14px;padding:4px 0;border-top:1px solid var(--line)">'+esc(day(d.at))+' · '+esc((L.HOW.find(x=>x.id===d.how)||{}).name||d.how)+(d.note?' · '+esc(d.note):'')+'</div>').join('')+'</div>';
@@ -88,6 +89,9 @@ function vSets(){
 function vSet(s){
  const B=byId(), items=s.items||[];
  let h='<button class="back" data-a="backset">‹ Your sets</button>';
+ if(window.Kit) h+='<div class="slkit">'+Kit.html([{id:'aset',dev:'mic',label:'MIC',what:'Record the set',note:'Phone on the stool. Voice only, no time limit. Kept with this set'}])+'</div>';
+ const recs=(s.recs||[]).slice().reverse();
+ if(recs.length) h+='<div class="card"><p class="kicker">Recordings of this set</p>'+recs.map(r=>'<div style="padding:6px 0;border-top:1px solid var(--line)"><audio data-take="'+r.id+'" controls preload="metadata" style="width:100%"></audio><div class="row" style="justify-content:space-between"><span class="faint" style="font-size:13px">'+esc(day(r.at))+' · '+L.mmss(r.secs)+'</span><span><button class="btn sm ghost" data-a="savesetrec" data-id="'+r.id+'">SAVE TO PHONE</button> <button class="btn sm ghost" data-a="rmsetrec" data-id="'+r.id+'">REMOVE</button></span></div></div>').join('')+'</div>';
  h+='<div class="card"><label class="lab" for="s_name">Name</label><input class="field" id="s_name" data-s="name" value="'+esc(s.name||'')+'" placeholder="Open mic, Thursday">'
   +'<div class="row" style="margin-top:10px"><label class="lab" for="s_target" style="margin:0">Aim for</label><input class="field" id="s_target" value="'+(s.target?L.mmss(s.target):'')+'" placeholder="5:00" style="flex:0 1 100px" inputmode="numeric"></div>'
   +'<div class="runtime" id="srun">'+esc(L.setWords(s,B))+'</div></div>';
@@ -115,32 +119,43 @@ function vPrompts(){
     +(Array.isArray(v)?'<ul class="cues">'+v.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'<p class="prompt">'+esc(v)+'</p>')+'<button class="btn pri" data-a="puse" data-v="'+k+'">WRITE ONE</button></div>'; }).join('');
 }
 
-/* ---------- the take: 30 seconds, hard stop ---------- */
-let R=null;   // {stream, rec, t0, timer, tick, blob, secs}
-async function openRec(){
- const p=piece(OPEN); if(!p) return;
- const o=$('recov'); o.hidden=false; document.body.classList.add('ovopen');
- o.innerHTML='<div class="recbox"><video id="rv" playsinline muted autoplay class="vid"></video><div class="cnt" id="rc">0:30</div><p class="faint" id="rm" style="font-size:14px;margin:8px 0">'+esc(nameOf(p))+'</p><div class="row" id="rbar"><button class="btn pri" data-a="rgo">GO</button><button class="btn ghost" data-a="rclose">CLOSE</button></div></div>';
- R={};
- try{ R.stream=await C.open({video:true,audio:true,facing:'user'}); const v=$('rv'); v.srcObject=R.stream; v.classList.add('mirror'); v.play().catch(()=>{}); }
- catch(e){ $('rm').textContent=C.errorWords(e,'video'); }
+/* ---------- the take: 30 seconds, hard stop. Or voice only. Or a whole set, voice only, no limit ---------- */
+let R=null, LASTREC=null;   // R: {stream, rec, t0, timer, tick, kind, cap, set}
+async function openRec(o){
+ o=o||{kind:'video',cap:30}; LASTREC=o;
+ const p=o.set?null:piece(OPEN), st=o.set?DB.sets.find(x=>x.id===o.set):null; if(!p&&!st) return;
+ const audio=o.kind==='audio', ov=$('recov'); ov.hidden=false; document.body.classList.add('ovopen');
+ ov.innerHTML='<div class="recbox">'+(audio?'<div class="aud" id="raud">MIC</div>':'<video id="rv" playsinline muted autoplay class="vid"></video>')+'<div class="cnt" id="rc">'+(o.cap?L.mmss(o.cap):'0:00')+'</div><p class="faint" id="rm" style="font-size:14px;margin:8px 0">'+esc(st?(st.name||'This set')+'. Voice only. No time limit.':nameOf(p)+(audio?'. Voice only.':''))+'</p><div class="row" id="rbar"><button class="btn pri" data-a="rgo">GO</button><button class="btn ghost" data-a="rclose">CLOSE</button></div></div>';
+ R={kind:o.kind,cap:o.cap||0,set:o.set||null};
+ try{ R.stream=await C.open(audio?{video:false,audio:true}:{video:true,audio:true,facing:'user'}); if(!audio){ const v=$('rv'); v.srcObject=R.stream; v.classList.add('mirror'); v.play().catch(()=>{}); } }
+ catch(e){ $('rm').textContent=C.errorWords(e,audio?'audio':'video'); }
 }
 function rgo(){
  if(!R||!R.stream||R.rec) return;
- try{ R.rec=C.record(R.stream,'video'); }catch(e){ $('rm').textContent=e.message; return; }
+ try{ R.rec=C.record(R.stream,R.kind); }catch(e){ $('rm').textContent=e.message; return; }
  R.t0=Date.now(); $('rbar').innerHTML='<button class="btn pri" data-a="rstop">STOP</button>';
- const show=()=>{ if(R&&R.rec) $('rc').textContent=L.mmss(Math.ceil(Math.max(0,30-(Date.now()-R.t0)/1000))); };
+ const show=()=>{ if(R&&R.rec){ const el=(Date.now()-R.t0)/1000; $('rc').textContent=R.cap?L.mmss(Math.ceil(Math.max(0,R.cap-el))):L.mmss(Math.floor(el)); } };
  R.tick=setInterval(show,250); show();
- const me=R.rec; R.timer=setTimeout(()=>{ if(R&&R.rec===me){ R.capped=true; rstop(); } },30000);
+ if(R.cap){ const me=R.rec; R.timer=setTimeout(()=>{ if(R&&R.rec===me){ R.capped=true; rstop(); } },R.cap*1000); }
 }
 async function rstop(){
  if(!R||!R.rec) return; clearTimeout(R.timer); clearInterval(R.tick);
  const r=await R.rec.stop(); R.rec=null; C.stop(R.stream); R.stream=null; R.result=r;
  const u=URL.createObjectURL(r.blob); R.url=u;
- $('rv').srcObject=null; $('rv').src=u; $('rv').muted=false; $('rv').controls=true; $('rv').classList.remove('mirror');
+ if(R.kind==='audio'){ $('raud').outerHTML='<audio id="rv" controls src="'+u+'" style="width:100%"></audio>'; }
+ else { $('rv').srcObject=null; $('rv').src=u; $('rv').muted=false; $('rv').controls=true; $('rv').classList.remove('mirror'); }
  $('rc').textContent=(R.capped?'Stopped at :30 · ':'')+L.mmss(r.secs);
  $('rbar').innerHTML='<button class="btn pri" data-a="rkeep">KEEP</button><button class="btn" data-a="ragain">AGAIN</button><button class="btn ghost" data-a="rclose">CLOSE</button>';
 }
+async function keepSetRec(sid,blob,secs){
+ const st=DB.sets.find(x=>x.id===sid); if(!st) return false;
+ const id=rid('k'), ok=await putTake(id,blob);
+ if(!ok){ toast('This phone would not keep the recording. Save it to the phone instead.'); return false; }
+ st.recs=st.recs||[]; st.recs.push({id,secs:Math.round(secs*10)/10,at:Date.now(),type:blob.type||''}); save(true); return true;
+}
+async function saveBlob(b,name){ const f=new File([b],name,{type:b.type});
+ try{ if(/Android|iPhone|iPad/i.test(navigator.userAgent)&&navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:f.name}); return; } }catch(e){ if(e&&e.name==='AbortError') return; }
+ const x=document.createElement('a'); x.href=URL.createObjectURL(f); x.download=f.name; document.body.appendChild(x); x.click(); x.remove(); }
 async function keepTake(blob,secs){
  const p=piece(OPEN); if(!p) return;
  const id=rid('k'), ok=await putTake(id,blob);
@@ -165,16 +180,20 @@ async function act(a,ds){
   case 'pup': case 'pdown': if(p){ p.parts=L.move(p.parts,+ds.i,a==='pup'?-1:1); save(); render(); } break;
   case 'prm': if(p){ p.parts.splice(+ds.i,1); save(); render(); } break;
   case 'del': if(p&&confirm('Delete "'+nameOf(p)+'"? It comes out of every bit, act and set it is in.')){ if(p.repId) delTake(p.repId); DB.pieces=DB.pieces.filter(x=>x.id!==p.id); DB.pieces.forEach(q=>{ if(q.parts) q.parts=q.parts.filter(id=>id!==p.id); }); DB.sets.forEach(x=>x.items=(x.items||[]).filter(id=>id!==p.id)); OPEN=null; save(true); render(); } break;
-  case 'rec': await openRec(); break;
+  case 'rec': await openRec({kind:'video',cap:30}); break;
+  case 'arec': await openRec({kind:'audio',cap:30}); break;
+  case 'vjoke': newPiece('joke'); await openRec({kind:'video',cap:30}); break;
+  case 'ajoke': newPiece('joke'); await openRec({kind:'audio',cap:30}); break;
+  case 'aset': if(s) await openRec({kind:'audio',cap:0,set:s.id}); break;
+  case 'savesetrec': { const b=await getTake(ds.id); if(b) await saveBlob(b,C.fileName({name:'',role:(s&&s.name)||'set',ext:C.ext(b.type)})); break; }
+  case 'rmsetrec': if(s&&confirm('Remove this recording?')){ delTake(ds.id); delete URLS[ds.id]; s.recs=(s.recs||[]).filter(r=>r.id!==ds.id); save(true); render(); } break;
   case 'rgo': rgo(); break;
   case 'rstop': await rstop(); break;
-  case 'ragain': { if(R&&R.url) URL.revokeObjectURL(R.url); rclose(); await openRec(); break; }
-  case 'rkeep': { const r=R&&R.result; if(r&&await keepTake(r.blob,r.secs)){ rclose(); render(); toast('Take kept: '+L.mmss(r.secs)+'.'); } break; }
+  case 'ragain': { const o=LASTREC; if(R&&R.url) URL.revokeObjectURL(R.url); rclose(); await openRec(o); break; }
+  case 'rkeep': { const r=R&&R.result, sid=R&&R.set; if(r&&(sid?await keepSetRec(sid,r.blob,r.secs):await keepTake(r.blob,r.secs))){ rclose(); render(); toast((sid?'Recording kept: ':'Take kept: ')+L.mmss(r.secs)+'.'); } break; }
   case 'rclose': rclose(); break;
   case 'rmtake': if(p&&p.repId&&confirm('Remove this take?')){ delTake(p.repId); delete URLS[p.repId]; delete p.repId; delete p.repSecs; delete p.repAt; save(true); render(); } break;
-  case 'savetake': if(p&&p.repId){ const b=await getTake(p.repId); if(!b) return; const f=new File([b],C.fileName({name:'',role:nameOf(p),ext:C.ext(b.type)}),{type:b.type});
-   try{ if(/Android|iPhone|iPad/i.test(navigator.userAgent)&&navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:f.name}); return; } }catch(e){ if(e&&e.name==='AbortError') return; }
-   const x=document.createElement('a'); x.href=URL.createObjectURL(f); x.download=f.name; document.body.appendChild(x); x.click(); x.remove(); } break;
+  case 'savetake': if(p&&p.repId){ const b=await getTake(p.repId); if(!b) return; await saveBlob(b,C.fileName({name:'',role:nameOf(p),ext:C.ext(b.type)})); } break;
   case 'newset': { const x={id:rid('s'),name:'',target:300,items:[],nights:[],at:Date.now()}; DB.sets.push(x); save(true); SET=x.id; render(); const f=$('s_name'); if(f) f.focus(); break; }
   case 'openset': SET=ds.id; NIGHT=null; render(); break;
   case 'backset': SET=null; NIGHT=null; render(); break;
@@ -211,5 +230,6 @@ document.addEventListener('change',async e=>{ const t=e.target;
  else if(t.id==='tfile'&&t.files[0]){ const f=t.files[0], secs=await clipLength(f); if(await keepTake(f,secs)){ render(); toast('Clip kept: '+L.mmss(secs)+'.'); } } });
 document.addEventListener('visibilitychange',()=>{ if(document.hidden&&R&&!R.rec) rclose(); });
 window.__setlist={DB:()=>DB,act,render};
+document.addEventListener('click',e=>{ const t=e.target.closest('.kt[data-kit]'); if(!t||t.classList.contains('off')) return; e.preventDefault(); act(t.dataset.kit,{}); });
 render();
 })();

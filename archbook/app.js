@@ -211,12 +211,48 @@
   }
 
   // ---------------------------------------------------------------- CLIPS
+  /* SHOOT A CLIP: the camera, straight into your footage. The only copy is the one kept here, so it is always kept,
+     and SAVE TO PHONE puts it in your camera roll too. */
+  let SH = null;
+  async function shootClip() {
+    const C = window.Capture; if (!C) { toast("This browser can't open the camera here."); return; }
+    let o = $('#abrec'); if (!o) { o = document.createElement('div'); o.id = 'abrec'; document.body.appendChild(o); }
+    o.innerHTML = `<div class="abrbox"><video id="abv" playsinline muted autoplay class="mirror"></video><div class="abclock" id="abc">0:00</div><p class="dim" id="abm" style="font-size:14px;margin:6px 0">Shoot it. It goes straight into your footage.</p><div class="row" id="abbar"><button class="btn pri" id="abgo">RECORD</button><button class="btn" id="abflip">FLIP CAMERA</button><button class="btn ghost" id="abx">CLOSE</button></div></div>`;
+    o.hidden = false; document.body.classList.add('ovopen'); SH = { facing: 'user' };
+    const openCam = async () => { try { if (SH.stream) C.stop(SH.stream); SH.stream = await C.open({ video: true, audio: true, facing: SH.facing }); const v = $('#abv'); v.srcObject = SH.stream; v.classList.toggle('mirror', SH.facing === 'user'); v.play().catch(() => {}); } catch (e) { $('#abm').textContent = C.errorWords(e, 'video'); } };
+    const close = () => { if (!SH) return; clearInterval(SH.tick); try { SH.rec && SH.rec.cancel(); } catch (e) {} C.stop(SH.stream); if (SH.url) URL.revokeObjectURL(SH.url); SH = null; o.hidden = true; o.innerHTML = ''; document.body.classList.remove('ovopen'); };
+    const wireX = () => { const x = $('#abx'); if (x) x.onclick = close; };
+    await openCam(); wireX();
+    $('#abflip').onclick = async () => { SH.facing = SH.facing === 'user' ? 'environment' : 'user'; await openCam(); };
+    $('#abgo').onclick = () => {
+      if (!SH || !SH.stream || SH.rec) return;
+      try { SH.rec = C.record(SH.stream, 'video'); } catch (e) { $('#abm').textContent = e.message; return; }
+      SH.t0 = Date.now(); SH.tick = setInterval(() => { const n = Math.floor((Date.now() - SH.t0) / 1000); $('#abc').textContent = Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0'); }, 250);
+      $('#abbar').innerHTML = '<button class="btn pri" id="abstop">STOP</button>';
+      $('#abstop').onclick = async () => {
+        clearInterval(SH.tick); const r = await SH.rec.stop(); SH.rec = null; C.stop(SH.stream); SH.stream = null; SH.r = r; SH.url = URL.createObjectURL(r.blob);
+        const v = $('#abv'); v.srcObject = null; v.src = SH.url; v.muted = false; v.controls = true; v.classList.remove('mirror');
+        const name = 'Shot ' + new Date().toISOString().slice(0, 16).replace('T', ' ').replace(':', '.') + '.' + r.ext;
+        $('#abm').textContent = name + '. Not kept yet.';
+        $('#abbar').innerHTML = '<button class="btn pri" id="abkeep">KEEP IT</button><button class="btn" id="absave">SAVE TO PHONE</button><button class="btn" id="abagain">AGAIN</button><button class="btn ghost" id="abx">CLOSE</button>'; wireX();
+        $('#abagain').onclick = async () => { close(); await shootClip(); };
+        $('#absave').onclick = async () => { const f = new File([r.blob], name, { type: r.blob.type });
+          try { if (/Android|iPhone|iPad/i.test(navigator.userAgent) && navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: f.name }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+          const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); };
+        $('#abkeep').onclick = async () => { const f = new File([r.blob], name, { type: r.blob.type, lastModified: Date.now() }); close(); await addFiles([f]);
+          const c = S.lib.clips.find(x => x.name === f.name && x.size === f.size);
+          if (c && !c.kept) { try { await DB.putMedia(c.id, f); c.kept = true; c.shot = true; touch(); } catch (e) { toast('Not enough space to keep it here. Save it to the phone.'); } }
+          render(); };
+      };
+    };
+  }
   function vClips() {
     const L = S.lib, unl = L.clips.filter(c => !linked(c)).length;
     const counts = {}; L.moments.forEach(m => counts[m.clip] = (counts[m.clip] || 0) + 1);
     return `
       ${L.clips.length ? '' : `<div style="padding:12px 0 4px"><div class="kicker">THEACTORPAGE · ACT</div><h1 style="font-size:32px;letter-spacing:.12em">ARCHBOOK</h1><div style="color:var(--tung-text);letter-spacing:.06em;margin-top:2px">Your footage, sorted by archetype.</div>
         <p class="dim" style="margin:6px 0 0;max-width:34em">Drop your footage. Mark your best moments and what character each one expresses. Paste a breakdown and see what footage you've got for the role, then play the reel and hand it off.</p></div>`}
+      ${window.Kit ? Kit.html([{ id: 'shoot', dev: 'camera', label: 'CAMERA', what: 'Shoot a clip', note: 'Straight into your footage. Kept in this app; save it to the phone too' }]) : ''}
       <div class="drop" id="drop" data-a="addclips" role="button" tabindex="0">
         <b>${L.clips.length ? 'Add more footage' : 'Drop footage'}</b>
         <span class="dim" style="font-size:14px">Scenes, self tapes, set footage. From your camera roll or a folder.</span>
@@ -804,6 +840,7 @@
 
   // ---------------------------------------------------------------- events
   document.addEventListener('click', e => {
+    const k = e.target.closest('.kt[data-kit="shoot"]'); if (k) { e.preventDefault(); shootClip(); return; }
     const t = e.target.closest('[data-a]');
     if (!t || t.disabled || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT') return;
     e.preventDefault();

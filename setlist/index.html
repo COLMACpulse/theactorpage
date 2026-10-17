@@ -86,7 +86,7 @@ nav.tabs button.on{color:var(--tung-text)}
 .vid{width:100%;max-height:60vh;border-radius:10px;background:#000;display:block}
 .vid.mirror{transform:scaleX(-1)}
 .ov{position:fixed;inset:0;z-index:60;background:var(--bg);padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px);overflow:auto}
-.recbox{max-width:640px;margin:0 auto}
+.recbox{max-width:640px;margin:0 auto}.recbox .aud{border:1px solid var(--line);padding:40px 0;text-align:center;font-weight:700;letter-spacing:.2em}.slkit{margin:0 0 14px}
 .cnt{font:700 34px var(--mono);text-align:center;margin:10px 0 0;color:var(--tung-text)}
 .stagetext{white-space:pre-wrap;font:700 30px/1.5 var(--mono);letter-spacing:.04em;margin:0 0 16px}
 body.ovopen{overflow:hidden}
@@ -116,6 +116,7 @@ body.ovopen{overflow:hidden}
 <div class="ov" id="stageov" hidden></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="../shared/capture.js"></script>
+<script src="../shared/kit.js"></script>
 <script src="set.js"></script>
 <script src="app.js"></script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});</script>

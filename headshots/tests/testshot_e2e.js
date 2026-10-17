@@ -1,0 +1,33 @@
+/* HEADSHOTS: TEST SHOT. The camera tile on the first screen; the light and focus read live as you frame it; SNAP;
+   what this shot reads; ADD TO MY HEADSHOTS (checked like any other), SAVE TO PHONE, AGAIN, FLIP CAMERA; nothing kept
+   unless you add it; the camera off after. Fake camera. Server on :8811.  NODE_PATH=... node headshots/tests/testshot_e2e.js */
+const {chromium}=require('playwright');
+(async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome',args:['--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream']});
+let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,400))); if(!x) ok=false; };
+const c=await b.newContext({viewport:{width:390,height:844},acceptDownloads:true}); await c.grantPermissions(['camera','microphone'],{origin:'http://localhost:8811'});
+await c.addInitScript(()=>{ try{ sessionStorage.setItem('theactorpage_hot_ok','1'); }catch(e){} });
+const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
+await p.goto('http://localhost:8811/headshots/'); await p.evaluate(()=>{ localStorage.clear(); indexedDB.deleteDatabase('theactorpage_you'); }); await p.reload(); await p.waitForTimeout(700);
+want('first screen: a CAMERA tile, test shot', (await p.$$eval('.kit .kt',x=>x.map(t=>t.dataset.kit))).join()==='tshot'&&/Take a test shot/.test(await p.innerText('.kit'))&&/Kept only if you add it/.test(await p.innerText('.kit')));
+await p.click('[data-kit="tshot"]'); await p.waitForTimeout(2200);
+want('open: says what it is, the camera on in the bar', /Nothing is kept unless you add it/.test(await p.innerText('#ov'))&&/CAMERA/.test(await p.innerText('#hotbar')));
+want('the light and focus, read live', /Right now/i.test(await p.innerText('#tsw'))&&(await p.$$eval('#tsw p.small',x=>x.length))>=1, await p.innerText('#tsw'));
+await p.click('#tsflip'); await p.waitForTimeout(1200);
+want('FLIP CAMERA: still live, no error', await p.evaluate(()=>{ const v=document.getElementById('tsv'); return !!v&&v.videoWidth>0; }));
+await p.click('#tsgo'); await p.waitForTimeout(800);
+want('SNAP: the still, and what this shot reads', await p.evaluate(()=>{ const i=document.getElementById('tsi'); return !i.hidden&&/^blob:/.test(i.src); })&&/This shot/i.test(await p.innerText('#tsw')));
+want('the camera is off once you snap', !(await p.$('#hotbar'))||!/CAMERA/.test(await p.innerText('#hotbar')));
+want('nothing kept yet', await p.evaluate(()=>You.get().photos.length)===0);
+const [dl]=await Promise.all([p.waitForEvent('download'),p.click('#tssave')]);
+want('SAVE TO PHONE (a computer here): a .jpg', /test_shot_\d{4}-\d\d-\d\d\.jpg$/.test(dl.suggestedFilename()), dl.suggestedFilename());
+await p.click('#tsagain'); await p.waitForTimeout(1800);
+want('AGAIN: live again', await p.evaluate(()=>{ const v=document.getElementById('tsv'); return !!v&&!v.hidden&&v.videoWidth>0; }));
+await p.click('#tsgo'); await p.waitForTimeout(800); await p.click('#tsadd'); await p.waitForTimeout(1800);
+const y=await p.evaluate(()=>You.get().photos.map(x=>({name:x.name,check:!!x.check})));
+want('ADD TO MY HEADSHOTS: in your profile, named test shot, checked', y.length===1&&/^Test shot \d{4}-\d\d-\d\d \d\d\.\d\d\.jpg$/.test(y[0].name)&&y[0].check, y);
+want('the overlay is closed, the card shows it', (await p.$eval('#ov',o=>o.hidden))&&!!(await p.$('.card.hs')));
+await p.click('[data-kit="tshot"]'); await p.waitForTimeout(1500); await p.click('#tsx'); await p.waitForTimeout(300);
+want('CLOSE: the camera off, nothing added', (!(await p.$('#hotbar'))||!/CAMERA/.test(await p.innerText('#hotbar')))&&await p.evaluate(()=>You.get().photos.length)===1);
+want('no em dashes', !/—/.test(await p.innerText('body')));
+want('no page errors', !errs.length, errs);
+await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();

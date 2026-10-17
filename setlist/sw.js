@@ -1,6 +1,6 @@
 /* SET LIST offline shell. Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='setlist-0.1.4';
-const FILES=['./','index.html','../shared/hot.js','app.js','set.js','manifest.webmanifest','../shared/capture.js',
+const CACHE='setlist-0.1.5';
+const FILES=['./','index.html','../shared/hot.js','app.js','set.js','manifest.webmanifest','../shared/capture.js','../shared/kit.js',
  'fonts/jost-latin-400-normal.woff2','fonts/jost-latin-500-normal.woff2','fonts/jost-latin-600-normal.woff2',
  'fonts/courier-prime-latin-400-normal.woff2','fonts/courier-prime-latin-700-normal.woff2',
  'icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];

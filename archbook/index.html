@@ -150,6 +150,7 @@ nav.tabs .badge{position:absolute;top:10px;right:calc(50% - 18px);width:8px;heig
 .player .bar{display:flex;align-items:center;gap:8px;padding:8px 12px calc(8px + env(safe-area-inset-bottom));background:#111;color:#eee}
 .player .bar .btn{background:#222;border-color:#333;color:#eee}
 
+#abrec{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.92);overflow:auto;padding:16px}#abrec[hidden]{display:none}.abrbox{max-width:720px;margin:0 auto}#abv{width:100%;max-height:64vh;background:#000;border-radius:10px;display:block}#abv.mirror{transform:scaleX(-1)}.abclock{font:700 22px var(--mono,monospace);margin-top:8px}
 /* sheet */
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;opacity:0;transition:opacity .15s}.scrim.on{opacity:1}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--panel);border-top:1px solid var(--line);border-radius:18px 18px 0 0;max-height:88dvh;overflow:auto;padding:8px 16px calc(20px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .18s ease}
@@ -166,6 +167,8 @@ table.mini{width:100%;border-collapse:collapse;font-size:14px}table.mini td{padd
 <input type="file" id="clipin" class="sr" accept="video/*,.mov,.mp4,.m4v,.webm" multiple>
 <input type="file" id="relinkin" class="sr" accept="video/*,.mov,.mp4,.m4v,.webm" multiple>
 <input type="file" id="libin" class="sr" accept=".json,application/json">
+<script src="../shared/capture.js"></script>
+<script src="../shared/kit.js"></script>
 <script src="engine.js"></script>
 <script src="scenes.js"></script>
 <script src="app.js"></script>
