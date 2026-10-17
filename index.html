@@ -228,6 +228,33 @@ footer a:hover{color:var(--tungsten)}
 body.has .titlecard{min-height:auto;padding:46px 28px 30px}
 body.has .scrollcue{display:none}
 .you .disc-name{color:var(--paper)}
+/* the object on each band, like the lens: filled from what you put in (shared/rooms.js). Tap it: that room's main tool. */
+.obj{display:block;width:min(100%,210px);margin:28px 0 0;color:inherit;text-decoration:none}
+.obj svg{display:block;width:100%;height:auto;filter:drop-shadow(0 14px 22px rgba(0,0,0,.55))}
+.obj:focus-visible,.mic:focus-visible{outline:2px solid var(--tungsten);outline-offset:6px}
+.obj-why,.obj-cap{display:block;font-family:var(--script);font-size:.78rem;color:var(--faint);margin-top:10px}.obj-cap{color:#c3c8d0}.obj-why[hidden]{display:none}
+.sll text{font:600 7.5px var(--script);letter-spacing:.14em;fill:#646b75}
+.slv text{font:600 12px var(--script);fill:#ece7dc;letter-spacing:.04em}.slv text.big{font-size:22px}
+.twp text{font:9px var(--script);fill:#1d1a15;text-anchor:middle}.twp text.t{font-weight:700;font-size:10px;letter-spacing:.06em}.twp text.s{font-size:7.5px;fill:#5f584b}
+.twk circle{fill:#101215;stroke:#9aa0a8;stroke-opacity:.55}.twk rect{fill:#101215;stroke:#9aa0a8;stroke-opacity:.55}
+#slsticks{transform-box:fill-box;transform-origin:2% 100%}
+.mic{float:right;width:64px;margin:0 0 6px 14px;color:inherit;text-decoration:none}.mic svg{display:block;width:100%;height:auto}
+.mic .sign{fill:#262a30;stroke:#3a3f47}.mic .signt{font:700 7px var(--script);letter-spacing:.12em;fill:#646b75;text-anchor:middle}
+.mic.air .sign{fill:#c8372d;stroke:#ff6a55;filter:drop-shadow(0 0 6px rgba(255,80,60,.8))}.mic.air .signt{fill:#fff}
+.vf{font:700 7px var(--script);fill:#ece7dc;text-anchor:middle;letter-spacing:.06em}
+.mic .plate{font:700 6px var(--script);letter-spacing:.1em;fill:#9aa0a8;text-anchor:middle}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media(prefers-reduced-motion:no-preference){
+  .clap #slsticks{animation:clap .55s cubic-bezier(.5,0,.4,1) both}
+  @keyframes clap{0%{transform:rotate(-24deg)}70%{transform:rotate(1.5deg)}100%{transform:none}}
+  .roll .reel{animation:roll 1.4s cubic-bezier(.3,.6,.3,1) both}
+  @keyframes roll{from{transform:rotate(-200deg)}to{transform:none}}
+}
+@media(max-width:720px){
+  .band .disc>div:first-child:has(.obj){display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:18px}
+  .band .disc>div:first-child>.obj{grid-row:1 / span 4;grid-column:2;width:122px;margin:0}
+  .band .disc>div:first-child>.obj-why,.band .disc>div:first-child>.obj-cap{grid-column:1}
+}
 /* the lens: you, seen through the glass. Your main headshot from YOUR PROFILE, on this device only.
    It pulls focus once when the page opens and again when a new headshot lands. Tap it: YOUR PROFILE. */
 .lens{position:relative;display:block;width:min(100%,220px);aspect-ratio:1;margin:30px 0 0;padding:0;border:0;border-radius:50%;cursor:pointer;
@@ -393,6 +420,16 @@ body.stopen{overflow:hidden}
     <div>
       <h2 class="disc-name">ACT</h2>
       <p class="disc-what">Tungsten. The room<br>you tape in.</p>
+      <a class="obj" id="slate" href="actor-os/" aria-label="Actor OS. Your latest audition on the slate.">
+       <svg viewBox="0 0 200 190" role="img" aria-hidden="true"><defs><pattern id="slstripe" width="28" height="18" patternUnits="userSpaceOnUse" patternTransform="skewX(-35)"><rect width="14" height="18" fill="#ece7dc"/><rect x="14" width="14" height="18" fill="#101114"/></pattern></defs>
+        <g id="slsticks"><rect x="8" y="22" width="184" height="17" rx="3" fill="url(#slstripe)" stroke="#3a3f47"/></g>
+        <rect x="8" y="41" width="184" height="15" rx="2" fill="url(#slstripe)" stroke="#3a3f47"/><circle cx="16" cy="40" r="3.5" fill="#3a3f47"/>
+        <rect x="8" y="58" width="184" height="124" rx="6" fill="#141619" stroke="#3a3f47"/>
+        <path d="M8 92H192M8 122H192M8 152H192M104 92V152" stroke="#2c3138"/>
+        <g class="sll"><text x="16" y="70">PROD.</text><text x="16" y="102">ROLE</text><text x="112" y="102">TAKE</text><text x="16" y="132">DATE</text><text x="112" y="132">ROLL</text><text x="16" y="162">ACTOR</text></g>
+        <g class="slv"><text id="sl_prod" x="16" y="86"></text><text id="sl_role" x="16" y="116"></text><text id="sl_take" class="big" x="112" y="118"></text><text id="sl_date" x="16" y="146"></text><text x="112" y="146">A</text><text id="sl_name" x="16" y="176"></text></g>
+       </svg></a>
+      <span class="obj-why" id="sl_why">Your next audition goes here.</span>
     </div>
     <div>
       <div class="tool">
@@ -456,7 +493,13 @@ body.stopen{overflow:hidden}
           <span class="tool-role">voice over</span>
           <span class="status live">OPEN</span>
         </div>
-        <p>A voice over audition from your phone in a closet. Drop the copy and the agent's note: it finds your lines, the ALTs and the order they want. Check the room, read line by line, keep your best take of each. It cuts the dead air, sets the level and makes one MP3 named the way casting reads it. Made it in a booth? Drop the file and see what they'll hear.</p>
+        <p><a class="mic" id="mic" href="booth/" aria-label="VO Booth"><span class="sr" id="mic_sr" aria-live="polite"></span>
+         <svg viewBox="0 0 80 132" role="img" aria-hidden="true"><defs><pattern id="micdot" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="#8a8f97"/></pattern><path id="micarc" d="M12 26Q40 6 68 26"/></defs>
+          <path class="sign" d="M8 28Q40 2 72 28L70 34Q40 12 10 34Z"/><text class="signt"><textPath href="#micarc" startOffset="50%">ON THE AIR</textPath></text>
+          <rect x="24" y="38" width="32" height="50" rx="16" fill="url(#micdot)" stroke="#9aa0a8" stroke-width="2"/><path d="M24 64H56" stroke="#2c3138" stroke-width="3"/>
+          <path d="M18 60V70A22 22 0 0 0 62 70V60" fill="none" stroke="#9aa0a8" stroke-width="2.5"/><path d="M40 92V112" stroke="#9aa0a8" stroke-width="5"/>
+          <ellipse cx="40" cy="118" rx="30" ry="9" fill="#15171b" stroke="#3a3f47"/><text id="mic_plate" x="40" y="121" class="plate"></text>
+         </svg></a>A voice over audition from your phone in a closet. Drop the copy and the agent's note: it finds your lines, the ALTs and the order they want. Check the room, read line by line, keep your best take of each. It cuts the dead air, sets the level and makes one MP3 named the way casting reads it. Made it in a booth? Drop the file and see what they'll hear.</p>
         <div class="actions"><a class="btn ghost" href="booth/">Open VO Booth</a></div>
       </div>
       <div class="tool">
@@ -556,6 +599,16 @@ body.stopen{overflow:hidden}
     <div>
       <h2 class="disc-name">WRITE</h2>
       <p class="disc-what">Paper. Courier 12,<br>like always.</p>
+      <a class="obj" id="tw" href="write/writers-blockage.html" aria-label="Writer's Blockage. Your latest draft on the page.">
+       <svg viewBox="0 0 220 200" role="img" aria-hidden="true">
+        <rect x="58" y="6" width="104" height="96" fill="#ece7dc"/>
+        <g class="twp"><text id="tw_title" x="110" y="40" class="t"></text><text id="tw_by" x="110" y="58"></text><text id="tw_name" x="110" y="70"></text><text id="tw_date" x="110" y="92" class="s"></text></g>
+        <rect x="34" y="98" width="152" height="14" rx="7" fill="#1d2025" stroke="#3a3f47"/><circle cx="28" cy="105" r="7" fill="#1d2025" stroke="#3a3f47"/><circle cx="192" cy="105" r="7" fill="#1d2025" stroke="#3a3f47"/>
+        <path d="M44 114H176L204 188H16Z" fill="#15171b" stroke="#3a3f47"/>
+        <path d="M88 136A22 22 0 0 1 132 136" fill="none" stroke="#3a3f47" stroke-width="5"/><path d="M110 118V128" stroke="#e0a23c"/>
+        <g class="twk"><circle cx="52" cy="150" r="4.6"/><circle cx="64" cy="150" r="4.6"/><circle cx="77" cy="150" r="4.6"/><circle cx="89" cy="150" r="4.6"/><circle cx="102" cy="150" r="4.6"/><circle cx="115" cy="150" r="4.6"/><circle cx="127" cy="150" r="4.6"/><circle cx="140" cy="150" r="4.6"/><circle cx="152" cy="150" r="4.6"/><circle cx="165" cy="150" r="4.6"/><circle cx="57" cy="162" r="4.6"/><circle cx="69" cy="162" r="4.6"/><circle cx="82" cy="162" r="4.6"/><circle cx="94" cy="162" r="4.6"/><circle cx="107" cy="162" r="4.6"/><circle cx="120" cy="162" r="4.6"/><circle cx="132" cy="162" r="4.6"/><circle cx="145" cy="162" r="4.6"/><circle cx="157" cy="162" r="4.6"/><circle cx="62" cy="174" r="4.6"/><circle cx="74" cy="174" r="4.6"/><circle cx="87" cy="174" r="4.6"/><circle cx="99" cy="174" r="4.6"/><circle cx="112" cy="174" r="4.6"/><circle cx="125" cy="174" r="4.6"/><circle cx="137" cy="174" r="4.6"/><circle cx="150" cy="174" r="4.6"/><rect x="74" y="182" width="72" height="5" rx="2"/></g>
+       </svg></a>
+      <span class="obj-why" id="tw_why">Your page goes here.</span>
     </div>
     <div>
       <div class="tool">
@@ -620,6 +673,21 @@ body.stopen{overflow:hidden}
     <div>
       <h2 class="disc-name">FILM</h2>
       <p class="disc-what">Daylight. Outside,<br>on the day.</p>
+      <a class="obj" id="cam" href="film/" aria-label="Story Studio. Your film in the viewfinder.">
+       <svg viewBox="0 0 220 210" role="img" aria-hidden="true"><defs><clipPath id="camclip"><rect x="60" y="78" width="46" height="46" rx="4"/></clipPath></defs>
+        <g class="reel" style="transform-origin:78px 40px"><circle cx="78" cy="40" r="30" fill="#141619" stroke="#3a3f47" stroke-width="2"/><circle cx="78" cy="40" r="5" fill="#3a3f47"/><path d="M78 14V30M78 50V66M52 40H68M88 40H104" stroke="#2c3138" stroke-width="5"/></g>
+        <g class="reel" style="transform-origin:140px 40px"><circle cx="140" cy="40" r="26" fill="#141619" stroke="#3a3f47" stroke-width="2"/><circle cx="140" cy="40" r="5" fill="#3a3f47"/><path d="M140 18V31M140 49V62M118 40H131M149 40H162" stroke="#2c3138" stroke-width="5"/></g>
+        <rect x="50" y="70" width="112" height="62" rx="6" fill="#15171b" stroke="#3a3f47"/>
+        <rect x="60" y="78" width="46" height="46" rx="4" fill="#0b0d10" stroke="#e0a23c" stroke-opacity=".6"/>
+        <text id="cam_vf" class="vf" x="83" y="98"><tspan id="cam_vf1" x="83" dy="0"></tspan><tspan id="cam_vf2" x="83" dy="10"></tspan></text>
+        <image id="cam_img" x="60" y="78" width="46" height="46" preserveAspectRatio="xMidYMid slice" clip-path="url(#camclip)" style="display:none"/>
+        <circle cx="134" cy="101" r="13" fill="#0e1013" stroke="#3a3f47"/><circle cx="134" cy="101" r="5" fill="#2c3138"/>
+        <path d="M162 86L198 72V130L162 116Z" fill="#101215" stroke="#3a3f47"/>
+        <path d="M30 96H50" stroke="#3a3f47" stroke-width="5" stroke-linecap="round"/>
+        <path d="M100 132V150M100 150L66 206M100 150L100 206M100 150L134 206" stroke="#3a3f47" stroke-width="4" stroke-linecap="round"/><rect x="86" y="132" width="28" height="10" fill="#1d2025"/>
+       </svg></a>
+      <span class="obj-cap" id="cam_title"></span>
+      <span class="obj-why" id="cam_why">Your film goes here.</span>
     </div>
     <div>
       <div class="tool">
@@ -805,6 +873,7 @@ body.stopen{overflow:hidden}
 <script src="hub/request.js"></script>
 <script src="shared/intake.js"></script>
 <script src="shared/home.js"></script>
+<script src="shared/rooms.js"></script>
 <script src="shared/capture.js"></script>
 <script src="shared/takes.js"></script>
 <script src="shared/studio.js"></script>

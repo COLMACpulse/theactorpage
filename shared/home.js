@@ -108,7 +108,7 @@ async function fillPhotos(root){ for(const im of (root||document).querySelectorA
 function wireMain(root){ (root||document).querySelectorAll('[data-main]').forEach(b=>b.onclick=()=>{ Y.setPrimary(b.dataset.main); LAST.forEach(x=>{ if(x.photo) x.went=Y.get().primary===x.photo.id?'Your main headshot. The Hub, Virtual Résumé and Slate Maker use it.':'In your headshots.'; }); showTook(); showYou(); }); }
 /* your profile: what every tool reads. Fix a line here once. */
 function showYou(){
- drawLens(); const box=$('youpanel'); if(!box||!Y) return; const y=Y.get(); if(!Y.has()&&!YFORCE){ box.innerHTML=''; return; }
+ drawLens(); try{ if(window.Rooms) Rooms.draw(); }catch(e){} const box=$('youpanel'); if(!box||!Y) return; const y=Y.get(); if(!Y.has()&&!YFORCE){ box.innerHTML=''; return; }
  const by={}; y.credits.forEach(c=>by[c.section]=(by[c.section]||0)+1);
  let h='<details class="yp"'+(YOPEN?' open':'')+' id="ypd"><summary>YOUR PROFILE · '+esc(y.name||'no name yet')+(y.credits.length?' · '+y.credits.length+' credits':'')+(y.photos.length?' · '+y.photos.length+' headshot'+(y.photos.length===1?'':'s'):'')+'</summary>'
   +'<p class="why">Every tool fills its blanks from this. Fix a line here once and it stays fixed.</p>'
