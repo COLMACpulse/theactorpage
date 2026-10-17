@@ -409,6 +409,54 @@ T.ntHits=function(fact,scenes){
  return out;
 };
 
+/* ---------- SOUNDS LIKE YOU: one scene next to everything else you wrote. Counts and your closest lines. No score. ----------
+   (The one part of AUTHORIAL VOICE ENGINE that held up: quote your own lines back, cited. Its labels are not here.) */
+/* scenes from T.scenes -> lines: {who (null = action), text, i, heading, pid, title} */
+T.vUnits=function(scenes,meta){
+ const out=[]; meta=meta||{};
+ (scenes||[]).forEach((s,i)=>{ const who=new Set((s.lines||[]).map(x=>T.norm(x.name)));
+  String(s.text||'').split('\n').forEach(l=>{ l=l.trim(); if(!l) return; const m=l.match(/^([^:]{1,40}):\s(.*)$/);
+   if(m&&who.has(T.norm(m[1]))) out.push({who:m[1],text:m[2],i,heading:s.heading||'',pid:meta.pid,title:meta.title});
+   else out.push({who:null,text:l,i,heading:s.heading||'',pid:meta.pid,title:meta.title}); }); });
+ return out;
+};
+/* text with no scene heading (prose, a pasted bit): read it as one scene */
+T.vScenes=function(text){ let s=T.scenes(String(text||''),'script'); if(!s.length&&String(text||'').trim()) s=T.scenes('INT. PAGE - DAY\n\n'+text,'script').map(x=>Object.assign(x,{heading:''})); return s; };
+const vSent=t=>String(t||'').replace(/\b(Mr|Mrs|Ms|Dr|St|Jr|Sr|Lt|Sgt|Capt|Gen|Col|Det|Prof|Rev|Mt|vs|etc|No)\./gi,'$1').replace(/\([^)]*\)/g,' ')
+ .split(/(?<=[.!?…]["')\]]?)\s+|(?<=--|—)\s+/).map(x=>x.trim()).filter(x=>/[A-Za-z0-9]/.test(x));
+const vWords=t=>String(t||'').split(/\s+/).filter(w=>/[A-Za-z0-9]/.test(w));
+T.vMeasure=function(units){
+ let W=0,dW=0,aW=0,dS=0,aS=0,S=0,frag=0,ask=0,bang=0,dots=0,dash=0,con=0;
+ (units||[]).forEach(u=>{ const t=String(u.text||''), w=vWords(t.replace(/\([^)]*\)/g,' ')), ss=vSent(t);
+  W+=w.length; if(u.who){ dW+=w.length; dS+=ss.length; } else { aW+=w.length; aS+=ss.length; }
+  ss.forEach(s=>{ S++; if(vWords(s).length<=3) frag++; if(/\?["')\]]?$/.test(s)) ask++; if(/!["')\]]?$/.test(s)) bang++; });
+  dots+=(t.match(/\.\.\.|…/g)||[]).length; dash+=(t.match(/--|—|\s–\s/g)||[]).length;
+  con+=(t.replace(/’/g,"'").match(/[A-Za-z](n't|'re|'ll|'ve|'d|'m)\b/gi)||[]).length; });
+ const r1=x=>Math.round(x*10)/10, pc=(a,b)=>b?Math.round(a/b*100):null;
+ return {words:W,dialoguePct:pc(dW,W),perD:dS?r1(dW/dS):null,perA:aS?r1(aW/aS):null,frag:pc(frag,S),ask:pc(ask,S),bang:pc(bang,S),
+  dots:W?r1(dots/W*1000):null,dash:W?r1(dash/W*1000):null,contr:W?r1(con/W*100):null};
+};
+T.VROWS=[['words','Words'],['dialoguePct','Words that are dialogue'],['perD','Words a sentence, dialogue'],['perA','Words a sentence, action'],
+ ['frag','Sentences of 3 words or fewer'],['ask','Sentences that ask'],['bang','Sentences that end in !'],['dots','Trail-offs (...) per 1,000 words'],
+ ['dash','Dashes per 1,000 words'],['contr','Contractions per 100 words']];
+T.vText=function(k,v){ if(v==null) return '–'; if(k==='words') return v.toLocaleString('en-US'); if(/Pct$|^(frag|ask|bang)$/.test(k)) return v+'%'; return String(v); };
+const vTok=(t,names)=>{ const out=new Set(); String(t||'').toLowerCase().replace(/[‘’]/g,"'").split(/[^a-z0-9']+/).forEach(w=>{ w=w.replace(/^'+|'+$/g,'').replace(/'s$/,'');
+ if(w.length<3||NT_STOP.has(w)||/^\d+$/.test(w)||/'/.test(w)||names.has(w)) return; out.add(w.length>4&&/[^s]s$/.test(w)?w.slice(0,-1):w); }); return out; };
+/* for each line here, the line of yours that shares the most uncommon words (two at least). Names don't count.
+   Word for word the same: counted apart, not shown as a match. -> {pairs:[{mine,yours,words}], same:[units]} */
+T.vClosest=function(mine,base,names,n){
+ n=n||6; const NM=new Set(); (names||[]).forEach(x=>T.norm(x).toLowerCase().split(' ').forEach(w=>{ if(w) NM.add(w.replace(/'s$/,'')); }));
+ const BT=(base||[]).map(u=>vTok(u.text,NM)), df={}, ix={}; BT.forEach((s,k)=>s.forEach(w=>{ df[w]=(df[w]||0)+1; (ix[w]=ix[w]||[]).push(k); }));
+ const N=BT.length||1, idf=w=>Math.log((N+1)/((df[w]||0)+1))+0.01, key=s=>T.norm(s), sameK=new Set((base||[]).map(u=>key(u.text)));
+ const pairs=[], same=[];
+ (mine||[]).forEach(u=>{ if(key(u.text)&&sameK.has(key(u.text))&&vWords(u.text).length>=4){ same.push(u); return; }
+  const q=vTok(u.text,NM), sc={}; q.forEach(w=>(ix[w]||[]).forEach(k=>{ (sc[k]=sc[k]||[]).push(w); }));
+  let best=null; Object.keys(sc).forEach(k=>{ const ws=sc[k]; if(ws.length<2) return; const s=ws.reduce((a,w)=>a+idf(w),0); if(!best||s>best.s) best={k:+k,s,ws}; });
+  if(best) pairs.push({mine:u,yours:base[best.k],words:best.ws.sort((a,b)=>idf(b)-idf(a)),s:best.s,k:best.k}); });
+ const seen=new Set();
+ return {pairs:pairs.sort((a,b)=>b.s-a.s).filter(p=>!seen.has(p.k)&&seen.add(p.k)).slice(0,n).map(({mine,yours,words})=>({mine,yours,words})),same};
+};
+
 if(typeof module!=='undefined') module.exports=T;
 g.PaperTrail=T;
 })(typeof window!=='undefined'?window:globalThis);

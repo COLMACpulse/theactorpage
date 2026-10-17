@@ -129,7 +129,7 @@ async function docxText(buf){
 /* ---------- views ---------- */
 function tabs(){
  const p=VIEW.p&&DB.projects[VIEW.p];
- const t=[['projects','Projects'],['add','Add drafts'],['allchars','All characters']];
+ const t=[['projects','Projects'],['add','Add drafts'],['allchars','All characters'],['voice','Sounds like you']];
  if(p) t.push(['scenes','Scenes'],['read','Table read'],['bones','Boneyard'],['research','Research'],['threads','Setups'],['drafts','Drafts'],['characters','Characters']);
  $('tabs').innerHTML=t.map(([k,l])=>'<button data-tab="'+k+'" class="'+(VIEW.tab===k?'on':'')+'">'+l+'</button>').join('');
  $('crumb').innerHTML='<a data-go="projects">Paper Trail</a>'+(p?' &nbsp;/&nbsp; <a data-go="scenes">'+esc(p.title)+'</a>':'')+(VIEW.scene!=null&&p?' &nbsp;/&nbsp; scene':'');
@@ -139,6 +139,7 @@ function render(){
  const m=$('main'), p=VIEW.p&&DB.projects[VIEW.p];
  if(VIEW.tab==='add') m.innerHTML=vAdd();
  else if(VIEW.tab==='allchars') m.innerHTML=vAllChars();
+ else if(VIEW.tab==='voice') m.innerHTML=vVoice();
  else if(!p||VIEW.tab==='projects') m.innerHTML=vProjects();
  else if(VIEW.tab==='scenes') m.innerHTML=VIEW.scene!=null?vScene(p,VIEW.scene):vScenes(p);
  else if(VIEW.tab==='drafts') m.innerHTML=vDrafts(p);
@@ -243,7 +244,7 @@ function vScene(p,i){
  }
  if(c){
   const mc=T.markCounts(DB.marks[c.id])[keys[i]];
-  h+='<div class="eyebrow">Table read</div><div class="panel">'+(mc?countLine(mc):'No marks on this draft yet.')+'<div class="row" style="margin-top:10px"><button class="btn sm" data-tab="read">MARK LINES</button></div></div>';
+  h+='<div class="eyebrow">Table read</div><div class="panel">'+(mc?countLine(mc):'No marks on this draft yet.')+'<div class="row" style="margin-top:10px"><button class="btn sm" data-tab="read">MARK LINES</button><button class="btn sm ghost" data-vfrom="'+esc(p.id+'|'+i)+'">SOUNDS LIKE YOU?</button></div></div>';
  }
  if(c){
   h+='<div class="eyebrow">Story Studio</div><div class="panel">'+(st&&st.way?'<b>'+esc(st.way)+'</b> · '+st.done+' of '+st.total+' shots done':'Not in Story Studio yet.')
@@ -580,6 +581,52 @@ function vAllChars(){
  h+='<div class="eyebrow">Everyone</div><div class="list">'+A.map(x=>'<div class="li"><div class="w"><b>'+esc(x.name)+'</b><small>'+x.in.map(y=>'<a data-charin="'+esc(y.pid)+'|'+esc(x.name)+'">'+esc(y.title)+'</a> ('+y.lines+')').join(' · ')+'</small></div></div>').join('')+'</div>';
  return h;
 }
+/* ---------- SOUNDS LIKE YOU: one scene next to everything else you kept here. Counts and your closest lines. No score. ---------- */
+let VOICE={from:'',text:'',who:'',on:false}; const VCACHE={};
+function vUnitsOf(p,c){ const k=c.id+'|'+(c.hash||''); if(!VCACHE[k]){ let sc=scenesOf(c); if(!sc.length) sc=T.vScenes(TEXT[c.id]||''); VCACHE[k]={sc,u:T.vUnits(sc,{pid:p.id,title:p.title})}; } return VCACHE[k]; }
+function voiceData(){
+ const P=projects().filter(p=>!p.retired).map(p=>({p,c:current(p)})).filter(x=>x.c), all=[];
+ P.forEach(x=>vUnitsOf(x.p,x.c).u.forEach(u=>all.push(u)));
+ let mine=[], base=all, from=null;
+ if(VOICE.from){ const [pid,i]=VOICE.from.split('|'), x=P.find(y=>y.p.id===pid);
+  if(x){ const n=Number(i), sc=vUnitsOf(x.p,x.c).sc[n]; from={p:x.p,i:n,heading:sc?sc.heading:''}; mine=all.filter(u=>u.pid===pid&&u.i===n); base=all.filter(u=>!(u.pid===pid&&u.i===n)); } }
+ else if(VOICE.on&&VOICE.text.trim()) mine=T.vUnits(T.vScenes(VOICE.text),{title:'Pasted'});
+ const speakers=[...new Set(mine.filter(u=>u.who).map(u=>T.norm(u.who)))];
+ if(VOICE.who&&VOICE.who!=='action'&&!speakers.includes(VOICE.who)) VOICE.who='';
+ return {P,all,mine,base,from,speakers};
+}
+function vVoice(){
+ const D=voiceData(), P=D.P;
+ let h='<p class="note">Put one scene next to everything else you\'ve kept in here. You get the lines of yours it\'s closest to, and the counts side by side. It doesn\'t say whether it sounds like you. You decide.</p>';
+ if(!P.length) return h+'<div class="panel">Nothing to compare with yet. It compares with the drafts you keep in Paper Trail: the current draft of each project. <button class="btn sm" data-tab="add">ADD DRAFTS</button></div>';
+ h+='<div class="panel"><label class="note" for="vfrom">The scene</label><select class="field" id="vfrom"><option value="">Paste a scene</option>'
+  +P.map(x=>'<optgroup label="'+esc(x.p.title)+'">'+vUnitsOf(x.p,x.c).sc.map((s,i)=>{ const v=x.p.id+'|'+i; return '<option value="'+esc(v)+'"'+(VOICE.from===v?' selected':'')+'>SC '+(i+1)+(s.heading?' '+esc(s.heading):'')+'</option>'; }).join('')+'</optgroup>').join('')+'</select>';
+ if(!VOICE.from) h+='<textarea class="field" id="vtext" style="margin-top:8px" placeholder="Paste a scene, a speech, a page. Script or prose.">'+esc(VOICE.text)+'</textarea><div class="row" style="margin-top:8px"><button class="btn pri" id="vgo">COMPARE</button></div>';
+ if(D.mine.length) h+='<label class="note" for="vwho" style="display:block;margin-top:10px">Whose lines</label><select class="field" id="vwho"><option value="">Everything</option><option value="action"'+(VOICE.who==='action'?' selected':'')+'>Just the action</option>'
+  +D.speakers.map(n=>'<option value="'+esc(n)+'"'+(VOICE.who===n?' selected':'')+'>'+esc(n)+'</option>').join('')+'</select>';
+ h+='</div>';
+ if(!D.mine.length) return h+(VOICE.on&&!VOICE.from?'<p class="note">Nothing to read in that.</p>':'');
+ const W=VOICE.who, isA=W==='action', pick=u=>isA?!u.who:W?u.who&&T.norm(u.who)===W:true, inBase=u=>isA?!u.who:W?!!u.who:true;
+ const mine=D.mine.filter(pick), base=D.base.filter(inBase);
+ const here=D.from?D.from.p.title+', SC '+(D.from.i+1):'What you pasted';
+ const cols=[[isA?'The action here':W?W+' here':'This scene',mine]];
+ if(W&&!isA&&D.from){ const el=D.base.filter(u=>u.pid===D.from.p.id&&u.who&&T.norm(u.who)===W); if(el.length) cols.push([W+' in the rest of '+D.from.p.title,el]); }
+ cols.push([isA?'All your action':W?'All the dialogue you wrote':'Everything else you wrote here',base]);
+ const byP=P.map(x=>base.filter(u=>u.pid===x.p.id)).filter(a=>a.length), ranges=byP.length>1?byP.map(T.vMeasure):null;
+ const M=cols.map(c=>T.vMeasure(c[1])), bw=M[M.length-1].words;
+ h+='<div class="eyebrow">'+esc(here)+'</div><p class="note" style="margin-top:-4px">Compared with '+T.vText('words',bw)+' words from '+byP.length+' project'+(byP.length===1?'':'s')+', the current draft of each'+(D.from?', this scene left out':'')+'.'+(bw<2000?' That\'s not a lot to compare with.':'')+'</p>';
+ h+='<div class="tbl" id="vnums"><table><tr><th></th>'+cols.map(c=>'<th>'+esc(c[0])+'</th>').join('')+(ranges?'<th>Lowest to highest, project by project</th>':'')+'</tr>'
+  +T.VROWS.map(([k,l])=>'<tr><td>'+esc(l)+'</td>'+M.map(m=>'<td>'+T.vText(k,m[k])+'</td>').join('')
+   +(ranges?'<td>'+(()=>{ const v=ranges.map(r=>r[k]).filter(x=>x!=null); return v.length?T.vText(k,Math.min(...v))+' to '+T.vText(k,Math.max(...v)):'–'; })()+'</td>':'')+'</tr>').join('')+'</table></div>';
+ h+='<p class="note">Counts only, from the page. What they mean is yours.</p>';
+ const names=[...new Set(D.all.concat(D.mine).filter(u=>u.who).map(u=>u.who))];
+ const C=T.vClosest(mine,base,names,6), say=u=>(u.who?u.who+': ':'')+u.text, at=u=>esc(u.title)+(u.heading?' · SC '+(u.i+1)+' '+esc(u.heading):'');
+ h+='<div class="eyebrow">Your closest lines</div><p class="note" style="margin-top:-4px">Matched on the uncommon words they share. Names don\'t count. A word match, not a judgment: it can miss the same idea said another way.</p>';
+ h+='<div class="list" id="vclose">'+(C.pairs.length?C.pairs.map(x=>'<div class="li"><div class="w"><small>HERE</small>'+esc(say(x.mine))+'<small style="margin-top:6px">YOURS · '+(x.yours.pid?'<a data-vgo="'+esc(x.yours.pid+'|'+x.yours.i)+'">'+at(x.yours)+'</a>':at(x.yours))+'</small>'+esc(say(x.yours))+'<small>Shared: '+esc(x.words.join(', '))+'</small></div></div>').join('')
+  :'<div class="li note">No line of yours shares two uncommon words with this.</div>')+'</div>';
+ if(C.same.length) h+='<p class="note">'+C.same.length+' line'+(C.same.length===1?' here is':'s here are')+' word for word in your other drafts, so '+(C.same.length===1?'it isn\'t':'they aren\'t')+' shown as matches: '+C.same.slice(0,3).map(u=>'“'+esc(u.text.length>80?u.text.slice(0,79)+'…':u.text)+'”').join(' ')+(C.same.length>3?' and '+(C.same.length-3)+' more.':'')+'</p>';
+ return h;
+}
 function vChars(p){
  const ds=draftsOf(p.id).filter(d=>d.kind==='script'&&!d.retired);
  if(!ds.length) return '<div class="panel">No script drafts yet.</div>';
@@ -611,6 +658,13 @@ function wire(){
  document.querySelectorAll('[data-scene]').forEach(b=>b.onclick=()=>{ VIEW.scene=Number(b.dataset.scene); render(); window.scrollTo(0,0); });
  document.querySelectorAll('[data-goscene]').forEach(b=>b.onclick=()=>{ VIEW.tab='scenes'; VIEW.scene=Number(b.dataset.goscene); render(); window.scrollTo(0,0); });
  document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>{ VIEW.scene=null; render(); });
+ /* SOUNDS LIKE YOU */
+ const vf=$('vfrom'); if(vf) vf.onchange=()=>{ VOICE.from=vf.value; VOICE.who=''; render(); };
+ const vg=$('vgo'); if(vg) vg.onclick=()=>{ VOICE.text=$('vtext').value; VOICE.on=true; VOICE.who=''; render(); };
+ const vt=$('vtext'); if(vt) vt.oninput=()=>{ VOICE.text=vt.value; };
+ const vw=$('vwho'); if(vw) vw.onchange=()=>{ VOICE.who=vw.value; render(); };
+ document.querySelectorAll('[data-vfrom]').forEach(b=>b.onclick=()=>{ VOICE.from=b.dataset.vfrom; VOICE.who=''; go('voice'); });
+ document.querySelectorAll('[data-vgo]').forEach(a=>a.onclick=()=>{ const [pid,i]=a.dataset.vgo.split('|'); VIEW.p=pid; VIEW.tab='scenes'; VIEW.scene=Number(i); render(); window.scrollTo(0,0); });
  const d=$('drop');
  if(d){ d.onclick=()=>$('file').click(); d.ondragover=e=>{e.preventDefault();d.classList.add('over');}; d.ondragleave=()=>d.classList.remove('over');
   d.ondrop=e=>{ e.preventDefault(); d.classList.remove('over'); if(e.dataTransfer.files.length) addFiles([...e.dataTransfer.files]); }; }
