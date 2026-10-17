@@ -155,6 +155,8 @@ table.rep td.num{text-align:right;font-variant-numeric:tabular-nums;color:#dfe6e
 @media (prefers-reduced-motion:reduce){#toast{transition:none}}
 @media (max-width:900px){#rail{display:none} #flow{width:100%;font-size:14px} .sheet{padding:1.6rem 1.2rem}
   .pagerule{margin-left:-1.2rem;margin-right:-1.2rem;padding-left:1.2rem;padding-right:1.2rem}}
+
+#btnGo{color:#1b1206;background:#e0a23c;border-color:#e0a23c;font-weight:700;letter-spacing:.12em}
 </style>
 </head>
 <body>
@@ -173,6 +175,7 @@ table.rep td.num{text-align:right;font-variant-numeric:tabular-nums;color:#dfe6e
     <button id="bD" title="Pair this speech with the one above, side by side">Side&nbsp;by&nbsp;side</button>
   </span>
   <span class="grow"></span>
+  <button id="btnGo" title="Get it down first. Decide what it is later.">GO</button>
   <button id="btnVoice" title="Write by talking (phone or computer)">Voice</button>
   <button id="btnProjects">Scripts</button>
   <button id="btnNew">New</button>
@@ -407,6 +410,9 @@ table.rep td.num{text-align:right;font-variant-numeric:tabular-nums;color:#dfe6e
 <script src="../shared/inbox.js"></script>
 <script src="voice-engine.js"></script>
 <script src="voice.js" defer></script>
+<script src="../shared/you.js"></script>
+<script src="go-engine.js"></script>
+<script src="go.js" defer></script>
 <script src="panel-signalscript.js" defer></script>
 <script src="panel-character-capsule.js" defer></script>
 <script src="panel-storyforge.js" defer></script>
@@ -3106,6 +3112,21 @@ async function openFile(){
   }catch(err){ toast("Could not open that file: " + err.message); }
 }
 
+/* GO (go.js): open words as a new script, the same way Open does. Never on top of what's open. */
+function openText(text, name){
+  const r = parseAny(name || "Untitled.fountain", String(text || ""));
+  if(currentId) autosave();
+  currentId = newId(); fileHandle = null; fileName = "";
+  doc.blocks = r.blocks;
+  doc.title = r.title || "Untitled"; doc.author = r.author || "";
+  doc.source = r.source || ""; doc.draft = r.draft || ""; doc.contact = r.contact || "";
+  doc.ideas = ""; doc.ledger = []; doc.logo = false;
+  ui.activeId = doc.blocks[0].id; ui.caret = 0;
+  past.length = 0; future.length = 0; sheetEl = null;
+  markDirty(); render(); renderProjectName();
+  return true;
+}
+
 /* ============================================================
    DIALOGS
    ============================================================ */
@@ -3736,7 +3757,8 @@ const WB = {
     buildRailTabs();
     return true;
   },
-  api: panelApi
+  api: panelApi,
+  openText
 };
 window.WB = WB;
 

@@ -14,7 +14,7 @@ D.TOOLS=[
  {id:'cps', name:'CPS', href:'../cps/', ls:[/^cps_/,/^colmac_voxbootprint/,/^colmac_os_outbox$/,/^colmac_aos_integrator$/], db:[/^cps_/]},
  {id:'slate', name:'Slate Maker', href:'../slate/', ls:[/^slate_/], db:[/^slate_/]},
  {id:'resume', name:'Virtual Resume', href:'../resume/', ls:[/^resume_/], db:[/^vresume_/]},
- {id:'wb', name:'Writer\'s Blockage', href:'../write/writers-blockage.html', ls:[/^writers-blockage/], db:[/^writers-blockage$/]},
+ {id:'wb', name:'Writer\'s Blockage', href:'../write/writers-blockage.html', ls:[/^writers-blockage/,/^wb_go_v1$/], db:[/^writers-blockage$/]},
  {id:'papertrail', name:'Paper Trail', href:'../papertrail/', ls:[/^paper_trail/], db:[/^paper_trail$/]},
  {id:'archbook', name:'ArchBook', href:'../archbook/', ls:[/^archbook_/], db:[/^archbook_/]},
  {id:'film', name:'Story Studio', href:'../film/', ls:[/^film_os/], db:[/^film_os/]},
