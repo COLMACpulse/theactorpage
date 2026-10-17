@@ -12,7 +12,7 @@ function keepAsk(){ try{ const s=navigator.storage; if(!s||!s.persist) return; c
 const KEY='theactorpage_you_v1';
 const Y={};
 Y.FIELDS=[['name','Name'],['union','Union'],['rep','Rep'],['repPhone','Rep phone'],['phone','Your phone'],['email','Email'],['height','Height'],['weight','Weight'],['hair','Hair'],['eyes','Eyes'],['locations','Local hire']];
-const blank=()=>({name:'',union:'',rep:'',repPhone:'',phone:'',email:'',height:'',weight:'',hair:'',eyes:'',locations:'',credits:[],training:[],skills:[],accents:[],languages:[],photos:[],primary:'',resume:null,edited:{},from:{},updated:0});
+const blank=()=>({name:'',union:'',rep:'',repPhone:'',phone:'',email:'',height:'',weight:'',hair:'',eyes:'',locations:'',credits:[],training:[],skills:[],accents:[],languages:[],types:[],photos:[],primary:'',resume:null,edited:{},from:{},updated:0});
 Y.get=function(){ try{ const d=JSON.parse(localStorage.getItem(KEY)||'null'); if(d) return Object.assign(blank(),d); }catch(e){} return blank(); };
 function put(d){ d.updated=Date.now(); try{ localStorage.setItem(KEY,JSON.stringify(d)); return true; }catch(e){ return false; } }
 Y.has=()=>{ const d=Y.get(); return !!(d.name||d.credits.length||d.photos.length||d.resume); };

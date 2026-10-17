@@ -66,7 +66,7 @@ select.field{appearance:auto}
 .top b{display:block;font-size:16px;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .top .count{font-size:13px;color:var(--tung-text);margin-top:1px}
 main{flex:1;min-width:0;padding:16px 16px calc(var(--nav) + 24px + env(safe-area-inset-bottom));max-width:720px;width:100%;margin:0 auto}
-nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(3,1fr);background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(4,1fr);background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
 nav.tabs button{min-height:var(--nav);border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;letter-spacing:.12em;color:var(--faint)}
 nav.tabs button svg{width:22px;height:22px}
 nav.tabs button.on{color:var(--tung-text)}
@@ -83,7 +83,11 @@ nav.tabs button.on{color:var(--tung-text)}
 .must{border-left:3px solid var(--tung);padding:2px 0 2px 10px;margin:6px 0;font-size:15px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .it{display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:0 0 8px}
-.it b{display:block;font-weight:600}.it small{color:var(--faint)}.it .st{float:right;font-size:12px;letter-spacing:.08em;color:var(--tung-text);text-transform:uppercase}
+.it b{display:block;font-weight:600}.it small{display:block;color:var(--faint)}
+.hit{color:var(--tung-text)!important}
+.pick{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line);cursor:pointer}.pick input{width:20px;height:20px;margin-top:2px;flex:none;accent-color:var(--tung)}.pick b{display:block;font-weight:600}.pick small{display:block;color:var(--faint);font-size:13px}
+.off{margin:0 0 14px}.oh{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin:0 0 6px}.oh span{font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.kicker i{font-style:normal;color:var(--faint)}.it .st{float:right;font-size:12px;letter-spacing:.08em;color:var(--tung-text);text-transform:uppercase}
 textarea.send{min-height:200px;font:14.5px/1.5 var(--sans)}
 .pair{display:flex;gap:6px;margin:6px 0}.pair .field{flex:1 1 0;min-width:0}
 .bad{color:var(--bad)}
@@ -104,6 +108,7 @@ body:has(#hotbar) .top{padding-top:calc(env(safe-area-inset-top) + 50px)}
 <nav class="tabs" id="tabs">
   <button data-t="spot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg><span>SPOT</span></button>
   <button data-t="list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg><span>LIST</span></button>
+  <button data-t="offices"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M8 7h2M14 7h2M8 11h2M14 11h2M8 15h2M14 15h2M10 21v-3h4v3"/></svg><span>OFFICES</span></button>
   <button data-t="you"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg><span>YOU</span></button>
 </nav>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>

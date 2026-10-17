@@ -3,7 +3,9 @@
          puts your history with the office next to it (Hub, NOTES, the conflicts you hold), and writes three notes:
          pass it along to your reps, a pitch your rep can send, and a note straight to the office. You edit, you send.
    LIST  everything you've spotted, where each stands, searchable. Send it to your manager as text or as a page.
-   YOU   your links, your reps, the conflicts you hold.
+   OFFICES  every office in what you spotted: what they're casting, your history, how they've reached you. The report
+         for your reps: what fits you, offices that know you, offices you should be going in for and aren't.
+   YOU   your links, your reps, your types, the conflicts you hold.
    Nothing uploaded. localStorage theactorpage_spotted_v1. The Hub and NOTES are read, never written. */
 (function(){
 const S=window.Spotted, O=window.Offices, N=window.Notes, Y=window.You;
@@ -18,10 +20,11 @@ let U=(()=>{ try{ return Object.assign({tab:'spot',open:'',q:'',st:''},JSON.pars
 const saveU=()=>{ try{ localStorage.setItem(UK,JSON.stringify(U)); }catch(e){} };
 function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('on'),3000); }
 const uid=()=>'s'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
-let HUB=null, DRAFT=null;   // HUB: {projects,credits} from this device, read-only. DRAFT: {raw, url, card}
+let HUB=null, DRAFT=null;   // HUB: {projects,credits} from this device, read-only. DRAFT: {raw, url, card} or {raw, url, many:[card], pick:[bool]}
 const you=()=>{ try{ return Y?Y.get():{}; }catch(e){ return {}; } };
 const me=()=>{ const y=you(); return Object.assign({name:y.name||'',rep:y.rep||'',credits:y.credits||[]},D.me); };
-const ctx=()=>({projects:(HUB&&HUB.projects)||[],credits:(HUB&&HUB.credits)||[],you:you(),offices:O,notes:N,held:D.held,spotted:D.items});
+const types=()=>{ const y=you(); return (y.types||[]).filter(Boolean); };
+const ctx=()=>({projects:(HUB&&HUB.projects)||[],credits:(HUB&&HUB.credits)||[],you:you(),offices:O,notes:N,held:D.held,spotted:D.items,types:types()});
 const factsFor=it=>S.facts(it.card,Object.assign(ctx(),{selfId:it.id}));
 const item=id=>D.items.find(x=>x.id===id);
 const day=t=>t?new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}):'';
@@ -31,7 +34,8 @@ async function copy(t){ try{ await navigator.clipboard.writeText(t); toast('Copi
 function setStatus(it,s){ if(it.status===s) return; it.status=s; (it.history=it.history||[]).push({s,at:Date.now()}); save(); }
 
 /* ---------- SPOT ---------- */
-function readDraft(raw,url){ DRAFT={raw:String(raw||''),url:url||'',card:S.read(raw,{url})}; }
+const onList=c=>{ const k=S.key(c.project); return !!k&&D.items.some(x=>S.key(x.card.project)===k); };
+function readDraft(raw,url){ const L=S.readMany(raw,{url}); DRAFT=L.length>1?{raw:String(raw||''),url:url||'',many:L,pick:L.map(c=>!onList(c))}:{raw:String(raw||''),url:url||'',card:L[0]||S.read(raw,{url})}; }
 function spotView(){
  let h='';
  if(!DRAFT){
@@ -41,11 +45,26 @@ function spotView(){
   if(recent.length) h+='<p class="kicker" style="margin-top:18px">Last spotted</p>'+recent.map(rowHtml).join('');
   return h;
  }
+ if(DRAFT.many) return manyView();
  const c=DRAFT.card, F=S.facts(c,ctx());
  h+='<div class="card"><p class="kicker">What it says</p>'+cardFields(c)+saidHtml(c)+'</div>';
  h+=factsHtml(F);
  h+='<div class="row"><button class="btn ghost" id="redo">START OVER</button><button class="btn pri" id="keep" style="flex:1">KEEP IT</button></div>';
  return h;
+}
+/* a story or a list with several projects in it: pick which to keep */
+function manyView(){
+ const L=DRAFT.many, n=DRAFT.pick.filter(Boolean).length, T=types();
+ let h='<div class="card"><p class="kicker">'+L.length+' projects in this</p><p class="dim small">Untick the ones you don\'t want. Each one you keep goes on your list, with your history next to it.</p>';
+ h+=L.map((c,i)=>{ const m=S.typesIn(c,T), cs=(c.casting||[]).length?c.casting.join(' & ')+' casting':'No casting named';
+  return '<label class="pick"><input type="checkbox" data-pick="'+i+'"'+(DRAFT.pick[i]?' checked':'')+'><span><b>'+esc(c.project)+'</b>'+(c.role?' · '+esc(c.role):'')+'<small>'+esc([cs,c.network,c.type,c.status].filter(Boolean).join(' · '))+'</small>'+(m.length?'<small class="hit">Your words in it: '+esc(m.join(', '))+'</small>':'')+(onList(c)?'<small>Already on your list</small>':'')+'</span></label>'; }).join('');
+ h+='</div><div class="row"><button class="btn ghost" id="redo">START OVER</button><button class="btn pri" id="keepmany" style="flex:1"'+(n?'':' disabled')+'>KEEP '+(n===L.length?'ALL '+n:n)+'</button></div>';
+ return h;
+}
+function keepMany(){
+ const now=Date.now(); let n=0;
+ DRAFT.many.forEach((c,i)=>{ if(!DRAFT.pick[i]) return; D.items.push({id:uid(),at:now+i,raw:'',card:c,status:'spotted',history:[{s:'spotted',at:now}],note:'',mine:''}); n++; });
+ save(); DRAFT=null; U.open=''; U.tab='offices'; saveU(); render(); toast(n+' kept. Here\'s who is casting them.');
 }
 function cardFields(c){
  const f=(k,l,v,ph)=>'<label class="lab" for="cf_'+k+'">'+l+'</label><input class="field" id="cf_'+k+'" data-cf="'+k+'" value="'+esc(v)+'" placeholder="'+esc(ph||'Not written')+'">';
@@ -109,6 +128,26 @@ function listView(){
  return h;
 }
 
+/* ---------- OFFICES ---------- */
+function officesView(){
+ const live=D.items.filter(x=>['spotted','passed','submitted','room'].includes(x.status));
+ if(!live.length) return '<div class="card"><p class="dim">Nothing spotted yet. Paste a trade story, an IMDbPro list or a casting notice on SPOT, and every office in it shows up here.</p></div>';
+ const c=ctx(), OF=S.offices(live,c), R=S.report(D.items,c,me()), T=types();
+ let h='';
+ if(!T.length) h+='<div class="msg">Add your types on YOU (cop, dad, rancher, western) and this shows what has your words in it.</div>';
+ const row=o=>'<div class="off"><p class="oh"><b>'+esc(o.name)+'</b><span class="'+(o.seen?'dim':'hit')+'">'+(o.seen?'Has had you in':'Never had you in')+'</span></p>'
+  +o.now.map(x=>'<button class="it" data-open="'+x.id+'"><span class="st">'+esc(S.statusWord(x.status))+'</span><b>'+esc(x.card.project||'(no title)')+(x.card.role?' · '+esc(x.card.role):'')+'</b><small>'+esc([x.card.network,x.card.type,x.card.status].filter(Boolean).join(' · '))+'</small>'+(x.match.length?'<small class="hit">Your words in it: '+esc(x.match.join(', '))+'</small>':'')+'</button>').join('')
+  +'<p class="faint small">'+esc(o.seen?(O&&O.words?O.words(o.h):''):'Nothing from them in your Hub.')+' '+esc(S.howWords(o)||(o.seen?'How they reached you isn\'t on those.':'Breakdowns or direct: ask your reps.'))+'</p></div>';
+ const fresh=OF.filter(o=>!o.seen), known=OF.filter(o=>o.seen);
+ if(fresh.length) h+='<p class="kicker">Casting now, never had you in <i>'+fresh.length+'</i></p>'+fresh.map(row).join('');
+ if(known.length) h+='<p class="kicker" style="margin-top:18px">Casting now, has had you in <i>'+known.length+'</i></p>'+known.map(row).join('');
+ if(!OF.length) h+='<div class="card"><p class="dim">No casting named on what you spotted yet. Open one and add who is casting.</p></div>';
+ h+='<div class="card" style="margin-top:16px"><p class="kicker">For your reps</p><p class="faint small" style="margin:-4px 0 8px">What fits you, offices that know you, offices you should be going in for and aren\'t. Edit it, send it.'+(HUB?'':' No Hub on this device, so every office reads as new.')+'</p>'
+  +'<textarea class="field send" id="t_rep" data-subj="'+esc(R.subject)+'" style="min-height:260px">'+esc(R.body)+'</textarea>'
+  +'<div class="row" style="margin-top:8px"><button class="btn" data-copy="rep">COPY</button><button class="btn" id="rpage">SAVE AS A PAGE</button><a class="btn pri" style="flex:1;text-decoration:none" id="rmail" href="#">EMAIL YOUR REPS</a></div></div>';
+ return h;
+}
+
 /* ---------- YOU ---------- */
 function youView(){
  const y=you(), m=D.me;
@@ -117,6 +156,8 @@ function youView(){
   +'<label class="lab" for="yres">Résumé link</label><input class="field" id="yres" data-me="resume" value="'+esc(m.resume)+'" placeholder="https://">'
   +'<label class="lab" for="ysite">Your page</label><input class="field" id="ysite" data-me="site" value="'+esc(m.site)+'" placeholder="https://">'
   +'<p class="faint small" style="margin-top:8px">No page yet? The Hub\'s SEND tab builds one from your headshot, reel and credits.</p></div>';
+ h+='<div class="card"><p class="kicker">Your types</p><p class="dim small" style="margin-top:-4px">Your own words for what you\'re right for, with commas: cop, dad, rancher, western, small town. Anything you spot with all of a type\'s words in it says so.</p>'
+  +'<textarea class="field" id="ytypes" rows="2" placeholder="cop, dad, rancher">'+esc((y.types||[]).join(', '))+'</textarea></div>';
  h+='<div class="card"><p class="kicker">Your reps</p>'+m.reps.map((r,i)=>'<div class="pair"><input class="field" data-rep="'+i+'|name" value="'+esc(r.name)+'" placeholder="Name"><input class="field" data-rep="'+i+'|email" value="'+esc(r.email)+'" placeholder="Email" inputmode="email"><button class="lnk faint" data-rmrep="'+i+'" aria-label="Remove">✕</button></div>').join('')
   +'<button class="btn sm" id="addrep" style="margin-top:6px">ADD A REP</button></div>';
  h+='<div class="card"><p class="kicker">Conflicts you hold</p><p class="dim small" style="margin-top:-4px">A spot you booked: the brand, its category, and when it runs out. When something you spot lists the same thing, the card says so.</p>'
@@ -130,7 +171,7 @@ function youView(){
 function render(){
  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===U.tab));
  $('count').textContent=D.items.length?D.items.length+' spotted · '+D.items.filter(x=>x.status==='spotted').length+' not passed along':'';
- $('main').innerHTML=U.tab==='spot'?spotView():U.tab==='list'?listView():youView();
+ $('main').innerHTML=U.tab==='spot'?spotView():U.tab==='list'?listView():U.tab==='offices'?officesView():youView();
  wire();
 }
 function cardOf(){ if(U.tab==='spot') return DRAFT&&DRAFT.card; const it=U.open&&item(U.open); return it&&it.card; }
@@ -143,6 +184,13 @@ function wire(){
  if($('read')) $('read').onclick=()=>{ const t=$('raw').value; if(!t.trim()) return toast('Paste it first.'); const u=/^\s*https?:\/\/\S+\s*$/.test(t)?t.trim():''; readDraft(t,u); render(); };
  if($('redo')) $('redo').onclick=()=>{ DRAFT=null; render(); };
  if($('keep')) $('keep').onclick=keepDraft;
+ M.querySelectorAll('[data-pick]').forEach(el=>el.onchange=()=>{ DRAFT.pick[+el.dataset.pick]=el.checked; render(); });
+ if($('keepmany')) $('keepmany').onclick=keepMany;
+ if(U.tab==='offices'){
+  M.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>copy($('t_'+b.dataset.copy).value));
+  if($('rmail')) $('rmail').onclick=()=>{ const ta=$('t_rep'); $('rmail').href=mail(repEmails(),ta.dataset.subj,ta.value); };
+  if($('rpage')) $('rpage').onclick=()=>{ const m=me(), html=S.reportHtml({body:$('t_rep').value},m), a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([html],{type:'text/html'})); a.download='What\'s casting'+(m.name?' - '+m.name:'')+' - '+new Date().toISOString().slice(0,10)+'.html'; document.body.appendChild(a); a.click(); a.remove(); toast('Saved. Attach it, or open it and print.'); };
+ }
  M.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{ U.open=b.dataset.open; U.tab='list'; saveU(); render(); window.scrollTo(0,0); });
  if($('back')) $('back').onclick=()=>{ U.open=''; saveU(); render(); };
  const it=U.open&&item(U.open);
@@ -163,6 +211,7 @@ function wire(){
  if($('lmail')) $('lmail').onclick=()=>{ const m=me(); $('lmail').href=mail(repEmails(),'Spotted'+(m.name?' - '+m.name:''),S.listText(listed(),m)); };
  // YOU
  if($('yname')) $('yname').onchange=e=>{ try{ Y.set('name',e.target.value); }catch(x){} };
+ if($('ytypes')) $('ytypes').onchange=e=>{ try{ Y.setList('types',e.target.value.split(/\s*,\s*/)); }catch(x){} };
  M.querySelectorAll('[data-me]').forEach(el=>el.onchange=()=>{ D.me[el.dataset.me]=el.value.trim(); save(); });
  M.querySelectorAll('[data-rep]').forEach(el=>el.onchange=()=>{ const [i,k]=el.dataset.rep.split('|'); D.me.reps[i][k]=el.value.trim(); save(); });
  M.querySelectorAll('[data-rmrep]').forEach(b=>b.onclick=()=>{ D.me.reps.splice(+b.dataset.rmrep,1); save(); render(); });

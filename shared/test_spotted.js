@@ -96,4 +96,37 @@ ok('a shared link is kept as the source', S.read('Saw this',{url:'https://exampl
 ok('a shared Zoom link is not', S.read('Saw this',{url:'https://zoom.us/j/1'}).source==='');
 ok('a kept one does not count itself as spotted before', !S.facts(c,{spotted:[{id:'a',card:c}],selfId:'a'}).some(x=>x.k==='spotted'), S.facts(c,{spotted:[{id:'a',card:c}],selfId:'a'}));
 ok('direct with no name set: no "I\'m an actor"', !/an actor/.test(S.direct(c,[],{}).body), S.direct(c,[],{}).body);
+/* 9. many at once: a trade roundup, an IMDbPro list */
+let M=S.readMany(fx('trades_roundup'));
+ok('roundup: three projects, the lead paragraph is not one', M.map(x=>x.project).join('|')==='Dry Creek|Salt Road|Northgate', M.map(x=>x.project));
+ok('roundup: who is casting each, two names together too', M[0].casting.join()==='Wren Ashby'&&M[1].casting.join()==='Dana Pell,Ross Okafor'&&M[2].casting.join()==='Lena Marsh', M.map(x=>x.casting));
+ok('roundup: network, kind, director as written', M[0].network==='ABC'&&/pilot/.test(M[0].type)&&M[1].network==='Netflix'&&M[2].director==='Hal Brody', M.map(x=>[x.network,x.type,x.director]));
+ok('roundup: the story link on its own line goes on every card', M.every(x=>x.source==='https://example.com/news/pilot-orders'), M.map(x=>x.source));
+ok('roundup: dates as written', M[0].dates[0].text==='Production begins in January in Atlanta.'&&/filming set for March/.test(M[1].dates[0].text), M.map(x=>x.dates));
+let P=S.readMany(fx('imdbpro_list'));
+ok('IMDbPro list: three titles, kind from the title line', P.map(x=>x.project+'/'+x.type).join('|')==='Dry Creek/TV Series|Salt Road/TV Mini Series|Low Tide/Feature', P.map(x=>x.project+'/'+x.type));
+ok('IMDbPro list: status and genre as written', P[1].status==='Filming'&&P[1].genre==='Western, Drama'&&P[2].status==='Pre-production', P.map(x=>[x.status,x.genre]));
+ok('IMDbPro list: casting directors', P[1].casting.join()==='Dana Pell,Ross Okafor'&&P[2].casting.join()==='Dana Pell', P.map(x=>x.casting));
+ok('one notice: one card, same as read', S.readMany(fx('northgate_notice')).length===1&&S.readMany(fx('northgate_notice'))[0].project==='NORTHGATE COFFEE');
+let B=S.readMany('Pilot news\n\n• \'Dry Creek\' (ABC). Wren Ashby is casting.\n• \'Salt Road\' (Netflix). Casting by Dana Pell.\n• \'Dry Creek\' adds a director: Hal Brody will direct.');
+ok('a bulleted daily: each bullet its own, the same show twice is one card', B.length===2&&B[0].project==='Dry Creek'&&B[0].director==='Hal Brody'&&B[1].casting.join()==='Dana Pell', B.map(x=>[x.project,x.casting,x.director]));
+/* 10. your types */
+ok('your words: a type matches when all its words are there', S.typesIn(M[0],['sheriff','cop','small town']).join()==='sheriff,small town', S.typesIn(M[0],['sheriff','cop','small town']));
+ok('your words: genre and kind count (western, rancher)', S.typesIn(P[1],['western','dad']).join()==='western'&&S.typesIn(M[1],['rancher']).join()==='rancher');
+ok('no types: nothing matches', S.typesIn(M[0],[]).length===0);
+/* 11. how they reached you, and the offices */
+ok('channel: an Actors Access import, an Eco Cast request, a direct email, nothing', [S.channel({aaid:'csv:1'}),S.channel({aaid:'req:1',request:{confirmOnEcoCast:true}}),S.channel({aaid:'req:2',request:{contact:'office@example.com'}}),S.channel({kind:'audition'})].join()==='aa,aa,direct,');
+const hubP=[{id:1,aaid:'csv:a',casting:'Wren Ashby Casting',project:'Low Tide',role:'ANNA VOSS',date:'2026-03-02'},{id:2,aaid:'req:b',casting:'Wren Ashby',project:'Dry Gulch',role:'HAL',date:'2026-05-02',request:{contact:'wren@example.com'}},{id:3,aaid:'csv:c',casting:'Wren Ashby',project:'Morning Brew Co.',role:'DAD',date:'2025-11-02'}];
+const items=M.map((c,i)=>({id:'m'+i,at:1000+i,status:'spotted',card:c})).concat([{id:'x',at:5,status:'not',card:P[2]}]);
+const cx={projects:hubP,credits:[],offices:O,types:['sheriff','rancher']};
+const OF=S.offices(items,cx), wren=OF.find(o=>o.name==='Wren Ashby'), dana=OF.find(o=>o.name==='Dana Pell');
+ok('offices: one row each, newest first', OF.map(o=>o.name).join()==='Lena Marsh,Dana Pell,Ross Okafor,Wren Ashby', OF.map(o=>o.name));
+ok('offices: your history and how they reached you', wren.seen&&wren.h.reads===3&&wren.how.aa===2&&wren.how.direct===1&&S.howWords(wren)==='Came to me through Actors Access 2 times, straight from the office 1 time.', [wren.h,wren.how]);
+ok('offices: never seen you', !dana.seen&&dana.now[0].match.join()==='rancher', dana);
+const R=S.report(items,cx,{name:'Sam Actor'});
+ok('report: what fits (your words), not what you passed on', /CASTING NOW THAT FITS ME\n- Salt Road \(Netflix, limited series\)\. Dana Pell & Ross Okafor casting\. My words: rancher\./.test(R.body)&&/- Dry Creek \(ABC, pilot\)\. Wren Ashby casting\. My words: sheriff\./.test(R.body)&&!/Low Tide \(Feature/.test(R.body), R.body);
+ok('report: offices that know you, with how', /OFFICES THAT KNOW ME, CASTING NOW\n- Wren Ashby: Dry Creek\.\n  Had me in: 3 reads\. Last: Dry Gulch \/ HAL, May 2026\. Came to me through Actors Access 2 times, straight from the office 1 time\./.test(R.body), R.body);
+ok('report: offices you should be going in for, and the question', /OFFICES I SHOULD BE GOING IN FOR AND AM NOT\n- Dana Pell: Salt Road\. My words: rancher\.\n  Never had me in\. Do they go through Breakdowns, or direct\?/.test(R.body)&&/- Lena Marsh: Northgate\./.test(R.body), R.body);
+ok('report: no contacts, no em dashes, signed', !/@/.test(R.body)&&!/—/.test(R.body)&&/Sam Actor$/.test(R.body), R.body);
+ok('report: a private link never goes in', !/zoom/.test(S.report([{id:'z',at:1,status:'spotted',card:S.read("'Low Tide' Dana Pell is casting. https://zoom.us/j/9")}],{},{}).body));
 console.log(pass+' passed, '+fail+' failed'); if(fail) process.exit(1);

@@ -24,12 +24,14 @@ const LABELS=[
  ['type',/^(?:type|project type|category|format|medium)\s*[:\-–]\s*(.+)$/i],
  ['where',/^(?:location|where|address|audition location|callback location)\s*[:\-–]\s*(.+)$/i],
  ['director',/^director\s*[:\-–]\s*(.+)$/i],
- ['network',/^(?:network|studio|platform|distributor|agency|ad agency)\s*[:\-–]\s*(.+)$/i]
+ ['network',/^(?:network|studio|platform|distributor|agency|ad agency)\s*[:\-–]\s*(.+)$/i],
+ ['status',/^(?:status|stage|production status)\s*[:\-–]\s*(.+)$/i],
+ ['genre',/^genres?\s*[:\-–]\s*(.+)$/i]
 ];
 /* lines that are someone's contact or your own business: never quoted into a note */
 const SKIP=/^(?:my representation|representation|agent|manager|agency contact|phone|tel|cell|email|e-mail|contact|reply to|from|to|cc|sent|subject|date)\s*:/i;
 const DATEKEY=/^((?:callback|audition|session|shoot(?:ing)?|film(?:ing)?|production|fitting|wardrobe fitting|work|booking|recall|chemistry read|deadline|tapes? due|self[- ]tapes? due|submissions? due|due|start|wrap|air|travel)(?:\s+(?:dates?|times?|day|days|window|starts?|begins?))?)\s*[:\-–]\s*(.+)$/i;
-const DATEWORD=/\b(?:(?:mon|tues?|wed(?:nes)?|thu(?:rs)?|fri|sat(?:ur)?|sun)(?:day)?\.?|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?|\d{1,2}:\d{2}\s*(?:am|pm)?|\d{1,2}\s*(?:am|pm)|today|tomorrow|this week|next week|in (?:january|february|march|april|may|june|july|august|september|october|november|december))\b/i;
+const DATEWORD=/\b(?:(?:mon|tues?|wed(?:nes)?|thu(?:rs)?|fri|sat(?:ur)?|sun)(?:day)?\.?|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?|\d{1,2}:\d{2}\s*(?:am|pm)?|\d{1,2}\s*(?:am|pm)|today|tomorrow|this week|next week|(?:in|for|by|this|next|early|late|mid-?)\s+(?:january|february|march|april|may|june|july|august|september|october|november|december))\b/i;
 const WHAT=[['callback',/callback|recall|chemistry/i],['fitting',/fitting/i],['shoot',/shoot|filming|production (?:begins|starts)|films? in|start date|work date|booking/i],['due',/due|deadline|by\b|submit/i],['audition',/audition|session|tape|read/i]];
 const TYPES=/\b(commercial|national commercial|regional commercial|print|industrial|pilot|series regular|recurring|guest star|co-?star|one hour drama|half hour comedy|procedural|limited series|mini-?series|episodic|feature film|feature|indie feature|short film|short|web series|music video|video game|voice ?over|vo|animation|promo|digital|social|theat(?:er|re)|play|musical|reality|documentary)\b/gi;
 /* the musts: what the notice asks of you, quoted as written */
@@ -56,7 +58,7 @@ const STOPCAPS=/^(?:EXCLUSIVE|BREAKING|UPDATE|URGENT|NOTE|NOTES|PLEASE|IMPORTANT
 S.read=function(raw,opts){
  opts=opts||{};
  const text=clean(raw), lines=text.split('\n').map(squash).filter(Boolean), L=sentences(text);
- const c={project:'',role:'',roles:[],casting:[],union:'',type:'',network:'',director:'',where:'',wardrobe:'',conflicts:'',dates:[],pay:[],musts:[],links:[],private:[],contact:'',source:'',found:[]};
+ const c={project:'',role:'',roles:[],casting:[],union:'',type:'',network:'',director:'',where:'',wardrobe:'',conflicts:'',status:'',genre:'',about:'',dates:[],pay:[],musts:[],links:[],private:[],contact:'',source:'',found:[]};
  const lab={};
  lines.forEach(l=>{ if(SKIP.test(l)) return; for(const [k,re] of LABELS){ const m=l.match(re); if(m&&!lab[k]){ lab[k]=trimEnd(m[1].split(/(?<=[.!?])\s+(?=[A-Z"“])/)[0].replace(/[.!]$/,'')); break; } } });
  // links: the ones you could share, and the ones that are yours alone
@@ -77,8 +79,9 @@ S.read=function(raw,opts){
  if(!c.role){ const m=body.match(/\b(?:reading|read|audition(?:ing)?|callback|tape)\s+for\s+([A-Z][A-Z0-9 .'’#-]{2,30})\b/); if(m&&m[1].trim()!==c.project) c.role=trimEnd(m[1]); }
  // who's casting: labeled; "X is casting", "casting by X", "casting director X", "X Casting"; "callback with X"
  let cast=lab.casting?names(lab.casting):[];
- const CB=[new RegExp('\\b('+NAME+')[ \\t]+(?:is|are)[ \\t]+(?:casting|handling casting|on casting)','g'),new RegExp('\\b[Cc]asting(?:[ \\t]+(?:is|will be))?[ \\t]+(?:by|from)[ \\t]+('+NAME+'(?:\\s*(?:,|&|and)\\s*'+NAME+')*)','g'),new RegExp('\\b[Cc]asting [Dd]irectors?[ \\t]+('+NAME+'(?:\\s*(?:,|&|and)\\s*'+NAME+')*)','g'),new RegExp('\\b('+NAME+')[ \\t]+Casting\\b','g'),new RegExp('\\b('+NAME+')[ \\t]*\\((?:casting|CD|CSA)\\)','g')];
- if(!cast.length) CB.forEach(re=>{ let m; while((m=re.exec(body))) names(m[1]).forEach(n=>cast.push(n)); });
+ const CB=[new RegExp('\\b('+NAME+'(?:[ \\t]*(?:,|&|and)[ \\t]*'+NAME+')*)[ \\t]+(?:is|are)[ \\t]+(?:casting|handling casting|handling the casting|on casting)','g'),new RegExp('\\b[Cc]asting(?:[ \\t]+(?:is|will be))?[ \\t]+(?:by|from)[ \\t]+('+NAME+'(?:\\s*(?:,|&|and)\\s*'+NAME+')*)','g'),new RegExp('\\b[Cc]asting [Dd]irectors?[ \\t]+('+NAME+'(?:\\s*(?:,|&|and)\\s*'+NAME+')*)','g'),new RegExp('\\b('+NAME+')[ \\t]+Casting\\b','g'),new RegExp('\\b('+NAME+')[ \\t]*\\((?:casting|CD|CSA)\\)','g')];
+ const SL=L.join('\n').replace(/\bhttps?:\/\/\S+/gi,' ');
+ if(!cast.length) CB.forEach(re=>{ let m; while((m=re.exec(SL))) names(m[1]).forEach(n=>cast.push(n)); });
  if(!cast.length){ const m=body.match(new RegExp('\\b(?:callback|session|audition|meeting|read|chemistry read)\\s+with\\s+('+NAME+')')); if(m) cast=names(m[1]); }
  c.casting=uniq(cast.map(n=>n.replace(/\s+Casting$/,'')));
  // union, type, network
@@ -88,6 +91,9 @@ S.read=function(raw,opts){
  c.network=lab.network||'';
  if(!c.network){ const m=body.match(/\b(ABC|CBS|NBC|FOX|Fox|HBO|Max|Netflix|Hulu|Amazon|Prime Video|Apple TV\+?|Peacock|Paramount\+?|Showtime|Starz|AMC|FX|TNT|TBS|USA|Freeform|Disney\+?|The CW|CW|A24|Neon|Lionsgate|Universal|Warner Bros\.?|Sony|Searchlight)\b/); if(m) c.network=m[1]; }
  c.director=lab.director||'';
+ if(!c.director){ const m=body.match(new RegExp('\\b('+NAME+')[ \\t]+(?:will direct|is directing|is set to direct|to direct|directs)\\b'))||body.match(new RegExp('\\b(?:directed by|director)[ \\t]+('+NAME+')')); if(m) c.director=m[1].trim(); }
+ c.status=lab.status||''; c.genre=lab.genre||'';
+ c.about=squash(lines.filter(l=>!SKIP.test(l)).join(' ').replace(/\bhttps?:\/\/\S+/gi,' ')).slice(0,600);
  // where: labeled, Zoom or virtual, in person at, self-tape
  c.where=lab.where||'';
  const ip=body.match(/\bin[- ]person(?:\s+at\s+([^.\n]{3,60}))?/i);
@@ -112,7 +118,7 @@ S.read=function(raw,opts){
  if(c.wardrobe&&!c.musts.some(m=>m.indexOf(c.wardrobe)>=0)) c.musts.push('Wardrobe: '+c.wardrobe);
  if(opts.url&&!c.links.includes(opts.url)&&!S.PRIVATE.test(opts.url)) c.links.unshift(opts.url);
  c.source=c.links[0]||'';
- ['project','role','casting','union','type','network','where','conflicts','dates','pay','musts','links'].forEach(k=>{ const v=c[k]; if(v&&(!Array.isArray(v)||v.length)) c.found.push(k); });
+ ['project','role','casting','union','type','network','where','conflicts','status','genre','dates','pay','musts','links'].forEach(k=>{ const v=c[k]; if(v&&(!Array.isArray(v)||v.length)) c.found.push(k); });
  return c;
 };
 
@@ -129,6 +135,7 @@ S.facts=function(card,ctx){
  const O=ctx.offices, N=ctx.notes;
  if(names.length&&O&&O.history){ const h=O.history(ctx.projects||[],ctx.credits||[],names,card.hubId||null); if(h) out.push({k:'office',t:O.words(h),h}); }
  if(names.length&&N&&N.lineFor){ const t=N.lineFor(names); if(t) out.push({k:'notes',t}); }
+ if(ctx.types&&ctx.types.length){ const m=S.typesIn(card,ctx.types); if(m.length) out.push({k:'types',t:'Your words in it: '+m.join(', ')+'.',m}); }
  // roles of yours that share a word with this one ("dad", "cop", "runner"), from your credits and your reads
  const rw=words(card.role).filter(w=>w.length>2);
  if(rw.length){
@@ -210,6 +217,109 @@ S.direct=function(card,facts,me){
  return {subject:(me.name||'Actor')+(card.project?', '+card.project:''),body:L.join('\n').trim()};
 };
 
+/* ---------- many at once: a trade story with several projects in it, an IMDbPro list, the dailies ---------- */
+/* "Dry Creek (TV Series)", "Low Tide (2027)", "Salt Road (TV Mini Series) (2027)": a title line on a list */
+const KIND=/^\s*(?:[•·*\-–]\s*)?(.{2,80}?)\s*\(((?:TV |Web )?(?:Series|Mini[- ]?Series|Movie|Pilot|Special|Short|Feature|Film|Documentary|Video Game|Podcast(?: Series)?|Limited Series))\)(?:\s*\((\d{4})\))?\s*$|^\s*(?:[•·*\-–]\s*)?(.{2,80}?)\s*\((\d{4})\)\s*$/i;
+const mergeCard=(a,b)=>{ ['role','union','type','network','director','where','wardrobe','conflicts','status','genre','contact','source'].forEach(k=>{ if(!a[k]&&b[k]) a[k]=b[k]; });
+ a.casting=uniq(a.casting.concat(b.casting)); ['roles','dates','pay','musts','links','private'].forEach(k=>b[k].forEach(x=>{ if(!a[k].some(y=>JSON.stringify(y)===JSON.stringify(x))) a[k].push(x); }));
+ a.about=squash(a.about+' '+b.about).slice(0,600); a.found=uniq(a.found.concat(b.found)); return a; };
+/* -> [card]. One project in it: one card, the same as S.read. Nothing guessed: a paragraph with no project in it joins
+   the one before it; links on their own line are the story's link, for every card that has none. */
+S.readMany=function(raw,opts){
+ opts=opts||{}; const text=clean(raw), lines=text.split('\n');
+ const blocks=[];
+ if(lines.filter(l=>KIND.test(l)).length>=2){
+  // a list: each title line starts one
+  let cur=null; lines.forEach(l=>{ const m=l.match(KIND); if(m){ cur={title:trimEnd(m[1]||m[4]).replace(/^["“']|["”']$/g,''),kind:m[2]||'',year:m[3]||m[5]||'',text:''}; blocks.push(cur); } else if(cur) cur.text+=l+'\n'; });
+ } else {
+  // a story: paragraphs, and each bullet its own
+  text.split(/\n\s*\n/).forEach(par=>{ const ls=par.split('\n'); if(ls.filter(l=>/^\s*[•·*]\s+|^\s*[-–]\s+\S/.test(l)).length>=2) ls.forEach(l=>blocks.push({text:l.replace(/^\s*[•·*\-–]\s+/,'')})); else blocks.push({text:par}); });
+ }
+ const loose=[]; let out=[];
+ blocks.forEach(b=>{ const t=b.text.trim();
+  if(!b.title&&/^(?:\s*https?:\/\/\S+\s*)+$/.test(t)){ (t.match(/https?:\/\/\S+/g)||[]).forEach(u=>loose.push(u.replace(/[.,;:!?]+$/,''))); return; }
+  const c=S.read((b.title?'Title: '+b.title+'\n':'')+b.text);
+  if(b.kind) c.type=b.kind; if(b.year) c.year=b.year;
+  if(!c.project){ if(out.length) mergeCard(out[out.length-1],c); return; }
+  out.push(c); });
+ // the same project twice (a story and a list, two paragraphs): one card
+ const byKey=[]; out.forEach(c=>{ const k=S.key(c.project), have=byKey.find(x=>S.key(x.project)===k); if(have) mergeCard(have,c); else byKey.push(c); }); out=byKey;
+ if(opts.url&&!S.PRIVATE.test(opts.url)) loose.unshift(opts.url);
+ out.forEach(c=>{ loose.forEach(u=>{ if(!S.PRIVATE.test(u)&&!c.links.includes(u)) c.links.push(u); }); c.source=c.source||c.links[0]||''; if(c.source&&!c.found.includes('links')) c.found.push('links'); });
+ if(out.length<=1) return [S.read(raw,opts)];
+ return out;
+};
+
+/* ---------- your types: your own words for what you're right for ("cop", "dad", "rancher", "western") ---------- */
+/* -> the ones of yours that are in this card (all of a type's words, anywhere in it). Not a verdict: the words match. */
+S.typesIn=function(card,types){
+ const have=new Set(words([card.project,card.role,(card.roles||[]).map(r=>r.name+' '+r.desc).join(' '),card.type,card.genre,card.about,(card.musts||[]).join(' ')].join(' ')));
+ return uniq((types||[]).map(squash)).filter(t=>{ const w=words(t); return w.length&&w.every(x=>have.has(x)); });
+};
+
+/* ---------- the offices ---------- */
+/* how a request from the Hub reached you: through Actors Access (Breakdowns), straight from the office, or not on it */
+S.channel=function(p){
+ const id=String((p&&p.aaid)||''), r=p&&p.request;
+ if(/^csv:/.test(id)) return 'aa';
+ if(r){ if(r.confirmOnEcoCast||r.sent||r.passed) return 'aa'; if(r.contact) return 'direct'; }
+ return '';
+};
+const LIVE=['spotted','passed','submitted','room'];
+/* every office in what you've spotted: what they're casting, your history with them, how they've reached you, and
+   what of theirs has your words in it. ctx as S.facts, plus types. -> [{name, key, now[], h, how{aa,direct,other}, seen}] */
+S.offices=function(items,ctx){
+ ctx=ctx||{}; const O=ctx.offices, K=O&&O.key?O.key:S.key, by={};
+ (items||[]).forEach(it=>{ (it.card.casting||[]).forEach(n=>{ const k=K(n); if(!k) return;
+  const o=by[k]||(by[k]={name:n,key:k,now:[],h:null,how:{aa:0,direct:0,other:0},seen:false});
+  o.now.push({id:it.id,at:it.at,status:it.status,card:it.card,live:LIVE.includes(it.status),match:S.typesIn(it.card,ctx.types)}); }); });
+ Object.values(by).forEach(o=>{
+  o.now.sort((a,b)=>(b.at||0)-(a.at||0));
+  o.h=O&&O.history?O.history(ctx.projects||[],ctx.credits||[],[o.name]):null;
+  o.seen=!!(o.h&&(o.h.reads||o.h.credits));
+  const off=p=>p.casting_office||p.casting_director||p.casting||'';
+  (ctx.projects||[]).filter(p=>p&&(p.aaid||p.kind==='audition')&&K(off(p))===o.key).forEach(p=>{ const c=S.channel(p); o.how[c||'other']++; });
+ });
+ return Object.values(by).sort((a,b)=>(b.now[0].at||0)-(a.now[0].at||0));
+};
+S.howWords=function(o){
+ const b=[]; if(o.how.aa) b.push('through Actors Access '+pl(o.how.aa,'time')); if(o.how.direct) b.push('straight from the office '+pl(o.how.direct,'time'));
+ return b.length?'Came to me '+b.join(', ')+'.':'';
+};
+const histMine=h=>{ if(!h||!(h.reads||h.credits)) return 'Never had me in.';
+ const b=[]; if(h.reads) b.push(pl(h.reads,'read')); if(h.callbacks) b.push(pl(h.callbacks,'callback')); if(h.booked) b.push(h.booked+' booked');
+ return 'Had me in: '+b.join(', ')+'.'+(h.last&&h.last.title?' Last: '+[h.last.title,h.last.role].filter(Boolean).join(' / ')+', '+h.last.when+'.':''); };
+const projLine=it=>{ const c=it.card, d=[c.network,c.type&&c.type.split(',')[0],c.status].filter(Boolean).join(', '); return (c.project||'(no title)')+(d?' ('+d+')':''); };
+/* the report to your reps: three parts, from what you spotted and your own records. No contacts, no private links. */
+S.report=function(items,ctx,me){
+ ctx=ctx||{}; me=me||{}; const types=ctx.types||[];
+ const live=(items||[]).filter(it=>LIVE.includes(it.status));
+ const offs=S.offices(live,ctx);
+ const fits=live.map(it=>({it,m:S.typesIn(it.card,types)})).filter(x=>!types.length||x.m.length).sort((a,b)=>(b.it.at||0)-(a.it.at||0));
+ const known=offs.filter(o=>o.seen), fresh=offs.filter(o=>!o.seen).sort((a,b)=>(b.now.some(x=>x.match.length)?1:0)-(a.now.some(x=>x.match.length)?1:0));
+ const L=['Here\'s what I\'m seeing.',''];
+ const one=x=>{ const c=x.it.card, u=safeUrl(c.source); L.push('- '+projLine(x.it)+((c.casting||[]).length?'. '+c.casting.join(' & ')+' casting':'')+(c.role?'. Role: '+c.role:'')+'.'+(x.m.length?' My words: '+x.m.join(', ')+'.':''));
+  if(u) L.push('  '+u); };
+ L.push(types.length?'CASTING NOW THAT FITS ME':'CASTING NOW'); if(fits.length) fits.forEach(one); else L.push('- Nothing I\'ve spotted has my words in it yet.');
+ L.push('','OFFICES THAT KNOW ME, CASTING NOW');
+ if(known.length) known.forEach(o=>{ L.push('- '+o.name+': '+o.now.map(x=>x.card.project||'(no title)').join(', ')+'.'); L.push('  '+histMine(o.h)+(S.howWords(o)?' '+S.howWords(o):'')); });
+ else L.push('- None of the offices casting these have had me in.');
+ L.push('','OFFICES I SHOULD BE GOING IN FOR AND AM NOT');
+ if(fresh.length) fresh.forEach(o=>{ const m=uniq([].concat.apply([],o.now.map(x=>x.match))); L.push('- '+o.name+': '+o.now.map(x=>x.card.project||'(no title)').join(', ')+'.'+(m.length?' My words: '+m.join(', ')+'.':''));
+  L.push('  Never had me in. Do they go through Breakdowns, or direct?'); });
+ else L.push('- Every office casting these has had me in.');
+ L.push('',me.name||'');
+ return {subject:'What\'s casting'+(me.name?' - '+me.name:'')+', '+new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'}),body:L.join('\n').replace(/\n{3,}/g,'\n\n').trim(),fits,known,fresh};
+};
+
+S.reportHtml=function(rep,me){
+ me=me||{}; const title='What\'s casting'+(me.name?' · '+me.name:'');
+ const body=esc(rep.body).replace(/https?:\/\/[^\s<]+/g,u=>'<a href="'+u+'">'+u.replace(/^https?:\/\//,'').slice(0,70)+'</a>').replace(/^([A-Z][A-Z ,\']{8,})$/gm,'<b>$1</b>');
+ return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(title)+'</title><style>'
+  +':root{--bg:#f6f2ea;--ink:#1d1a15;--dim:#5f584b;--acc:#8a5a08}@media(prefers-color-scheme:dark){:root{--bg:#121110;--ink:#ece7dc;--dim:#a39c8e;--acc:#e9b25a}}'
+  +'body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}main{max-width:760px;margin:0 auto;padding:20px 16px 60px}h1{font-size:22px;margin:0 0 4px}.d{color:var(--dim);margin:0 0 14px}pre{white-space:pre-wrap;font:inherit;margin:0}b{display:inline-block;margin-top:8px;letter-spacing:.06em}a{color:var(--acc);word-break:break-all}'
+  +'</style></head><body><main><h1>'+esc(title)+'</h1><p class="d">'+esc(new Date().toLocaleDateString())+'</p><pre>'+body+'</pre></main></body></html>';
+};
 /* ---------- where it stands ---------- */
 /* conflicts you hold: [{brand, category, until:'YYYY-MM-DD'}] */
 S.STATUS=[['spotted','Spotted'],['passed','Passed along'],['submitted','Submitted'],['room','In the room'],['booked','Booked'],['nothing','Nothing back'],['not','Not for me']];
