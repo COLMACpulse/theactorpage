@@ -90,6 +90,9 @@ iframe.pv{width:100%;height:70vh;border:1px solid var(--line);border-radius:10px
 .toast{position:fixed;left:50%;bottom:calc(var(--nav) + 18px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(10px);background:var(--panel2);border:1px solid var(--tung);color:var(--ink);padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;transition:.2s;pointer-events:none;z-index:70;max-width:calc(100vw - 32px)}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 body:has(#hotbar) .top{padding-top:calc(env(safe-area-inset-top) + 50px)}
+
+.note{border-top:1px solid var(--line);padding:10px 0}.note video{width:100%;max-height:320px;background:#000;border-radius:8px;display:block}.note audio{width:100%}.note small{display:block;color:var(--faint);margin-top:4px}.nw{margin:6px 0;font-size:14px;line-height:1.45;color:var(--dim)}
+.fc small+small{margin-top:2px}
 </style>
 </head>
 <body>
@@ -111,6 +114,9 @@ body:has(#hotbar) .top{padding-top:calc(env(safe-area-inset-top) + 50px)}
 <script src="../film/film.js"></script>
 <script src="../shared/you.js"></script>
 <script src="../shared/filmhub.js"></script>
+<script src="../shared/capture.js"></script>
+<script src="../shared/kit.js"></script>
+<script src="../shared/notecam.js"></script>
 <script src="app.js"></script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
 </body>

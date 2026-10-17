@@ -39,7 +39,7 @@ const c3=await b.newContext(); const r=await c3.newPage(); const out2=[]; r.on('
 const resp=await r.goto('http://localhost:8811/privacy/'); await r.waitForTimeout(500);
 const txt=await r.innerText('main');
 want('privacy page loads, asks nobody else for anything', resp.ok()&&!out2.length, out2);
-want('it names the speech places, Google and Apple, and LISTENING staying on the device', /Eight places/.test(txt)&&/Google/.test(txt)&&/Apple/.test(txt)&&/LISTENING/.test(txt));
+want('it names the speech places, Google and Apple, and LISTENING staying on the device', /Nine places/.test(txt)&&/Google/.test(txt)&&/Apple/.test(txt)&&/LISTENING/.test(txt));
 want('no em dashes', !/—/.test(await r.content()));
 const links=await r.$$eval('main a',x=>x.map(a=>a.getAttribute('href')).filter(h=>!/^https?:/.test(h)));
 const bad=[]; for(const h of links){ const u=new URL(h,'http://localhost:8811/privacy/').href; const s=await (await r.request.get(u)).status(); if(s!==200) bad.push(h+' '+s); }

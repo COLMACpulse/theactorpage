@@ -9,7 +9,7 @@ const H=window.FilmHub, F=window.FilmOS, Y=window.You;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const KEY='filmhub_v1', UK='filmhub_ui_v1';
-const blank=()=>({films:[],studio:{},me:{banner:'',about:'',email:''}});
+const blank=()=>({films:[],studio:{},notes:[],me:{banner:'',about:'',email:''}});
 function load(){ try{ const d=JSON.parse(localStorage.getItem(KEY)||'null'); if(d&&Array.isArray(d.films)) return Object.assign(blank(),d,{me:Object.assign(blank().me,d.me||{})}); }catch(e){} return blank(); }
 let D=load();
 const save=()=>{ try{ localStorage.setItem(KEY,JSON.stringify(D)); }catch(e){ toast('This phone would not save.'); } };
@@ -32,25 +32,34 @@ const film=id=>films().find(f=>f.id===id);
 function rec(f){ if(f.from==='studio'){ D.studio[f.sid]=D.studio[f.sid]||{}; return D.studio[f.sid]; } return D.films.find(x=>x.id===f.id); }
 /* posters: this device only, a 600 px JPEG */
 let dbp=null;
-function db(){ if(dbp) return dbp; dbp=new Promise(res=>{ try{ const r=indexedDB.open('filmhub',1); r.onupgradeneeded=()=>r.result.createObjectStore('posters'); r.onsuccess=()=>res(r.result); r.onerror=()=>res(null); }catch(e){ res(null); } }); return dbp; }
+function db(){ if(dbp) return dbp; dbp=new Promise(res=>{ try{ const r=indexedDB.open('filmhub',2); r.onupgradeneeded=()=>{ const d=r.result; if(!d.objectStoreNames.contains('posters')) d.createObjectStore('posters'); if(!d.objectStoreNames.contains('notes')) d.createObjectStore('notes'); }; r.onsuccess=()=>res(r.result); r.onerror=()=>res(null); }catch(e){ res(null); } }); return dbp; }
+/* notes: the recordings, this device only (store 'notes'); a frame from each in 'posters' as 'n:'+id */
+async function putNote(id,blob){ const d=await db(); if(!d) return false; return new Promise(r=>{ const t=d.transaction('notes','readwrite'); t.objectStore('notes').put(blob,id); t.oncomplete=()=>r(true); t.onerror=()=>r(false); t.onabort=()=>r(false); }); }
+async function getNote(id){ const d=await db(); if(!d) return null; return new Promise(r=>{ const q=d.transaction('notes','readonly').objectStore('notes').get(id); q.onsuccess=()=>r(q.result||null); q.onerror=()=>r(null); }); }
+async function delNote(id){ const d=await db(); if(d) try{ d.transaction('notes','readwrite').objectStore('notes').delete(id); d.transaction('posters','readwrite').objectStore('posters').delete('n:'+id); }catch(e){} }
+const notesOf=fid=>(D.notes||[]).filter(n=>n.film===fid).sort((a,b)=>b.at-a.at);
 async function putPoster(id,blob){ const d=await db(); if(!d) return; await new Promise(r=>{ const t=d.transaction('posters','readwrite'); t.objectStore('posters').put(blob,id); t.oncomplete=r; t.onerror=r; }); }
 async function getPoster(id){ const d=await db(); if(!d) return null; return new Promise(r=>{ const q=d.transaction('posters','readonly').objectStore('posters').get(id); q.onsuccess=()=>r(q.result||null); q.onerror=()=>r(null); }); }
 async function delPoster(id){ const d=await db(); if(d) try{ d.transaction('posters','readwrite').objectStore('posters').delete(id); }catch(e){} }
 async function shrink(file,max){ try{ const bm=await createImageBitmap(file); const k=Math.min(1,(max||600)/Math.max(bm.width,bm.height)); const c=document.createElement('canvas'); c.width=Math.round(bm.width*k); c.height=Math.round(bm.height*k); c.getContext('2d').drawImage(bm,0,0,c.width,c.height); return await new Promise(r=>c.toBlob(b=>r(b||file),'image/jpeg',0.85)); }catch(e){ return file; } }
 const URLS={};
-async function fillPosters(){ for(const im of document.querySelectorAll('img[data-poster]')){ const id=im.dataset.poster; if(URLS[id]===undefined){ const b=await getPoster(id); URLS[id]=b?URL.createObjectURL(b):''; } if(URLS[id]){ im.src=URLS[id]; im.hidden=false; } } }
+async function fillPosters(){ for(const im of document.querySelectorAll('img[data-poster]')){ for(const id of [im.dataset.poster,im.dataset.alt].filter(Boolean)){ if(URLS[id]===undefined){ const b=await getPoster(id); URLS[id]=b?URL.createObjectURL(b):''; } if(URLS[id]){ im.src=URLS[id]; im.hidden=false; break; } } }
+ for(const v of document.querySelectorAll('[data-note]')){ if(v.src) continue; const b=await getNote(v.dataset.note); if(b){ NURL[v.dataset.note]=NURL[v.dataset.note]||URL.createObjectURL(b); v.src=NURL[v.dataset.note]; } } }
+const NURL={};
 const dataUrl=b=>new Promise(r=>{ const f=new FileReader(); f.onload=()=>r(f.result); f.onerror=()=>r(''); f.readAsDataURL(b); });
 
 /* ---------- FILMS ---------- */
 function card(f){
  const sub=f.from==='studio'?(H.words(f.st)[0]||''):[f.year,f.kind].filter(Boolean).join(' · ');
- return '<button class="fc" data-open="'+esc(f.id)+'"><img class="po" data-poster="'+esc(f.id)+'" alt="" hidden><div><b>'+esc(f.title||'Untitled')+'</b><small>'+esc(sub)+'</small>'
+ const ns=notesOf(f.id), alt=ns.find(n=>n.thumb);
+ return '<button class="fc" data-open="'+esc(f.id)+'"><img class="po" data-poster="'+esc(f.id)+'"'+(alt?' data-alt="n:'+esc(alt.id)+'"':'')+' alt="" hidden><div><b>'+esc(f.title||'Untitled')+'</b><small>'+esc(sub)+'</small>'+(ns.length?'<small>'+ns.length+' note'+(ns.length===1?'':'s')+', last '+esc(new Date(ns[0].at).toLocaleDateString(undefined,{month:'short',day:'numeric'}))+'</small>':'')
   +(f.stage?'<span class="stg">'+esc(H.stageWord(f.stage))+'</span>':'')+(f.show===false?'<span class="stg" style="color:var(--faint);margin-left:8px">off the page</span>':'')+'</div></button>';
 }
 function filmsView(){
  if(U.open&&film(U.open)) return filmView(film(U.open));
  const L=films(), mk=L.filter(f=>f.from==='studio'), mine=L.filter(f=>f.from==='hand');
  let h='';
+ if(window.Kit) h+=Kit.html([{id:'vnote',dev:'camera',label:'CAMERA',what:'Shoot a note',note:L.length?'On a film, sorted for you':'Add a film first',off:!L.length},{id:'anote',dev:'mic',label:'MIC',what:'Say a note',note:L.length?'Voice only':'Add a film first',off:!L.length}]);
  h+='<p class="kicker">Making now</p>'+(mk.length?mk.map(card).join(''):'<div class="card"><p class="dim small" style="margin:0">Nothing in Story Studio yet. Start a film there and it shows up here, counted from what you mark.</p><a class="btn" href="../film/" style="margin-top:10px;text-decoration:none">OPEN STORY STUDIO</a></div>');
  h+='<p class="kicker" style="margin-top:18px">Films you\'ve made</p>'+(mine.length?mine.map(card).join(''):'<p class="faint small">The ones from before, or made anywhere else. Add them here for the page.</p>');
  h+='<button class="btn" id="addfilm" style="margin-top:6px">ADD A FILM YOU\'VE MADE</button>';
@@ -71,8 +80,37 @@ function filmView(f){
   +'<button class="btn sm" id="addlk" style="margin-top:4px">ADD A LINK</button>'
   +(hand?'<label class="lab" for="ff_people">Who was on it (one a line: "Sound: Jo Park")</label><textarea class="field" id="ff_people" data-ff="people" placeholder="Directed by: …">'+esc(r.people||'')+'</textarea>':'<p class="faint small" style="margin-top:10px">Cast and crew come from Story Studio\'s call sheet and credits.</p>')
   +'</div>';
+ h+=notesCard(f);
  if(hand) h+='<div class="row" style="justify-content:flex-end"><button class="lnk faint" id="del">delete this film</button></div>';
  return h;
+}
+
+/* ---------- notes ---------- */
+function scenesFor(f){ if(f.from!=='studio') return []; const c=studio()[f.sid]; try{ return c&&c.text?F.scenes(c.text).map(s=>s.n+'. '+s.heading):[]; }catch(e){ return []; } }
+function noteFor(){ return films().map(f=>({id:f.id,label:f.title||'Untitled',scenes:scenesFor(f)})); }
+function recNote(kind,pick){
+ if(!window.NoteCam){ toast('This page cannot record here.'); return; }
+ const L=films(); if(!L.length){ toast('Add a film first: start one in Story Studio, or ADD A FILM YOU\'VE MADE.'); return; }
+ NoteCam.open({kind,title:'A note',for:noteFor(),pick:pick||{for:U.open||D.lastNoteFor||''}},async n=>{
+  const id='n'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+  if(!(await putNote(id,n.blob))) throw new Error('not kept');
+  if(n.thumb) await putPoster('n:'+id,n.thumb);
+  const fl=film(n.for), sl=n.scene!=null?(scenesFor(fl||{})[n.scene]||''):'';
+  D.notes=(D.notes||[]).concat([{id,film:n.for,scene:n.scene,sceneLabel:sl,at:Date.now(),secs:n.secs,mime:n.mime,ext:n.ext,kind,words:n.words,name:n.name,thumb:!!n.thumb}]); D.lastNoteFor=n.for;
+  if(URLS['n:'+id]!==undefined) delete URLS['n:'+id];
+  save(); render(); });
+}
+function notesCard(f){
+ const ns=notesOf(f.id);
+ let h='<div class="card"><p class="kicker">Notes</p><div class="row" style="margin-bottom:8px"><button class="btn sm" data-vnote="'+esc(f.id)+'">SHOOT A NOTE</button><button class="btn sm" data-anote="'+esc(f.id)+'">SAY A NOTE</button></div>';
+ if(!ns.length) return h+'<p class="faint small" style="margin:0">Nothing yet. A note to yourself on camera: the shot you want, what went wrong today, the idea in the car.</p></div>';
+ const by={}; ns.forEach(n=>{ const k=n.sceneLabel||''; (by[k]=by[k]||[]).push(n); });
+ Object.keys(by).sort((a,b)=>(a?1:0)-(b?1:0)||a.localeCompare(b,undefined,{numeric:true})).forEach(k=>{ h+='<p class="lab" style="margin-top:12px">'+esc(k||'The whole film')+'</p>';
+  by[k].forEach(n=>{ h+='<div class="note">'+(n.kind==='audio'?'<audio controls preload="none" data-note="'+esc(n.id)+'"></audio>':'<video controls playsinline preload="metadata" data-note="'+esc(n.id)+'"></video>')
+   +'<small>'+esc(new Date(n.at).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}))+' · '+esc(NoteCam?NoteCam.mmss(n.secs):'')+'</small>'
+   +(n.words?'<p class="nw">'+esc(n.words)+'</p>':'')
+   +'<div class="row"><button class="lnk" data-nphone="'+esc(n.id)+'">SAVE TO PHONE</button><button class="lnk faint" data-ndel="'+esc(n.id)+'">delete</button></div></div>'; }); });
+ return h+'</div>';
 }
 
 /* ---------- PAGE ---------- */
@@ -121,6 +159,11 @@ function wire(){
   if($('pf')) $('pf').onchange=async e=>{ const file=e.target.files[0]; if(!file) return; const b=await shrink(file,600); await putPoster(f.id,b); if(URLS[f.id]) URL.revokeObjectURL(URLS[f.id]); URLS[f.id]=URL.createObjectURL(b); render(); toast('Poster kept on this device.'); };
   if($('del')) $('del').onclick=async()=>{ if(!confirm('Delete this film from FILM HUB?')) return; D.films=D.films.filter(x=>x.id!==f.id); await delPoster(f.id); U.open=''; save(); saveU(); render(); };
  }
+ if(window.Kit) Kit.wire(M,{vnote:()=>recNote('video'),anote:()=>recNote('audio')});
+ M.querySelectorAll('[data-vnote]').forEach(b=>b.onclick=()=>recNote('video',{for:b.dataset.vnote}));
+ M.querySelectorAll('[data-anote]').forEach(b=>b.onclick=()=>recNote('audio',{for:b.dataset.anote}));
+ M.querySelectorAll('[data-nphone]').forEach(b=>b.onclick=async()=>{ const n=(D.notes||[]).find(x=>x.id===b.dataset.nphone), bl=n&&await getNote(n.id); if(!bl) return toast('That one isn\'t on this device.'); const r=await NoteCam.saveToPhone(bl,n.name); toast(r==='shared'?'Pick Save Video to put it in Photos.':r==='downloaded'?'Saved to your downloads.':''); });
+ M.querySelectorAll('[data-ndel]').forEach(b=>b.onclick=async()=>{ if(!confirm('Delete this note? Gone for good unless you saved it to your phone.')) return; const id=b.dataset.ndel; await delNote(id); D.notes=(D.notes||[]).filter(x=>x.id!==id); delete URLS['n:'+id]; save(); render(); });
  M.querySelectorAll('[data-pm]').forEach(el=>el.onchange=()=>{ D.me[el.dataset.pm]=el.value.trim(); save(); });
  if($('pname')) $('pname').onchange=e=>{ try{ Y.set('name',e.target.value); }catch(x){} };
  M.querySelectorAll('[data-pshow]').forEach(el=>el.onchange=()=>{ const x=rec(film(el.dataset.pshow)); if(x){ x.show=el.checked; save(); } });

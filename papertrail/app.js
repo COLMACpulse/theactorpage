@@ -400,7 +400,7 @@ function vResearch(p){
  if(q) L=L.filter(r=>T.search(q,{research:[r]}).length);
  let h=rSwitch('shelf')+'<p class="note">Photos, screenshots, voice memos, video, PDFs, links and notes for this project. Pin any of it to a scene or a character. It stays on this device and goes in the On This Device backup.</p>';
  h+='<div class="drop" id="rdrop"><b>DROP RESEARCH</b><span class="note">Several at once is fine. Photos, screenshots, recordings, video, PDFs, anything.</span></div>';
- h+='<div class="row" style="margin-top:10px"><button class="btn" id="rcam">TAKE A PHOTO</button><button class="btn" id="rrec">'+(RECORDING?'STOP RECORDING':'RECORD A MEMO')+'</button></div>';
+ h+='<div class="row" style="margin-top:10px"><button class="btn" id="rnote">SHOOT A NOTE</button><button class="btn" id="rcam">TAKE A PHOTO</button><button class="btn" id="rrec">'+(RECORDING?'STOP RECORDING':'RECORD A MEMO')+'</button></div>';
  h+='<div class="row" style="margin-top:10px"><input class="field" id="rlink" placeholder="Paste a link, or write a note" style="flex:1"><button class="btn pri" id="rkeep">KEEP</button></div>';
  h+='<div class="panel" style="margin-top:12px"><b>Your AI chats</b><p class="note" style="margin:4px 0 8px">Brainstormed with ChatGPT or Claude? Bring in the export (the .zip it emails you, or conversations.json). Every chat that names '+esc(p.title)+(p.aka&&p.aka.length?' or '+esc(p.aka.join(', '))+'':'')+' comes in as a note with its date. The rest is not kept. It is read on this device; nothing is uploaded.</p>'
   +'<div class="row"><label class="btn"><input type="file" accept=".zip,.json,application/zip,application/json" class="hide" id="rchats">BRING IN YOUR AI CHATS</label><input class="field" id="raka" placeholder="Other names for it (working title, a character)" value="'+esc((p.aka||[]).join(', '))+'" style="flex:1 1 220px"></div>'+(CHATMSG?'<p class="note" style="margin:8px 0 0">'+esc(CHATMSG)+'</p>':'')+'</div>';
@@ -672,6 +672,12 @@ function wire(){
  if(p&&VIEW.tab==='research'){
   const pickR=(pin)=>{ const i=document.createElement('input'); i.type='file'; i.multiple=true; i.onchange=()=>{ if(i.files.length) addResearch(p,[...i.files],pin); }; i.click(); };
   const rd0=$('rdrop'); if(rd0){ rd0.onclick=()=>pickR(); rd0.ondragover=e=>{e.preventDefault();rd0.classList.add('over');}; rd0.ondragleave=()=>rd0.classList.remove('over'); rd0.ondrop=e=>{ e.preventDefault(); rd0.classList.remove('over'); if(e.dataTransfer.files.length) addResearch(p,[...e.dataTransfer.files]); }; }
+  const rn=$('rnote'); if(rn) rn.onclick=()=>{ if(!window.NoteCam){ toast('This page cannot record here.'); return; }
+   const c=current(p)||board(p), sc=c?scenesOf(c):[], keys=T.keys(sc), f=VIEW.rf||'', pre=f.startsWith('s:')?keys.indexOf(f.slice(2)):null;
+   NoteCam.open({kind:'video',title:p.title,for:[{id:p.id,label:p.title,scenes:sc.map((x,i)=>'SC '+(i+1)+' '+x.heading)}],pick:{for:p.id,scene:pre!=null&&pre>=0?pre:null}},async n=>{
+    const id=rid('r'); if(!(await putBlob(id,n.blob))) throw new Error('not kept');
+    p.research=p.research||[]; p.research.push({id:id,kind:'video',name:n.name,type:n.mime.split(';')[0],size:n.blob.size,at:Date.now(),note:n.words||'',scene:n.scene!=null?(keys[n.scene]||''):'',who:'',from:'note'});
+    p.updated=Date.now(); save(); render(); }); };
   const cam=$('rcam'); if(cam) cam.onclick=()=>{ const i=document.createElement('input'); i.type='file'; i.accept='image/*'; i.setAttribute('capture','environment'); i.onchange=()=>{ if(i.files.length) addResearch(p,[...i.files]); }; i.click(); };
   const rec=$('rrec'); if(rec) rec.onclick=async()=>{
    if(RECORDING){ try{ RECORDING.stop(); }catch(e){} return; }
