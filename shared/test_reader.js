@@ -64,5 +64,20 @@ function score(text){
  const cfp=S.parse(CF); ok('colon headings: not read as a character INT or EXT saying the place', cfp.filter(b=>!b.action).map(b=>b.who+':'+b.text).join('|')==='HAL:Let me out.|DEPUTY:Go home.|HAL:Whiskey.', cfp.filter(b=>!b.action));
  const cfs=F.scenes(CF); ok('colon headings: 3 scenes, each with its own place and time', cfs.length===3&&cfs[0].heading==='INT: DAY. City jailhouse'&&cfs[0].place==='City jailhouse'&&cfs[0].tod==='DAY'&&cfs[1].place==='Hal waits by the gate'&&cfs[1].tod==='NIGHT'&&cfs[2].place==='SALOON'&&cfs[2].tod==='NIGHT', cfs.map(x=>[x.heading,x.place,x.tod]));
  ok('colon headings: prose with a colon is not a heading', !S.SLUG.test('Interesting: he said no.')&&!S.SLUG.test('Ext:')&&S.SLUG.test('EXT: NIGHT. Gate'));
+ // interviews, speeches and subtitles (made up): only the names are touched
+ { const W=b=>b.map(x=>(x.action?'-':x.who)+'|'+x.text).join(' / ');
+  const iv=S.parse('Dana Pell: Thanks for having me.\nHost: So, the new show?\nDana Pell: We start in March.\nHost: Great.\nLocation: Atlanta');
+  ok('interview: "Dana Pell:" is a speaker; the words untouched; a one-off label stays as written', W(iv)==='DANA PELL|Thanks for having me. / HOST|So, the new show? / DANA PELL|We start in March. / HOST|Great. / -|Location: Atlanta', W(iv));
+  const ot=S.parse('Ross Okafor  0:02\nI grew up on boats.\n\nJo Park  0:05\nTell me more.\n\nRoss Okafor  0:09\nMy dad fished. Every day.');
+  ok('transcript name-and-time lines', W(ot)==='ROSS OKAFOR|I grew up on boats. / JO PARK|Tell me more. / ROSS OKAFOR|My dad fished. Every day.', W(ot));
+  const qa=S.parse('[00:01:02] Q: Where did you grow up?\n[00:01:09] A: On a dock.\nQ: And then?\nA: Then the city.');
+  ok('Q and A, timestamps dropped', W(qa)==='Q|Where did you grow up? / A|On a dock. / Q|And then? / A|Then the city.', W(qa));
+  const srt=S.parse('1\n00:00:01,000 --> 00:00:03,000\nWhere were you?\n\n2\n00:00:03,500 --> 00:00:05,000\nOut.\nAll night.\n');
+  ok('SRT: numbers and timings gone; no names, one SPEAKER; a cue\'s two lines are one line', W(srt)==='SPEAKER|Where were you? / SPEAKER|Out. All night.', W(srt));
+  const vtt=S.parse('WEBVTT\n\nNOTE made up\n\n00:01.000 --> 00:03.000\n<v Anna Voss>Where were you?</v>\n\n00:03.500 --> 00:05.000\n<v Mr. Dell>Out.\n');
+  ok('WebVTT: header and notes gone; the voice tag is the speaker', W(vtt)==='ANNA VOSS|Where were you? / MR. DELL|Out.', W(vtt));
+  ok('a news story with one "Location:" stays prose', S.parse('Mr. Dell said the plan works.\nLocation: Atlanta.').every(b=>b.action));
+  ok('sides are read as before', W(S.parse('ANNA\nHand me the rope.\n\nMR. DELL\nNo.'))==='ANNA|Hand me the rope. / MR. DELL|No.');
+  ok('an email from a rep is not an interview', S.transcript('From: Pat Rep\nTo: Sam Actor\nSubject: LOW TIDE\nHi Sam: tape due Friday.').kind===''); }
  console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail?1:0);
 })();

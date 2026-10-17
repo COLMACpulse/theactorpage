@@ -25,7 +25,7 @@ X.fileKind=function(f){
  if(e==='docx') return 'docx';
  if(X.MEDIA.includes(e)||/^(video|audio)\//.test(t)) return 'media';
  if(X.IMAGE.includes(e)||/^image\//.test(t)) return 'image';
- if(['txt','text','eml','md','rtf',''].includes(e)||/^text\//.test(t)) return 'text';
+ if(['txt','text','eml','md','rtf','srt','vtt',''].includes(e)||/^text\//.test(t)) return 'text';   // subtitles read as text: the sides reader takes them
  return 'other';
 };
 
@@ -43,7 +43,7 @@ X.folder=function(files,limit){
   const k=X.fileKind(f), e=X.ext(name);
   if(k==='media'){ r.media++; continue; }
   if(k==='image'){ if(X.HEADSHOT.test(name)) keep.push(f); else r.images++; continue; }
-  if(['fdx','fountain','pdf','docx'].includes(k)||(k==='text'&&['txt','text','eml','rtf'].includes(e))) keep.push(f); else r.other++; }
+  if(['fdx','fountain','pdf','docx'].includes(k)||(k==='text'&&['txt','text','eml','rtf','srt','vtt'].includes(e))) keep.push(f); else r.other++; }
  keep.sort((a,b)=>(b.lastModified||0)-(a.lastModified||0));
  r.take=keep.slice(0,limit); r.later=keep.slice(limit); return r;
 };
@@ -92,6 +92,9 @@ X.what=function(text,pdf,rows){
   const titlePage=/^\s*(Title\s*:|.*\n\s*(written by|screenplay by|story by)\b)/im.test(t.slice(0,1500));
   const sidesMarks=(pdf&&pdf.sides)||/Sides by Breakdown Services|^\s*Role:\s/im.test(t);
   const long=sc.scenes>=8||sc.speeches>=80||(pdf&&pdf.pages>15);
+  // an interview, a speech or subtitles: sides to run, however long
+  const tk=(g.ActorSides&&g.ActorSides.transcript)?g.ActorSides.transcript(t).kind:'';
+  if(tk) return {kind:'sides', why:[tk==='subtitles'?'subtitles':'an interview transcript',sc.speeches+' speeches',sc.speakers.length+' speaking part'+(sc.speakers.length===1?'':'s')], script:sc, req:reqSigns.length?req:null};
   if(!sidesMarks&&(titlePage||long)) return {kind:'script', why:[titlePage?'a title page':'',sc.scenes+' scene'+(sc.scenes===1?'':'s'),sc.speeches+' speeches'].filter(Boolean), script:sc, req:reqSigns.length?req:null};
   return {kind:'sides', why:[sidesMarks?'sides markings':'',sc.scenes+' scene'+(sc.scenes===1?'':'s'),sc.speeches+' speeches',sc.speakers.length+' speaking part'+(sc.speakers.length===1?'':'s')].filter(Boolean), script:sc, req:reqSigns.length?req:null};
  }

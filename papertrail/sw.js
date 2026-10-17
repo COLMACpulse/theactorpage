@@ -1,5 +1,5 @@
 /* PAPER TRAIL offline shell. Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='paper-trail-0.11.1';
+const CACHE='paper-trail-0.11.2';
 const FILES=['./','index.html','../shared/hot.js','../shared/kit.js','app.js','trail.js','manifest.webmanifest',
  '../shared/shelf.js','../shared/inbox.js','../shared/xlsx.js','../actor-os/sides.js','../actor-os/pdf.js','../film/film.js',
  'icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];

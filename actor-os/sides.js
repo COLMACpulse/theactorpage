@@ -14,7 +14,7 @@ const MORE=/^\s*\(\s*MORE\s*\)\s*$/i;
 /* a sides watermark comes through pasted text as bits: "E417-E417-", "4:15 PM - 55120 - Mar 3, 2026" */
 const MARK=/(E\d{3}-){2,}|\d{1,2}:\d{2}\s*(AM|PM)\s*-\s*\d{3,}|\b\d{4,6}\s*-\s*[A-Z][a-z]{2}\s+\d{1,2},\s*\d{4}/;
 const PAREN=/^\s*\(.*\)\s*$/;
-const NAMEC=/^\s*([A-Z][A-Z0-9 .'’#&\-]{1,32})\s*:\s*(.+)$/;     // BO: line
+const NAMEC=/^\s*([A-Z][A-Z0-9 .'’#&\-]{1,32}|Q|A)\s*:\s*(.+)$/;     // BO: line (and Q: / A: in an interview)
 const NAMEL=/^\s*([A-Z][A-Z0-9 .'’#&\-]{1,32})((\s*\([^)]*\))*)\s*\^?\s*$/; // BO  /  BO (CONT'D)  /  COP #2
 /* camera and editing words are never a person: "LOW ANGLE", "POV DECKHAND:", "FLASHBACK:", "LATER" */
 const SHOT=/^(((EXTREME |LOW |HIGH |REVERSE |WIDE |TIGHT )?(ANGLE|CLOSE[ -]?UP|CLOSE( ON)?|SHOT|WIDE|TWO SHOT|INSERT|ECU|ECS|MCU|OTS)|(.* )?POV( .*)?|BACK TO( SCENE| PRESENT)?|(END )?FLASH ?BACK|FLASH|(END )?(MONTAGE|SERIES OF SHOTS|INTERCUT|DREAM|SEQUENCE)|INTERCUT .*|SUPER|SUPERIMPOSE|TITLE( CARD)?|CHYRON|CARD|LATER|MOMENTS LATER|SAME|CONTINUOUS|OVER BLACK|BLACK|BLACKOUT|ON SCREEN|ON TV|ESTABLISHING|AERIAL|TRACKING|OVERHEAD|SLOW MOTION|FREEZE FRAME|SPLIT SCREEN|THE END|END|START|BEGIN|SILENCE|BEAT|PRE-?LAP|VOICES)\b.*)$/;
@@ -67,7 +67,55 @@ function unlayout(raw){
 }
 const DIRECTION=l=>/^\s*[!>]/.test(l)&&!/^\s*>.*<\s*$/.test(l)?l.replace(/^\s*[!>]\s*/,''):null;
 
+/* Interviews, speeches and subtitles, read as sides without changing a word.
+   - Subtitles (SRT, WebVTT): the cue numbers, the timings and the WEBVTT header go; a VTT voice tag
+     (<v Dana Pell>) is the speaker. Subtitles with no names: everything is one speaker, SPEAKER.
+   - Interview transcripts: a name the way people write it ("Dana Pell: Thanks for having me.") is a speaker
+     when that name starts two or more lines. A label that only shows once ("Location: Atlanta") stays as is.
+     A transcript's name-and-time line ("Dana Pell  0:02", then the words) works too.
+   Only the names are touched (put in capitals, the way sides write them). The words are the words. */
+const TIMING=/^\s*(\d{1,2}:)?\d{1,2}:\d{2}[.,]\d{1,3}\s*-->\s*(\d{1,2}:)?\d{1,2}:\d{2}[.,]\d{1,3}/;
+const NOTLABEL=/^(note|notes|time|date|location|place|subject|source|update|editor'?s note|photo|credit|warning|transcript|summary|q&a|re|fw|fwd|from|to|cc|sent|title|tags?|category|link|url|duration|runtime|episode|season|part|chapter|scene|act)$/i;
+const STAMP=/^\s*[\[(]?\s*(\d{1,2}:)?\d{1,2}:\d{2}(\.\d+)?\s*[\])]?\s*/;
+A.transcript=function(text){
+  let t=String(text||'').replace(/\r/g,'');
+  const L0=t.split('\n');
+  // subtitles
+  if(/^﻿?\s*WEBVTT/.test(t)||L0.filter(l=>TIMING.test(l)).length>=2){
+    const out=[]; let named=false, skip=false;
+    L0.forEach((l,i)=>{ const x=l.replace(/^﻿/,'');
+      if(/^\s*WEBVTT/.test(x)){ skip=true; return; }
+      if(!x.trim()){ skip=false; out.push(''); return; }
+      if(skip) return;
+      if(/^\s*(NOTE|STYLE|REGION)\b/.test(x)){ skip=true; return; }
+      if(TIMING.test(x)){ out.push(''); return; }
+      if(/^\s*\d+\s*$/.test(x)&&L0[i+1]&&TIMING.test(L0[i+1])) return;     // the cue number
+      const v=x.match(/^\s*<v(?:\.[^ >]+)?\s+([^>]+)>(.*)$/);
+      let words=(v?v[2]:x).replace(/<\/?(?:v|c|i|b|u|lang|ruby|rt)(?:[.\s][^>]*)?>/g,'').replace(/<\d{1,2}:\d{2}[^>]*>/g,'').trim();
+      if(!words) return;
+      if(v){ named=true; out.push(cleanName(v[1])+': '+words); return; }
+      out.push(words); });
+    // join a cue's lines; one cue, one line
+    const cues=[]; let cur=[]; out.forEach(l=>{ if(!l){ if(cur.length) cues.push(cur.join(' ')); cur=[]; } else cur.push(l); }); if(cur.length) cues.push(cur.join(' '));
+    const anyName=cues.some(c=>NAMEC.test(c));
+    return {kind:'subtitles',text:cues.map(c=>NAMEC.test(c)?c:(anyName||named?c:'SPEAKER: '+c)).join('\n\n')+'\n'};
+  }
+  // interview transcripts: Title Case names (and Q / A) before a colon, two or more times
+  const LAB=/^\s*([A-Z][a-z'’.\-]+(?:\s+(?:[A-Z][a-z'’.\-]+|[A-Z]\.|de|van|von|del|la|O'[A-Z][a-z]+|Mc[A-Z][a-z]+)){0,3}|Q|A|Host|Interviewer|Moderator|Speaker\s*\d+)\s*(?:\(\s*(?:\d{1,2}:)?\d{1,2}:\d{2}\s*\))?\s*:\s+(\S.*)$/;
+  const HEAD=/^\s*([A-Z][a-z'’.\-]+(?:\s+[A-Z][a-z'’.\-]+){0,3}|Speaker\s*\d+)\s+[\[(]?(?:\d{1,2}:)?\d{1,2}:\d{2}[\])]?\s*$/;
+  const n={}, hd={}; let heads=0; L0.forEach((l,i)=>{ const x=l.replace(STAMP,''); const m=x.match(LAB); if(m&&!NOTLABEL.test(m[1])) n[m[1]]=(n[m[1]]||0)+1; const h=x.match(HEAD); if(h&&!NOTLABEL.test(h[1])&&L0[i+1]&&L0[i+1].trim()){ hd[h[1]]=1; heads++; } });
+  // a name-and-time line is a transcript's own way of naming the speaker: two of them is enough
+  const names=Object.keys(n).filter(k=>n[k]>=2).concat(heads>=2?Object.keys(hd):[]);
+  if(!names.length||(names.reduce((a,k)=>a+(n[k]||0),0)<3&&heads<2)) return {kind:'',text:t};
+  const out=[]; let ok=false;
+  for(let i=0;i<L0.length;i++){ const x=L0[i].replace(STAMP,'');
+    const m=x.match(LAB); if(m&&names.includes(m[1])){ out.push('',cleanName(m[1])+': '+m[2].trim(),''); ok=true; continue; }
+    const h=x.match(HEAD); if(h&&names.includes(h[1])){ let j=i+1, buf=[]; while(j<L0.length&&L0[j].trim()&&!L0[j].match(HEAD)&&!(L0[j].match(LAB)&&names.includes(L0[j].match(LAB)[1]))){ buf.push(L0[j].trim()); j++; } if(buf.length){ out.push('',cleanName(h[1])+': '+buf.join(' '),''); ok=true; i=j-1; continue; } }
+    out.push(L0[i]); }
+  return ok?{kind:'interview',text:out.join('\n').replace(/\n{3,}/g,'\n\n')}:{kind:'',text:t};
+};
 A.parse=function(text){
+  const tr=A.transcript(text); if(tr.kind) text=tr.text;
   const fp=fountainPrep(text);
   const raw=(!fp.isF&&unlayout(fp.lines))||fp.lines.map(wideGap);
   // a lone 1-3 character bit with blank lines round it is watermark, not script ("PM", "E", "eb")
