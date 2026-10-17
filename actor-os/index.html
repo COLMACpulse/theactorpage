@@ -347,8 +347,11 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
    <p>Got a Bluetooth clicker? Turn on <b>REMOTE</b> and you never touch the <span class="dvn">phone</span>.</p>
    <p>In scene partner, <b>LISTEN FOR MY CUE</b> is already on. It is what makes the
    timing work: the scene runs on ACTION, stops dead on your line, and does not move
-   until it hears you finish. Tap it off if you would rather run the scene on the
-   clicker or the arrows.</p>
+   until it hears you finish. It listens on this phone: you talk, you go quiet for a beat, the next line plays.
+   Nothing is sent anywhere. Tap it once more for <b>MATCHING WORDS</b>, which waits for your last words instead;
+   that uses the browser's speech service (Chrome sends your voice to Google, Safari to Apple), so it asks first.
+   Tap again for off, and run the scene on the clicker or the arrows.</p>
+   <p>Each voice can sit higher or lower than you read it (HOW EACH VOICE SOUNDS). Same timing, your recording.</p>
 
    <h4>03 &middot; CUT</h4>
    <p>Pick a take, set the handles, choose a size. It really re-encodes &mdash; this is the step
@@ -1024,11 +1027,11 @@ window.addEventListener('load',()=>{
 function saveRange(){
  try{ if(window.Shelf&&SHELF_ID&&SIDES.me){ const c=curScene(); Shelf.setRange(SHELF_ID,[c.start,c.end],'actor-os'); } }catch(e){}
  try{ localStorage.setItem('actor_os_range_'+(SIDES.file||'x'),
-   JSON.stringify({me:SIDES.me,om:SIDES.omit||[],rdy:!!SIDES.ready,pk:SIDES.pick||{},sc:SIDES.scenes||[],cur:SIDES.cur||0,vo:SIDES.voice||{}})); }catch(e){}
+   JSON.stringify({me:SIDES.me,om:SIDES.omit||[],rdy:!!SIDES.ready,pk:SIDES.pick||{},sc:SIDES.scenes||[],cur:SIDES.cur||0,vo:SIDES.voice||{},vp:SIDES.vpitch||{}})); }catch(e){}
 }
 function loadRange(){
  try{ const r=JSON.parse(localStorage.getItem('actor_os_range_'+(SIDES.file||'x'))||'null');
-   if(r){ SIDES.omit=r.om||[]; SIDES.ready=!!r.rdy; SIDES.pick=r.pk||{}; SIDES.scenes=r.sc||[]; SIDES.cur=r.cur||0; SIDES.voice=r.vo||{}; } }catch(e){}
+   if(r){ SIDES.omit=r.om||[]; SIDES.ready=!!r.rdy; SIDES.pick=r.pk||{}; SIDES.scenes=r.sc||[]; SIDES.cur=r.cur||0; SIDES.voice=r.vo||{}; SIDES.vpitch=r.vp||{}; } }catch(e){}
 }
 /* the script the take actually runs on */
 
@@ -1733,9 +1736,13 @@ function stopPreview(){
    0.20 tail. MATCH advances. HOLD waits, because a near miss is not a finish.
    NO MATCH keeps listening.
 
-   Speech recognition is a browser service and it is not private on every device -
-   iOS may send audio to Apple. That is why this is opt-in and off by default, and
-   why MANUAL and the tap-to-advance path are never removed. */
+   Two ways to hear it, and the default never leaves the phone:
+   LISTENING (default): your voice on this phone's mic. You talk, you go quiet for a beat, the next line plays.
+     It reads sound level against your own room (measured as it goes), not words, so a long pause mid-line can
+     move it on early; it waits until you've talked for a good part of the line first. Nothing is sent anywhere.
+   MATCHING WORDS (you choose it, it asks first): the browser's speech service matches your last words (the cue
+     math below). Chrome sends your voice to Google, Safari to Apple. Never turned on by itself.
+   Tap and the clicker always work. */
 let LISTEN=false, rec2=null, listenHeard='', listenPaused=false;
 /* The mic is open while the partner is talking, so the recogniser hears the
    playback. It cannot advance on it - listenCheck returns early unless the line is
@@ -1758,7 +1765,35 @@ function listenWindow(){
  return Math.max(40, Math.ceil(n*1.6)+8);
 }
 
-function listenSupported(){ return !!(window.SpeechRecognition||window.webkitSpeechRecognition); }
+function wordsSupported(){ return !!(window.SpeechRecognition||window.webkitSpeechRecognition); }
+function listenSupported(){ return !!(window.AudioContext||window.webkitAudioContext)||wordsSupported(); }
+/* ---- LISTENING: on this phone, by your voice stopping ---- */
+let QL=null; const QUIET_GAP=800;
+function quietStart(){
+ const st=$('stageVid')&&$('stageVid').srcObject, tr=st&&st.getAudioTracks&&st.getAudioTracks().find(t=>t.readyState==='live');
+ if(!tr){ stageToast('No mic on this take, so it can\u2019t hear you. Use \u25b6 or your clicker.'); return false; }
+ try{ const AC=window.AudioContext||window.webkitAudioContext, ac=new AC(), src=ac.createMediaStreamSource(new MediaStream([tr])), an=ac.createAnalyser();
+  an.fftSize=1024; src.connect(an); try{ ac.resume(); }catch(e){}
+  QL={ac,an,buf:new Float32Array(an.fftSize),floor:null,voiced:0,sil:0,t:performance.now()}; QL.iv=setInterval(quietTick,30); LISTEN='quiet';
+ }catch(e){ stageToast('Could not start listening.'); return false; }
+ listenUI(); return true;
+}
+function quietStop(){ if(!QL) return; clearInterval(QL.iv); try{ QL.ac.close(); }catch(e){} QL=null; }
+function quietTick(){
+ if(!QL) return; const now=performance.now(), dt=Math.min(100,now-QL.t); QL.t=now;
+ QL.an.getFloatTimeDomainData(QL.buf); let s=0; for(const v of QL.buf) s+=v*v; const rms=Math.sqrt(s/QL.buf.length);
+ // your room: the quietest it has been lately, creeping up slowly so a noisier room is learned
+ QL.floor = QL.floor==null||rms<QL.floor ? Math.max(rms,0.0008) : QL.floor*1.0015;
+ const talking = rms>Math.max(0.006,QL.floor*3.2);
+ const run=(SIDES.run||SIDES.script)||[], b=run[sIdx];
+ if(listenPaused||listenGated()||!b||!b.mine||(MODE!=='PARTNER'&&MODE!=='PROMPTER')){ QL.voiced=0; QL.sil=0; quietBadge(false); return; }
+ const words=(String(b.text||'').match(/[A-Za-z0-9']+/g)||[]).length, need=Math.max(300, words/2.7*1000*0.4);
+ if(talking){ QL.voiced+=dt; QL.sil=0; }
+ else if(QL.voiced>=need){ QL.sil+=dt;
+  if(QL.sil>=QUIET_GAP){ QL.voiced=0; QL.sil=0; listenPaused=true; setTimeout(()=>{ listenPaused=false; },900); listenBadge({action:'MATCH'}); stageStep(1); return; } }
+ quietBadge(talking);
+}
+function quietBadge(on){ const el=$('sListen'); if(!el||!el.classList) return; el.className='listen on'+(on?' match':''); el.textContent='\u25cf'; }
 
 /* The recogniser stops on its own and has to be restarted. It also dies for reasons
    that are not your fault - the camera already holds the mic, the service is busy,
@@ -1769,8 +1804,12 @@ function listenSupported(){ return !!(window.SpeechRecognition||window.webkitSpe
 let listenFails=0;
 const LISTEN_MAX_FAILS=4;
 
-function listenStart(){
- if(!listenSupported()) return stageToast('This browser cannot listen for cues.');
+function listenStart(how){
+ if(how!=='words') return quietStart();
+ return wordsStart();
+}
+function wordsStart(){
+ if(!wordsSupported()){ stageToast('This browser can\u2019t match words. LISTENING still works.'); return false; }
  const R=window.SpeechRecognition||window.webkitSpeechRecognition;
  try{ rec2=new R(); }catch(e){ return stageToast('Could not start listening.'); }
  rec2.continuous=true; rec2.interimResults=true; rec2.lang='en-US';
@@ -1807,15 +1846,24 @@ function listenStart(){
     if(listenFails>=LISTEN_MAX_FAILS && !sRecOn){ listenStop(); stageToast('Listening stopped. Use \u25b6 or your clicker.'); } }
   }, wait);
  };
- try{ rec2.start(); LISTEN=true; listenFails=0; }catch(e){ return stageToast('Could not start listening.'); }
- listenUI();
+ try{ rec2.start(); LISTEN='words'; listenFails=0; }catch(e){ stageToast('Could not start listening.'); return false; }
+ listenUI(); return true;
 }
 function listenStop(){
- LISTEN=false;
+ LISTEN=false; quietStop();
  try{ if(rec2){ rec2.onend=null; rec2.onerror=null; rec2.onresult=null; rec2.stop(); } }catch(e){}
  rec2=null; listenHeard=''; listenFails=0; speakUntil=0; partnerSpeaking=false; listenUI();
 }
-function listenToggle(){ LISTEN?listenStop():listenStart(); }
+/* tap: off -> LISTENING (on this phone) -> MATCHING WORDS (asks the first time) -> off */
+const WORDS_OK='actor_os_words_ok';
+function listenToggle(){
+ if(!LISTEN) return listenStart();
+ if(LISTEN==='quiet'){ listenStop(); if(!wordsSupported()) return;
+  let ok=false; try{ ok=localStorage.getItem(WORDS_OK)==='1'; }catch(e){}
+  if(!ok){ ok=confirm('Match your words instead? This uses the browser\u2019s speech service: Chrome sends your voice to Google, Safari to Apple. LISTENING (your voice stopping) stays on this phone.'); if(ok) try{ localStorage.setItem(WORDS_OK,'1'); }catch(e){} }
+  if(ok) listenStart('words'); return; }
+ listenStop();
+}
 
 /* Am I done with my line? Compare what was heard against the tail of it. */
 function listenCheck(){
@@ -1842,7 +1890,7 @@ function listenBadge(r){
 function listenUI(){
  const b=$('listenBtn');
  if(b&&b.textContent!==undefined){
-  b.textContent=LISTEN?'LISTENING':'LISTEN FOR MY CUE';
+  b.textContent=LISTEN==='words'?'MATCHING WORDS':LISTEN?'LISTENING':'LISTEN FOR MY CUE';
   if(b.classList)b.classList.toggle('ghost',!LISTEN);
  }
  listenBadge(null);
@@ -2317,13 +2365,17 @@ function voiceFor(who){
  const sg=suggestSounds(window.SIDES_RAW); return sg[who]||'room';
 }
 function setVoice(who,id){ SIDES.voice=SIDES.voice||{}; SIDES.voice[who]=id; saveRange(); boothRefresh(); }
+/* higher or lower, same timing (reader.js shiftPitch). Your recording, never a computer voice. */
+function pitchFor(who){ return +((SIDES.vpitch||{})[who]||0); }
+function setPitch(who,v){ SIDES.vpitch=SIDES.vpitch||{}; SIDES.vpitch[who]=+v||0; saveRange(); boothRefresh(); }
+function vopts(who){ return who?{sound:voiceFor(who),pitch:pitchFor(who)}:null; }
 async function voicePreview(who){
  const om=SIDES.omit||[];
  const b=activeScript().find(x=>!x.mine&&x.who===who&&om.indexOf(x.who)<0); if(!b) return;
  const k=boothKey(b), all=await ActorReader.all();
  const arr=all.filter(c=>c.line===k).sort((a,c2)=>a.at-c2.at);
  const c=(SIDES.pick&&SIDES.pick[k]?arr.find(x=>x.id===SIDES.pick[k]):null)||arr[arr.length-1];
- if(c) ActorReader.play(c.blob,null,{sound:voiceFor(who)}); else stageToast('Record a line for '+who+' first.');
+ if(c) ActorReader.play(c.blob,null,vopts(who)); else stageToast('Record a line for '+who+' first.');
 }
 function voiceRows(others){
  const sg=suggestSounds(window.SIDES_RAW), who=[];
@@ -2332,6 +2384,7 @@ function voiceRows(others){
   const cur=voiceFor(w), set=SIDES.voice&&SIDES.voice[w];
   return `<div class="vrow"><b>${esc2(w)}</b>
    <select onchange="setVoice('${w.replace(/'/g,"\\'")}',this.value)">${ActorReader.SOUNDS.map(o=>`<option value="${o.id}" ${o.id===cur?'selected':''}>${o.label}</option>`).join('')}</select>
+   <select aria-label="Pitch for ${esc2(w)}" onchange="setPitch('${w.replace(/'/g,"\\'")}',this.value)">${ActorReader.PITCHES.map(n=>`<option value="${n}" ${n===pitchFor(w)?'selected':''}>${n===0?'As you read it':(n>0?'Higher ':'Lower ')+Math.abs(n)}</option>`).join('')}</select>
    <button class="mini ghost" onclick="voicePreview('${w.replace(/'/g,"\\'")}')" title="hear it">&#9654;</button>
    ${!set&&sg[w]?'<small>from the script</small>':''}</div>`;
  }).join('')+`</div>`;
@@ -2435,7 +2488,7 @@ function boothUnready(){ SIDES.ready=false; saveRange(); boothRefresh(); }
 function boothPick(k,id){ SIDES.pick=SIDES.pick||{}; SIDES.pick[k]=id; saveRange(); boothRefresh(); }
 async function boothPlayId(id,who){
  const all=await ActorReader.all(); const c=all.find(x=>x.id===id);
- if(c)ActorReader.play(c.blob,null,who?{sound:voiceFor(who)}:null);
+ if(c)ActorReader.play(c.blob,null,vopts(who));
 }
 async function boothDrop(k,id){
  await ActorReader.del(id);
@@ -2455,7 +2508,7 @@ async function boothStitch(){
  });
  if(!seq.length)return;
  let i=0;
- const next=()=>{ if(i>=seq.length)return; const x=seq[i++]; ActorReader.play(x.c.blob,next,{sound:voiceFor(x.who)}); };
+ const next=()=>{ if(i>=seq.length)return; const x=seq[i++]; ActorReader.play(x.c.blob,next,vopts(x.who)); };
  next();
 }
 
@@ -3000,7 +3053,7 @@ function speakPartner(){
   listenGate(LISTEN_SETTLE);
   listenHeard='';
   if(MODE==='PARTNER'||MODE==='PROMPTER') stageStep(1);
- },{sound:voiceFor(b.who)});
+ },vopts(b.who));
 }
 /* Three seconds to get set. You press record, the count runs on screen, then it
    rolls. Nothing is captured during the count - the take starts clean at zero. */
