@@ -129,7 +129,7 @@ async function docxText(buf){
 /* ---------- views ---------- */
 function tabs(){
  const p=VIEW.p&&DB.projects[VIEW.p];
- const t=[['projects','Projects'],['add','Add drafts']];
+ const t=[['projects','Projects'],['add','Add drafts'],['allchars','All characters']];
  if(p) t.push(['scenes','Scenes'],['read','Table read'],['bones','Boneyard'],['research','Research'],['threads','Setups'],['drafts','Drafts'],['characters','Characters']);
  $('tabs').innerHTML=t.map(([k,l])=>'<button data-tab="'+k+'" class="'+(VIEW.tab===k?'on':'')+'">'+l+'</button>').join('');
  $('crumb').innerHTML='<a data-go="projects">Paper Trail</a>'+(p?' &nbsp;/&nbsp; <a data-go="scenes">'+esc(p.title)+'</a>':'')+(VIEW.scene!=null&&p?' &nbsp;/&nbsp; scene':'');
@@ -138,10 +138,11 @@ function render(){
  tabs();
  const m=$('main'), p=VIEW.p&&DB.projects[VIEW.p];
  if(VIEW.tab==='add') m.innerHTML=vAdd();
+ else if(VIEW.tab==='allchars') m.innerHTML=vAllChars();
  else if(!p||VIEW.tab==='projects') m.innerHTML=vProjects();
  else if(VIEW.tab==='scenes') m.innerHTML=VIEW.scene!=null?vScene(p,VIEW.scene):vScenes(p);
  else if(VIEW.tab==='drafts') m.innerHTML=vDrafts(p);
- else if(VIEW.tab==='characters') m.innerHTML=vChars(p);
+ else if(VIEW.tab==='characters') m.innerHTML=VIEW.char?vChar(p,VIEW.char):vChars(p);
  else if(VIEW.tab==='read') m.innerHTML=vRead(p);
  else if(VIEW.tab==='bones') m.innerHTML=vBones(p);
  else if(VIEW.tab==='threads') m.innerHTML=vThreads(p);
@@ -555,12 +556,36 @@ function vDrafts(p){
  h+='</div><div class="row" style="margin-top:12px"><button class="btn" data-tab="add">ADD A DRAFT</button><button class="btn ghost" id="rename">RENAME PROJECT</button><button class="btn ghost" id="retp">'+(p.retired?'BRING PROJECT BACK':'RETIRE PROJECT')+'</button></div>';
  return h;
 }
+/* one character: every line they say, what the action lines say about them, their scenes, who they share scenes with.
+   All quoted from the current draft. Nothing guessed about who they are. */
+function vChar(p,name){
+ const c=current(p); if(!c) return '<div class="panel">No script draft yet.</div>';
+ const sc=scenesOf(c), S=T.sheet(name,sc), at=i=>'<a data-goscene="'+i+'">SC '+(i+1)+'</a> '+esc(sc[i].heading);
+ let h='<button class="btn ghost sm" data-charback="1">\u2039 All characters in '+esc(p.title)+'</button>';
+ h+='<div class="panel" style="margin-top:12px"><div class="eyebrow" style="margin-top:0">'+esc(c.label)+'</div><h2 style="margin:4px 0 6px">'+esc(name)+'</h2>'
+  +'<p class="note" style="margin:0">'+S.lines.length+' line'+(S.lines.length===1?'':'s')+' · in '+S.scenes.length+' of '+sc.length+' scenes · named '+S.mentions.length+' time'+(S.mentions.length===1?'':'s')+' by the page or by someone else. Everything here is quoted from the draft.</p></div>';
+ h+='<div class="eyebrow">Shares scenes with</div><p class="note" style="margin-top:0">'+(S.with.length?S.with.map(x=>esc(x.name)+' ('+x.scenes+')').join(', '):'Nobody.')+'</p>';
+ h+='<div class="eyebrow">What the page and the others say</div><div class="list">'+(S.mentions.length?S.mentions.slice(0,60).map(x=>'<div class="li"><div class="w">'+esc(x.text)+'<small>'+at(x.i)+(x.by?' · '+esc(x.by)+' says it':'')+'</small></div></div>').join('')+(S.mentions.length>60?'<div class="li note">and '+(S.mentions.length-60)+' more</div>':''):'<div class="li note">Not named outside their own lines.</div>')+'</div>';
+ h+='<div class="eyebrow">Every line</div><div class="list">'+(S.lines.length?S.lines.map(x=>'<div class="li"><div class="w">'+esc(x.text)+'<small>'+at(x.i)+'</small></div></div>').join(''):'<div class="li note">No lines. Seen, not heard.</div>')+'</div>';
+ return h;
+}
+/* every character across your projects, from each one's current draft. A name in two projects is two names until you say otherwise. */
+function vAllChars(){
+ const P=projects().map(p=>({p,c:current(p)})).filter(x=>x.c);
+ if(!P.length) return '<div class="panel">No script drafts yet. <button class="btn sm" data-tab="add">ADD DRAFTS</button></div>';
+ const A=T.allChars(P.map(x=>({id:x.p.id,title:x.p.title,scenes:scenesOf(x.c)}))), twice=A.filter(x=>x.in.length>1);
+ let h='<p class="note">Every character in the current draft of each project'+(P.length>1?', all '+P.length+' projects':'')+'. Tap a project to see that one.</p>';
+ h+='<div class="stats"><div><b>'+A.length+'</b><span>names</span></div><div><b>'+P.length+'</b><span>projects</span></div><div><b>'+twice.length+'</b><span>names in more than one</span></div></div>';
+ if(twice.length) h+='<div class="eyebrow">The same name in different projects</div><p class="note" style="margin-top:-4px">Same name, not the same person unless you say so. Listed so you know.</p><div class="list">'+twice.map(x=>'<div class="li"><div class="w"><b>'+esc(x.name)+'</b><small>'+x.in.map(y=>'<a data-charin="'+esc(y.pid)+'|'+esc(x.name)+'">'+esc(y.title)+'</a> ('+y.lines+' line'+(y.lines===1?'':'s')+')').join(' · ')+'</small></div></div>').join('')+'</div>';
+ h+='<div class="eyebrow">Everyone</div><div class="list">'+A.map(x=>'<div class="li"><div class="w"><b>'+esc(x.name)+'</b><small>'+x.in.map(y=>'<a data-charin="'+esc(y.pid)+'|'+esc(x.name)+'">'+esc(y.title)+'</a> ('+y.lines+')').join(' · ')+'</small></div></div>').join('')+'</div>';
+ return h;
+}
 function vChars(p){
  const ds=draftsOf(p.id).filter(d=>d.kind==='script'&&!d.retired);
  if(!ds.length) return '<div class="panel">No script drafts yet.</div>';
  const C=T.characters(ds.map(d=>({id:d.id,scenes:scenesOf(d)})));
- return '<p class="note">Lines per draft. A name that disappears from a draft shows a dash.</p><div class="tbl"><table><tr><th>Character</th>'+ds.map(d=>'<th>'+esc(d.label)+'</th>').join('')+'</tr>'
-  +C.map(x=>'<tr><td><b>'+esc(x.name)+'</b>'+(x.voice?' <span class="tag">voice</span>':'')+'</td>'+ds.map(d=>'<td>'+(x.by[d.id]==null?'–':x.by[d.id])+'</td>').join('')+'</tr>').join('')+'</table></div>'
+ return '<p class="note">Lines per draft. A name that disappears from a draft shows a dash. Tap a name for everything the script says about them.</p><div class="tbl"><table><tr><th>Character</th>'+ds.map(d=>'<th>'+esc(d.label)+'</th>').join('')+'</tr>'
+  +C.map(x=>'<tr><td><a data-char="'+esc(x.name)+'"><b>'+esc(x.name)+'</b></a>'+(x.voice?' <span class="tag">voice</span>':'')+'</td>'+ds.map(d=>'<td>'+(x.by[d.id]==null?'–':x.by[d.id])+'</td>').join('')+'</tr>').join('')+'</table></div>'
   +talkBox(ds)+numbersBox(ds);
 }
 function talkBox(ds){
@@ -579,7 +604,7 @@ function numbersBox(ds){
 /* ---------- wiring ---------- */
 function go(tab){ VIEW.tab=tab; VIEW.scene=null; render(); window.scrollTo(0,0); }
 function wire(){
- document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>go(b.dataset.tab));
+ document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{ VIEW.char=null; go(b.dataset.tab); });
  if(window.Kit) Kit.wire($('main'),{ say:()=>kitGo('bones','mic'), rec:()=>{ if(RECORDING){ try{ RECORDING.stop(); }catch(e){} return; } kitGo('research','rrec'); }, photo:()=>kitGo('research','rcam') });
  document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ if(b.dataset.go==='projects'){ VIEW.p=null; } VIEW.scene=null; go(b.dataset.go); });
  document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{ VIEW.p=b.dataset.open; VIEW.scene=null; go('scenes'); });
@@ -612,6 +637,9 @@ function wire(){
  document.querySelectorAll('[data-ntgo]').forEach(a=>a.onclick=()=>{ VIEW.p=a.dataset.ntgo; VIEW.scene=null; go('threads'); setTimeout(()=>{ const e=$('notthis'); if(e) e.scrollIntoView(); },50); });
  if(p){ const na=$('ntadd'); if(na) na.onclick=()=>{ const t=$('ntx').value.trim(); if(!t) return; const w=$('ntw').value.split(',').map(x=>x.trim().toLowerCase()).filter(Boolean); p.notThis=(p.notThis||[]).concat([{id:rid('n'),text:t,words:w,at:Date.now()}]); p.updated=Date.now(); save(); render(); const e=$('notthis'); if(e) e.scrollIntoView(); };
   document.querySelectorAll('[data-ntdel]').forEach(b=>b.onclick=()=>{ if(!confirm('Remove this from NOT THIS?')) return; p.notThis=(p.notThis||[]).filter(f=>f.id!==b.dataset.ntdel); save(); render(); }); }
+ document.querySelectorAll('[data-char]').forEach(a=>a.onclick=()=>{ VIEW.char=a.dataset.char; render(); window.scrollTo(0,0); });
+ document.querySelectorAll('[data-charback]').forEach(a=>a.onclick=()=>{ VIEW.char=null; render(); });
+ document.querySelectorAll('[data-charin]').forEach(a=>a.onclick=()=>{ const [pid,n]=a.dataset.charin.split('|'); VIEW.p=pid; VIEW.scene=null; VIEW.char=n; go('characters'); window.scrollTo(0,0); });
  document.querySelectorAll('[data-cur]').forEach(b=>b.onclick=()=>{ p.current=b.dataset.cur; p.pinned=true; p.updated=Date.now(); save(); render(); toast('Current draft: '+DB.drafts[p.current].label+'.'); });
  document.querySelectorAll('[data-ret]').forEach(b=>b.onclick=()=>{ const d=DB.drafts[b.dataset.ret]; d.retired=!d.retired; if(d.retired&&p.current===d.id){ p.current=''; p.pinned=false; } save(); render(); });
  document.querySelectorAll('[data-move]').forEach(b=>b.onclick=()=>{ const d=DB.drafts[b.dataset.move]; const names=Object.values(DB.projects).filter(x=>x.id!==d.project).map(x=>x.title);

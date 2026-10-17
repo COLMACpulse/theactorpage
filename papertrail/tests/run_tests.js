@@ -148,4 +148,12 @@ if(lb&&fs.existsSync(lb)){
  const s=T.scenes(raw,'script');
  ok('LAST BUS raw: 3 scenes, Cal and Rennie on camera, Mom a voice', s.length===3&&s[0].cast.slice().sort().join()==='CAL,RENNIE'&&s[0].voices.includes('MOM'), s.map(x=>[x.heading,x.cast,x.voices]));
 }
+// a character's sheet, and every character across projects (made-up)
+{ const sc=T.scenes("EXT. RIDGE - DAY\n\nVale climbs the ridge. Hale follows.\n\nVALE\nHand me the rope.\n\nHALE\nVale, wait.\n\nINT. CABIN - NIGHT\n\nHale sits by the fire. A vale opens below.\n\nHALE\nShe's not coming back.\n",'script');
+  const V=T.sheet('VALE',sc);
+  ok('sheet: her one line, with its scene', V.lines.length===1&&V.lines[0].text==='Hand me the rope.'&&V.lines[0].i===0, V);
+  ok('sheet: named by the page and by HALE; "a vale" (lower case) is not her', V.mentions.length===2&&V.mentions[1].by==='HALE'&&!V.mentions.some(x=>/vale opens/.test(x.text)), V.mentions);
+  ok('sheet: her scenes and who she shares them with', JSON.stringify(V.scenes)==='[0]'&&V.with[0].name==='HALE'&&V.with[0].scenes===1, V);
+  const A=T.allChars([{id:'a',title:'Ridge Line',scenes:sc},{id:'b',title:'Dry Gulch',scenes:T.scenes('INT. SALOON - NIGHT\n\nVALE\nWhiskey.\n','script')}]);
+  ok('all characters: the same name in two projects is listed with both, not merged into one count', A[0].name==='VALE'&&A[0].in.length===2&&A[0].in.every(x=>x.lines===1), A); }
 console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail?1:0);

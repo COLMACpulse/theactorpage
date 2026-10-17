@@ -363,6 +363,28 @@ T.receipt=function(table,research,title){
  return L.join('\n');
 };
 
+/* ---------- a character's sheet: everything the script says, quoted, nothing guessed ----------
+   scenes: [{heading, text ("WHO: line" for speech), lines:[{name}], cast}]. -> {lines, mentions, scenes, with} */
+T.sheet=function(name,scenes){
+ const N=T.norm(name), re=T.nameRe(name), out={lines:[],mentions:[],scenes:[],with:{}};
+ (scenes||[]).forEach((s,i)=>{ const who=(s.lines||[]).map(x=>x.name), here=who.some(n=>T.norm(n)===N)||(s.cast||[]).some(n=>T.norm(n)===N);
+  let saw=false;
+  String(s.text||'').split('\n').forEach(l=>{ const m=l.match(/^([^:]{1,40}):\s(.*)$/), sp=m&&who.some(n=>T.norm(n)===T.norm(m[1]))?m[1]:null;
+   if(sp&&T.norm(sp)===N){ out.lines.push({i,heading:s.heading,text:m[2]}); saw=true; }
+   else if(!sp&&re&&re.test(l)){ out.mentions.push({i,heading:s.heading,text:l.length>300?l.slice(0,299)+'…':l}); saw=true; }
+   else if(sp&&re&&re.test(m[2])){ out.mentions.push({i,heading:s.heading,text:l.length>300?l.slice(0,299)+'…':l,by:sp}); } });
+  if(here||saw){ out.scenes.push(i); new Set(who.concat(s.cast||[]).map(T.norm)).forEach(n=>{ if(n&&n!==N) out.with[n]=(out.with[n]||0)+1; }); }
+ });
+ out.with=Object.entries(out.with).map(([n,k])=>({name:n,scenes:k})).sort((a,b)=>b.scenes-a.scenes||a.name.localeCompare(b.name));
+ return out;
+};
+/* every character across your projects (current draft of each). Same name in different projects: listed, never merged. */
+T.allChars=function(projects){
+ const C={};
+ (projects||[]).forEach(p=>{ T.characters([{id:p.id,scenes:p.scenes}]).forEach(c=>{ const k=T.norm(c.name); const x=C[k]=C[k]||{name:c.name,in:[]}; x.in.push({pid:p.id,title:p.title,lines:c.by[p.id]||0}); }); });
+ return Object.values(C).sort((a,b)=>b.in.length-a.in.length||b.in.reduce((n,x)=>n+x.lines,0)-a.in.reduce((n,x)=>n+x.lines,0)||a.name.localeCompare(b.name));
+};
+
 /* ---------- NOT THIS: things you've said no to. Where their words show up in a draft. ----------
    A word match, not a verdict: "Vale never uses a flintlock" looks for VALE and FLINTLOCK on the same line
    (a speech counts its speaker's name). It can miss the same idea in other words, and it can find a line
