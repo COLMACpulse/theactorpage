@@ -19,13 +19,23 @@ D.TOOLS=[
  {id:'archbook', name:'ArchBook', href:'../archbook/', ls:[/^archbook_/], db:[/^archbook_/]},
  {id:'film', name:'Story Studio', href:'../film/', ls:[/^film_os/], db:[/^film_os/]},
  {id:'shelf', name:'Sides shelf', href:'', ls:[/^theactorpage_shelf/], db:[/^theactorpage_shelf/]},
- {id:'daily', name:'Today\'s scene', href:'../', ls:[/^theactorpage_daily/], db:[]}
+ {id:'daily', name:'Today\'s scene', href:'../', ls:[/^theactorpage_daily/], db:[]},
+ /* added with the tools built after this list: your profile (headshots, résumé), the takes shelf, the inbox, and every tool since */
+ {id:'you', name:'Your profile (headshots, résumé)', href:'../', ls:[/^theactorpage_you/], db:[/^theactorpage_you$/]},
+ {id:'takes', name:'Takes shelf', href:'../', ls:[/^theactorpage_takes/], db:[/^theactorpage_takes$/]},
+ {id:'inbox', name:'Requests and drafts on home', href:'../', ls:[/^theactorpage_inbox/], db:[]},
+ {id:'notes', name:'Notes', href:'../notes/', ls:[/^theactorpage_notes/,/^notes_ui/], db:[]},
+ {id:'spotted', name:'Spotted', href:'../spotted/', ls:[/^theactorpage_spotted/,/^spotted_ui/], db:[]},
+ {id:'headshots', name:'Headshots', href:'../headshots/', ls:[/^theactorpage_headshots/,/^headshots_ui/], db:[/^theactorpage_headshot_refs$/]},
+ {id:'booth', name:'VO Booth', href:'../booth/', ls:[/^booth_/], db:[/^booth_media$/]},
+ {id:'setlist', name:'Set List', href:'../setlist/', ls:[/^setlist_/], db:[/^setlist_media$/]},
+ {id:'filmhub', name:'Film Hub', href:'../filmhub/', ls:[/^filmhub_/], db:[/^filmhub$/]}
 ];
 D.OWN_KEY='theactorpage_device_v1';
 /* passing notes between tools (gone in minutes) and things that can't go in a file */
-const SKIP_LS=[/^theactorpage_handoff_/, new RegExp('^'+D.OWN_KEY+'$')];
+const SKIP_LS=[/^theactorpage_handoff_/, /^rooms_seen_/, new RegExp('^'+D.OWN_KEY+'$')];   // rooms_seen_: home's 'is this new' marks, nothing of yours
 const SKIP_STORES={'writers-blockage':['handles']};   // links to files on this computer; they only work here
-D.KNOWN_DBS=['actor_os_reader','colmac_hub','breakdown_v03','cps_v02','slate_v04','vresume_v03','writers-blockage','paper_trail','archbook_v03','film_os','theactorpage_shelf'];
+D.KNOWN_DBS=['actor_os_reader','colmac_hub','breakdown_v03','cps_v02','slate_v04','vresume_v03','writers-blockage','paper_trail','archbook_v03','film_os','theactorpage_shelf','theactorpage_you','theactorpage_takes','theactorpage_headshot_refs','booth_media','setlist_media','filmhub'];
 D.toolOfKey=k=>{ if(SKIP_LS.some(r=>r.test(k))) return null; return D.TOOLS.find(t=>t.ls.some(r=>r.test(k)))||null; };
 D.toolOfDb=n=>D.TOOLS.find(t=>t.db.some(r=>r.test(n)))||null;
 D.skipStore=(db,st)=>(SKIP_STORES[db]||[]).includes(st);
