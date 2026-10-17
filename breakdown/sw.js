@@ -1,5 +1,5 @@
 /* BREAKDOWN service worker: cache the app so it opens with no signal. */
-const CACHE = 'breakdown-0.3.5';
+const CACHE = 'breakdown-0.3.6';
 const FILES = ['./', '../shared/hot.js', 'index.html', 'app.js', 'parser.js', '../shared/shelf.js', 'manifest.webmanifest',
   'vendor/pdf.min.js', 'vendor/pdf.worker.min.js',
   'fonts/jost-latin-400-normal.woff2', 'fonts/jost-latin-500-normal.woff2', 'fonts/jost-latin-600-normal.woff2',

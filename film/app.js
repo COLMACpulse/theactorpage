@@ -115,8 +115,20 @@ function vScript(){
 function wayOf(n){ return (cur().scenes&&cur().scenes[n]&&cur().scenes[n].way)||''; }
 function whereName(n){ const s=cur().scenes&&cur().scenes[n]; const o=s&&s.where&&owned().find(x=>x.id===s.where); return o?o.name:''; }
 function doneOf(sc){ const s=cur().scenes&&cur().scenes[sc.n]; if(!s||!s.way) return null; const L=F.shots(sc,s.way,cur().me,s.ins); return {d:L.filter(x=>s.done&&s.done[x.id]).length,t:L.length}; }
+/* ---------- the front: what you can do with the camera and mic, before you go looking ---------- */
+let LASTSCENE=null;
+function takesIn(n){ return (cutOf().takes[n]||[]).length; }
+function front(){
+ const k=cutOf(), all=SCENES.reduce((a,sc)=>a+takesIn(sc.n),0), sn=LASTSCENE||(SCENES[0]&&SCENES[0].n)||1, anyFile=SCENES.some(sc=>(k.takes[sc.n]||[]).some(t=>FILES[t.id]));
+ return window.Kit?Kit.html([
+  {id:'shoot',dev:'camera',label:'CAMERA',what:'Shoot a take',note:'Scene '+sn+', take '+(takesIn(sn)+1)},
+  {id:'match',dev:'camera',label:'CAMERA',what:'Match a shot',note:'Line it up with the last one'},
+  {id:'adr',dev:'mic',label:'MIC',what:'Re-record a line',note:anyFile?'Over a take, in CUT':'Shoot or add a take first',off:!anyFile},
+  {id:'scout',dev:'photo',label:'PHOTO',what:'Scout a place',note:'Light, sound, photos'}
+ ])+'<p class="faint" style="font-size:13px;margin:-6px 0 18px">'+(all?all+' take'+(all===1?'':'s')+' so far. They\'re in CUT.':'Takes you shoot here go straight into CUT, on their scene.')+'</p>':'';
+}
 function vScenes(){
- return '<p class="kicker">Tap a scene to pick how you\'ll make it</p>'+SCENES.map(sc=>{
+ return front()+'<p class="kicker">Tap a scene to pick how you\'ll make it</p>'+SCENES.map(sc=>{
   const w=wayOf(sc.n), wn=w?F.WAYS.find(x=>x.id===w).name:'', where=whereName(sc.n), dn=doneOf(sc);
   return '<button class="sc" data-scene="'+sc.n+'"><div class="hd">'+sc.n+'. '+esc(sc.heading)+'</div>'
    +'<div class="sub">'+(sc.speakers.length?sc.speakers.map(s=>esc(s.name)+' '+s.lines+(s.voice?' (voice)':'')).join(' · '):'No dialogue')+'</div>'
@@ -230,6 +242,50 @@ async function mcSnap(){
  c.getContext('2d').drawImage(v,0,0,c.width,c.height);   // saved as the camera sees it; only the screen is mirrored
  const b=await new Promise(r=>c.toBlob(r,'image/jpeg',0.85)); if(!b){ toast('This phone would not make the photo.'); return; }
  const w=MC.who; mcClose(); await keepPhoto(w,b);
+}
+/* ---------- shoot a take: picture and sound, named for the scene and take, straight into CUT ---------- */
+const SH0={stream:null,rec:null,facing:'environment',n:0,tick:0,t0:0,last:''};
+function shStop(){ clearInterval(SH0.tick); if(SH0.stream){ Capture.stop(SH0.stream); SH0.stream=null; } }
+function filmName(){ const c=cur(); return String((c&&c.file)||'Film').replace(/\.(pdf|txt|fountain|fdx|docx)$/i,'').replace(/_/g,' '); }
+function openShoot(n){
+ if(!window.Capture||!window.Takes){ toast('This page can\'t record here.'); return; }
+ n=+n||LASTSCENE||(SCENES[0]&&SCENES[0].n)||1; SH0.n=n; SH0.last='';
+ const o=document.createElement('div'); o.id='shoot'; o.className='mc';
+ o.innerHTML='<div class="mchead"><select class="field" id="shscene" aria-label="Scene" style="max-width:62vw;background:#111;color:#fff;border-color:#333">'+SCENES.map(sc=>'<option value="'+sc.n+'"'+(sc.n===n?' selected':'')+'>Scene '+sc.n+'. '+esc(sc.heading)+'</option>').join('')+'</select><button class="btn sm" id="shx">CLOSE</button></div>'
+  +'<div class="mcview"><video id="shvid" playsinline muted autoplay></video><div id="shslate"></div><div id="mcmsg"></div></div>'
+  +'<div class="mcbar"><span id="shsaid" style="font-size:14px;text-align:center"></span></div>'
+  +'<div class="mcbar"><button class="btn sm" id="shface">'+(SH0.facing==='user'?'BACK CAMERA':'FRONT CAMERA')+'</button><button class="btn pri" id="shrec" disabled>RECORD</button></div>';
+ document.body.appendChild(o); document.body.classList.add('mcopen');
+ const slate=()=>{ const tk=takesIn(SH0.n)+(SH0.rec?0:1); $('shslate').innerHTML='<b>SCENE '+SH0.n+'</b> · TAKE '+(SH0.rec?takesIn(SH0.n)+1:tk)+(SH0.rec?' · <span class="recd">● '+F.mmss(Math.floor((Date.now()-SH0.t0)/1000))+'</span>':''); };
+ SH0.slate=slate;
+ $('shscene').onchange=e=>{ if(SH0.rec) return; SH0.n=+e.target.value; LASTSCENE=SH0.n; SH0.last=''; $('shsaid').textContent=''; slate(); };
+ $('shx').onclick=async()=>{ if(SH0.rec) await shEnd(); shStop(); o.remove(); document.body.classList.remove('mcopen'); render(); };
+ $('shface').onclick=()=>{ if(SH0.rec) return; SH0.facing=SH0.facing==='user'?'environment':'user'; $('shface').textContent=SH0.facing==='user'?'BACK CAMERA':'FRONT CAMERA'; shStart(); };
+ $('shrec').onclick=()=>{ if(SH0.rec) shEnd(); else shBegin(); };
+ slate(); shStart();
+}
+async function shStart(){
+ shStop(); const v=$('shvid'); if(!v) return; $('shoot').classList.toggle('mirror',SH0.facing==='user'); mcSay('Opening the camera and mic…'); $('shrec').disabled=true;
+ try{ SH0.stream=await Capture.open({video:true,audio:true,facing:SH0.facing}); }catch(e){ mcSay(Capture.errorWords(e,'video')); return; }
+ if(!$('shoot')){ shStop(); return; }
+ v.srcObject=SH0.stream; try{ await v.play(); }catch(e){}
+ mcSay(''); $('shrec').disabled=false;
+}
+function shBegin(){
+ if(!SH0.stream) return; try{ SH0.rec=Capture.record(SH0.stream,'video'); }catch(e){ toast(e.message); return; }
+ SH0.t0=Date.now(); $('shrec').textContent='STOP'; $('shrec').classList.add('rec'); $('shscene').disabled=true; $('shface').disabled=true; $('shsaid').textContent='';
+ SH0.tick=setInterval(()=>SH0.slate&&SH0.slate(),250); SH0.slate();
+}
+async function shEnd(){
+ const r=SH0.rec; if(!r) return; SH0.rec=null; clearInterval(SH0.tick);
+ const got=await r.stop(), n=SH0.n, k=takesIn(n)+1, nm=Capture.fileName({name:filmName(),role:'Sc'+n,n:k,ext:got.ext});
+ const it=await Takes.put(got.blob,{kind:'video',mime:got.mime,ext:got.ext,secs:got.secs,name:nm,for:{type:'scene',script:DB.cur,scene:n,title:filmName()}});
+ const c=cutOf(); c.takes[n]=c.takes[n]||[]; const id=rid('t'), d=Math.round((got.secs||0)*100)/100;
+ c.takes[n].push({id:id,name:nm,size:got.blob.size,dur:d,in:0,out:d,use:!c.takes[n].some(x=>x.use),at:Date.now(),takeId:it.id,shot:true});
+ FILES[id]=new File([got.blob],nm,{type:got.blob.type}); Takes.take(TOOL,it.id); save(); LASTSCENE=n;
+ const b=$('shrec'); if(b){ b.textContent='RECORD'; b.classList.remove('rec'); $('shscene').disabled=false; $('shface').disabled=false; }
+ const said=$('shsaid'); if(said) said.textContent='Scene '+n+', take '+k+' kept ('+F.mmss(Math.round(got.secs))+'). It\'s in CUT.'+(it.kept?'':' This phone is full: save it from CUT now.');
+ if(SH0.slate) SH0.slate();
 }
 /* ---------- the sun at a place ---------- */
 const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -418,7 +474,7 @@ function vCut(){
     +'<input class="field tnote" data-tnote="'+sc.n+'|'+t.id+'" value="'+esc(t.note||'')+'" placeholder="A note you\'ll remember it by (the one where he laughs)">'
     +F.watchNotes(t).map(w=>'<div class="wnote"><span><b>'+F.mmss(w.at)+'</b> in the take'+(w.cut!=null?' · '+F.mmss(w.cut)+' in the cut':'')+': '+esc(w.text)+'</span><button class="x" data-wdel="'+sc.n+'|'+t.id+'|'+w.id+'" aria-label="Delete this note">×</button></div>').join('')
     +'<div class="row" style="justify-content:space-between;margin-top:4px"><span class="faint" style="font-size:12px">'+F.mmss(Math.max(0,t.out-t.in))+' used'+(f?'':' · pick the file again to preview it')+(adrKept(t)?' · <b class="adrtag">ADR</b> your line replaces it, original '+UNDERS.find(u=>u[1]===t.adr.under)[0].toLowerCase():'')+'</span>'+(f?'<button class="btn sm" data-adr="'+sc.n+'|'+t.id+'">ADR</button>':'')+'</div></div>'; }).join('');
-  h+='<label class="btn sm block" style="margin-top:8px"><input type="file" accept="video/*,.mov,.mp4,.m4v" multiple class="hide" data-tadd="'+sc.n+'">+ ADD TAKES</label>'+briefBox(sc)+'</div>';
+  h+='<div class="row" style="margin-top:8px"><button class="btn sm pri" style="flex:1" data-shoot="'+sc.n+'">SHOOT A TAKE</button><label class="btn sm" style="flex:1"><input type="file" accept="video/*,.mov,.mp4,.m4v" multiple class="hide" data-tadd="'+sc.n+'">+ ADD TAKES</label></div>'+briefBox(sc)+'</div>';
  });
  h+='<div class="card"><p class="kicker">Hand it to your editor</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">An EDL opens in DaVinci Resolve, Premiere and Avid. Point it at your footage and it relinks by file name. In and out count from the start of each file.</p>'
   +'<div class="row"><button class="btn pri" id="cedl"'+(P.length?'':' disabled')+'>EDIT LIST (.EDL)</button><button class="btn" id="ccsv"'+(P.length?'':' disabled')+'>LIST (.CSV)</button><button class="btn" id="cbrief">EDITOR BRIEF (.TXT)</button></div>'
@@ -668,7 +724,14 @@ function wire(){
  const r=$('readit'); if(r) r.onclick=()=>{ const t=$('paste').value; if(t.trim()) take(t,'Pasted script'); };
  document.querySelectorAll('[data-shelf]').forEach(b=>b.onclick=()=>fromShelf(b.dataset.shelf));
  document.querySelectorAll('[data-me]').forEach(b=>b.onclick=()=>{ const c=cur(); c.me=b.dataset.me; save(); if(SH&&SH.get(DB.cur)) SH.setMe(DB.cur,c.me,TOOL); render(); });
- document.querySelectorAll('[data-scene]').forEach(b=>b.onclick=()=>{ OPEN=Number(b.dataset.scene); render(); });
+ document.querySelectorAll('[data-scene]').forEach(b=>b.onclick=()=>{ OPEN=Number(b.dataset.scene); LASTSCENE=OPEN; render(); });
+ if(window.Kit) Kit.wire($('main'),{
+  shoot:()=>openShoot(LASTSCENE),
+  match:()=>{ TAB='scenes'; OPEN=LASTSCENE||(SCENES[0]&&SCENES[0].n)||null; render(); const b=document.querySelector('[data-match]'); if(b){ b.scrollIntoView({block:'center'}); toast('Pick who you\'re matching.'); } },
+  adr:()=>{ TAB='cut'; OPEN=null; render(); const b=document.querySelector('[data-adr]'); if(b){ b.scrollIntoView({block:'center'}); toast('ADR is on each take. Tap ADR on the one you want.'); } else toast('Shoot or add a take first. ADR goes on a take.'); },
+  scout:()=>{ TAB='own'; OPEN=null; render(); }
+ });
+ document.querySelectorAll('[data-shoot]').forEach(b=>b.onclick=()=>openShoot(+b.dataset.shoot));
  document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>{ OPEN=null; render(); });
  document.querySelectorAll('[data-way]').forEach(b=>b.onclick=()=>{ const s=st(OPEN); s.way=b.dataset.way; save(); render(); });
  const w=$('where'); if(w) w.onchange=()=>{ st(OPEN).where=w.value; save(); render(); };

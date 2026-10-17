@@ -123,6 +123,10 @@ nav.tabs button.on{color:var(--tung-text)}
 .adrtk .state{font-size:11px;letter-spacing:.1em;padding:3px 8px;border-radius:99px;background:#e0a23c;color:#111}
 .adrtag{color:var(--tung,#e0a23c)}
 .mc{position:fixed;inset:0;z-index:50;background:#000;display:flex;flex-direction:column;color:#fff}
+/* the camera / mic bar sits at the top while they are on: the overlay header goes under it */
+.mc .mchead{padding-top:calc(max(10px,env(safe-area-inset-top)) + 42px)}
+#shslate{position:absolute;left:12px;top:12px;font:700 15px/1.2 var(--mono);letter-spacing:.08em;background:rgba(0,0,0,.6);padding:8px 10px;border-radius:8px}#shslate .recd{color:#ff5a4a}
+#shrec{min-width:150px}#shrec.rec{background:#d6332a;border-color:#d6332a;color:#fff}
 body.mcopen{overflow:hidden}
 .mchead{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top))}
 .mcview{position:relative;flex:1;min-height:0}
@@ -183,6 +187,8 @@ details summary{cursor:pointer;color:var(--tung-text);min-height:var(--tap);disp
 <input type="file" id="file" accept=".pdf,.txt,.fountain,.fdx,text/plain,application/pdf" class="hide">
 <script src="../shared/shelf.js"></script>
 <script src="../shared/takes.js"></script>
+<script src="../shared/capture.js"></script>
+<script src="../shared/kit.js"></script>
 <script src="../shared/xlsx.js"></script>
 <script src="../actor-os/sides.js"></script>
 <script src="../actor-os/pdf.js"></script>

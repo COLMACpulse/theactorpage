@@ -28,7 +28,11 @@ function css(){ if(document.getElementById('hotcss')) return; const s=document.c
  +'#hotsheet h2{margin:0 0 8px;font-size:18px}#hotsheet p{margin:0 0 10px;color:#c9c2b4}#hotsheet .r{display:flex;gap:8px;margin-top:14px}'
  +'#hotsheet button{flex:1;min-height:48px;border-radius:10px;border:1px solid #2f2b26;background:#24211d;color:inherit;font:600 16px system-ui,sans-serif;cursor:pointer}#hotsheet button.p{background:#e0a23c;color:#1a1206;border-color:#e0a23c}';
  (document.head||document.documentElement).appendChild(s); }
-function paint(){
+let SIG='';
+/* tells the page (the tiles in shared/kit.js) when something turned on or off. Only on a change. */
+function tell(){ const k=kinds(), sig=[k.video,k.audio,recs.size>0,ears.size>0].join(); if(sig===SIG) return; SIG=sig; try{ g.dispatchEvent(new Event('hot:change')); }catch(e){} }
+function paint(){ setTimeout(tell,0); paint0(); }
+function paint0(){
  if(!document.body){ document.addEventListener('DOMContentLoaded',paint,{once:true}); return; }
  const k=kinds(); [...recs].forEach(r=>{ if(r.state!=='recording') recs.delete(r); });
  const rec=recs.size>0, ear=ears.size>0, on=k.video||k.audio||ear;
@@ -44,6 +48,8 @@ function paint(){
 }
 H.off=function(){ live.forEach(t=>{ try{ t.stop(); }catch(e){} }); live.clear(); paint(); };
 H.status=()=>({state:(paint(),H.state),camera:kinds().video,mic:kinds().audio,recording:recs.size>0,listening:ears.size>0});
+/* the same, without redrawing the bar (for the tiles, which ask often) */
+H.peek=()=>{ const k=kinds(); [...recs].forEach(r=>{ if(r.state!=='recording') recs.delete(r); }); return {camera:k.video,mic:k.audio,recording:recs.size>0,listening:ears.size>0}; };
 function watch(stream){ if(!stream||!stream.getTracks) return stream; stream.getTracks().forEach(t=>{ if(live.has(t)) return; live.add(t); t.__hot=true; t.addEventListener('ended',paint); }); paint(); return stream; }
 /* the plain-words ask, before the browser's own box; and what to do when it's blocked */
 function ask(want,blocked){
