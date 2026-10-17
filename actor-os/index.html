@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
-<script src="../shared/hot.js"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0d0f12"><link rel="manifest" href="manifest.webmanifest">
+<script src="../shared/hot.js"></script><script src="../shared/kit.js"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0d0f12"><link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ACTOR OS">
@@ -288,6 +288,7 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
 @media(max-width:560px){.cmpgrid{grid-template-columns:1fr}}
 .stoast{bottom:auto!important;top:calc(84px + env(safe-area-inset-top))!important}
 .fmtwarn{margin-top:9px;border-color:#E0A23C!important}
+#aosKit .kit{--panel:var(--p1);--tung:var(--gold);--dim:var(--mut);margin:0 0 14px}#aosKit .kit .kt{font-weight:400}@media (max-width:440px){#aosKit .kit .kt:last-child:nth-child(odd){grid-column:1/-1;min-height:96px}}
 </style>
 </head><body><div class="app"><header><!-- ACTOR OS sigil. Raster because the mark is a gold-gradient render, not a
      flat shape; alpha-trimmed and unpremultiplied so the edges stay gold on
@@ -392,6 +393,7 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
  </div>
 </div>
 <section id="prep" class="panel on">
+<div id="aosKit"></div>
 <div class="am">Everything here is optional. PREP supports the work; it does not gate RECORD.</div>
 <div class="section"><h3>Sides</h3><div class="inside">
 <div class="am" style="margin:0 0 11px">Upload your sides. Everything else runs off this.</div>
@@ -847,6 +849,23 @@ function loadSides(text,fname,opts){
  SIDES.me=SIDES.me||'';
  renderSides();
 }
+/* the front of PREP: what the camera and mic do here, as tiles. Re-drawn when the sides or your part change. */
+function aosOthers(){ if(!SIDES.me||!SIDES.script||!SIDES.script.length) return []; const om=SIDES.omit||[]; return activeScript().filter(b=>!b.mine&&om.indexOf(b.who)<0); }
+function aosKit(){
+ const el=$('aosKit'); if(!el||!window.Kit) return;
+ const has=!!(SIDES.script&&SIDES.script.length)||!!(SIDES.beats&&SIDES.beats.length), sides=!!activeScript().length, n=aosOthers().length;
+ el.innerHTML=Kit.html([
+  {id:'tape',dev:'camera',label:'CAMERA',what:'Tape it',note:'Your self-tape'},
+  {id:'partner',dev:'camera',label:'CAMERA',what:'Read with yourself',note:sides?'Your partner on screen':has?'Pick your part first':'Bring in your sides first',off:!sides},
+  {id:'lines',dev:'mic',label:'MIC',what:'Record the other lines',note:n?n+' line'+(n===1?'':'s')+' to read':has?'Pick your part first':'Bring in your sides first',off:!n}
+ ]);
+ Kit.wire(el,{
+  tape:()=>{ goTab('shoot'); const v=$('prevVid'); if(v&&v.scrollIntoView) v.scrollIntoView({block:'center'}); startPreview(); },
+  partner:()=>{ if(!activeScript().length){ aosToSides(); return; } startMode('PARTNER'); },
+  lines:()=>{ if(!aosOthers().length){ aosToSides(); return; } const w=$('boothWrap'); if(w) w.scrollIntoView({block:'start',behavior:'smooth'}); }
+ });
+}
+function aosToSides(){ const o=$('sidesOut'), t=o&&o.closest('.section'); if(t) t.scrollIntoView({block:'start',behavior:'smooth'}); }
 function pickMe(n){
  SIDES.me=n;
  if($('actorRole')&&!$('actorRole').value)$('actorRole').value=n; SIDES.script=ActorSides.script(SIDES.beats,n);
@@ -873,6 +892,7 @@ function visibleSpeakers(){
  return SIDES.speakers.filter(x=>om.indexOf(x.name)<0);
 }
 function renderSides(){
+ try{aosKit();}catch(e){}
  const sp=visibleSpeakers(), om=SIDES.omit||[];
  let h='<div class="am" style="margin:0 0 10px">Which character are you?</div>';
  h+='<div class="charrow">';
@@ -2418,6 +2438,7 @@ function voiceRows(others){
  }).join('')+`</div>`;
 }
 async function boothRefresh(){
+ try{aosKit();}catch(e){}
  if(!SIDES.me||!SIDES.script.length){ $('boothWrap').style.display='none'; return; }
  const om=SIDES.omit||[];
  const others=activeScript().filter(b=>!b.mine && om.indexOf(b.who)<0);
@@ -3481,5 +3502,5 @@ document.addEventListener('keydown',e=>{
   </div>
 </div>
 
-<script>try{setLevel(getLevel());renderDue();}catch(e){} try{renderDaily();}catch(e){}</script>
+<script>try{setLevel(getLevel());renderDue();}catch(e){} try{renderDaily();}catch(e){} try{aosKit();}catch(e){}</script>
 </body></html>

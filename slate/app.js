@@ -72,20 +72,30 @@
     }
     if (S.tab === 'frame' && S.take) setupFrame();
     if (S.tab === 'kit') drawKitCard();
+    const kt = $('#slKit');
+    if (kt && window.Kit) Kit.wire(kt, { recordhere: () => { if (canRec()) recordHere(); else toast("This browser can't open the camera. Choose a take instead."); }, shoot: () => $('#shootin').click() });
   }
 
   // ---------------------------------------------------------------- TAKE
+  /* the front: what the camera and mic do here, as tiles with a live OFF / ON / RECORDING chip */
+  const canRec = () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  function kitTiles() {
+    if (!window.Kit) return '';
+    const L = [{ id: 'recordhere', dev: 'camera', label: 'CAMERA', what: 'Record the slate here', note: canRec() ? 'Camera and mic' : "This browser can't", off: !canRec() }];
+    if (isPhone()) L.push({ id: 'shoot', dev: 'camera', label: 'CAMERA', what: 'Use the phone camera', note: 'Opens your camera app' });
+    return '<div id="slKit" style="padding-top:4px">' + Kit.html(L) + '</div>';
+  }
   function vTake() {
     const t = S.take;
     const say = E.slateScript({ name: S.kit.name, height: S.kit.height, location: S.kit.location, rep: S.kit.rep, role: S.kit.role });
-    return `${t ? '' : `<div style="padding:12px 0 4px"><div class="kicker">THEACTORPAGE · ACT</div><h1 style="font-size:32px;letter-spacing:.12em">SLATE MAKER</h1>
+    return `${t ? '' : kitTiles()}${t ? '' : `<div style="padding:12px 0 4px"><div class="kicker">THEACTORPAGE · ACT</div><h1 style="font-size:32px;letter-spacing:.12em">SLATE MAKER</h1>
         <div style="color:var(--tung-text);letter-spacing:.06em;margin-top:2px">One take. Face to full body. Every shape.</div>
         <p class="dim" style="margin:8px 0 0;max-width:36em">No one to run the camera? Shoot one wide take on a tripod. Slate Maker starts tight on your face while you slate, then glides out to full body, and cuts it for casting, vertical and square.</p></div>`}
       ${t ? `<div class="card"><div class="row" style="flex-wrap:nowrap">${t.thumb ? `<img src="${t.thumb}" style="width:120px;border-radius:8px;flex:none" alt="">` : ''}<div style="min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.name)}</b><span class="faint" style="font-size:13px">${fmt(t.dur)} · ${t.w}x${t.h}${t.w < t.h ? ' · vertical' : ''}</span></div></div>
         ${t.w * t.h < 3840 * 2160 * 0.9 ? `<div class="msg" style="font-size:14px">This take is ${t.w}x${t.h}. Under 4K the face close-up gets soft. MAKE shows how soft before you render.</div>` : ''}
         <div class="row" style="margin-top:10px"><button class="btn pri" data-a="tab" data-t="frame">Next: frame it</button><button class="btn ghost" data-a="picktake">Use a different take</button></div></div>` :
       `<div class="drop" id="drop" data-a="picktake" role="button" tabindex="0"><b>Drop your slate take</b><span class="dim" style="font-size:14px">One wide shot, head to toe, camera locked off.</span><span class="btn pri">Choose a take</span></div>
-       <div class="row">${isPhone() ? `<button class="btn" data-a="shoot">Shoot it now with the camera</button>` : ''}${navigator.mediaDevices && navigator.mediaDevices.getUserMedia ? `<button class="btn ${isPhone() ? 'ghost' : ''}" data-a="recordhere">Record with this ${isPhone() ? 'browser' : "computer's camera"}</button>` : ''}</div>`}
+`}
       <div class="card" style="margin-top:14px"><b>How to shoot it</b>
         <ol class="dim" style="font-size:15px;padding-left:20px;margin:8px 0 0">
           <li>Phone on a tripod, <b>horizontal, 4K</b>, in the phone's own camera app. That gives the most picture to crop from.</li>
