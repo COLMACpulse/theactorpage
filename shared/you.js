@@ -6,6 +6,9 @@
    localStorage 'theactorpage_you_v1' (the words). IndexedDB 'theactorpage_you' / 'photos' (headshots,
    kept at up to 1600 px on the long side). Nothing uploaded. */
 (function(g){
+/* ask the browser to keep this site's things (not clear them when space runs low): the first time you put something in, then at most once a day until it says yes */
+function keepAsk(){ try{ const s=navigator.storage; if(!s||!s.persist) return; const k='theactorpage_keep_asked', t=+localStorage.getItem(k)||0; if(Date.now()-t<86400000) return; localStorage.setItem(k,String(Date.now())); (s.persisted?s.persisted():Promise.resolve(false)).then(p=>{ if(!p) s.persist(); }).catch(()=>{}); }catch(e){} }
+
 const KEY='theactorpage_you_v1';
 const Y={};
 Y.FIELDS=[['name','Name'],['union','Union'],['rep','Rep'],['repPhone','Rep phone'],['phone','Your phone'],['email','Email'],['height','Height'],['weight','Weight'],['hair','Hair'],['eyes','Eyes'],['locations','Local hire']];
@@ -16,7 +19,7 @@ Y.has=()=>{ const d=Y.get(); return !!(d.name||d.credits.length||d.photos.length
 const ck=c=>(c.section+'|'+c.title).toLowerCase().replace(/[^a-z0-9|]+/g,'');
 /* Read from a source (a résumé, a request). Fills blanks; a field you edited by hand is left alone.
    Returns what changed: [[label, value]] */
-Y.fill=function(p,source){
+Y.fill=function(p,source){ keepAsk();
  const d=Y.get(), changed=[];
  Y.FIELDS.forEach(([k,label])=>{ const v=String(p[k]||'').trim(); if(v&&!d[k]&&!d.edited[k]){ d[k]=v; d.from[k]=source||''; changed.push([label,v]); } });
  const have=new Set(d.credits.map(ck)); let nc=0;
@@ -42,7 +45,7 @@ Y.shrink=async function(file,max){
   const b=await new Promise(r=>c.toBlob(r,'image/jpeg',0.9)); return b?{blob:b,w,h,ow:bm.width,oh:bm.height}:null; }catch(e){ return null; }
 };
 /* a headshot in: kept once (same size and name = same photo); the first one is your main one */
-Y.addPhoto=async function(file){
+Y.addPhoto=async function(file){ keepAsk();
  const sig=String(file.name||'')+'|'+(file.size||0), d=Y.get(); const dup=d.photos.find(p=>p.sig===sig); if(dup) return {photo:dup,dup:true};
  const s=await Y.shrink(file); if(!s) return {error:/heic|heif/i.test(file.name||file.type||'')?'this browser can\'t open HEIC photos; export it as JPEG from Photos':'not a photo this browser can open'};
  const id='h'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
@@ -56,7 +59,7 @@ Y.setPhoto=function(id,patch){ const d=Y.get(), p=d.photos.find(x=>x.id===id); i
 Y.setPrimary=function(id){ const d=Y.get(); if(d.photos.some(p=>p.id===id)){ d.primary=id; put(d); } return d; };
 Y.removePhoto=async function(id){ const d=Y.get(); d.photos=d.photos.filter(p=>p.id!==id); if(d.primary===id) d.primary=d.photos[0]?d.photos[0].id:''; put(d); await op('readwrite',st=>st.delete(id)); return d; };
 /* ---------- your résumé, the file itself: kept so it's here when someone asks for it ---------- */
-Y.setResume=async function(file,source){
+Y.setResume=async function(file,source){ keepAsk();
  if(!file) return null;
  if(!(await op('readwrite',st=>st.put(file,'resume')))) return null;
  const d=Y.get(); d.resume={name:file.name||'resume.pdf',type:file.type||'',size:file.size||0,added:Date.now(),from:source||''}; put(d); return d.resume;

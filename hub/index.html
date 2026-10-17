@@ -576,6 +576,7 @@ function voicePanel(){
  return `<div class="panel"><h2>Voice intake &middot; speak the audition</h2>
   <small class="note">Tap the mic and talk it out: "I have an audition due tomorrow at 9am, Casy McCastyface is casting, project is called El Darado, character is Bill, 30-something biker scumbag." It fills the fields - you confirm and edit. Heads up: the mic uses your browser's speech recognition, which on most browsers sends the audio out to be transcribed, so this one button is not fully offline. The parsing happens locally. Type below if you want pure-offline.</small>
   <div class="row" style="padding:2px 15px 4px"><button class="act" id="micbtn" onclick="toggleMic()">&#127908; Speak the audition</button><span id="micstat" style="color:var(--tung);font-size:11px"></span></div>
+  <div style="padding:0 15px 6px;color:var(--faint);font-size:10.5px">Speaking uses the browser's speech service: Chrome sends what you say to Google, Safari to Apple. Typing or pasting stays here.</div>
   <div class="form"><textarea id="vtrans" placeholder="transcript shows here - or just type/paste what you'd say"></textarea>
    <div class="row" style="padding:0"><button class="act sm" onclick="spawnVoice()">Parse &amp; create project</button>
    <span style="color:var(--faint);font-size:10.5px">Pulls deadline, casting, project, character, the brief. Everything's editable after.</span></div></div></div>`;}

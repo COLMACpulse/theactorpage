@@ -13,6 +13,9 @@
    Rule: a tool adopts the shelf's current sides only when they are newer than what
    that tool last saw. It never yanks you off a script you chose in that tool. */
 (function(g){
+/* ask the browser to keep this site's things (not clear them when space runs low): the first time you put something in, then at most once a day until it says yes */
+function keepAsk(){ try{ const s=navigator.storage; if(!s||!s.persist) return; const k='theactorpage_keep_asked', t=+localStorage.getItem(k)||0; if(Date.now()-t<86400000) return; localStorage.setItem(k,String(Date.now())); (s.persisted?s.persisted():Promise.resolve(false)).then(p=>{ if(!p) s.persist(); }).catch(()=>{}); }catch(e){} }
+
 const KEY='theactorpage_shelf_v1', MAX=12;
 const Sh={};
 
@@ -35,7 +38,7 @@ Sh.get=function(id){ return read().list.find(x=>x.id===id)||null; };
 Sh.current=function(){ const d=read(); return d.list.find(x=>x.id===d.cur)||null; };
 
 /* New sides in. Same sides again just become current; your character is kept. */
-Sh.put=function(o){
+Sh.put=function(o){ keepAsk();
  const text=String(o.text||''); if(!text.trim()) return null;
  // the same file dropped in two tools is the same sides, whichever reader got there first
  const d=read(), id=o.fileSig?'f'+hash(o.fileSig):Sh.idFor(text), t=now();

@@ -108,7 +108,7 @@ async function fillPhotos(root){ for(const im of (root||document).querySelectorA
 function wireMain(root){ (root||document).querySelectorAll('[data-main]').forEach(b=>b.onclick=()=>{ Y.setPrimary(b.dataset.main); LAST.forEach(x=>{ if(x.photo) x.went=Y.get().primary===x.photo.id?'Your main headshot. The Hub, Virtual Résumé and Slate Maker use it.':'In your headshots.'; }); showTook(); showYou(); }); }
 /* your profile: what every tool reads. Fix a line here once. */
 function showYou(){
- drawLens(); try{ if(window.Rooms) Rooms.draw(); }catch(e){} const box=$('youpanel'); if(!box||!Y) return; const y=Y.get(); if(!Y.has()&&!YFORCE){ box.innerHTML=''; return; }
+ drawLens(); try{ if(window.Rooms) Rooms.draw(); }catch(e){} keepLine(); const box=$('youpanel'); if(!box||!Y) return; const y=Y.get(); if(!Y.has()&&!YFORCE){ box.innerHTML=''; return; }
  const by={}; y.credits.forEach(c=>by[c.section]=(by[c.section]||0)+1);
  let h='<details class="yp"'+(YOPEN?' open':'')+' id="ypd"><summary>YOUR PROFILE · '+esc(y.name||'no name yet')+(y.credits.length?' · '+y.credits.length+' credits':'')+(y.photos.length?' · '+y.photos.length+' headshot'+(y.photos.length===1?'':'s'):'')+'</summary>'
   +'<p class="why">Every tool fills its blanks from this. Fix a line here once and it stays fixed.</p>'
@@ -135,6 +135,20 @@ function showYou(){
  wireMain(box); fillPhotos(box);
 }
 let YOPEN=false, YFORCE=false;
+/* where your things are kept, said once you have some: this device, the last backup, and on an iPhone the Home Screen note.
+   Safari can clear a site's saved data after a stretch of not visiting it; a site added to the Home Screen is kept. */
+function keepLine(){
+ const el=$('keepline'); if(!el) return;
+ let has=false; try{ has=(Y&&Y.has())||Sh.all().length>0||(window.Takes&&Takes.all().length>0)||I.all().length>0; }catch(e){}
+ if(!has){ el.hidden=true; return; }
+ let own={}; try{ own=JSON.parse(localStorage.getItem('theactorpage_device_v1')||'{}')||{}; }catch(e){}
+ const ago=t=>{ const d=Math.floor((Date.now()-t)/86400000); return d<1?'today':d===1?'yesterday':d<14?d+' days ago':d<60?Math.floor(d/7)+' weeks ago':Math.floor(d/30)+' months ago'; };
+ const ios=/iPhone|iPad|iPod/.test(navigator.userAgent)&&!(navigator.standalone||matchMedia('(display-mode: standalone)').matches);
+ let off=false; try{ off=localStorage.getItem('theactorpage_ios_note')==='off'; }catch(e){}
+ el.innerHTML='Everything you put in is kept on this device, not online. '+(own.lastBackup?'Last backup: '+ago(own.lastBackup)+'.':'No backup yet.')+' <a href="device/">BACK UP</a> &middot; <a href="privacy/">Privacy</a>'
+  +(ios&&!off?'<span class="ios">On an iPhone, add this site to your Home Screen (Share, then Add to Home Screen). Safari can clear a site\'s saved things after a stretch of not visiting; a Home Screen app is kept.<button id="iosx" aria-label="Hide this">\u2715</button></span>':'');
+ el.hidden=false; const x=$('iosx'); if(x) x.onclick=()=>{ try{ localStorage.setItem('theactorpage_ios_note','off'); }catch(e){} keepLine(); };
+}
 /* the lens: your main headshot in the glass. A new one pulls focus. Tap it for YOUR PROFILE; drop a photo on it like the drop box. */
 let LENSID=null;
 async function drawLens(){

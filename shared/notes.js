@@ -6,6 +6,9 @@
    "Dana Pell gave you a note in Mar 2026: 'let the silence sit.'"
    localStorage theactorpage_notes_v1 (text only). Tapes and voice memos are on the takes shelf. Nothing uploaded. */
 (function(g){
+/* ask the browser to keep this site's things (not clear them when space runs low): the first time you put something in, then at most once a day until it says yes */
+function keepAsk(){ try{ const s=navigator.storage; if(!s||!s.persist) return; const k='theactorpage_keep_asked', t=+localStorage.getItem(k)||0; if(Date.now()-t<86400000) return; localStorage.setItem(k,String(Date.now())); (s.persisted?s.persisted():Promise.resolve(false)).then(p=>{ if(!p) s.persist(); }).catch(()=>{}); }catch(e){} }
+
 const N={}, KEY='theactorpage_notes_v1';
 const now=()=>Date.now(), uid=p=>p+now().toString(36)+Math.random().toString(36).slice(2,5);
 const blank=()=>({sessions:[],notes:[]});
@@ -20,7 +23,7 @@ N.all=()=>read();
 N.sessions=()=>read().sessions.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))||b.at-a.at);
 N.session=id=>read().sessions.find(s=>s.id===id)||null;
 /* s: {date:'YYYY-MM-DD', room, who:[{name,role}], title, part, shelfId, where} */
-N.addSession=function(s){ const d=read(), it=Object.assign({id:uid('s'),at:now(),date:new Date().toISOString().slice(0,10),room:'class',who:[],title:'',part:'',shelfId:'',where:'',tapes:[],marks:[]},s||{}); it.who=(it.who||[]).filter(w=>w&&String(w.name||'').trim()).map(w=>({name:String(w.name).trim(),role:w.role||'casting'})); d.sessions.push(it); write(d); return it; };
+N.addSession=function(s){ keepAsk(); const d=read(), it=Object.assign({id:uid('s'),at:now(),date:new Date().toISOString().slice(0,10),room:'class',who:[],title:'',part:'',shelfId:'',where:'',tapes:[],marks:[]},s||{}); it.who=(it.who||[]).filter(w=>w&&String(w.name||'').trim()).map(w=>({name:String(w.name).trim(),role:w.role||'casting'})); d.sessions.push(it); write(d); return it; };
 N.setSession=function(id,patch){ const d=read(), s=d.sessions.find(x=>x.id===id); if(!s) return null; Object.assign(s,patch); write(d); return s; };
 N.removeSession=function(id){ const d=read(); d.sessions=d.sessions.filter(s=>s.id!==id); d.notes=d.notes.filter(n=>n.sid!==id); write(d); };
 /* a tape of you from the session (its id on the takes shelf) */

@@ -6,6 +6,9 @@
    localStorage 'theactorpage_inbox_v1' on this phone only. Newest 40 kept. Nothing uploaded.
    Item: {id, kind:'request'|'draft', at, data, taken:{tool:at}} */
 (function(g){
+/* ask the browser to keep this site's things (not clear them when space runs low): the first time you put something in, then at most once a day until it says yes */
+function keepAsk(){ try{ const s=navigator.storage; if(!s||!s.persist) return; const k='theactorpage_keep_asked', t=+localStorage.getItem(k)||0; if(Date.now()-t<86400000) return; localStorage.setItem(k,String(Date.now())); (s.persisted?s.persisted():Promise.resolve(false)).then(p=>{ if(!p) s.persist(); }).catch(()=>{}); }catch(e){} }
+
 const KEY='theactorpage_inbox_v1', MAX=40;
 const I={};
 function read(){ try{ const d=JSON.parse(localStorage.getItem(KEY)||'null'); if(d&&Array.isArray(d.items)) return d; }catch(e){} return {items:[]}; }
@@ -13,7 +16,7 @@ function write(d){ d.items.sort((a,b)=>b.at-a.at); if(d.items.length>MAX) d.item
 function hash(s){ let h=5381; s=String(s); for(let i=0;i<s.length;i++) h=((h*33)^s.charCodeAt(i))>>>0; return h.toString(36); }
 let clock=0; const now=()=>{ const t=Date.now(); clock=t>clock?t:clock+1; return clock; };
 /* The same thing dropped twice is one item (known by kind + its words); it comes back to the top. */
-I.put=function(kind,data,key){
+I.put=function(kind,data,key){ keepAsk();
  const d=read(), id=kind[0]+hash(key||JSON.stringify(data||{}).replace(/\s+/g,' ')); let it=d.items.find(x=>x.id===id);
  if(it){ it.at=now(); it.data=Object.assign({},it.data,data); }
  else { it={id:id,kind:kind,at:now(),data:data||{},taken:{}}; d.items.push(it); }

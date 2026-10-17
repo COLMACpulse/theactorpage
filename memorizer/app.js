@@ -150,6 +150,7 @@ function renderDrill(){
   h+=`<div class="saybar">${Rec?`<button class="btn big ${LIS?'':'pri'}" id="sayBtn" onclick="MEM.listen()">${LIS?'STOP':'SAY IT'}</button>`:''}
    <button class="btn big ${Rec?'':'pri'}" onclick="MEM.reveal()" ${Rec?'':'style="grid-column:1/-1"'}>${Rec?'SHOW THE LINE':'SAID IT. SHOW THE LINE'}</button></div>`;
   h+=`<div class="heard ${LIS?'listening':''}" id="heard">${LIS?(D.heard?esc(D.heard):'Listening…'):(Rec?'':'Say it out loud, then check.')}</div>`;
+  if(Rec) h+=`<p class="faint" style="font-size:12px;margin:6px 0 0">SAY IT uses the browser's speech service: Chrome sends what you say to Google, Safari to Apple. SHOW THE LINE never listens.</p>`;
   h+=D.typing?`<div class="typebox"><textarea class="field" id="typed" rows="3" placeholder="Type what you said"></textarea>
      <div class="row" style="margin-top:8px"><button class="btn" onclick="MEM.checkTyped()">CHECK</button></div></div>`
     :`<div style="margin-top:10px"><button class="btn ghost sm" onclick="MEM.typing()">Type it instead</button></div>`;
