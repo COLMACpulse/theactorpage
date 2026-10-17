@@ -228,6 +228,38 @@ footer a:hover{color:var(--tungsten)}
 body.has .titlecard{min-height:auto;padding:46px 28px 30px}
 body.has .scrollcue{display:none}
 .you .disc-name{color:var(--paper)}
+/* the lens: you, seen through the glass. Your main headshot from YOUR PROFILE, on this device only.
+   It pulls focus once when the page opens and again when a new headshot lands. Tap it: YOUR PROFILE. */
+.lens{position:relative;display:block;width:min(100%,220px);aspect-ratio:1;margin:30px 0 0;padding:0;border:0;border-radius:50%;cursor:pointer;
+  background:radial-gradient(circle at 50% 50%,#0b0c0e 0 61%,#16181c 61.5% 64%,#08090a 64.5% 66%,#1d2025 66.5% 71%,#0a0b0d 71.5% 100%);
+  box-shadow:0 18px 40px rgba(0,0,0,.65),inset 0 0 0 1px #2a2e35,inset 0 2px 1px rgba(255,255,255,.06)}
+.lens:focus-visible{outline:2px solid var(--tungsten);outline-offset:6px}
+.lens .ring{position:absolute;inset:3%;border-radius:50%;pointer-events:none;
+  background:repeating-conic-gradient(from 0deg,rgba(255,255,255,.07) 0 1.2deg,transparent 1.2deg 4deg);
+  -webkit-mask:radial-gradient(circle,transparent 0 70%,#000 71% 100%);mask:radial-gradient(circle,transparent 0 70%,#000 71% 100%)}
+.lens .gold{position:absolute;inset:17%;border-radius:50%;border:1px solid rgba(224,162,60,.55);pointer-events:none}
+.lens .glass{position:absolute;inset:19%;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 38% 30%,#1c2433 0,#0b0f17 55%,#05070a 100%);
+  box-shadow:inset 0 0 0 2px #000,0 0 0 3px rgba(80,90,160,.18)}
+.lens .glass img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 22%;opacity:0;transform:scale(1.08)}
+.lens .glass img.on{opacity:1;transform:none}
+.lens .glass::after{content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle at 50% 50%,transparent 52%,rgba(0,0,0,.55) 80%,rgba(0,0,0,.85) 100%),
+             radial-gradient(ellipse 60% 26% at 34% 18%,rgba(255,255,255,.16),transparent 70%),
+             radial-gradient(circle at 70% 78%,rgba(120,110,255,.10),transparent 30%)}
+.lens-why{display:block;font-family:var(--script);font-size:.78rem;color:var(--faint);margin-top:12px}
+.lens-why[hidden]{display:none}
+@media(prefers-reduced-motion:no-preference){
+  .lens .glass img{transition:opacity .35s ease}
+  .lens.pull .glass img.on{animation:pull 1.1s cubic-bezier(.3,.7,.2,1) both}
+  .lens.pull .ring{animation:turn 1.1s cubic-bezier(.3,.7,.2,1) both}
+  @keyframes pull{from{filter:blur(9px) brightness(.85);transform:scale(1.08)}to{filter:none;transform:none}}
+  @keyframes turn{from{transform:rotate(-24deg)}to{transform:none}}
+}
+@media(max-width:720px){
+  .you .disc>div:first-child{display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:18px}
+  .you .disc>div:first-child>.lens{grid-row:1 / span 3;grid-column:2;width:118px;margin:0}
+  .you .lens-why{grid-column:1}
+}
 .you-lede{max-width:34em;margin:0 0 18px;color:#c3c8d0}
 .drop{display:block;border:1px dashed #6b4f21;background:rgba(224,162,60,.04);padding:26px 18px;text-align:center;font-family:var(--script);letter-spacing:.06em;cursor:pointer;transition:background .14s}
 .drop.over{background:rgba(224,162,60,.14)}
@@ -317,6 +349,8 @@ body.stopen{overflow:hidden}
     <div>
       <h2 class="disc-name">YOU</h2>
       <p class="disc-what">Drop it once.<br>Every tool has it.</p>
+      <button class="lens" id="lens" type="button" aria-label="Your profile"><span class="ring"></span><span class="gold"></span><span class="glass"><img id="lensimg" alt=""></span></button>
+      <span class="lens-why" id="lenswhy">Your headshot goes here.</span>
     </div>
     <div>
       <p class="you-lede">Drop anything here: sides, a script or a new draft, the self-tape request, your rep's email, your résumé, your headshots, your footage. It reads what each thing is, sends it where it belongs, and picks your part from the request. Nothing leaves this device.</p>

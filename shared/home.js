@@ -108,7 +108,7 @@ async function fillPhotos(root){ for(const im of (root||document).querySelectorA
 function wireMain(root){ (root||document).querySelectorAll('[data-main]').forEach(b=>b.onclick=()=>{ Y.setPrimary(b.dataset.main); LAST.forEach(x=>{ if(x.photo) x.went=Y.get().primary===x.photo.id?'Your main headshot. The Hub, Virtual Résumé and Slate Maker use it.':'In your headshots.'; }); showTook(); showYou(); }); }
 /* your profile: what every tool reads. Fix a line here once. */
 function showYou(){
- const box=$('youpanel'); if(!box||!Y) return; const y=Y.get(); if(!Y.has()){ box.innerHTML=''; return; }
+ drawLens(); const box=$('youpanel'); if(!box||!Y) return; const y=Y.get(); if(!Y.has()&&!YFORCE){ box.innerHTML=''; return; }
  const by={}; y.credits.forEach(c=>by[c.section]=(by[c.section]||0)+1);
  let h='<details class="yp"'+(YOPEN?' open':'')+' id="ypd"><summary>YOUR PROFILE · '+esc(y.name||'no name yet')+(y.credits.length?' · '+y.credits.length+' credits':'')+(y.photos.length?' · '+y.photos.length+' headshot'+(y.photos.length===1?'':'s'):'')+'</summary>'
   +'<p class="why">Every tool fills its blanks from this. Fix a line here once and it stays fixed.</p>'
@@ -126,7 +126,26 @@ function showYou(){
  box.querySelectorAll('[data-yphx]').forEach(b=>b.onclick=async()=>{ await Y.removePhoto(b.dataset.yphx); showYou(); });
  wireMain(box); fillPhotos(box);
 }
-let YOPEN=false;
+let YOPEN=false, YFORCE=false;
+/* the lens: your main headshot in the glass. A new one pulls focus. Tap it for YOUR PROFILE; drop a photo on it like the drop box. */
+let LENSID=null;
+async function drawLens(){
+ const L=$('lens'), im=$('lensimg'), why=$('lenswhy'); if(!L||!im||!Y) return;
+ const y=Y.get(), id=y.primary&&y.photos.some(p=>p.id===y.primary)?y.primary:(y.photos[0]&&y.photos[0].id)||'';
+ if(why) why.hidden=!!id;
+ L.setAttribute('aria-label',id?'Your profile':'Your profile. No headshot yet.');
+ if(id===LENSID) return; LENSID=id;
+ if(!id){ im.classList.remove('on'); im.removeAttribute('src'); return; }
+ if(!URLS[id]){ const b=await Y.photoBlob(id); if(b) URLS[id]=URL.createObjectURL(b); }
+ if(!URLS[id]||LENSID!==id) return;
+ im.onload=()=>{ im.classList.add('on'); L.classList.remove('pull'); void L.offsetWidth; L.classList.add('pull'); };
+ im.src=URLS[id];
+}
+(function(){ const L=$('lens'); if(!L) return;
+ L.onclick=()=>{ YOPEN=true; YFORCE=true; showYou(); const b=$('youpanel'); if(b) b.scrollIntoView({block:'nearest',behavior:'smooth'}); };
+ ['dragenter','dragover'].forEach(ev=>L.addEventListener(ev,e=>{ e.preventDefault(); }));
+ L.addEventListener('drop',e=>{ e.preventDefault(); const fl=[...(e.dataTransfer&&e.dataTransfer.files||[])]; if(fl.length) take(fl,''); });
+})();
 function showTook(){ $('took').innerHTML=LAST.map(card).join('');
  document.querySelectorAll('[data-part]').forEach(b=>b.onclick=()=>{ const [i,name]=b.dataset.part.split('|'); const x=LAST[+i]; if(!x||!x.shelfId) return; Sh.setMe(x.shelfId,name,'home'); x.me=name; x.meFrom=''; showTook(); showPlay(); }); wireMain($('took')); fillPhotos($('took')); }
 function showPlay(){
