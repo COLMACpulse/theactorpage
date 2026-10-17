@@ -171,16 +171,37 @@ async function drawLens(){
 })();
 function showTook(){ $('took').innerHTML=LAST.map(card).join('');
  document.querySelectorAll('[data-part]').forEach(b=>b.onclick=()=>{ const [i,name]=b.dataset.part.split('|'); const x=LAST[+i]; if(!x||!x.shelfId) return; Sh.setMe(x.shelfId,name,'home'); x.me=name; x.meFrom=''; showTook(); showPlay(); }); wireMain($('took')); fillPhotos($('took')); }
+/* IN PLAY: what you've brought in that's still live (tapes due, sides, drafts). Folded to one line until you open it.
+   A tape due within two days is said on that line. PUT AWAY takes a row off this list only (the tools keep it).
+   Past three of a kind, the rest wait under "and N older". */
+const AWAY='home_inplay_away';
+const away=()=>{ try{ return JSON.parse(localStorage.getItem(AWAY)||'[]'); }catch(e){ return []; } };
+function putAway(k){ const a=away(); if(!a.includes(k)) a.push(k); try{ localStorage.setItem(AWAY,JSON.stringify(a.slice(-200))); }catch(e){} showPlay(); }
+let PLAYOPEN=(()=>{ try{ return sessionStorage.getItem('home_inplay_open')==='1'; }catch(e){ return false; } })(), PLAYALL=false;
 function showPlay(){
- const S=Sh.all().slice(0,4), R=I.all('request').filter(x=>x.data.due).sort((a,b)=>String(a.data.due).localeCompare(String(b.data.due))), D=I.all('draft').slice(0,3);
- const now=new Date().toISOString(), up=R.filter(x=>x.data.due>=now.slice(0,16)).slice(0,3);
- document.body.classList.toggle('has',!!(S.length||R.length||D.length||(Y&&Y.has())));
- if(!S.length&&!up.length&&!D.length){ $('inplay').innerHTML=''; return; }
- let h='<h3>IN PLAY</h3>';
- up.forEach(x=>{ const dw=x.data.dueObj?HubReq.dueWords(x.data.dueObj):(x.data.dueWords||''); h+='<div class="ip"><span><b>Tape due</b> '+esc(dw)+'<br><small>'+esc([x.data.title,x.data.role].filter(Boolean).join(' · '))+'</small></span><span class="go"><a href="hub/">HUB</a><a href="actor-os/">TAPE IT</a></span></div>'; });
- S.forEach((it,k)=>{ h+='<div class="ip"><span><b>'+(k===0?'Sides now':'Sides')+'</b> '+esc(plain(it.file))+'<br><small>'+(it.me?'You: '+esc(it.me):'No part picked yet')+'</small></span><span class="go"><a href="actor-os/">READ</a><a href="memorizer/">LEARN</a><a href="breakdown/">BREAK DOWN</a></span></div>'; });
- D.forEach(x=>{ h+='<div class="ip"><span><b>Draft</b> '+esc(plain(x.data.file))+'</span><span class="go"><a href="papertrail/">PAPER TRAIL</a><a href="film/">STORY STUDIO</a></span></div>'; });
- $('inplay').innerHTML=h;
+ const A=away(), now=new Date().toISOString();
+ const S=Sh.all().filter(x=>!A.includes('s:'+x.id));
+ const R=I.all('request').filter(x=>x.data.due&&x.data.due>=now.slice(0,16)&&!A.includes('r:'+x.id)).sort((a,b)=>String(a.data.due).localeCompare(String(b.data.due)));
+ const D=I.all('draft').filter(x=>!A.includes('d:'+x.id));
+ document.body.classList.toggle('has',!!(Sh.all().length||I.all('request').length||I.all('draft').length||(Y&&Y.has())));
+ const box=$('inplay'); if(!box) return;
+ if(!S.length&&!R.length&&!D.length){ box.innerHTML=''; return; }
+ const dw=x=>x.data.dueObj?HubReq.dueWords(x.data.dueObj):(x.data.dueWords||'');
+ const pl=(n,w)=>n+' '+w+(n===1?'':'s');
+ const soon=R.find(x=>Date.parse(x.data.due)-Date.now()<48*3600e3);
+ const bits=[R.length?pl(R.length,'tape')+' due':'',S.length?S.length+' side'+(S.length===1?'':'s'):'',D.length?pl(D.length,'draft'):''].filter(Boolean);
+ const cap=n=>PLAYALL?n:3;
+ let rows='';
+ R.slice(0,cap(R.length)).forEach(x=>{ rows+='<div class="ip"><span><b>Tape due</b> '+esc(dw(x))+'<br><small>'+esc([x.data.title,x.data.role].filter(Boolean).join(' · '))+'</small></span><span class="go"><a href="hub/">HUB</a><a href="actor-os/">TAPE IT</a><button type="button" data-away="r:'+esc(x.id)+'">PUT AWAY</button></span></div>'; });
+ S.slice(0,cap(S.length)).forEach((it,k)=>{ rows+='<div class="ip"><span><b>'+(k===0?'Sides now':'Sides')+'</b> '+esc(plain(it.file))+'<br><small>'+(it.me?'You: '+esc(it.me):'No part picked yet')+'</small></span><span class="go"><a href="actor-os/">READ</a><a href="memorizer/">LEARN</a><a href="breakdown/">BREAK DOWN</a><button type="button" data-away="s:'+esc(it.id)+'">PUT AWAY</button></span></div>'; });
+ D.slice(0,cap(D.length)).forEach(x=>{ rows+='<div class="ip"><span><b>Draft</b> '+esc(plain(x.data.file))+'</span><span class="go"><a href="papertrail/">PAPER TRAIL</a><a href="film/">STORY STUDIO</a><button type="button" data-away="d:'+esc(x.id)+'">PUT AWAY</button></span></div>'; });
+ const more=Math.max(0,R.length-3)+Math.max(0,S.length-3)+Math.max(0,D.length-3);
+ box.innerHTML='<details id="ipd"'+(PLAYOPEN?' open':'')+'><summary><b>IN PLAY</b> · '+esc(bits.join(' · '))+(soon?'<span class="ipsoon">Tape due '+esc(dw(soon))+(soon.data.title?': '+esc(soon.data.title):'')+'</span>':'')+'</summary>'
+  +'<p class="ipwhat">What you’ve brought in that’s still live: tapes due, sides, drafts. Newest first. PUT AWAY takes one off this list; the tools keep it.</p>'
+  +rows+(more&&!PLAYALL?'<button type="button" class="ipmore" id="ipmore">and '+more+' older</button>':'')+'</details>';
+ const d=$('ipd'); d.ontoggle=()=>{ PLAYOPEN=d.open; try{ sessionStorage.setItem('home_inplay_open',d.open?'1':'0'); }catch(e){} };
+ box.querySelectorAll('[data-away]').forEach(b=>b.onclick=()=>putAway(b.dataset.away));
+ const m=$('ipmore'); if(m) m.onclick=()=>{ PLAYALL=true; showPlay(); };
 }
 
 async function take(files,pasted,fromFolder,opts){

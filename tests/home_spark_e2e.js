@@ -1,0 +1,57 @@
+/* Home: IN PLAY folded to one line (a tape due soon said on it), PUT AWAY, "and N older"; and SPARK on ACT, WRITE, FILM:
+   nothing until you tap it, one thing with GO, ANOTHER, NOT NOW. Made-up names. Server on :8811.
+   NODE_PATH=... node tests/home_spark_e2e.js */
+const {chromium}=require('playwright'); const path=require('path'), fs=require('fs');
+(async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,400))); if(!x) ok=false; };
+const c=await b.newContext({viewport:{width:1300,height:900}}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
+await p.goto('http://localhost:8811/index.html'); await p.evaluate(()=>{ localStorage.clear(); sessionStorage.clear(); }); await p.reload(); await p.waitForTimeout(700);
+want('nothing in: no IN PLAY at all', (await p.innerText('#inplay')).trim()==='');
+want('SPARK on ACT, WRITE and FILM, and nothing shown until tapped', (await p.$$eval('[data-spark]',x=>x.map(y=>y.dataset.spark))).join()==='act,write,film'&&await p.$$eval('.spark-card',x=>x.length)===0);
+// fill: five sides, a tape due tomorrow, a draft
+const text=fs.readFileSync(path.join(__dirname,'..','shared','fixtures','low_tide.fountain'),'utf8');
+await p.evaluate(t=>{ ['The Watch','Discharge','Low Tide','Dry Creek','Salt Flats'].forEach((n,i)=>Shelf.put({text:t+'\n'+i,file:n+'.fountain',me:i===0?'SAGE':'',from:'home'}));
+ const due=new Date(Date.now()+20*3600e3).toISOString().slice(0,16); Inbox.put('request',{title:'LOW TIDE',role:'ANNA VOSS',due,dueWords:'tomorrow 5 PM'},'r1');
+ Inbox.put('draft',{file:'Dry Creek.fountain',text:'x'},'d1'); },text);
+await p.reload(); await p.waitForTimeout(800);
+const sum=await p.innerText('#ipd summary');
+want('IN PLAY is one folded line: what and how many', /IN PLAY/.test(sum)&&/1 tape due/.test(sum)&&/5 sides/.test(sum)&&/1 draft/.test(sum)&&!(await p.evaluate(()=>document.getElementById('ipd').open)), sum);
+want('a tape due within two days is said on that line', /Tape due tomorrow 5 PM: LOW TIDE/.test(sum), sum);
+await p.click('#ipd summary'); await p.waitForTimeout(150);
+let ip=await p.innerText('#inplay');
+want('open: it says what it is', /What you.ve brought in that.s still live/.test(ip));
+want('open: three sides shown, "and 2 older" for the rest', await p.$$eval('.ip',x=>x.filter(y=>/Sides/.test(y.textContent)).length)===3&&/and 2 older/.test(ip), ip);
+await p.click('#ipmore'); await p.waitForTimeout(100);
+want('and 2 older: all five', await p.$$eval('.ip',x=>x.filter(y=>/Sides/.test(y.textContent)).length)===5);
+const before=await p.evaluate(()=>Shelf.all().length);
+await p.click('.ip button[data-away^="s:"]'); await p.waitForTimeout(100);
+want('PUT AWAY: off this list, still on the shelf for the tools', /4 sides/.test(await p.innerText('#ipd summary'))&&await p.evaluate(()=>Shelf.all().length)===before);
+await p.reload(); await p.waitForTimeout(700);
+want('stays put away after a reload; the fold remembers it was open this visit', /4 sides/.test(await p.innerText('#ipd summary'))&&await p.evaluate(()=>document.getElementById('ipd').open));
+// sparks
+await p.click('[data-spark="act"] .spark-btn'); await p.waitForTimeout(100);
+let card=await p.innerText('[data-spark="act"] .spark-card');
+want('ACT SPARK: one thing, with GO (when there is somewhere to go), ANOTHER, NOT NOW', /ANOTHER/.test(card)&&/NOT NOW/.test(card)&&(!!(await p.$('[data-spark="act"] .spark-go'))||/sound off/.test(card))&&await p.$$eval('.spark-card',x=>x.length)===1, card);
+const first=await p.innerText('[data-spark="act"] .spark-card p');
+await p.click('[data-spark="act"] [data-another]'); await p.waitForTimeout(100);
+want('ANOTHER: a different one', (await p.innerText('[data-spark="act"] .spark-card p'))!==first);
+await p.click('[data-spark="act"] [data-notnow]');
+want('NOT NOW: gone', await p.$$eval('.spark-card',x=>x.length)===0);
+await p.click('[data-spark="write"] .spark-btn'); await p.waitForTimeout(100);
+const go=await p.$eval('[data-spark="write"] .spark-go',x=>x.getAttribute('href')||x.tagName);
+want('WRITE SPARK goes to GO or Paper Trail', /writers-blockage\.html\?go|papertrail\//.test(go), go);
+await p.click('[data-spark="film"] .spark-btn'); await p.waitForTimeout(100);
+want('FILM SPARK: a thing to shoot', /Shoot|Scout|Film|photo/i.test(await p.innerText('[data-spark="film"] .spark-card p')));
+want('the spark\'s sides and part come from the same script', await p.evaluate(()=>{ const c=Spark.ctx(); return c.me==='SAGE'&&c.sides==='The Watch'; }), await p.evaluate(()=>Spark.ctx()));
+want('no counts or streaks anywhere in a spark', !/streak|in a row|\d+ days/i.test(await p.innerText('body')));
+want('no em dashes in sparks or IN PLAY', !/—/.test(await p.innerText('#inplay')+await p.$$eval('.spark-card',x=>x.map(y=>y.textContent).join(''))));
+await c.close();
+// phone
+const c2=await b.newContext({viewport:{width:390,height:844}}); const q=await c2.newPage(); q.on('pageerror',e=>errs.push(e.message));
+await q.goto('http://localhost:8811/index.html'); await q.waitForTimeout(700);
+await q.click('[data-spark="act"] .spark-btn'); await q.waitForTimeout(100);
+want('phone: the spark sits full width under the slate, no sideways scroll', await q.evaluate(()=>{ const s=document.querySelector('[data-spark="act"]').getBoundingClientRect(); return s.width>300&&document.documentElement.scrollWidth<=390; }));
+await q.locator('[data-spark="act"]').screenshot({path:require('os').tmpdir()+'/spark_phone.png'});
+await c2.close();
+want('no page errors', !errs.length, errs);
+await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();

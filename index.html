@@ -347,6 +347,24 @@ body.stopen{overflow:hidden}
 .ip b{font-weight:500}
 .ip .go a{color:var(--tungsten);font:700 .78rem var(--script);letter-spacing:.06em;text-decoration:none;margin-left:12px}
 .ip small{color:var(--grey)}
+.ip .go button{background:none;border:0;color:var(--faint);font:700 .72rem var(--script);letter-spacing:.06em;margin-left:12px;cursor:pointer;padding:0}
+.inplay details>summary{cursor:pointer;list-style:none;font:.9rem var(--script);color:#c3c8d0;padding:10px 0;border-bottom:1px solid var(--rule)}
+.inplay details>summary::-webkit-details-marker{display:none}
+.inplay details>summary::before{content:"\25B8  ";color:var(--tungsten)}.inplay details[open]>summary::before{content:"\25BE  "}
+.inplay summary b{color:var(--tungsten);font-weight:700;letter-spacing:.16em}
+.ipsoon{display:block;margin:4px 0 0 1.3em;color:var(--tungsten)}
+.ipwhat{font-size:.84rem;color:var(--grey);margin:10px 0 4px}
+.ipmore{background:none;border:0;color:var(--tungsten);font:700 .76rem var(--script);letter-spacing:.06em;padding:10px 0;cursor:pointer}
+/* SPARK: one small thing, only when you tap it */
+.spark{margin-top:12px;max-width:260px}
+.spark-btn{background:none;border:1px solid #6b4f21;color:var(--tungsten);font:700 .74rem var(--script);letter-spacing:.2em;padding:8px 12px;cursor:pointer}
+.spark-btn:hover,.spark-btn[aria-expanded="true"]{background:rgba(224,162,60,.12)}
+.spark-card{margin-top:10px;border-left:2px solid var(--tungsten);padding:2px 0 2px 12px}
+.spark-card p{margin:0 0 8px;color:var(--ink);font-size:.95rem;line-height:1.45}
+.spark-row{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.spark-row a,.spark-row button{background:none;border:0;padding:4px 0;font:700 .74rem var(--script);letter-spacing:.08em;color:var(--faint);cursor:pointer;text-decoration:none}
+.spark-row .spark-go{color:var(--tungsten)}
+@media(max-width:720px){.band .disc>div:first-child>.spark{grid-column:1 / -1;max-width:none}}
 </style>
 </head>
 <body>
@@ -428,6 +446,7 @@ body.stopen{overflow:hidden}
         <g class="slv"><text id="sl_prod" x="16" y="86"></text><text id="sl_role" x="16" y="116"></text><text id="sl_take" class="big" x="112" y="118"></text><text id="sl_date" x="16" y="146"></text><text x="112" y="146">A</text><text id="sl_name" x="16" y="176"></text></g>
        </svg></a>
       <span class="obj-why" id="sl_why">Your next audition goes here.</span>
+      <div class="spark" data-spark="act"></div>
     </div>
     <div>
       <div class="tool">
@@ -622,6 +641,7 @@ body.stopen{overflow:hidden}
 <rect x="78" y="204" width="84" height="6" rx="3" fill="url(#twchr)"/>
 <rect x="19" y="214" width="202" height="10" rx="3" fill="#060708"/><text x="120" y="222" text-anchor="middle" font-family="Georgia,serif" font-style="italic" font-size="8" fill="#c9a24d" letter-spacing="1.5">Standard</text></svg></a>
       <span class="obj-why" id="tw_why">Your page goes here.</span>
+      <div class="spark" data-spark="write"></div>
     </div>
     <div>
       <div class="tool">
@@ -701,6 +721,7 @@ body.stopen{overflow:hidden}
        </svg></a>
       <span class="obj-cap" id="cam_title"></span>
       <span class="obj-why" id="cam_why">Your film goes here.</span>
+      <div class="spark" data-spark="film"></div>
     </div>
     <div>
       <div class="tool">
@@ -888,6 +909,7 @@ body.stopen{overflow:hidden}
 <script src="shared/intake.js"></script>
 <script src="shared/home.js"></script>
 <script src="shared/rooms.js"></script>
+<script src="shared/spark.js"></script>
 <script src="shared/capture.js"></script>
 <script src="shared/takes.js"></script>
 <script src="shared/studio.js"></script>
