@@ -71,6 +71,8 @@ function adopt(){
  const p=SH.pending(TOOL);
  if(p){ SH.markSeen(TOOL,p.id); open(p.id,p.text,p.file,p.me); TAB='scenes';
    setTimeout(()=>toast('New script: '+SH.label(p)+'.'),300); return; }
+ // opened from FILM HUB: ../film/#open=<script id>
+ const hm=String(location.hash||'').match(/^#open=(.+)$/); if(hm){ const id=decodeURIComponent(hm[1]); if(DB.scripts[id]){ DB.cur=id; save(); TAB='scenes'; } try{ history.replaceState(null,'',location.pathname); }catch(e){} }
  const c=cur(); if(c&&c.text) SCENES=F.scenes(c.text);
 }
 

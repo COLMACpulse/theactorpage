@@ -141,3 +141,14 @@ You don't see the breakdowns; your reps do. You see everything else. Mined from 
 - **Hub:** `withSpotted()` fills a request's blanks (Project Name, Role Name, casting), adds callback and fitting dates, puts the musts on the checklist and pay and conflicts as written on the card.
 - **Storage:** localStorage `theactorpage_spotted_v1`. The Hub and NOTES are read, never written. Nothing uploaded.
 - **Tests:** `node shared/test_spotted.js` (49), `spotted/tests/spotted_e2e.js` (25, made-up notices).
+
+# Film Hub · `shared/filmhub.js`
+
+FILM's hub, like the Project Hub for ACT, from the filmmaker's side. Used by FILM HUB (/filmhub/). Pass Story Studio's engine (`film/film.js`) in.
+
+- **Where it stands:** `status(script, F)` counts from what you marked in Story Studio: scenes, planned, at a place, shots done of the shot list (Story Studio's own list), scenes fully shot, takes logged, pieces in the cut and its length against the target, ADR kept, parts named, crew. `stage()` is a word from those counts (Script, Planning, Shooting, Cutting) unless you mark it Done. `words()` says it plainly. No score.
+- **People:** `people(scripts, F, handFilms)`: the actor for each part and the crew lines from Story Studio, plus "Job: Name" lines on films added by hand; most films first. Contacts and phone numbers never come in.
+- **The page:** `pageHtml(films, me)`: banner, your name, about, and each film shown (poster, year, kind, runtime, logline, credit line, links: http(s) only). Never the script, notes, call times or contacts.
+- **Title:** the script's own `Title:` line, else the file name.
+- **Storage (the app):** localStorage `filmhub_v1`, posters in IndexedDB `filmhub` (600 px JPEG). Story Studio's `film_os_v1` is read, never written. Story Studio opens on a film from `../film/#open=<id>`.
+- **Tests:** `node shared/test_filmhub.js` (19), `filmhub/tests/filmhub_e2e.js` (17, made-up film).

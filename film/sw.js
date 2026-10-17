@@ -1,5 +1,5 @@
 /* STORY STUDIO offline shell. Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='story-studio-0.13.5';
+const CACHE='story-studio-0.13.6';
 const FILES=['./','index.html','../shared/hot.js','app.js','film.js','play.js','manifest.webmanifest',
  '../shared/shelf.js','../shared/takes.js','../shared/xlsx.js','../actor-os/sides.js','../actor-os/pdf.js',
  'fonts/jost-latin-400-normal.woff2','fonts/jost-latin-500-normal.woff2','fonts/jost-latin-600-normal.woff2',
