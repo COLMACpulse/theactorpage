@@ -166,6 +166,7 @@ small.note{display:block;padding:0 15px 13px;color:var(--faint);font-size:10.5px
 <script src="../shared/you.js"></script>
 <script src="../shared/offices.js"></script>
 <script src="../shared/notes.js"></script>
+<script src="../shared/spotted.js"></script>
 <script src="../shared/takes.js"></script>
 <script>
 var restoreReport=null;
@@ -1283,7 +1284,7 @@ function requestPanel(){
 function reqRows(r){const rows=[];const add=(k,v)=>{if(v)rows.push([k,v]);};
  add('Role',r.role+(r.roleSize?' · '+r.roleSize:''));add('Pay',r.pay);add('Casting',r.castingDirectors.join(', ')+(r.castingAssistant?' · assistant '+r.castingAssistant:''));
  add('Contact',r.contact);add('Show',[r.type,r.studio,r.union].filter(Boolean).join(' · '));add('Director',r.director);add('Producers',r.producers);
- add('Shoot',[r.shootDates,r.location].filter(Boolean).join(' · '));add('The role',r.roleDesc);add('Sides',r.sides.join(', '));return rows;}
+ add('Shoot',[r.shootDates,r.location].filter(Boolean).join(' · '));add('Where',r.where);(r.payWritten||[]).forEach(x=>{if(x!==r.pay)add('Pay as written',x);});add('Conflicts',r.conflictsWritten);add('The role',r.roleDesc);add('Sides',r.sides.join(', '));return rows;}
 function reqPreview(r){
  const miss=[];if(!r.role)miss.push('the role');if(!r.due)miss.push('the tape due date');if(!r.castingDirectors.length)miss.push('the casting director');
  let h=`<div class="reqbox"><div class="reqdue"><b>Tape due:</b> ${esc(HubReq.dueWords(r.due,myTZ()))}${r.due&&r.dueFrom?` <span class="mut">(from ${esc(r.dueFrom)})</span>`:''}</div>`;
@@ -1292,10 +1293,19 @@ function reqPreview(r){
  if(r.sent)h+=`<div class="reqother">The page says your audition has been sent. It goes in as Submitted.</div>`;
  h+=`<div class="brieftbl">`+[['Project',r.title]].concat(reqRows(r)).filter(x=>x[1]).map(([k,v])=>`<div class="briefrow"><div class="bk">${k}</div><div class="bv">${esc(v)}</div></div>`).join('')+`</div>`;
  if(r.directions.length)h+=`<div class="reqdir"><b>Their directions</b><ul>${r.directions.map(d=>`<li>${esc(d)}</li>`).join('')}</ul></div>`;
+ if((r.musts||[]).length)h+=`<div class="reqdir"><b>What they ask for, as written</b><ul>${r.musts.map(d=>`<li>${esc(d)}</li>`).join('')}</ul></div>`;
  if(miss.length)h+=`<div class="reqother bad">Not found: ${miss.join(', ')}. Fill it in after adding, or paste more of the page.</div>`;
  h+=`<div class="row" style="padding:10px 0 0"><button class="act" onclick="addRequest()">ADD THIS AUDITION</button><button class="ghost act" onclick="REQ=null;render()">CLEAR</button></div></div>`;
  return h;}
-function readRequest(){const t=($('reqtext')||{}).value||'';if(!t.trim())return toast('Paste the request first');REQ=HubReq.read(t);const o=$('reqout');if(o)o.innerHTML=reqPreview(REQ);}
+/* v0.9.6: the SPOTTED reader on the same paste (shared/spotted.js): a callback notice's Project Name / Role Name,
+   the callback dates, the musts and the pay and conflicts as written. Fills only what the request reader left blank. */
+function withSpotted(r,t){ if(!r||!window.Spotted)return r; let c=null; try{c=Spotted.read(t);}catch(e){return r;}
+ if(!r.title&&c.project)r.title=c.project; if(!r.role&&c.role)r.role=c.role; if(!r.castingDirectors.length&&c.casting.length)r.castingDirectors=c.casting.slice();
+ if(!r.union&&c.union)r.union=c.union; if(!r.shootDates){const sd=c.dates.find(d=>d.what==='shoot');if(sd)r.shootDates=sd.text.replace(/^Shoot(?:ing)? Dates?:\s*/i,'');}
+ c.dates.filter(d=>d.what==='callback'||d.what==='fitting').forEach(d=>{ if(!r.otherDates.some(x=>x.text===d.text))r.otherDates.push({text:d.text,what:d.what==='fitting'?'Your fitting, if you book.':'The callback. Not your tape.'}); });
+ r.musts=c.musts.filter(m=>!r.directions.some(d=>d.indexOf(m)>=0||m.indexOf(d)>=0)); r.payWritten=c.pay; r.conflictsWritten=c.conflicts; if(!r.where&&c.where)r.where=c.where;
+ return r; }
+function readRequest(){const t=($('reqtext')||{}).value||'';if(!t.trim())return toast('Paste the request first');REQ=withSpotted(HubReq.read(t),t);const o=$('reqout');if(o)o.innerHTML=reqPreview(REQ);}
 function addRequest(){const r=REQ;if(!r)return;if(addRequestFrom(r,false)){REQ=null;toast('Added: '+(r.title||r.show||'(untitled)')+(r.role?' · '+r.role:''));render();}}
 /* quiet: from the home page inbox; an audition already here is not added twice */
 function addRequestFrom(r,quiet){
@@ -1338,12 +1348,13 @@ async function fromYou(){ const Y=window.You; if(!Y||!Y.has()) return; const y=Y
  if(got.length){ await saveProfile(); toast('From your profile: '+got.join(', ')); } }
 /* what you dropped on the home page (shared/inbox.js), taken once */
 function fromInbox(){ if(!window.Inbox||!window.HubReq) return; const L=Inbox.pending('hub','request'); let n=0, last='';
- L.forEach(it=>{ let r=null; try{ r=HubReq.read(it.data.raw||''); }catch(e){} if(r&&(r.title||r.role)&&addRequestFrom(r,true)){ n++; last=(r.title||r.show||'')+(r.role?' · '+r.role:''); } Inbox.take('hub',it.id); });
+ L.forEach(it=>{ let r=null; try{ r=withSpotted(HubReq.read(it.data.raw||''),it.data.raw||''); }catch(e){} if(r&&(r.title||r.role)&&addRequestFrom(r,true)){ n++; last=(r.title||r.show||'')+(r.role?' · '+r.role:''); } Inbox.take('hub',it.id); });
  if(n){ toast(n===1?'From home: '+last:'From home: '+n+' auditions'); render(); } }
 function reqChecklist(a){const r=a.request;const items=[];
  if(r.confirmOnEcoCast)items.push('Confirm on Eco Cast that you are taping');
  if(r.conflicts)items.push('Tell them any conflicts with the shoot dates');
  r.directions.forEach(d=>{if(!/conflict/i.test(d)||!r.conflicts)items.push(d);});
+ (r.musts||[]).forEach(m=>{if(!items.includes(m))items.push(m);});
  return items;}
 function toggleDir(id,i){const p=projects.find(x=>x.id===id);if(!p)return;p.dirDone=p.dirDone||{};p.dirDone[i]=!p.dirDone[i];saveProjects();}
 function reqCardBlock(a){if(!a.request)return '';const r=a.request,items=reqChecklist(a),done=a.dirDone||{};
@@ -1987,6 +1998,7 @@ function officesPanel(){
  return `<div class="panel"><h2>Casting offices <span style="color:var(--mut);font-weight:400">&middot; ${idx.length}</span>
    <button class="act sm" style="float:right;margin-top:-3px" onclick="offNew()">+ Want to reach</button>
    <button class="ghost act sm" style="float:right;margin:-3px 8px 0 0" onclick="repSheet()">For your rep</button>
+   <a class="ghost act sm" style="float:right;margin:-3px 8px 0 0;text-decoration:none" href="../spotted/">Spotted</a>
    ${Object.keys(OFFMETA).some(k=>OFFMETA[k]&&OFFMETA[k].hidden)?`<button class="ghost act sm" style="float:right;margin:-3px 8px 0 0" onclick="offUnhideAll()">Show removed</button>`:''}</h2>
   <small class="note">Confirmed = they confirmed an appointment (in the room or a live session). Total = every read, tapes included. Add researched offices: <button class="ghost act sm" onclick="$('tgin').click()">Bring in a list (.json)</button></small>
   <div class="offlist">

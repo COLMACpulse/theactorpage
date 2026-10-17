@@ -124,8 +124,20 @@ For the actor who takes a class, a workshop, a callback, mostly on Zoom. THEACTO
 
 Mined from HEADSHOT v1 to v4.2 (Col's own). Used by HEADSHOTS (/headshots/), on the same headshots as YOUR PROFILE (`shared/you.js`: each photo now carries `roles`, `status` keeper / retest / retire, `note`, its original size and its `check`).
 
-- **The photo check:** you (the middle of the frame, minus the backdrop showing round your head) measured apart from the background (side strips, top). A dark backdrop with you lit is "the moody look", not a dark face; a white wall with you in shadow is "you read dark" and "the background is brighter than you". Plus near-white and near-black areas on you, softness in the middle of the frame, and the original size. Plain words with the numbers; "Only you can say if it looks like you on a good day."
+- **The photo check:** you (the middle of the frame, minus the backdrop showing round your head) measured apart from the background (side strips, top). A dark backdrop with you lit says "Dark background, you lit.", not a dark face; a white wall with you in shadow says "You read dark" and "The background is brighter than you". Plus near-white and near-black areas on you, softness in the middle of the frame, and the original size. What it measured, with the numbers. No advice.
 - **Never:** a word about looks, type, age, skin or roles. Tested.
 - **Coverage:** "Law enforcement: covered (cop_03). Bartender: no keeper yet (1 to retest)." Your own tags only; no percent.
 - **Before / after**, the photographer **brief** and **shot sheet** (standalone pages; only what you put in, references only if ticked; the checks and your notes never go in).
 - **Tests:** `node shared/test_headshots.js` (16), `headshots/tests/headshots_e2e.js` (16, made-up photos).
+
+# Spotted · `shared/spotted.js`
+
+You don't see the breakdowns; your reps do. You see everything else. Mined from COMMERCIAL READY v2.1 and v3 (its notice reader was written to one notice; its conflict register only matched identical text). Used by SPOTTED (/spotted/) and the Hub's request card.
+
+- **The reader:** a callback notice (labeled fields), a rep's or casting's email ("callback with Ross Okafor for Salt Flats Water"), a trade story ("'Dry Creek' ... Wren Ashby is casting"), a public listing ([ROLE] in brackets, "Casting by"), a post. Pulls project, role(s), who's casting, union, kind of job, network, where, dates, pay as written, conflicts as written, and the musts quoted ("Must ride a bicycle."). Nothing guessed: "Casting HAL BRODY's new short" gives no project and no casting. Private links (Zoom, your Eco Cast page) are kept off every note; "My Representation" and contact lines are never read in.
+- **Your facts next to it:** `Offices.history` ("You and Dana Pell: 2 reads before this"), `Notes.lineFor`, your roles that share a word with this one ("Roles of yours with \"dad\": 1 booked: Cycling Dad (Morning Ride)"), your credits on the same kind of job when the kind is written, a conflict you hold that's still running and shares a word with what this one lists, and what you've spotted from that office before. No score, no verdict. Tested.
+- **Three notes:** `passAlong` ("Just passing this along." To your reps, with the facts), `pitch` (for your rep to send the office: your history with them, your matching credits, reel and résumé, "Love to hear from you."), `direct` (your voice). You edit, you send.
+- **The list:** `find` (every word somewhere in the row), `listText`, `listHtml` (a standalone searchable page for your manager, links included, private links never).
+- **Hub:** `withSpotted()` fills a request's blanks (Project Name, Role Name, casting), adds callback and fitting dates, puts the musts on the checklist and pay and conflicts as written on the card.
+- **Storage:** localStorage `theactorpage_spotted_v1`. The Hub and NOTES are read, never written. Nothing uploaded.
+- **Tests:** `node shared/test_spotted.js` (49), `spotted/tests/spotted_e2e.js` (25, made-up notices).
