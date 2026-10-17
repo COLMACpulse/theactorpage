@@ -129,4 +129,11 @@ ok('report: offices that know you, with how', /OFFICES THAT KNOW ME, CASTING NOW
 ok('report: offices you should be going in for, and the question', /OFFICES I SHOULD BE GOING IN FOR AND AM NOT\n- Dana Pell: Salt Road\. My words: rancher\.\n  Never had me in\. Do they go through Breakdowns, or direct\?/.test(R.body)&&/- Lena Marsh: Northgate\./.test(R.body), R.body);
 ok('report: no contacts, no em dashes, signed', !/@/.test(R.body)&&!/—/.test(R.body)&&/Sam Actor$/.test(R.body), R.body);
 ok('report: a private link never goes in', !/zoom/.test(S.report([{id:'z',at:1,status:'spotted',card:S.read("'Low Tide' Dana Pell is casting. https://zoom.us/j/9")}],{},{}).body));
+/* 12. LOOK: searches from your types */
+const LK=S.look(['western','sheriff','western'],'Los Angeles, San Diego');
+ok('LOOK: a row a type (no repeats), the general one, and near where you are local', LK.map(r=>r.label).join('|')==='western|sheriff|new series and films|filming near Los Angeles', LK.map(r=>r.label));
+ok('LOOK: no types: just the general one', S.look([],'').map(r=>r.label).join()==='new series and films');
+const u=new URL(S.lookUrl(LK[0].q,'deadline')), q=u.searchParams.get('q');
+ok('LOOK: Google News search, your word in quotes, the stage words, the trade site, the last 30 days', u.hostname==='news.google.com'&&u.pathname==='/search'&&/^"western" \(casting OR "pre-production"/.test(q)&&/ site:deadline\.com when:30d$/.test(q), q);
+ok('LOOK: NEWS has no site; BACKSTAGE looks for casting and auditions', !/site:/.test(new URL(S.lookUrl(LK[0].q,'news')).searchParams.get('q'))&&/\(casting OR auditions\) site:backstage\.com/.test(new URL(S.lookUrl(LK[0].q,'backstage')).searchParams.get('q')));
 console.log(pass+' passed, '+fail+' failed'); if(fail) process.exit(1);

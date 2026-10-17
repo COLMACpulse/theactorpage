@@ -41,6 +41,7 @@ function spotView(){
  if(!DRAFT){
   h+='<div class="card"><p class="kicker">Spot it</p><p class="dim small">The notice, the email, the story, the post, or just the link. Paste it here, or share it to SPOTTED from another app.</p>'
    +'<textarea class="field" id="raw" placeholder="Paste it here"></textarea><div class="row" style="margin-top:8px"><button class="btn" id="paste">PASTE</button><button class="btn pri" id="read" style="flex:1">READ IT</button></div></div>';
+  h+=lookHtml();
   const recent=D.items.slice().sort((a,b)=>b.at-a.at).slice(0,3);
   if(recent.length) h+='<p class="kicker" style="margin-top:18px">Last spotted</p>'+recent.map(rowHtml).join('');
   return h;
@@ -90,6 +91,13 @@ function factsHtml(F){
 function keepDraft(){
  const it={id:uid(),at:Date.now(),raw:DRAFT.raw,card:DRAFT.card,status:'spotted',history:[{s:'spotted',at:Date.now()}],note:'',mine:''};
  D.items.push(it); save(); DRAFT=null; U.open=it.id; U.tab='list'; saveU(); render(); toast('Kept. Pass it along when you\'re ready.');
+}
+
+/* LOOK: one-tap searches from your types. They open Google News (or a trade's own pages through it) in your browser. */
+function lookHtml(){
+ const y=you(), R=S.look(types(),y.locations);
+ return '<div class="card" style="margin-top:14px"><p class="kicker">Look</p><p class="dim small" style="margin-top:-4px">Searches made from your types'+(types().length?'':' (add your types on YOU)')+'. They open in your browser, so what you search goes to Google. Paste back what\'s worth it.</p>'
+  +R.map(r=>'<div class="lk"><b>'+esc(r.label)+'</b><span>'+S.WHERE.map(([k,l])=>'<a href="'+esc(S.lookUrl(r.q,k))+'" target="_blank" rel="noopener noreferrer">'+l+'</a>').join('')+'</span></div>').join('')+'</div>';
 }
 
 /* ---------- one you've kept ---------- */

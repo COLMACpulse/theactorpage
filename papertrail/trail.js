@@ -363,6 +363,30 @@ T.receipt=function(table,research,title){
  return L.join('\n');
 };
 
+/* ---------- NOT THIS: things you've said no to. Where their words show up in a draft. ----------
+   A word match, not a verdict: "Vale never uses a flintlock" looks for VALE and FLINTLOCK on the same line
+   (a speech counts its speaker's name). It can miss the same idea in other words, and it can find a line
+   that's fine. You read it. */
+const NT_STOP=new Set('a an the and or but nor not no never ever any anymore again is are was were be been being do does did doesn don didn isn aren wasn won wouldn shouldn can cant cannot could would should will shall may might must has have had having with without of to in on at by for from into onto over under about as than then that this these those there here it its he she they them him her his hers their theirs we us our you your i me my who whom whose what which when where why how all some just only also too very so such one ones get gets got make makes made let lets use uses used using says said'.split(' '));
+T.ntWords=function(text){ const out=[]; String(text||'').toLowerCase().replace(/[‘’]/g,"'").replace(/'s\b/g,'').split(/[^a-z0-9']+/).forEach(w=>{ w=w.replace(/^'+|'+$/g,''); if(w.length>=3&&!/n't$|'(ll|re|ve|d|m)$/.test(w)&&!NT_STOP.has(w)&&!/^\d+$/.test(w)&&!out.includes(w)) out.push(w); }); return out; };
+const ntHas=(tokens,w)=>tokens.some(t=>t===w||(t.startsWith(w)&&/^(s|es|ed|d|ing|er|ers|ly)$/.test(t.slice(w.length)))||(w.endsWith('e')&&(t===w.slice(0,-1)+'ing'||t===w.slice(0,-1)+'ed'))||(w.endsWith('ie')&&t===w.slice(0,-2)+'ying'));
+const ntTokens=s=>String(s||'').toLowerCase().replace(/[‘’]/g,"'").replace(/'s\b/g,'s').split(/[^a-z0-9']+/).map(t=>t.replace(/'/g,'')).filter(Boolean);
+/* fact: {text, words?:[]}. scenes: [{heading, text}]. -> [{i, heading, line}] every line with all of its words (two at most needed) */
+T.ntHits=function(fact,scenes){
+ const W=(fact.words&&fact.words.length?fact.words.map(w=>String(w).toLowerCase().trim()).filter(Boolean):T.ntWords(fact.text));
+ if(!W.length) return [];
+ const need=Math.min(2,W.length), out=[];
+ (scenes||[]).forEach((sc,i)=>{ let who='';
+  String(sc.text||'').split('\n').forEach(raw=>{ const line=raw.trim(); if(!line) { return; }
+   const cue=/^[A-Z][A-Z0-9 .'’\-]{1,30}(\s*\([^)]*\))?$/.test(line)&&!/^(INT|EXT|EST|I\/E)[.\s]/.test(line)&&!/:\s*$/.test(line);
+   if(cue){ who=line.replace(/\s*\(.*\)$/,''); return; }
+   const tk=ntTokens(line+' '+who), got=W.filter(w=>ntHas(tk,w));
+   if(got.length>=need) out.push({i,heading:sc.heading||'',line:line.length>200?line.slice(0,199)+'…':line,words:got});
+  });
+ });
+ return out;
+};
+
 if(typeof module!=='undefined') module.exports=T;
 g.PaperTrail=T;
 })(typeof window!=='undefined'?window:globalThis);

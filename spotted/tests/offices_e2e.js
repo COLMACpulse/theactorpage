@@ -29,6 +29,8 @@ await p.fill('#ytypes','sheriff, rancher, small town'); await p.dispatchEvent('#
 want('your types are kept on your profile, for every tool', await p.evaluate(()=>JSON.stringify(You.get().types))==='["sheriff","rancher","small town"]');
 // SPOT: the roundup, whole
 await p.click('#tabs [data-t="spot"]');
+want('LOOK: rows from your types, each opens a search in a new tab', (await p.$$eval('.lk b',x=>x.map(y=>y.textContent))).slice(0,3).join('|')==='sheriff|rancher|small town'&&await p.$$eval('.lk a',x=>x.every(a=>a.target==='_blank'&&/^https:\/\/news\.google\.com\/search\?q=/.test(a.href))));
+want('LOOK says what you search goes to Google', /what you search goes to Google/.test(await p.innerText('#main')));
 await p.fill('#raw',fx('trades_roundup')); await p.click('#read'); await p.waitForTimeout(300);
 let m=await p.innerText('#main');
 want('a roundup: 3 projects in this, each with who is casting', /3 projects in this/i.test(m)&&/Dry Creek/.test(m)&&/Dana Pell & Ross Okafor casting/.test(m)&&/Lena Marsh casting/.test(m), m);

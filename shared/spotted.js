@@ -320,6 +320,23 @@ S.reportHtml=function(rep,me){
   +'body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}main{max-width:760px;margin:0 auto;padding:20px 16px 60px}h1{font-size:22px;margin:0 0 4px}.d{color:var(--dim);margin:0 0 14px}pre{white-space:pre-wrap;font:inherit;margin:0}b{display:inline-block;margin-top:8px;letter-spacing:.06em}a{color:var(--acc);word-break:break-all}'
   +'</style></head><body><main><h1>'+esc(title)+'</h1><p class="d">'+esc(new Date().toLocaleDateString())+'</p><pre>'+body+'</pre></main></body></html>';
 };
+/* ---------- LOOK: searches made from your types. They open in your browser; nothing is fetched here. ---------- */
+S.WHERE=[['news','NEWS',''],['deadline','DEADLINE','deadline.com'],['variety','VARIETY','variety.com'],['thr','THR','hollywoodreporter.com'],['backstage','BACKSTAGE','backstage.com']];
+const STAGEQ='(casting OR "pre-production" OR greenlit OR "series order" OR "in development" OR "set to star")';
+/* types: your words. loc: where you're local ("Los Angeles"). -> [{label, q}] one row a type, then the general one */
+S.look=function(types,loc){
+ const L=uniq((types||[]).map(squash).filter(Boolean)).slice(0,8), place=squash(loc||'').split(/\s*[,/;]\s*/)[0]||'';
+ const rows=L.map(t=>({label:t,q:'"'+t+'" '+STAGEQ}));
+ rows.push({label:'new series and films',q:'(film OR series) '+STAGEQ});
+ if(place) rows.push({label:'filming near '+place,q:'"'+place+'" (filming OR "pre-production" OR casting) (film OR series)'});
+ return rows;
+};
+S.lookUrl=function(q,where){
+ const w=(S.WHERE.find(x=>x[0]===where)||S.WHERE[0])[2];
+ const query=where==='backstage'?q.replace(STAGEQ,'(casting OR auditions)'):q;
+ return 'https://news.google.com/search?q='+encodeURIComponent(query+(w?' site:'+w:'')+' when:30d')+'&hl=en-US&gl=US&ceid=US:en';
+};
+
 /* ---------- where it stands ---------- */
 /* conflicts you hold: [{brand, category, until:'YYYY-MM-DD'}] */
 S.STATUS=[['spotted','Spotted'],['passed','Passed along'],['submitted','Submitted'],['room','In the room'],['booked','Booked'],['nothing','Nothing back'],['not','Not for me']];

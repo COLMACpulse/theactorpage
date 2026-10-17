@@ -184,10 +184,11 @@ function vProjects(){
   +'<p class="note">Bringing in an export adds what you don\'t have. It never removes or replaces anything here.</p>';
  return h;
 }
+function ntAdded(r){ const p=r.p&&DB.projects[r.p.id]; if(!p||!(p.notThis||[]).length||r.d.kind!=='script') return ''; const n=ntHitsIn(p,DB.drafts[r.d.id]||r.d).filter(x=>x.hits.length); return n.length?'<small style="color:var(--grease)">Words from NOT THIS show up in this draft: '+n.map(x=>esc(x.f.text)).join('; ')+'. <a data-ntgo="'+esc(p.id)+'">SEE WHERE</a></small>':''; }
 function vAdd(){
  let h='';
  if(ADDED.length) h+='<div class="panel"><div class="eyebrow" style="margin-top:0">Just now</div><div class="list">'+ADDED.map(r=>r.ok
-  ?'<div class="li"><div class="w"><b>'+esc(r.p.title)+'</b> · '+esc(r.d.label)+' <span class="tag">'+r.d.kind+'</span><small>'+esc(r.d.file)+' · '+r.d.scenes+' scenes · '+(r.isNew?'new project':'added to the project')+'</small></div><button class="btn sm" data-open="'+r.p.id+'">OPEN</button></div>'
+  ?'<div class="li"><div class="w"><b>'+esc(r.p.title)+'</b> · '+esc(r.d.label)+' <span class="tag">'+r.d.kind+'</span><small>'+esc(r.d.file)+' · '+r.d.scenes+' scenes · '+(r.isNew?'new project':'added to the project')+'</small>'+ntAdded(r)+'</div><button class="btn sm" data-open="'+r.p.id+'">OPEN</button></div>'
   :'<div class="li"><div class="w" style="color:var(--grease)">'+esc(r.skip)+'</div></div>').join('')+'</div></div>';
  h+='<div class="drop" id="drop"><b>DROP DRAFTS</b><span class="note">Several at once is fine. PDF, Final Draft (.fdx), Fountain, text, Word (.docx storyboards). Nothing is uploaded.</span></div>';
  h+='<div class="eyebrow">Or paste</div><input class="field" id="ptitle" placeholder="Title (optional; read from the script if blank)"><textarea class="field" id="paste" style="margin-top:8px" placeholder="Paste a script or a storyboard"></textarea><div class="row" style="margin-top:8px"><button class="btn pri" id="readit">KEEP THIS DRAFT</button></div>';
@@ -256,6 +257,8 @@ function vScene(p,i){
   } else h+='<details><summary class="eyebrow" style="cursor:pointer">Read the scene</summary><div class="read">'+esc(s.text)+'</div></details>'+(pv?'<p class="note">New in this draft: not in '+esc(pv.label)+'.</p>':'');
  }
  h+='</div></div>';
+ const nt=(p.notThis||[]).map(f=>({f,hits:T.ntHits(f,[s])})).filter(x=>x.hits.length);
+ if(c&&nt.length) h+='<div class="panel"><div class="eyebrow" style="margin-top:0">Words from NOT THIS on this page</div>'+nt.map(({f,hits})=>'<p class="note" style="margin:4px 0"><b>'+esc(f.text)+'</b>: '+hits.slice(0,3).map(x=>'\u201c'+esc(x.line)+'\u201d').join(' ')+'</p>').join('')+'<button class="btn sm ghost" data-tab="threads">SEE NOT THIS</button></div>';
  return h;
 }
 function countLine(c){ return c.landed+' landed, '+c.lost+' lost me, '+c.confused+' confused · '+c.readers.length+' reader'+(c.readers.length===1?'':'s'); }
@@ -324,9 +327,21 @@ function threadBox(p,s,i,keys){
  return h+'<p class="note">Marks stay with the scene from draft to draft. Cut the scene and the list says so.</p>';
 }
 function lastHad(p,key){ const ds=draftsOf(p.id).filter(d=>d.kind==='script'&&!d.retired).reverse(); for(const d of ds){ if(T.keys(scenesOf(d)).includes(key)) return d.label; } return ''; }
+/* NOT THIS: things you've said no to, and where their words show up in the current draft. A word match, not a verdict. */
+function ntHitsIn(p,d){ const sc=d?scenesOf(d):[]; return (p.notThis||[]).map(f=>({f,hits:T.ntHits(f,sc)})); }
+function vNotThis(p){
+ const c=current(p), R=ntHitsIn(p,c);
+ let h='<div class="eyebrow" id="notthis">Not this</div><p class="note" style="margin-top:-4px">Things you\u2019ve said no to. When their words show up on the same line of the current draft, it shows you where. It looks for words, so it can miss the same idea said another way, and it can point at a line that\u2019s fine.</p>';
+ h+='<div class="row"><input class="field" id="ntx" placeholder="e.g. Vale never uses a flintlock" style="flex:2 1 220px"><input class="field" id="ntw" placeholder="Words to look for (optional)" style="flex:1 1 160px"><button class="btn sm pri" id="ntadd">ADD</button></div>';
+ h+='<div class="list" style="margin-top:10px">'+(R.length?R.map(({f,hits})=>{ const W=f.words&&f.words.length?f.words:T.ntWords(f.text);
+  return '<div class="li"><div class="w"><b>'+esc(f.text)+'</b><small>Looks for: '+esc(W.join(', ')||'(no words to look for)')+'</small>'
+   +(c?(hits.length?hits.slice(0,8).map(x=>'<small>Words from it in <a data-goscene="'+x.i+'">SC '+(x.i+1)+'</a> '+esc(x.heading)+': \u201c'+esc(x.line)+'\u201d</small>').join('')+(hits.length>8?'<small>and '+(hits.length-8)+' more lines</small>':''):'<small>Its words aren\u2019t together on any line of '+esc(c.label)+'.</small>'):'<small>No script draft yet to look in.</small>')
+   +'</div><button class="x" data-ntdel="'+esc(f.id)+'" aria-label="Remove">\u00d7</button></div>'; }).join(''):'<div class="li"><div class="w note">Nothing yet.</div></div>')+'</div>';
+ return h;
+}
 function vThreads(p){
  p.threads=p.threads||[]; const c=current(p);
- if(!c) return '<div class="panel">Setups and secrets need a script draft. <button class="btn sm" data-tab="add">ADD DRAFTS</button></div>';
+ if(!c) return '<div class="panel">Setups and secrets need a script draft. <button class="btn sm" data-tab="add">ADD DRAFTS</button></div>'+vNotThis(p);
  const sc=scenesOf(c), keys=T.keys(sc), at=i=>i>=0?'<a data-goscene="'+i+'">SC '+(i+1)+'</a> '+esc(sc[i].heading):'';
  const S=p.threads.filter(x=>x.kind==='setup').map(x=>({x:x,st:T.threadStatus(x,sc,keys)})), Z=p.threads.filter(x=>x.kind==='secret').map(x=>({x:x,st:T.threadStatus(x,sc,keys)}));
  S.sort((a,b)=>(b.st.open?1:0)-(a.st.open?1:0)||a.st.plant-b.st.plant);
@@ -340,6 +355,7 @@ function vThreads(p){
   +(st.learns.length?st.learns.map(l=>'<small>'+esc(l.who)+' learns it: '+(l.i>=0?at(l.i):esc(l.heading)+' (not in this draft)')+'</small>').join(''):'<small>Nobody learns it yet.</small>')
   +(st.unaware.length?'<small>Not marked as knowing: '+esc(st.unaware.join(', '))+'</small>':'')
   +st.problems.map(m=>'<small style="color:var(--grease)">'+esc(m)+'</small>').join('')+st.notes.map(m=>'<small>'+esc(m)+'</small>').join('')+'</div></div>').join(''):'<div class="li"><div class="w note">No secrets yet. On a scene page: + A SECRET STARTS HERE.</div></div>')+'</div>';
+ h+=vNotThis(p);
  return h;
 }
 /* ---------- research ---------- */
@@ -593,6 +609,9 @@ function wire(){
   document.querySelectorAll('[data-thdel]').forEach(a=>a.onclick=()=>{ if(!confirm('Remove this? Its payoff and who learns it go too.')) return; p.threads=p.threads.filter(y=>y.id!==a.dataset.thdel); save(); render(); });
   const so=$('studio'); if(so) so.onclick=()=>{ const cur=current(p); if(!cur||!SH) return; const it=SH.put({text:TEXT[cur.id],file:p.title+(cur.label?' '+cur.label:'')+'.fountain',from:'Paper Trail',tool:TOOL}); if(it){ cur.shelfId=it.id; save(); } location.href='../film/'; };
  }
+ document.querySelectorAll('[data-ntgo]').forEach(a=>a.onclick=()=>{ VIEW.p=a.dataset.ntgo; VIEW.scene=null; go('threads'); setTimeout(()=>{ const e=$('notthis'); if(e) e.scrollIntoView(); },50); });
+ if(p){ const na=$('ntadd'); if(na) na.onclick=()=>{ const t=$('ntx').value.trim(); if(!t) return; const w=$('ntw').value.split(',').map(x=>x.trim().toLowerCase()).filter(Boolean); p.notThis=(p.notThis||[]).concat([{id:rid('n'),text:t,words:w,at:Date.now()}]); p.updated=Date.now(); save(); render(); const e=$('notthis'); if(e) e.scrollIntoView(); };
+  document.querySelectorAll('[data-ntdel]').forEach(b=>b.onclick=()=>{ if(!confirm('Remove this from NOT THIS?')) return; p.notThis=(p.notThis||[]).filter(f=>f.id!==b.dataset.ntdel); save(); render(); }); }
  document.querySelectorAll('[data-cur]').forEach(b=>b.onclick=()=>{ p.current=b.dataset.cur; p.pinned=true; p.updated=Date.now(); save(); render(); toast('Current draft: '+DB.drafts[p.current].label+'.'); });
  document.querySelectorAll('[data-ret]').forEach(b=>b.onclick=()=>{ const d=DB.drafts[b.dataset.ret]; d.retired=!d.retired; if(d.retired&&p.current===d.id){ p.current=''; p.pinned=false; } save(); render(); });
  document.querySelectorAll('[data-move]').forEach(b=>b.onclick=()=>{ const d=DB.drafts[b.dataset.move]; const names=Object.values(DB.projects).filter(x=>x.id!==d.project).map(x=>x.title);
