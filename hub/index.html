@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
-<script src="../shared/hot.js"></script><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="../shared/hot.js"></script><script src="../shared/kit.js"></script><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>COLMAC Project Hub</title>
 <style>
 :root{--paper:#0d0f12;--p1:#14171c;--p2:#1b1f26;--p3:#232831;--line:#2b3038;--line2:#3a414c;
@@ -633,7 +633,8 @@ function archived(){return projects.filter(p=>p.state==='archived');}
 
 const TABS=[['profile','Profile'],['road','Auditions'],['offices','Casting'],['keyart','Key art'],['reels','Reel Room'],['package','Send'],['intake','Setup']];
 function renderNav(){$('nav').innerHTML=TABS.map(([k,l])=>`<button class="${tab===k?'on':''}" onclick="go('${k}')">${l}</button>`).join('')+`<span id="ptarget" class="ptarget" title="where dropped or pasted files go">drop / paste &rarr; ${esc(targetLabel(pendScope,pendCat))}</span>`+vaultPill();}
-function go(t){tab=t;render();}
+/* nav always lands on a tab's front; leaving an open audition turns its camera off */
+function go(t){if(openId){if(tapePhase!=='off')finishTake();if(camOpen)closeCam();}openId=null;tab=t;render();}
 
 function who(){const bn=document.getElementById('brandname');if(bn&&profile.name)bn.textContent=profile.name;
  const bs=document.getElementById('brandsub');if(bs)bs.textContent='';
@@ -1367,17 +1368,19 @@ function reqCardBlock(a){if(!a.request)return '';const r=a.request,items=reqChec
   ${r.sides.length?`<div class="reqother">Sides: ${r.sides.map(esc).join(', ')}. Download them from Eco Cast, then drop them in <a href="../breakdown/">BREAKDOWN</a> or <a href="../actor-os/">ACTOR OS</a>; every ACT tool gets them from there.</div>`:''}
  </details>`;}
 function auditionView(){
+ const op=openId&&projects.find(x=>x.id===openId);
+ if(op){$('view').innerHTML=`<div class="row" style="padding:0 0 10px"><button class="ghost act sm" onclick="go('road')">&larr; All auditions</button></div>`+kitTiles(op)+auditionFlow(op);attachTapePreview();wireKit();return;}
  const all=projects.filter(x=>x.aaid||x.kind==='audition');
  const live=all.filter(audIsLive).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
  const past=all.filter(x=>!audIsLive(x)).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
  const byState={};all.forEach(a=>{const k=audState(a);byState[k]=(byState[k]||0)+1;});
  let h=`<div class="panel"><h2>In flight <span style="color:var(--mut);font-weight:400">&middot; ${live.length}</span>
    <button class="act sm" style="float:right;margin-top:-3px" onclick="newAudition()">+ New audition</button></h2>`;
- h=requestPanel()+h;
+ h=kitTiles()+requestPanel()+h;
  h+= live.length
    ? `<div class="audlist">${live.map(audCardHTML).join('')}</div>`
    : `<div class="empty" style="padding:30px 20px"><b style="color:var(--tung)">Nothing live</b>
-      <div class="note" style="margin:9px auto 0;max-width:470px">When an audition comes in, add it here and the hub works out how much time you actually have &mdash; prep, record, edit, buffer &mdash; and splits what is outstanding between you and your rep.</div>
+      <div class="note" style="margin:9px auto 0;max-width:470px">When an audition comes in, add it here and the hub works out how much time you actually have (prep, record, edit, buffer) and splits what is outstanding between you and your rep.</div>
       <div class="row" style="justify-content:center;margin-top:12px"><button class="act sm" onclick="newAudition()">+ New audition</button></div></div>`;
  h+=`</div>`;
 
@@ -1390,6 +1393,7 @@ function auditionView(){
  $('view').innerHTML=h;
  const q=$('hq'); if(q) q.oninput=()=>{ HQ=q.value; histList(all,past); };
  histList(all,past);
+ wireKit();
 }
 /* v0.9.2: find any audition. Every word has to be in it somewhere: project, role, office, type,
    status, what you did with it, the breakdown. Typing redraws the list only, never the page. */
@@ -2521,7 +2525,7 @@ function vaultPill(){
  if(!vaultSupported())
   return '<span id="vpill" class="vpill vbad" title="This browser cannot write to a folder. Use Chrome or Edge on a computer to keep a copy on disk.">browser only</span>';
  if(!vaultOn)
-  return '<span id="vpill" class="vpill vwarn" onclick="vaultPick()" title="Everything you enter lives only in this browser. Clear it and the work is gone. Click to keep a copy in a folder on disk.">not backed up &mdash; link a folder</span>';
+  return '<span id="vpill" class="vpill vwarn" onclick="vaultPick()" title="Everything you enter lives only in this browser. Clear it and the work is gone. Click to keep a copy in a folder on disk.">not backed up: link a folder</span>';
  if(vaultDirty)
   return '<span id="vpill" class="vpill vwarn" title="Writing to your folder...">saving&hellip;</span>';
  return '<span id="vpill" class="vpill vgood" title="Saved to your folder on disk.">saved'+(vaultStamp?' '+vaultStamp.toLocaleTimeString():'')+'</span>';
@@ -2876,7 +2880,7 @@ function publishPanel(){
   <div style="padding:11px 13px;display:grid;gap:10px;max-width:640px">
    <input placeholder="https://yoursite.com" value="${esc(site)}" oninput="pkgSel.site=this.value">
    <div>
-    <label class="cbrow"><input type="checkbox" ${pkgSel.showLane?'checked':''} onchange="pkgSet('showLane',this.checked)"><span>Show the lane line &mdash; ${esc(String(profile.lane||'').slice(0,60))}${String(profile.lane||'').length>60?'&hellip;':''}</span></label>
+    <label class="cbrow"><input type="checkbox" ${pkgSel.showLane?'checked':''} onchange="pkgSet('showLane',this.checked)"><span>Show the lane line: ${esc(String(profile.lane||'').slice(0,60))}${String(profile.lane||'').length>60?'&hellip;':''}</span></label>
     <label class="cbrow"><input type="checkbox" ${pkgSel.showSkills?'checked':''} onchange="pkgSet('showSkills',this.checked)"><span>Show the special skills row</span></label>
     <small class="note" style="margin-top:6px;display:block">Both off by default. The work speaks; labels are for when you are pitching a specific type.</small>
    </div>
@@ -2923,7 +2927,7 @@ function packageView(){
    ${efield('Role and project - optional',pkgSel.role||'',"pkgSel.role=this.value;render()")}
    <label style="margin-top:10px">A line of context for whoever opens it</label>
    <textarea rows="2" placeholder="e.g. Closest to the role is the second clip - he plays the same register." oninput="pkgSel.note=this.value">${esc(pkgSel.note)}</textarea>
-   <label class="cbrow"><input type="checkbox" ${pkgSel.contact?'checked':''} onchange="pkgSet('contact',this.checked)"><span>Include contact block &mdash; union, rep, phone, local hire</span></label>
+   <label class="cbrow"><input type="checkbox" ${pkgSel.contact?'checked':''} onchange="pkgSet('contact',this.checked)"><span>Include contact block: union, rep, phone, local hire</span></label>
   </div></div>`;
 
  h+=`<div class="panel"><h2>Headshot</h2>`;
@@ -3164,7 +3168,7 @@ ${credits.length?`<section>${rule('Credits',credits.length)}
 ${has(d.res)?`<section>${rule('Resume')}
  <div class="docbar">
   <a class="btn" href="${d.res.u}" download="${E((p.name||'actor').replace(/[^\w]+/g,'_'))}_resume${d.res.t&&d.res.t.includes('pdf')?'.pdf':''}">Open resume</a>
-  <span class="dochint">Opens in your PDF reader &mdash; or scroll the preview below</span>
+  <span class="dochint">Opens in your PDF reader, or scroll the preview below</span>
  </div>
  ${d.res.t&&d.res.t.includes('pdf')
   ?`<object class="doc" data="${d.res.u}#toolbar=0&navpanes=0&view=Fit" type="application/pdf">
@@ -3233,8 +3237,29 @@ async function clearDemo(){
  toast('Demo data cleared');render();
 }
 
+/* ===== THE FRONT: camera tiles (shared/kit.js). Nothing turns on until you tap. ===== */
+/* the audition you tape next: in flight, soonest deadline still ahead; one with no deadline after that */
+function nextAud(){
+ const now=Date.now(), live=projects.filter(x=>(x.aaid||x.kind==='audition')&&x.state!=='archived'&&audIsLive(x));
+ const t=x=>{const d=new Date(x.deadline||x.dueISO||'');return isNaN(d)?null:d.getTime();};
+ const ahead=live.filter(x=>t(x)!==null&&t(x)>now).sort((a,b)=>t(a)-t(b));
+ if(ahead.length)return ahead[0];
+ return live.filter(x=>t(x)===null).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0]||null;
+}
+function kitTiles(a){
+ if(!window.Kit)return '';
+ a=a||nextAud(); const name=a?[a.project||a.title,a.role].filter(Boolean).join(', '):'';
+ return `<style>#view .kit{--panel:var(--p1);--dim:var(--ink);--faint:var(--mut);margin:0 0 14px}</style>`+Kit.html([
+  {id:'tape',dev:'camera',label:'CAMERA',what:'Tape your audition',note:a?name:'No audition in yet',off:!a},
+  {id:'frame',dev:'camera',label:'CAMERA',what:'Check your frame',note:a?'Light on you, for '+(a.project||a.title):'No audition in yet',off:!a}
+ ]);
+}
+function openAud(i){const a=(openId&&projects.find(x=>x.id===openId))||nextAud();if(!a){toast('No audition in yet. Paste the request in Auditions.');go('road');return;}
+ a.step=i;saveProjects();openRoad(a.id);window.scrollTo(0,0);}
+function wireKit(){if(window.Kit)Kit.wire($('view'),{tape:()=>openAud(6),frame:()=>openAud(5)});}
+
 function profileView(){
- let h=demoBanner()+restoreReportPanel()+restoreBanner()+portfolioHero();
+ let h=kitTiles()+demoBanner()+restoreReportPanel()+restoreBanner()+portfolioHero();
  h+=`<div id="hs-panel">`+headshotsPanel()+`</div>`;
  h+=selfPanel();
  h+=resumePanel();
@@ -3249,6 +3274,7 @@ function profileView(){
  h+=`<div class="seccap" id="credits-anchor">Credits &middot; the work in the can &middot; character, breakdown, director - edit freely</div>`;
  h+=creditsPanel();
  $('view').innerHTML=h;
+ wireKit();
 }
 
 function render(){setTimeout(sweepThumbs,60);
