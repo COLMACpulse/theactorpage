@@ -17,13 +17,19 @@ await p.evaluate(t=>{ loadSides(t,'low_tide.fountain'); if(!SIDES.me) pickMe('AN
 const k=await p.evaluate(()=>boothKey(activeScript().find(b=>!b.mine)));
 await p.evaluate(()=>ActorReader.setWantVideo(false));
 await p.evaluate(k=>boothToggle(k),k); await p.waitForTimeout(2200); await p.evaluate(k=>boothToggle(k),k); await p.waitForTimeout(800);
-const sel=await p.$('select[aria-label="Pitch for MR. DELL"]');
-want('each voice has a pitch choice, "As you read it" to start', !!sel&&await sel.evaluate(s=>s.options[s.selectedIndex].text)==='As you read it');
-await sel.selectOption('-4'); await p.waitForTimeout(300);
-want('the choice sticks with the sides', await p.evaluate(()=>pitchFor('MR. DELL'))===-4&&/"vp":\{"MR. DELL":-4\}/.test(await p.evaluate(()=>localStorage.getItem('actor_os_range_low_tide.fountain'))));
-const dur=await p.evaluate(async k=>{ const a=await ActorReader.takesFor(k); const c=a[a.length-1]; const plain=await new Promise(r=>{ ActorReader.play(c.blob,null,{}).then(()=>{ setTimeout(()=>{ const q=ActorReader.playPos(); ActorReader.stopPlay(); r(q&&q.dur); },300); }); });
-  const low=await new Promise(r=>{ ActorReader.play(c.blob,null,{pitch:-4}).then(()=>{ setTimeout(()=>{ const q=ActorReader.playPos(); ActorReader.stopPlay(); r(q&&q.dur); },300); }); }); return {plain,low}; },k);
-want('lower voice: the line is the same length', dur.plain>1&&Math.abs(dur.plain-dur.low)<0.02, dur);
+const sel=await p.$('select[aria-label="Voice for MR. DELL"]');
+want('each voice has a voice pick, "As you read it" to start', !!sel&&await sel.evaluate(s=>s.options[s.selectedIndex].text)==='As you read it');
+want('the picks: Lower, Higher, Deep, Slower, Faster, Darker, Brighter, your own mix', (await sel.evaluate(s=>[...s.options].map(o=>o.text).join('|')))==='As you read it|Lower|Higher|Deep|Slower|Faster|Darker|Brighter|Your own mix');
+await sel.selectOption('deep'); await p.waitForTimeout(300);
+want('Deep sticks with the sides: lower, slower, darker', await p.evaluate(()=>JSON.stringify(vfxFor('MR. DELL')))==='{"pitch":-5,"pace":0.9,"tone":"darker"}'&&/"vf":\{"MR. DELL":\{"pitch":-5,"pace":0.9,"tone":"darker"\}\}/.test(await p.evaluate(()=>localStorage.getItem('actor_os_range_low_tide.fountain'))));
+const len=async o=>p.evaluate(async([k,o])=>{ const a=await ActorReader.takesFor(k); const c=a[a.length-1]; return await new Promise(r=>{ ActorReader.play(c.blob,null,o).then(()=>{ setTimeout(()=>{ const q=ActorReader.playPos(); ActorReader.stopPlay(); r(q&&q.dur); },300); }); }); },[k,o]);
+const plain=await len({}), low=await len({pitch:-4}), deep=await len(await p.evaluate(()=>vopts('MR. DELL'))), slow=await len({pace:0.85});
+want('lower voice: the line is the same length', plain>1&&Math.abs(plain-low)<0.02, {plain,low});
+want('Deep plays longer (pace 0.9), Slower longer still (0.85)', Math.abs(deep-plain/0.9)<0.03&&Math.abs(slow-plain/0.85)<0.03, {plain,deep,slow});
+await p.selectOption('select[aria-label="Voice for MR. DELL"]','custom'); await p.waitForTimeout(300);
+want('Your own mix: pitch, pace and tone, set from Deep', await p.evaluate(()=>{ const g=l=>document.querySelector('select[aria-label="'+l+' for MR. DELL"]'); return [g('Pitch'),g('Pace'),g('Tone')].map(x=>x&&x.value).join('|'); })==='-5|0.9|darker', await p.evaluate(()=>{ const g=l=>document.querySelector('select[aria-label="'+l+' for MR. DELL"]'); return [g('Pitch'),g('Pace'),g('Tone')].map(x=>x&&x.value).join('|'); }));
+await p.selectOption('select[aria-label="Pace for MR. DELL"]','1'); await p.waitForTimeout(300);
+want('change one part of the mix: the rest stays', await p.evaluate(()=>JSON.stringify(vfxFor('MR. DELL')))==='{"pitch":-5,"pace":1,"tone":"darker"}');
 // Scene partner: listening is on, on this phone, no speech service
 await p.evaluate(()=>startMode('PARTNER')); await p.waitForTimeout(1500);
 want('Scene partner opens LISTENING, and builds no speech recogniser', await p.textContent('#listenBtn')==='LISTENING'&&await p.evaluate(()=>window.__recs)===0, [await p.textContent('#listenBtn'),await p.evaluate(()=>window.__recs)]);

@@ -9,10 +9,10 @@
 const KEY='theactorpage_you_v1';
 const Y={};
 Y.FIELDS=[['name','Name'],['union','Union'],['rep','Rep'],['repPhone','Rep phone'],['phone','Your phone'],['email','Email'],['height','Height'],['weight','Weight'],['hair','Hair'],['eyes','Eyes'],['locations','Local hire']];
-const blank=()=>({name:'',union:'',rep:'',repPhone:'',phone:'',email:'',height:'',weight:'',hair:'',eyes:'',locations:'',credits:[],training:[],skills:[],accents:[],languages:[],photos:[],primary:'',edited:{},from:{},updated:0});
+const blank=()=>({name:'',union:'',rep:'',repPhone:'',phone:'',email:'',height:'',weight:'',hair:'',eyes:'',locations:'',credits:[],training:[],skills:[],accents:[],languages:[],photos:[],primary:'',resume:null,edited:{},from:{},updated:0});
 Y.get=function(){ try{ const d=JSON.parse(localStorage.getItem(KEY)||'null'); if(d) return Object.assign(blank(),d); }catch(e){} return blank(); };
 function put(d){ d.updated=Date.now(); try{ localStorage.setItem(KEY,JSON.stringify(d)); return true; }catch(e){ return false; } }
-Y.has=()=>{ const d=Y.get(); return !!(d.name||d.credits.length||d.photos.length); };
+Y.has=()=>{ const d=Y.get(); return !!(d.name||d.credits.length||d.photos.length||d.resume); };
 const ck=c=>(c.section+'|'+c.title).toLowerCase().replace(/[^a-z0-9|]+/g,'');
 /* Read from a source (a résumé, a request). Fills blanks; a field you edited by hand is left alone.
    Returns what changed: [[label, value]] */
@@ -55,6 +55,14 @@ Y.photoBlob=id=>op('readonly',st=>st.get(id));
 Y.setPhoto=function(id,patch){ const d=Y.get(), p=d.photos.find(x=>x.id===id); if(!p) return null; Object.assign(p,patch); put(d); return p; };
 Y.setPrimary=function(id){ const d=Y.get(); if(d.photos.some(p=>p.id===id)){ d.primary=id; put(d); } return d; };
 Y.removePhoto=async function(id){ const d=Y.get(); d.photos=d.photos.filter(p=>p.id!==id); if(d.primary===id) d.primary=d.photos[0]?d.photos[0].id:''; put(d); await op('readwrite',st=>st.delete(id)); return d; };
+/* ---------- your résumé, the file itself: kept so it's here when someone asks for it ---------- */
+Y.setResume=async function(file,source){
+ if(!file) return null;
+ if(!(await op('readwrite',st=>st.put(file,'resume')))) return null;
+ const d=Y.get(); d.resume={name:file.name||'resume.pdf',type:file.type||'',size:file.size||0,added:Date.now(),from:source||''}; put(d); return d.resume;
+};
+Y.resumeBlob=()=>op('readonly',st=>st.get('resume'));
+Y.removeResume=async function(){ const d=Y.get(); d.resume=null; put(d); await op('readwrite',st=>st.delete('resume')); return d; };
 g.You=Y;
 if(typeof module!=='undefined') module.exports=Y;
 })(typeof window!=='undefined'?window:globalThis);

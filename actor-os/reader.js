@@ -193,14 +193,10 @@ A.soundChain=function(c,id){
 /* A different voice for a character: your own recording, higher or lower, same timing.
    Each short grain is read at the new speed around the moment it belongs to, so the words stay where they were.
    Big changes sound processed; it's an effect, not a new actor. No computer voice. */
-A.PITCHES=[-6,-4,-2,0,2,4,6];
-A.shiftPitch=function(x,semis,sr){
- if(!semis) return x;
- sr=sr||48000; const r=Math.pow(2,semis/12), L=x.length;
- // 1. play it faster or slower: the pitch moves, and so does the length
- const M=Math.max(2,Math.floor(L/r)), y=new Float32Array(M);
- for(let i=0;i<M;i++){ const sp=i*r, k=Math.floor(sp), f=sp-k; y[i]=k+1<L?x[k]+(x[k+1]-x[k])*f:(k<L?x[k]:0); }
- // 2. stretch it back to the original length, piece by piece, each piece slid to where its waveform lines up (WSOLA)
+A.PITCHES=[-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6];
+/* stretch a line to a new length without moving its pitch (WSOLA: pieces slid to where their waveform lines up) */
+A.stretch=function(y,L,sr){
+ sr=sr||48000; const M=y.length; L=Math.max(1,Math.round(L)); if(L===M) return y;
  const N=Math.round(sr*0.03)&~1, Hs=N>>1, tol=Math.round(sr*0.012), Ha=Hs*(M/L), out=new Float32Array(L), ws=new Float32Array(L), win=new Float32Array(N);
  for(let k=0;k<N;k++) win[k]=0.5-0.5*Math.cos(2*Math.PI*k/N);
  let prev=0;
@@ -213,6 +209,26 @@ A.shiftPitch=function(x,semis,sr){
  for(let i=0;i<L;i++) if(ws[i]>1e-3) out[i]/=ws[i];
  return out;
 };
+/* higher or lower, same length: play it faster or slower (the pitch moves, and so does the length), then stretch it back */
+A.shiftPitch=function(x,semis,sr){
+ if(!semis) return x;
+ const r=Math.pow(2,semis/12), L=x.length, M=Math.max(2,Math.floor(L/r)), y=new Float32Array(M);
+ for(let i=0;i<M;i++){ const sp=i*r, k=Math.floor(sp), f=sp-k; y[i]=k+1<L?x[k]+(x[k+1]-x[k])*f:(k<L?x[k]:0); }
+ return A.stretch(y,L,sr);
+};
+/* a voice for a character: named picks, or your own mix. pace < 1 is slower; tone darker / brighter */
+A.VOICES=[
+ {id:'as',label:'As you read it',pitch:0,pace:1,tone:''},
+ {id:'lower',label:'Lower',pitch:-3,pace:1,tone:''},
+ {id:'higher',label:'Higher',pitch:3,pace:1,tone:''},
+ {id:'deep',label:'Deep',pitch:-5,pace:0.9,tone:'darker'},
+ {id:'slower',label:'Slower',pitch:0,pace:0.85,tone:''},
+ {id:'faster',label:'Faster',pitch:0,pace:1.15,tone:''},
+ {id:'darker',label:'Darker',pitch:0,pace:1,tone:'darker'},
+ {id:'brighter',label:'Brighter',pitch:0,pace:1,tone:'brighter'}];
+A.PACES=[[0.8,'Much slower'],[0.9,'Slower'],[1,'As you read it'],[1.1,'Faster'],[1.2,'Much faster']];
+A.TONES=[['','As you read it'],['darker','Darker'],['brighter','Brighter']];
+A.voiceId=function(v){ v=v||{}; const f=A.VOICES.find(x=>x.pitch===(+v.pitch||0)&&x.pace===(+v.pace||1)&&x.tone===(v.tone||'')); return f?f.id:'custom'; };
 /* The window by the lens. 'partner' plays the line's video there, 'mark' shows a still mark for your eyes, 'off' shows nothing.
    It is on the screen only. The take records the camera, never the screen. */
 let SCREEN=null, SCREENURL='';
@@ -241,7 +257,10 @@ A.play=async function(blob,onended,opts){
   const c=ctx();
   let [buf]=await Promise.all([c.decodeAudioData(await blob.arrayBuffer()),vidReady]);
   const semis=opts&&+opts.pitch||0;
-  if(semis){ const nb=c.createBuffer(buf.numberOfChannels,buf.length,buf.sampleRate); for(let ch=0;ch<buf.numberOfChannels;ch++) nb.getChannelData(ch).set(A.shiftPitch(buf.getChannelData(ch),semis,buf.sampleRate)); buf=nb; }
+  const pace=opts&&+opts.pace||1;
+  if(semis||Math.abs(pace-1)>0.001){ const len=Math.max(1,Math.round(buf.length/pace)), nb=c.createBuffer(buf.numberOfChannels,len,buf.sampleRate);
+   for(let ch=0;ch<buf.numberOfChannels;ch++){ let d=buf.getChannelData(ch); if(semis) d=A.shiftPitch(d,semis,buf.sampleRate); if(len!==d.length) d=A.stretch(d,len,buf.sampleRate); nb.getChannelData(ch).set(d); }
+   buf=nb; }
   let pk=0;
   const d0=buf.getChannelData(0);
   for(let i=0;i<d0.length;i+=64){ const v=Math.abs(d0[i]); if(v>pk)pk=v; }
@@ -253,8 +272,10 @@ A.play=async function(blob,onended,opts){
   comp.threshold.value=-18; comp.knee.value=12; comp.ratio.value=3;
   comp.attack.value=0.004; comp.release.value=0.18;
   src.connect(g); g.connect(comp);
+  let last=comp;
+  if(opts&&(opts.tone==='darker'||opts.tone==='brighter')){ const sh=c.createBiquadFilter(); sh.type='highshelf'; sh.frequency.value=2800; sh.gain.value=opts.tone==='darker'?-8:5; comp.connect(sh); last=sh; }
   const ch=(opts&&opts.sound)?A.soundChain(c,opts.sound):null;
-  if(ch){ comp.connect(ch.in); ch.out.connect(c.destination); } else comp.connect(c.destination);
+  if(ch){ last.connect(ch.in); ch.out.connect(c.destination); } else last.connect(c.destination);
   src.onended=()=>{ curSrc=null; curPos=null; screenOff(); if(onended)onended(); };
   screenGo(); src.start(0);
   curSrc=src; curGain=g;

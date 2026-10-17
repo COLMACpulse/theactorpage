@@ -77,8 +77,8 @@ async function route(items){
  const media=items.filter(x=>x.kind==='media');
  if(media.length) media.forEach(x=>{ x.went='A page can\'t keep video, so Story Studio reads it from your footage folder when you open its footage check.'; });
  // a résumé: your profile, which every tool reads for its blanks
- items.filter(x=>x.kind==='resume'&&x.profile&&Y).forEach(x=>{ x.changed=Y.fill(x.profile,x.name); x.went='In your profile. Every tool that asks for any of it fills its blanks from there; nothing you typed in a tool is changed.';
-  const nm=Y.get().name; try{ if(nm&&!localStorage.getItem('actor_os_name')) localStorage.setItem('actor_os_name',nm.toUpperCase().replace(/\bMC([A-Z])/g,'Mc$1')); }catch(e){} });
+ for(const x of items.filter(x=>x.kind==='resume'&&Y)){ if(x.file) x.kept=await Y.setResume(x.file,'drop'); if(!x.profile) { x.went='Kept in YOUR PROFILE. Nothing on it could be read into the fields; fill them in by hand.'; continue; } x.changed=Y.fill(x.profile,x.name); x.went='In your profile. Every tool that asks for any of it fills its blanks from there; nothing you typed in a tool is changed.'+(x.kept?' The file is kept there too, to send.':'');
+  const nm=Y.get().name; try{ if(nm&&!localStorage.getItem('actor_os_name')) localStorage.setItem('actor_os_name',nm.toUpperCase().replace(/\bMC([A-Z])/g,'Mc$1')); }catch(e){} }
  for(const x of items.filter(x=>x.kind==='image')){ if(!Y){ x.went='Not placed.'; continue; } const r=await Y.addPhoto(x.file);
   if(r.error){ x.kind='unknown'; x.why=[r.error]; continue; } x.photo=r.photo; x.dup=!!r.dup; x.went=r.dup?'Already in your headshots.':(Y.get().primary===r.photo.id?'Your main headshot. The Hub, Virtual Résumé and Slate Maker use it.':'In your headshots. Make it the main one if it is.'); }
  items.filter(x=>['other','unknown'].includes(x.kind)).forEach(x=>{ x.went='Not placed: '+(x.why||[]).join('; ')+'.'; });
@@ -112,6 +112,10 @@ function showYou(){
  const by={}; y.credits.forEach(c=>by[c.section]=(by[c.section]||0)+1);
  let h='<details class="yp"'+(YOPEN?' open':'')+' id="ypd"><summary>YOUR PROFILE · '+esc(y.name||'no name yet')+(y.credits.length?' · '+y.credits.length+' credits':'')+(y.photos.length?' · '+y.photos.length+' headshot'+(y.photos.length===1?'':'s'):'')+'</summary>'
   +'<p class="why">Every tool fills its blanks from this. Fix a line here once and it stays fixed.</p>'
+  +'<div class="yres">'+(y.resume?'<span><b>Your résumé</b> '+esc(y.resume.name)+' <small>· added '+esc(new Date(y.resume.added).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}))+'</small></span><span class="yact"><button class="pastego sm" id="yresopen">OPEN</button><label class="pastego sm">REPLACE<input type="file" id="yresfile" accept=".pdf,.docx,.doc,.txt,.rtf,.pages" hidden></label><button class="yx" id="yresx" aria-label="Remove your résumé">✕</button></span>'
+     :'<span><b>Have a résumé?</b> Add it and it fills this in. The file is kept here too, for when someone asks for it.</span><span class="yact"><label class="pastego sm">ADD YOUR RÉSUMÉ<input type="file" id="yresfile" accept=".pdf,.docx,.doc,.txt,.rtf,.pages" hidden></label></span>')
+  +'</div>'+(y.resume?'':'<p class="why" style="margin-top:-4px">No résumé yet? <a href="resume/" style="color:var(--tungsten)">VIRTUAL RÉSUMÉ</a> makes one from this profile.</p>')
+  +'<div class="yres"><span><b>Headshots</b> '+(y.photos.length?y.photos.length+' here':'none yet')+'</span><span class="yact"><label class="pastego sm">ADD A HEADSHOT<input type="file" id="yphfile" accept="image/*" multiple hidden></label></span></div>'
   +Y.FIELDS.map(([k,l])=>'<label class="yf"><span>'+esc(l)+'</span><input data-yf="'+k+'" value="'+esc(y[k]||'')+'"></label>').join('')
   +['skills','accents','training'].map(k=>'<label class="yf"><span>'+k[0].toUpperCase()+k.slice(1)+'</span><textarea data-yl="'+k+'" rows="2">'+esc(y[k].join(', '))+'</textarea></label>').join('')
   +(y.credits.length?'<div class="why" style="margin-top:8px">Credits: '+esc(Object.entries(by).map(([k,n])=>n+' '+k).join(', '))+'</div><ul class="ycr">'+y.credits.map((c,i)=>'<li><b>'+esc(c.title)+'</b> · '+esc(c.role||c.character)+(c.by?' · '+esc(c.by):'')+' <small>'+esc(c.section)+'</small> <button data-ycx="'+i+'" aria-label="Remove">×</button></li>').join('')+'</ul>':'')
@@ -124,6 +128,10 @@ function showYou(){
  box.querySelectorAll('[data-yf="name"]').forEach(i=>i.onchange=()=>setTimeout(()=>{ if(!box.contains(document.activeElement)||document.activeElement===document.body) showYou(); },0));
  box.querySelectorAll('[data-ycx]').forEach(b=>b.onclick=()=>{ Y.removeCredit(+b.dataset.ycx); showYou(); });
  box.querySelectorAll('[data-yphx]').forEach(b=>b.onclick=async()=>{ await Y.removePhoto(b.dataset.yphx); showYou(); });
+ const rf=$('yresfile'); if(rf) rf.onchange=e=>{ const fl=[...e.target.files]; if(fl.length) take(fl.slice(0,1),'',false,{asResume:true}); };
+ const pf=$('yphfile'); if(pf) pf.onchange=e=>{ const fl=[...e.target.files]; if(fl.length) take(fl,''); };
+ const ro=$('yresopen'); if(ro) ro.onclick=async()=>{ const b=await Y.resumeBlob(); if(!b) return; const u=URL.createObjectURL(b), a=document.createElement('a'); a.href=u; a.target='_blank'; a.rel='noopener'; if(!/pdf|text/.test(b.type||'')) a.download=(Y.get().resume||{}).name||'resume'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),60000); };
+ const rx=$('yresx'); if(rx) rx.onclick=async()=>{ if(!confirm('Remove the résumé file? What it filled in stays.')) return; await Y.removeResume(); showYou(); };
  wireMain(box); fillPhotos(box);
 }
 let YOPEN=false, YFORCE=false;
@@ -160,9 +168,10 @@ function showPlay(){
  $('inplay').innerHTML=h;
 }
 
-async function take(files,pasted,fromFolder){
+async function take(files,pasted,fromFolder,opts){
  const items=[];
  for(let i=0;i<files.length;i++){ if(fromFolder) $('foldnote').innerHTML='<p>Reading '+(i+1)+' of '+files.length+'…</p>'; items.push(await readOne(files[i])); }
+ if(opts&&opts.asResume) items.forEach(x=>{ if(x.kind!=='resume'&&x.fk!=='image'&&x.fk!=='media'){ x.kind='resume'; x.why=['you said it is your résumé']; try{ x.profile=x.text?X.resumeRead(x.rows||X.rowsOfText(x.text)):null; }catch(e){ x.profile=null; } } });
  if(pasted&&pasted.trim()){ const w=X.what(pasted); items.push({name:'Pasted '+(w.kind==='request'?'request':w.kind==='script'?'script':'sides'),text:pasted,kind:w.kind,why:w.why,req:w.req||null,script:w.script||null,fk:'text'}); }
  if(!items.length) return;
  await route(items);

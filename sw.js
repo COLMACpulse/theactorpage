@@ -1,6 +1,6 @@
 /* THEACTORPAGE home, offline. Only the home page and what it loads; each tool has its own.
    Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='home-0.5.5';
+const CACHE='home-0.5.6';
 const FILES=['./','index.html','shared/hot.js','shared/shelf.js','shared/scenes.js','shared/inbox.js','shared/you.js','shared/offices.js','shared/notes.js','shared/intake.js','shared/home.js','shared/capture.js','shared/takes.js','shared/studio.js',
  'actor-os/sides.js','actor-os/pdf.js','hub/request.js','img/sigil-film.png','img/sigil-film-64.png'];
 const OWN=new Set(FILES.map(f=>new URL(f,self.registration.scope).href));

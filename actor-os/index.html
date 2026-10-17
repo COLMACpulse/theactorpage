@@ -66,6 +66,7 @@ body{padding-bottom:env(safe-area-inset-bottom);padding-left:env(safe-area-inset
 /* the reader by the lens: you, as the other character, or a mark for your eyes. Screen only, never on the take. */
 #sPartner{position:absolute;z-index:3;width:min(30vw,190px);height:auto;max-height:42vh;aspect-ratio:3/4;object-fit:cover;border-radius:12px;border:1px solid rgba(255,255,255,.35);background:#000;display:none;touch-action:none;box-shadow:0 4px 18px rgba(0,0,0,.5)}
 #sPartner.on{display:block}
+.vmix{display:flex;flex-wrap:wrap;gap:6px;width:100%;margin-top:6px}
 /* the camera / mic bar (shared/hot.js) is always on top; the take's own top row sits under it, not behind it */
 body:has(#hotbar) #stage .sTop{top:calc(env(safe-area-inset-top) + 48px)}
 #sMark{position:absolute;z-index:3;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;border:2px solid #E0A23C;box-shadow:0 0 0 4px rgba(0,0,0,.35);display:none;touch-action:none}
@@ -351,7 +352,7 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
    Nothing is sent anywhere. Tap it once more for <b>MATCHING WORDS</b>, which waits for your last words instead;
    that uses the browser's speech service (Chrome sends your voice to Google, Safari to Apple), so it asks first.
    Tap again for off, and run the scene on the clicker or the arrows.</p>
-   <p>Each voice can sit higher or lower than you read it (HOW EACH VOICE SOUNDS). Same timing, your recording.</p>
+   <p>Each voice can sound different from how you read it (HOW EACH VOICE SOUNDS): Lower, Higher, Deep, Slower, Faster, Darker, Brighter, or your own mix of pitch, pace and tone. Slower and Faster keep the pitch; higher and lower keep the timing. Your recording, never a computer voice.</p>
 
    <h4>03 &middot; CUT</h4>
    <p>Pick a take, set the handles, choose a size. It really re-encodes &mdash; this is the step
@@ -1027,11 +1028,11 @@ window.addEventListener('load',()=>{
 function saveRange(){
  try{ if(window.Shelf&&SHELF_ID&&SIDES.me){ const c=curScene(); Shelf.setRange(SHELF_ID,[c.start,c.end],'actor-os'); } }catch(e){}
  try{ localStorage.setItem('actor_os_range_'+(SIDES.file||'x'),
-   JSON.stringify({me:SIDES.me,om:SIDES.omit||[],rdy:!!SIDES.ready,pk:SIDES.pick||{},sc:SIDES.scenes||[],cur:SIDES.cur||0,vo:SIDES.voice||{},vp:SIDES.vpitch||{}})); }catch(e){}
+   JSON.stringify({me:SIDES.me,om:SIDES.omit||[],rdy:!!SIDES.ready,pk:SIDES.pick||{},sc:SIDES.scenes||[],cur:SIDES.cur||0,vo:SIDES.voice||{},vp:SIDES.vpitch||{},vf:SIDES.vfx||{}})); }catch(e){}
 }
 function loadRange(){
  try{ const r=JSON.parse(localStorage.getItem('actor_os_range_'+(SIDES.file||'x'))||'null');
-   if(r){ SIDES.omit=r.om||[]; SIDES.ready=!!r.rdy; SIDES.pick=r.pk||{}; SIDES.scenes=r.sc||[]; SIDES.cur=r.cur||0; SIDES.voice=r.vo||{}; SIDES.vpitch=r.vp||{}; } }catch(e){}
+   if(r){ SIDES.omit=r.om||[]; SIDES.ready=!!r.rdy; SIDES.pick=r.pk||{}; SIDES.scenes=r.sc||[]; SIDES.cur=r.cur||0; SIDES.voice=r.vo||{}; SIDES.vpitch=r.vp||{}; SIDES.vfx=r.vf||{}; } }catch(e){}
 }
 /* the script the take actually runs on */
 
@@ -2366,9 +2367,13 @@ function voiceFor(who){
 }
 function setVoice(who,id){ SIDES.voice=SIDES.voice||{}; SIDES.voice[who]=id; saveRange(); boothRefresh(); }
 /* higher or lower, same timing (reader.js shiftPitch). Your recording, never a computer voice. */
-function pitchFor(who){ return +((SIDES.vpitch||{})[who]||0); }
-function setPitch(who,v){ SIDES.vpitch=SIDES.vpitch||{}; SIDES.vpitch[who]=+v||0; saveRange(); boothRefresh(); }
-function vopts(who){ return who?{sound:voiceFor(who),pitch:pitchFor(who)}:null; }
+/* each voice: a named pick (Lower, Deep, Slower...) or your own mix of pitch, pace and tone. Same recording, no computer voice. */
+function vfxFor(who){ const v=(SIDES.vfx||{})[who]; if(v) return {pitch:+v.pitch||0,pace:+v.pace||1,tone:v.tone||''}; return {pitch:+((SIDES.vpitch||{})[who]||0),pace:1,tone:''}; }
+function pitchFor(who){ return vfxFor(who).pitch; }
+function setVfx(who,patch){ SIDES.vfx=SIDES.vfx||{}; SIDES.vfx[who]=Object.assign(vfxFor(who),patch); if(SIDES.vpitch) delete SIDES.vpitch[who]; saveRange(); boothRefresh(); }
+function setVoicePick(who,id){ if(id==='custom'){ SIDES.vcustom=SIDES.vcustom||{}; SIDES.vcustom[who]=true; return boothRefresh(); } const v=ActorReader.VOICES.find(x=>x.id===id); if(SIDES.vcustom) delete SIDES.vcustom[who]; if(v) setVfx(who,{pitch:v.pitch,pace:v.pace,tone:v.tone}); }
+function setPitch(who,v){ setVfx(who,{pitch:+v||0}); }
+function vopts(who){ if(!who) return null; const v=vfxFor(who); return {sound:voiceFor(who),pitch:v.pitch,pace:v.pace,tone:v.tone}; }
 async function voicePreview(who){
  const om=SIDES.omit||[];
  const b=activeScript().find(x=>!x.mine&&x.who===who&&om.indexOf(x.who)<0); if(!b) return;
@@ -2380,11 +2385,16 @@ async function voicePreview(who){
 function voiceRows(others){
  const sg=suggestSounds(window.SIDES_RAW), who=[];
  others.forEach(b=>{ if(who.indexOf(b.who)<0) who.push(b.who); });
- return `<div class="voicebox"><div class="vh">HOW EACH VOICE SOUNDS</div>`+who.map(w=>{
+ return `<div class="voicebox"><div class="vh">HOW EACH VOICE SOUNDS</div><div style="font-size:11.5px;color:var(--mut);margin:-2px 0 6px">First pick: where they are (as recorded, on a phone, the next room). Second: their voice.</div>`+who.map(w=>{
   const cur=voiceFor(w), set=SIDES.voice&&SIDES.voice[w];
   return `<div class="vrow"><b>${esc2(w)}</b>
    <select onchange="setVoice('${w.replace(/'/g,"\\'")}',this.value)">${ActorReader.SOUNDS.map(o=>`<option value="${o.id}" ${o.id===cur?'selected':''}>${o.label}</option>`).join('')}</select>
-   <select aria-label="Pitch for ${esc2(w)}" onchange="setPitch('${w.replace(/'/g,"\\'")}',this.value)">${ActorReader.PITCHES.map(n=>`<option value="${n}" ${n===pitchFor(w)?'selected':''}>${n===0?'As you read it':(n>0?'Higher ':'Lower ')+Math.abs(n)}</option>`).join('')}</select>
+   ${(()=>{ const q=w.replace(/'/g,"\\'"), v=vfxFor(w), id=(SIDES.vcustom&&SIDES.vcustom[w])?'custom':ActorReader.voiceId(v);
+     let o=`<select aria-label="Voice for ${esc2(w)}" onchange="setVoicePick('${q}',this.value)">${ActorReader.VOICES.map(x=>`<option value="${x.id}" ${x.id===id?'selected':''}>${x.label}</option>`).join('')}<option value="custom" ${id==='custom'?'selected':''}>Your own mix</option></select>`;
+     if(id==='custom') o+=`<span class="vmix"><select aria-label="Pitch for ${esc2(w)}" onchange="setPitch('${q}',this.value)">${ActorReader.PITCHES.map(n=>`<option value="${n}" ${n===v.pitch?'selected':''}>${n===0?'Pitch as read':(n>0?'Higher ':'Lower ')+Math.abs(n)}</option>`).join('')}</select>`
+      +`<select aria-label="Pace for ${esc2(w)}" onchange="setVfx('${q}',{pace:+this.value})">${ActorReader.PACES.map(([n,l])=>`<option value="${n}" ${Math.abs(n-v.pace)<0.001?'selected':''}>${n===1?'Pace as read':l}</option>`).join('')}</select>`
+      +`<select aria-label="Tone for ${esc2(w)}" onchange="setVfx('${q}',{tone:this.value})">${ActorReader.TONES.map(([n,l])=>`<option value="${n}" ${n===v.tone?'selected':''}>${n===''?'Tone as read':l}</option>`).join('')}</select></span>`;
+     return o; })()}
    <button class="mini ghost" onclick="voicePreview('${w.replace(/'/g,"\\'")}')" title="hear it">&#9654;</button>
    ${!set&&sg[w]?'<small>from the script</small>':''}</div>`;
  }).join('')+`</div>`;
