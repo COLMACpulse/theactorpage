@@ -142,11 +142,6 @@ body.has .sigil{width:110px;margin-bottom:16px}
 .note-live{border:1px solid #6b4f21;background:rgba(224,162,60,.055);padding:16px 18px;margin-top:26px}
 .note-live p{margin:0;font-size:.95rem;line-height:1.6;color:var(--ink)}
 .note-live b{font-weight:500;color:var(--tungsten)}
-.daily-k{font-family:var(--script);font-size:.7rem;letter-spacing:.2em;color:var(--tungsten)}
-.daily-t{font-family:var(--script);font-weight:700;font-size:1.05rem;margin-top:6px;letter-spacing:.03em}
-.daily-t span{font-weight:400;color:var(--faint);font-size:.8rem;margin-left:8px;letter-spacing:.1em}
-.note-live.daily p{margin-top:8px;color:#c3c8d0}
-.note-live.daily .actions{margin-top:14px}
 
 /* ───────── one account ───────── */
 .account{display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,6vw,70px);align-items:start}
@@ -364,6 +359,7 @@ body.stopen{overflow:hidden}
 .spark-row{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
 .spark-row a,.spark-row button{background:none;border:0;padding:4px 0;font:700 .74rem var(--script);letter-spacing:.08em;color:var(--faint);cursor:pointer;text-decoration:none}
 .spark-row .spark-go{color:var(--tungsten)}
+.practice{margin-top:8px}.practice-card .pr-what,.practice-card .pr-how{color:var(--faint);font-size:.85rem}.practice-card .pr-parts span,.practice-card .pr-count{font:.7rem var(--script);letter-spacing:.14em;color:var(--faint)}.practice-card .pr-done{color:#5cae7e}
 @media(max-width:720px){.band .disc>div:first-child>.spark{grid-column:1 / -1;max-width:none}}
 </style>
 </head>
@@ -447,6 +443,7 @@ body.stopen{overflow:hidden}
        </svg></a>
       <span class="obj-why" id="sl_why">Your next audition goes here.</span>
       <div class="spark" data-spark="act"></div>
+      <div class="spark practice" data-practice=""></div>
     </div>
     <div>
       <div class="tool">
@@ -461,16 +458,6 @@ body.stopen{overflow:hidden}
            stopping on your line until you finish. While they talk, you're in a small window by the lens, playing them. Trim, size and name the files the way casting
            expects. No account, no upload, no computer voice.</p>
         <div class="actions"><a class="btn" href="actor-os/">Open Actor OS</a></div>
-        <div class="note-live daily" id="daily" hidden>
-          <div class="daily-k">TODAY'S SCENE</div>
-          <div class="daily-t" id="dailyT"></div>
-          <p id="dailyS"></p>
-          <div class="actions">
-            <a class="btn" href="actor-os/" data-go="tape">Tape it</a>
-            <a class="btn ghost" href="memorizer/" data-go="learn">Learn it</a>
-            <a class="btn ghost" href="write/writers-blockage.html" data-go="write">Make it yours</a>
-          </div>
-        </div>
       </div>
       <div class="tool-group">Support tools</div>
       <div class="tool">
@@ -898,29 +885,10 @@ body.stopen{overflow:hidden}
 <script src="shared/home.js"></script>
 <script src="shared/rooms.js"></script>
 <script src="shared/spark.js"></script>
+<script src="shared/practice.js"></script>
 <script src="shared/capture.js"></script>
 <script src="shared/takes.js"></script>
 <script src="shared/studio.js"></script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
-<script>
-/* Today's scene: one original two-hander a day. Any button puts it on the sides shelf,
-   so the tool it opens already has it, with your part picked. */
-(function(){
- try{
-  if(!window.DailyScenes) return;
-  var s=DailyScenes.today(), box=document.getElementById('daily'); if(!box) return;
-  document.getElementById('dailyT').innerHTML=s.title.replace(/[&<>]/g,'')+'<span>TRAINS '+s.trains.toUpperCase()+'</span>';
-  document.getElementById('dailyS').textContent=s.setup;
-  box.hidden=false;
-  box.addEventListener('click',function(e){
-   var a=e.target.closest('[data-go]'); if(!a) return;
-   try{
-    if(a.dataset.go==='write') localStorage.setItem('theactorpage_handoff_premise',JSON.stringify({from:'daily',title:s.title,fountain:'[[Today\'s scene: '+s.title+'. Trains '+s.trains+'. '+s.setup+' Change anything you like.]]\n\n'+s.text,at:Date.now()}));
-    else DailyScenes.toShelf(s,s.you);
-   }catch(err){}
-  });
- }catch(e){}
-})();
-</script>
 </body>
 </html>

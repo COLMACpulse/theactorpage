@@ -276,7 +276,7 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
 .voicebox .vrow b{font-size:12px;letter-spacing:.08em;color:var(--gold);min-width:70px}
 .voicebox .vrow select{width:auto;min-width:130px;padding:7px 8px}
 .voicebox .vrow small{color:var(--faint);font-size:11px}
-.dailyset{color:var(--mut);font-size:13.5px;line-height:1.5;margin-top:6px}
+#dailySec>summary{list-style:none;cursor:pointer}#dailySec>summary::-webkit-details-marker{display:none}#dailySec>summary h3::before{content:"\25B8  ";color:var(--gold)}#dailySec[open]>summary h3::before{content:"\25BE  "}#dailySec:not([open])>summary h3{border-bottom:0}.dailyhint{text-transform:none;letter-spacing:0;color:var(--mut);margin-left:6px}.dailyset{color:var(--mut);font-size:13.5px;line-height:1.5;margin-top:6px}
 .levelbox{margin:12px 0 4px;padding:12px 13px;border:1px solid var(--line);border-radius:10px;background:var(--p2)}
 .lvh{font-size:12.5px;color:var(--mut);margin-bottom:8px}
 .lvrow{display:grid;grid-template-columns:1fr 1fr;gap:7px}
@@ -410,7 +410,7 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
 <div id="sidesOut" style="margin-top:12px"></div>
 </div></div>
 
-<div class="section" id="dailySec"><h3>Today's scene</h3><div class="inside" id="dailyBox"></div></div>
+<details class="section" id="dailySec"><summary><h3>Practice scene <span class="dailyhint">nothing to tape? try one</span></h3></summary><div class="inside" id="dailyBox"></div></details>
 <div class="section"><h3>You</h3><div class="inside">
 <div class="grid2">
  <div><label>Name as casting sees it</label>
@@ -688,6 +688,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 <script src="../shared/shelf.js"></script>
 <script src="../shared/takes.js"></script>
 <script src="../shared/scenes.js"></script>
+<script src="../shared/practice.js"></script>
 <script src="sides.js"></script>
 <script src="pdf.js"></script>
 <script src="reader.js"></script>
@@ -2817,15 +2818,17 @@ let DAILY_ME='';
 function renderDaily(){
  const el=document.getElementById('dailyBox'); if(!el||!window.DailyScenes)return;
  const s=DailyScenes.today(), parts=DailyScenes.parts(s), me=(DAILY_ME&&parts.indexOf(DAILY_ME)>=0)?DAILY_ME:s.you;
- const done=DailyScenes.isDone(s.id), loaded=SIDES.file===DailyScenes.fileName(s);
- el.innerHTML=`<div class="dailyhead"><b>${esc2(s.title)}</b><span class="pill">TRAINS ${esc2(s.trains.toUpperCase())}</span>${done?'<span class="pill" style="color:#5cae7e;border-color:#5cae7e">DONE</span>':''}</div>
+ const done=DailyScenes.isDone(s.id), loaded=SIDES.file===DailyScenes.fileName(s), works=window.Practice?Practice.works(s):s.trains;
+ const sec=document.getElementById('dailySec'); if(sec&&loaded) sec.open=true;
+ el.innerHTML=`<div class="dailyset" style="margin-top:0">A short scene written for this site, for two people. Any actor can play either part. Pick your part, then tape it here or rewrite it.</div>
+  <div class="dailyhead" style="margin-top:10px"><b>${esc2(s.title)}</b><span class="pill">works on ${esc2(works)}</span>${done?'<span class="pill" style="color:#5cae7e;border-color:#5cae7e">DONE</span>':''}</div>
   <div class="dailyset">${esc2(s.setup)}${me!==s.you?' <span style="color:var(--faint)">(Written for '+esc2(s.you)+'. You\'re playing '+esc2(me)+'.)</span>':''}</div>
-  <div class="row" style="gap:6px;margin:10px 0 2px"><span style="color:var(--mut);font-size:12px;margin-right:4px">PLAY</span>${parts.map(n=>`<button class="mini ${n===me?'':'ghost'}" onclick="DAILY_ME='${n}';renderDaily()">${esc2(n)}</button>`).join('')}</div>
+  <div class="row" style="gap:6px;margin:10px 0 2px"><span style="color:var(--mut);font-size:12px;margin-right:4px">YOU PLAY</span>${parts.map(n=>`<button class="mini ${n===me?'':'ghost'}" onclick="DAILY_ME='${n}';renderDaily()">${esc2(n)}</button>`).join('')}</div>
   <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap">
-   <button class="${loaded?'ghost':''}" onclick="dailyTape()">${loaded?'LOADED':'TAPE IT'}</button>
-   <button class="ghost" onclick="dailyMine()">MAKE IT YOURS</button>
-   <button class="ghost" onclick="DAILY_ME='';DailyScenes.today({another:true});renderDaily()">ANOTHER ONE</button></div>
-  <div style="color:var(--faint);font-size:12px;margin-top:8px">${DailyScenes.doneCount()} of ${DailyScenes.all().length} done. Original scenes written for this site.</div>`;
+   <button class="${loaded?'ghost':''}" onclick="dailyTape()">${loaded?'IT\'S LOADED ABOVE':'LOAD IT TO TAPE'}</button>
+   <button class="ghost" onclick="dailyMine()">REWRITE IT</button>
+   <button class="ghost" onclick="DAILY_ME='';DailyScenes.today({another:true});renderDaily()">ANOTHER SCENE</button></div>
+  <div style="color:var(--faint);font-size:12px;margin-top:8px">Load it to tape: it goes in as your sides, with you as ${esc2(me)}. Rewrite it: Writer's Blockage opens it as a script. ${DailyScenes.doneCount()} of ${DailyScenes.all().length} done (a scene is done when you keep a take of it).</div>`;
 }
 function dailyTape(){
  const s=DailyScenes.today(), parts=DailyScenes.parts(s), me=(DAILY_ME&&parts.indexOf(DAILY_ME)>=0)?DAILY_ME:s.you;
@@ -2840,8 +2843,7 @@ function dailyTape(){
 }
 function dailyMine(){
  const s=DailyScenes.today();
- try{ localStorage.setItem('theactorpage_handoff_premise',JSON.stringify({from:'daily',title:s.title,
-   fountain:'[[Today\'s scene: '+s.title+'. Trains '+s.trains+'. '+s.setup+' Change anything you like.]]\n\n'+s.text,at:Date.now()})); }catch(e){}
+ try{ localStorage.setItem('theactorpage_handoff_premise',JSON.stringify(window.Practice?Practice.premise(s):{from:'daily',title:s.title,fountain:s.text,at:Date.now()})); }catch(e){}
  location.href='../write/writers-blockage.html';
 }
 function showNext(){
@@ -3450,7 +3452,7 @@ function reviewDrop(id){
 }
 function reviewKeep(id){
  const t=state.takes.find(x=>x.id===id); if(t)t.status='SURVIVOR';
- try{ if(window.DailyScenes&&/^Today's scene - /.test(SIDES.file||'')){ const d=DailyScenes.all().find(x=>DailyScenes.fileName(x)===SIDES.file); if(d) DailyScenes.markDone(d.id); renderDaily(); } }catch(e){}
+ try{ if(window.DailyScenes){ const d=DailyScenes.fromFile(SIDES.file); if(d){ DailyScenes.markDone(d.id); renderDaily(); } } }catch(e){}
  try{ localStorage.setItem(KEY,JSON.stringify(state)); renderTakes(); }catch(e){}
  closeReview();
  // Keeping it means keeping it. The file goes to the phone now, not when you

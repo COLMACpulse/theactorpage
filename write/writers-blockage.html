@@ -2884,7 +2884,7 @@ function takePremise(){
   const r = parseFountain(h.fountain);
   newProject(h.title || "Untitled", {title:h.title || "Untitled", blocks:r.blocks});
   markDirty(); render(); renderProjectName();
-  setTimeout(() => toast(h.from === "daily" ? "Today's scene, ready to make yours. Change anything." : "New script from your shoot list. The premise is in the notes at the top; nothing else is written for you."), 500);
+  setTimeout(() => toast(h.from === "daily" ? "The practice scene, as a script. Change anything." : "New script from your shoot list. The premise is in the notes at the top; nothing else is written for you."), 500);
   return true;
 }
 

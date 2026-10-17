@@ -2081,11 +2081,13 @@ D.today=function(opts){
 D.markDone=function(id,when){ const d=read(); d.done[id]=localDate(when); write(d); };
 D.isDone=function(id){ return !!read().done[id]; };
 D.doneCount=function(){ return Object.keys(read().done).length; };
-D.fileName=function(s){ return "Today's scene - "+s.title; };
+D.fileName=function(s){ return "Practice scene - "+s.title; };
+/* sides kept under the old name still count */
+D.fromFile=function(f){ const m=String(f||'').match(/^(?:Practice scene|Today's scene) - (.+)$/); return m?SCENES.find(s=>s.title===m[1])||null:null; };
 /* Put it on the sides shelf so every ACT tool has it, with your part picked. */
 D.toShelf=function(s,me){
  if(!g.Shelf) return null;
- const it=g.Shelf.put({text:s.text,file:D.fileName(s),from:"Today's scene",tool:'daily'});
+ const it=g.Shelf.put({text:s.text,file:D.fileName(s),from:"Practice scene",tool:'daily'});
  if(it) g.Shelf.setMe(it.id,me||s.you,'daily');
  return it;
 };
