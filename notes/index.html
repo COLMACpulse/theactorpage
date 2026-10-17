@@ -36,6 +36,9 @@
   --tung-soft:rgba(224,162,60,.22); --tung-text:#8a5a08; --bad:#a8432c; --good:#3d7a3a; --blue:#2f5f99; color-scheme:light;
 }
 *{box-sizing:border-box}
+/* camera / mic tiles: two across on a phone; an odd last one takes the row */
+@media (max-width:600px){ .kit{grid-template-columns:1fr 1fr} .kit .kt:last-child:nth-child(odd){grid-column:1/-1;min-height:96px} }
+
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--sans);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
 button,input,textarea,select{font:inherit;color:inherit}
@@ -123,6 +126,7 @@ body:has(#hotbar) .top{padding-top:calc(env(safe-area-inset-top) + 50px)}
 </nav>
 <div class="ov" id="ov" hidden></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="../shared/kit.js"></script>
 <script src="../shared/capture.js"></script>
 <script src="../shared/takes.js"></script>
 <script src="../shared/shelf.js"></script>

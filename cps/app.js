@@ -143,6 +143,7 @@
       <header class="top"><div class="title"><b>CPS</b><span>${esc(S.tab === 'voices' ? 'Your voices, same lines' : c && S.tab !== 'chars' && S.tab !== 'pack' ? (c.name || 'Unnamed character') + (c.project ? ' · ' + c.project : '') : 'You find it. This keeps it.')}</span></div><button class="iconbtn" data-a="theme" aria-label="Light or dark">${ICON.theme}</button></header>
       <main id="main">${S.busy ? `<div class="msg" role="status">${esc(S.busy)}</div>` : ''}${({ chars: vChars, capture: vCapture, back: vBack, voices: vVoices, pack: vPack }[S.tab])()}</main>
       <nav class="tabs">${TABS.map(([k, l]) => `<button class="${S.tab === k ? 'on' : ''}" data-a="tab" data-t="${k}">${ICON[k]}<span>${l}</span></button>`).join('')}</nav></div>`;
+    if (S.tab === 'chars' && window.Kit) Kit.wire($('#main'), KIT);
     if (S.tab === 'back') { const r = $('#refaudio'); if (r) r.addEventListener('play', () => { const c2 = cur(); if (c2) { c2.lastVisit = now(); touch(c2); } }, { once: true }); }
   }
   const stateChip = c => { const s = E.autoState(c); return `<span class="state ${s}">${E.STATES[s]}</span>`; };
@@ -163,7 +164,7 @@
     return `${L.chars.length ? '' : `<div style="padding:12px 0 4px"><div class="kicker">THEACTORPAGE · ACT</div><h1 style="font-size:30px;letter-spacing:.1em">CPS</h1>
         <div style="color:var(--tung-text);letter-spacing:.04em;margin-top:2px">Character Preservation. You find it. This keeps it.</div>
         <p class="dim" style="margin:8px 0 0;max-width:36em">You found the voice in rehearsal. Weeks later, the callback. Record it now, as you, in your own voice. Add the look and the line that drops you back in. When you come back, hear yourself and see what moved.</p></div>`}
-      <button class="btn pri big block" data-a="quickrec" style="margin:12px 0 8px">Record a character now</button>
+      ${front()}
       <div class="row" style="margin-bottom:14px"><button class="btn" data-a="quickmemo">Start from a voice memo</button><button class="btn ghost" data-a="newchar">Start with just a name</button></div>
       ${bdNew.length ? `<div class="kicker">From your sides</div><div class="row" style="margin-bottom:14px">${bdNew.map(r => `<button class="chip" data-a="frombd" data-pid="${esc(r.pid)}" data-role="${esc(r.role)}">${esc(r.role)} · ${esc(r.title)}</button>`).join('')}</div>` : ''}
       ${L.chars.length ? `<div class="kicker">${L.chars.length} ${L.chars.length === 1 ? 'character' : 'characters'}</div>` + L.chars.slice().sort((a, b) => (b.updated || '').localeCompare(a.updated || '')).map(c => {
@@ -171,6 +172,19 @@
         return `<button class="char" data-a="open" data-id="${c.id}">${avatar(c)}<span class="b"><b>${esc(c.me ? 'You, as yourself' : (c.name || 'Unnamed character'))}</b><span class="faint" style="font-size:13px">${esc(c.project || 'No project')} · last visit ${ago(c.lastVisit || c.updated)}</span><br>${stateChip(c)}${c.strained ? '<span class="state strained">Strained</span>' : ''}${m.length && !c.me ? `<span class="faint" style="font-size:12px;margin-left:6px">Still to keep: ${esc(m.join(', '))}</span>` : ''}</span></button>`;
       }).join('') : ''}`;
   }
+  // the front: the mic and camera this tool uses, as tiles, before you go looking
+  function front() {
+    if (!window.Kit) return '';
+    const c = cur(), who = c ? (c.me ? 'You, as yourself' : (c.name || 'Unnamed character')) : '';
+    return `<div style="margin:12px 0 0">${Kit.html([
+      { id: 'voice', dev: 'mic', label: 'MIC', what: 'Record a voice', note: 'Starts a new character' },
+      { id: 'look', dev: 'camera', label: 'CAMERA', what: 'Photo of the look', note: c ? 'For: ' + who : 'Pick or start a character first', off: !c }
+    ])}</div>`;
+  }
+  const KIT = {
+    voice: () => act('quickrec'),
+    look: () => { if (!cur()) return toast('Pick a character first, or record a voice to start one.'); S.tab = 'capture'; render(); window.scrollTo(0, 0); $('#camin').click(); }
+  };
   function needChar(what) { return `<div class="msg" style="margin-top:12px">Pick a character first.</div><button class="btn pri block" data-a="tab" data-t="chars" style="margin-top:10px">Characters</button>${what ? '' : ''}`; }
 
   // ---------------------------------------------------------------- CAPTURE

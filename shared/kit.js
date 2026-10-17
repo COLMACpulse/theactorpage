@@ -40,7 +40,7 @@ K.html=function(tiles){
  css();
  return '<div class="kit" role="group" aria-label="Camera and mic">'+(tiles||[]).map(t=>{ const w=K.state(t.dev);
   return '<button type="button" class="kt'+(t.off?' off':'')+'" data-kit="'+esc(t.id)+'" data-kdev="'+esc(t.dev)+'">'+(w?'<i class="'+cls(w)+'" data-kst>'+w+'</i>':'')
-   +(K.ICON[t.icon||t.dev]||'')+'<b>'+esc(t.label||t.dev.toUpperCase())+'</b><span>'+esc(t.what||'')+'</span>'+(t.note?'<small>'+esc(t.note)+'</small>':'')+'</button>'; }).join('')+'</div>';
+   +(K.ICON[t.icon||(t.dev==='typewriter'?'mic':t.dev)]||'')+'<b>'+esc(t.label||t.dev.toUpperCase())+'</b><span>'+esc(t.what||'')+'</span>'+(t.note?'<small>'+esc(t.note)+'</small>':'')+'</button>'; }).join('')+'</div>';
 };
 K.wire=function(root,fns){
  (root||document).querySelectorAll('[data-kit]').forEach(b=>{ const f=fns&&fns[b.dataset.kit]; if(f) b.onclick=e=>{ e.preventDefault(); f(e); }; });

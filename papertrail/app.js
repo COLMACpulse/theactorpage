@@ -148,9 +148,26 @@ function render(){
  else if(VIEW.tab==='research') m.innerHTML=vResearch(p);
  wire();
 }
+/* ---------- the front: speech, mic and camera, as tiles, before you go looking ---------- */
+/* the project they land in: the one you have open, or the one you touched last */
+function kitProject(){ const o=VIEW.p&&DB.projects[VIEW.p]; if(o&&!o.retired) return o; return Object.values(DB.projects).filter(p=>!p.retired).sort((a,b)=>(b.updated||0)-(a.updated||0))[0]||null; }
+function front(){
+ if(!window.Kit) return '';
+ const p=kitProject(), inP=p?'In: '+p.title:'Start a project first';
+ return '<div class="ptkit">'+Kit.html([
+  {id:'say',dev:'typewriter',label:'SAY IT',what:'Say it into the bones',note:!p?inP:!SR?'This browser can\'t do speech':inP+'. Speech goes via Google or Apple.',off:!p||!SR},
+  {id:'rec',dev:'mic',label:'MIC',what:RECORDING?'Stop recording':'Record research',note:inP,off:!p},
+  {id:'photo',dev:'photo',label:'PHOTO',what:'Photo for research',note:inP,off:!p}
+ ])+'</div>';
+}
+function kitGo(tab,btn){
+ const p=kitProject(); if(!p){ toast('Start a project first. Add a draft.'); return go('add'); }
+ VIEW.p=p.id; go(tab); if(tab==='bones'&&!SR) return toast('This browser can\'t turn speech into words. Use the mic on your keyboard.');
+ const b=$(btn); if(b){ b.scrollIntoView({block:'center'}); if(!(btn==='mic'&&LISTEN)&&!(btn==='rrec'&&RECORDING)) b.click(); }
+}
 function vProjects(){
  const P=projects(), nd=Object.values(DB.drafts).filter(d=>!d.retired).length;
- let h='<div class="stats"><div><b>'+P.length+'</b><span>projects</span></div><div><b>'+nd+'</b><span>drafts kept</span></div>'
+ let h=front()+'<div class="stats"><div><b>'+P.length+'</b><span>projects</span></div><div><b>'+nd+'</b><span>drafts kept</span></div>'
   +'<div><b>'+P.reduce((n,p)=>n+scenesOf(current(p)).length,0)+'</b><span>scenes, current drafts</span></div></div>';
  if(!P.length) h+='<div class="panel"><p style="margin-top:0">Nothing here yet. Bring in a draft: a script (PDF, Final Draft, Fountain, text) or a storyboard (Word or PDF). Drafts with the same title land in the same project.</p><button class="btn pri" data-tab="add">ADD DRAFTS</button></div>';
  if(P.length){
@@ -547,6 +564,7 @@ function numbersBox(ds){
 function go(tab){ VIEW.tab=tab; VIEW.scene=null; render(); window.scrollTo(0,0); }
 function wire(){
  document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>go(b.dataset.tab));
+ if(window.Kit) Kit.wire($('main'),{ say:()=>kitGo('bones','mic'), rec:()=>{ if(RECORDING){ try{ RECORDING.stop(); }catch(e){} return; } kitGo('research','rrec'); }, photo:()=>kitGo('research','rcam') });
  document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ if(b.dataset.go==='projects'){ VIEW.p=null; } VIEW.scene=null; go(b.dataset.go); });
  document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{ VIEW.p=b.dataset.open; VIEW.scene=null; go('scenes'); });
  document.querySelectorAll('[data-scene]').forEach(b=>b.onclick=()=>{ VIEW.scene=Number(b.dataset.scene); render(); window.scrollTo(0,0); });

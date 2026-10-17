@@ -84,13 +84,17 @@ async function memoTap(key){
  MEMO=C.record(memoStream,'audio'); MEMOKEY=key; render();
 }
 let memoStream=null; const slots={};
+function sttOk(){
+ const SRC=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SRC){ toast('This browser can\'t turn speech into text. Type it, or keep a voice memo.'); return null; }
+ if(!U.stt){ if(!confirm('Speech to text sends what you say to Apple (Safari) or Google (Chrome) to turn it into words. Your voice memo, if you keep one, stays on this phone. Use it?')) return null; U.stt=true; saveU(); }
+ return SRC;
+}
 function sayTap(key){
- const SRC=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SRC) return toast('This browser can\'t turn speech into text. Type it, or keep a voice memo.');
- if(!U.stt){ if(!confirm('Speech to text sends what you say to Apple (Safari) or Google (Chrome) to turn it into words. Your voice memo, if you keep one, stays on this phone. Use it?')) return; U.stt=true; saveU(); }
+ const SRC=sttOk(); if(!SRC) return;
  if(SR){ try{ SR.stop(); }catch(e){} return; }
  const ta=document.querySelector('[data-text="'+key+'"]'); SR=new SRC(); SR.lang=navigator.language||'en-US'; SR.interimResults=false; SR.continuous=true;
  const base=ta?ta.value:''; let got='';
- SR.onresult=e=>{ for(let i=e.resultIndex;i<e.results.length;i++) if(e.results[i].isFinal) got+=(got?' ':'')+e.results[i][0].transcript.trim(); if(ta){ ta.value=(base?base+' ':'')+got; slots[key]=Object.assign(slots[key]||{},{text:ta.value}); } };
+ SR.onresult=e=>{ for(let i=e.resultIndex;i<e.results.length;i++) if(e.results[i].isFinal) got+=(got?' ':'')+e.results[i][0].transcript.trim(); const el=document.querySelector('[data-text="'+key+'"]'); const v=(base?base+' ':'')+got; if(el) el.value=v; slots[key]=Object.assign(slots[key]||{},{text:v}); };
  SR.onend=()=>{ SR=null; render(); }; SR.onerror=()=>{ SR=null; render(); };
  SR.start(); render();
 }
@@ -123,9 +127,27 @@ function render(){
  m.innerHTML=U.tab==='notes'?notesView():U.tab==='people'?peopleView():(s?sessionView(s):newView());
  wire();
 }
+/* ---------- the front: camera, mic and speech, as tiles, before you go looking ---------- */
+const SPEECH='Speech goes through your browser (Chrome: Google, Safari: Apple)';
+function front(s){
+ if(!window.Kit) return '';
+ const pre=s?'':'Starts a session. ';
+ return Kit.html([
+  {id:'tape',dev:'camera',label:'CAMERA',what:REC?'Stop the tape':'Tape the session',note:s?'Only you on the tape':'Starts a session'},
+  {id:'memo',dev:'mic',label:'MIC',what:MEMO&&MEMOKEY==='new'?'Stop the memo':'Voice memo',note:s?'Stays on this phone':'Starts a session'},
+  {id:'say',dev:'typewriter',label:'SAY IT',what:SR?'Stop':'Say a note',note:pre+SPEECH}
+ ]);
+}
+function startSession(){ const s=N.addSession(DRAFT); U.cur=s.id; U.tab='session'; saveU(); DRAFT={who:[{name:'',role:'casting'}],room:'class',date:new Date().toISOString().slice(0,10),title:'',part:'',shelfId:'',file:''}; return s; }
+const toSlot=()=>{ const t=document.querySelector('[data-text="new"]'); if(t) t.scrollIntoView({block:'center'}); };
+const KITFN={
+ tape:async()=>{ if(!U.cur){ startSession(); render(); } await tapeTap(); const b=$('tape'); if(b) b.scrollIntoView({block:'center'}); },
+ memo:async()=>{ if(!U.cur){ startSession(); render(); } await memoTap('new'); toSlot(); },
+ say:()=>{ if(!SR&&!sttOk()) return; if(!U.cur){ startSession(); render(); } sayTap('new'); toSlot(); }
+};
 function newView(){
  const d=DRAFT, ch=(k,v,l,cur)=>'<button class="chip sm'+(cur===v?' on':'')+'" data-d="'+k+'|'+v+'">'+esc(l)+'</button>';
- let h='<div class="card"><p class="kicker">New session</p><p class="dim small">A class or workshop on Zoom, a callback, a day on set. Who\'s in the room, and the sides if you have them. All of it optional.</p>'
+ let h=front(null)+'<div class="card"><p class="kicker">New session</p><p class="dim small">A class or workshop on Zoom, a callback, a day on set. Who\'s in the room, and the sides if you have them. All of it optional.</p>'
   +'<p class="lab">What kind</p><div class="row">'+N.ROOMS.map(r=>ch('room',r[0],r[1],d.room)).join('')+'</div>'
   +'<p class="lab" style="margin-top:12px">Who\'s in the room</p>';
  d.who.forEach((w,i)=>{ h+='<div class="whorow"><input class="field" data-wn="'+i+'" placeholder="Name (the guest: casting, director, coach)" value="'+esc(w.name)+'" list="peoplelist"><div class="row">'+N.ROLES.slice(0,4).map(r=>'<button class="chip sm'+(w.role===r[0]?' on':'')+'" data-wr="'+i+'|'+r[0]+'">'+r[1]+'</button>').join('')+'</div></div>'; });
@@ -143,7 +165,7 @@ function newView(){
 }
 function sessionView(s){
  const notes=N.notesOf(s.id), marks=(s.marks||[]), open=marks.filter(m=>!m.noted), tapes=s.tapes||[];
- let h='<p class="dim small">'+esc(day(s.date))+' · '+esc(roomName(s.room))+(s.title?' · '+esc(s.title):'')+(s.part?' · '+esc(s.part):'')+'</p>'
+ let h=front(s)+'<p class="dim small">'+esc(day(s.date))+' · '+esc(roomName(s.room))+(s.title?' · '+esc(s.title):'')+(s.part?' · '+esc(s.part):'')+'</p>'
   +'<div class="row" style="margin:6px 0 12px">'+(sidesText(s)?'<button class="btn sm" id="sides">YOUR SIDES</button>':'')+'<button class="btn sm ghost" id="endses">DONE WITH THIS SESSION</button></div>';
  h+='<div class="card"><p class="kicker">Before you join</p><p class="dim small">30 seconds: how you\'re framed, the light on you, the mic moving.</p><button class="btn block" id="zcgo">ZOOM CHECK</button></div>';
  h+='<div class="card"><p class="kicker">In the room</p><p class="dim small"><b>TAPE IT</b> records you on this phone while you perform on Zoom. Headphones in, and only you are on the tape. Some rooms don\'t allow any recording: check first.</p>'
@@ -195,7 +217,8 @@ function wire(){
  const dt=$('dt'); if(dt) dt.oninput=()=>{ DRAFT.title=dt.value; };
  const dp=$('dp'); if(dp) dp.oninput=()=>{ DRAFT.part=dp.value; };
  const sf=$('sf'); if(sf) sf.onchange=async()=>{ const f=sf.files[0]; sf.value=''; if(!f) return; const it=await sidesFile(f); if(it){ DRAFT.shelfId=it.id; DRAFT.file=f.name; if(!DRAFT.title) DRAFT.title=String(f.name).replace(/\.[a-z0-9]+$/i,'').replace(/[_-]+/g,' '); toast('Sides on the shelf. Actor OS and MEMORIZER have them.'); render(); } };
- const st=$('start'); if(st) st.onclick=()=>{ const s=N.addSession(DRAFT); U.cur=s.id; saveU(); DRAFT={who:[{name:'',role:'casting'}],room:'class',date:new Date().toISOString().slice(0,10),title:'',part:'',shelfId:'',file:''}; render(); };
+ const st=$('start'); if(st) st.onclick=()=>{ startSession(); render(); };
+ if(window.Kit) Kit.wire($('main'),KITFN);
  q('[data-open]',b=>b.onclick=()=>{ U.cur=b.dataset.open; U.tab='session'; saveU(); render(); });
  const es=$('endses'); if(es) es.onclick=async()=>{ if(REC) await stopTape(); camOff(); U.cur=''; saveU(); render(); };
  const sd=$('sides'); if(sd) sd.onclick=showSides;

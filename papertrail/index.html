@@ -25,6 +25,12 @@
   color-scheme:light;
 }
 *{box-sizing:border-box}
+/* the camera / mic tiles (shared/kit.js), in paper and ink */
+.ptkit{--panel:var(--paper-2);--line:var(--rule-hard);--tung:var(--gold);--faint:var(--ink-3);--dim:var(--ink-2)}
+.ptkit .kit .kt{border-radius:0}.ptkit .kit .kt b{font-family:var(--code)}.ptkit .kit .kt:hover{border-color:var(--ink)}
+/* camera / mic tiles: two across on a phone; an odd last one takes the row */
+@media (max-width:600px){ .kit{grid-template-columns:1fr 1fr} .kit .kt:last-child:nth-child(odd){grid-column:1/-1;min-height:96px} }
+
 html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55}
 body{background-image:radial-gradient(140% 60% at 50% -10%, rgba(201,162,39,.13), transparent 60%);min-height:100vh}
 a{color:var(--gold)}
@@ -144,6 +150,7 @@ th{font-family:var(--code);font-size:10px;letter-spacing:.14em;text-transform:up
 <div class="toast" id="toast"></div>
 <input type="file" id="file" multiple accept=".pdf,.fdx,.fountain,.txt,.md,.docx,text/plain,application/pdf" class="hide">
 <input type="file" id="imp" accept=".json,application/json" class="hide">
+<script src="../shared/kit.js"></script>
 <script src="../shared/shelf.js"></script>
 <script src="../actor-os/sides.js"></script>
 <script src="../actor-os/pdf.js"></script>
