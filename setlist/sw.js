@@ -1,5 +1,5 @@
 /* SET LIST offline shell. Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='setlist-0.1.2';
+const CACHE='setlist-0.1.3';
 const FILES=['./','index.html','../shared/hot.js','app.js','set.js','manifest.webmanifest','../shared/capture.js',
  'fonts/jost-latin-400-normal.woff2','fonts/jost-latin-500-normal.woff2','fonts/jost-latin-600-normal.woff2',
  'fonts/courier-prime-latin-400-normal.woff2','fonts/courier-prime-latin-700-normal.woff2',
