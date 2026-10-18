@@ -590,6 +590,42 @@ const csvq=v=>{ const s=String(v==null?'':v); return /[",\n]/.test(s)?'"'+s.repl
 F.logCsv=function(rows,found){ found=found||{}; const H=['FILE','FOUND AT','SCENE','SHOT','LOCATION','DURATION','GOLD FOOTAGE','ACTION','NOTES'];
  return H.join(',')+'\n'+(rows||[]).map(r=>[r.file,found[F.nameKey(r.file)]||'',r.scene,r.shot,r.loc,r.dur!=null?F.mmss(r.dur):r.durRaw,r.gold===true?'GOLD':r.gold===false?'no':r.goldRaw,r.action,r.notes].map(csvq).join(',')).join('\n')+'\n'; };
 
+
+/* ---------- EDITOR PACK: the plan, what you got against it, and the sheets an editor opens ---------- */
+/* every planned shot, scene by scene (scenes with no way picked have no shot list yet) */
+F.planRows=function(scenes,stOf,me){ const R=[];
+ (scenes||[]).forEach(sc=>{ const s=stOf(sc.n)||{}; if(!s.way){ R.push({n:sc.n,heading:sc.heading,none:true}); return; }
+  F.shots(sc,s.way,me,s.ins).forEach((x,i)=>R.push({n:sc.n,heading:sc.heading,i:i+1,id:x.id,what:x.what,how:x.how,who:x.who,done:!!(s.done&&s.done[x.id])})); });
+ return R; };
+/* each planned shot with the takes logged to it; takes on no planned shot; shots with nothing */
+F.coverage=function(rows,takes){ takes=takes||{}; const plan=rows.filter(r=>!r.none), known={};
+ const C=plan.map(r=>{ known[r.n+'|'+r.id]=1; return Object.assign({},r,{takes:(takes[r.n]||[]).filter(t=>t.shot===r.id)}); });
+ const extra=[]; Object.keys(takes).forEach(n=>(takes[n]||[]).forEach(t=>{ if(!t.shot||!known[n+'|'+t.shot]) extra.push(Object.assign({n:+n},{t})); }));
+ return {rows:C,missing:C.filter(r=>!r.takes.length),extra,noPlan:rows.filter(r=>r.none)}; };
+F.coverWords=function(cv){ const n=cv.rows.length, got=n-cv.missing.length, L=[];
+ if(n) L.push(got+' of '+n+' planned shot'+(n===1?' has':'s have')+' a take.'); else L.push('No shot list yet.');
+ if(cv.missing.length) L.push('Not shot: '+cv.missing.slice(0,6).map(r=>'Sc '+r.n+' '+r.what).join('; ')+(cv.missing.length>6?'; and '+(cv.missing.length-6)+' more':'')+'.');
+ if(cv.extra.length) L.push(cv.extra.length+' take'+(cv.extra.length===1?' is':'s are')+' not on a planned shot.');
+ if(cv.noPlan.length) L.push(cv.noPlan.length+' scene'+(cv.noPlan.length===1?' has':'s have')+' no shot list (pick a way in SCENES).');
+ return L.join(' '); };
+const cq=v=>{ const s=String(v==null?'':v); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+const row=a=>a.map(cq).join(',');
+F.slug=s=>String(s||'Film').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'')||'Film';
+F.planCsv=function(rows){ return row(['SCENE','HEADING','SHOT #','SHOT','WHO','HOW','DONE'])+'\n'+rows.map(r=>r.none?row([r.n,r.heading,'','(no shot list yet)','','','']):row([r.n,r.heading,r.i,r.what,r.who,r.how,r.done?'yes':''])).join('\n')+'\n'; };
+const mk={gold:'GOLD',backup:'backup',never:'never use'};
+F.gotCsv=function(cv,fps,title){ const H=['SCENE','SHOT #','SHOT','FILE','NAME FOR THE EDIT','DURATION','IN','OUT','MARK','NOTE','MOMENTS'], out=[row(H)], slug=F.slug(title);
+ const one=(n,i,what,t,k)=>row([n,i||'',what,t?t.name:'NOT SHOT',t?slug+'_Sc'+n+(i?'_Sh'+i:'')+'_T'+k:'',t&&t.dur?F.mmss(t.dur):'',t?F.tc(t.in||0,fps):'',t?F.tc(t.out||0,fps):'',t?mk[t.mark]||'':'',t?t.note||'':'',t?F.watchNotes(t).map(w=>F.mmss(w.at)+' '+w.text).join('; '):'']);
+ cv.rows.forEach(r=>{ if(!r.takes.length) out.push(one(r.n,r.i,r.what,null)); else r.takes.forEach((t,k)=>out.push(one(r.n,r.i,r.what,t,k+1))); });
+ cv.extra.forEach((x,k)=>out.push(one(x.n,'','(not on the shot list)',x.t,k+1)));
+ return out.join('\n')+'\n'; };
+/* the day's clips in the order you shot them: the time on the file, then the name */
+F.dayOrder=function(files){ return (files||[]).slice().sort((a,b)=>(a.lastModified||0)-(b.lastModified||0)||String(a.name).localeCompare(String(b.name),undefined,{numeric:true})); };
+F.packReadme=function(o){ return [o.title+': editor pack','',
+ 'From '+(o.by||'the director')+', '+o.date+'.','',o.link?'The footage: '+o.link:'The footage: ask me for the link.','',
+ 'In here:','- '+o.slug+' editor brief.txt: scene by scene, how much freedom you have, what must stay, which take, backups, never-use takes, what is missing, when to ask me first.',
+ '- '+o.slug+' plan.csv: the shot list before we shot.','- '+o.slug+' plan vs got.csv: every planned shot and the takes that cover it, NOT SHOT where there is none, my marks (GOLD, backup, never use), notes, and moments (time in the take, what happens).',
+ '- '+o.slug+' cut.edl: my picks, in and out, in script order. Opens in Resolve, Premiere and Avid; it relinks by file name.','- '+o.slug+' cut.csv: the same picks as a list.','',
+ o.cover,'',o.note?'From me: '+o.note:''].join('\n').replace(/\n+$/,'\n'); };
 if(typeof module!=='undefined') module.exports=F;
 g.FilmOS=F;
 })(typeof window!=='undefined'?window:globalThis);

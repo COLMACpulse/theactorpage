@@ -456,12 +456,56 @@ let CREDOPEN=false;
 const FILES={};   // the clip files picked this session, for the preview; only names and lengths are kept
 function cutOf(){ const c=cur(); c.cut=c.cut||{target:300,fps:'30',takes:{}}; return c.cut; }
 function pieces(){ const k=cutOf(); const out=[]; SCENES.forEach(sc=>(k.takes[sc.n]||[]).forEach(t=>{ if(t.use&&t.out>t.in){ const a=adrKept(t); out.push({scene:sc.n,heading:sc.heading,name:t.name,in:t.in,out:t.out,id:t.id,adr:a?{id:a.id,at:a.at+(a.nudge||0)/1000,under:t.adr.under}:null}); } })); return out; }
+function shotsFor(sc){ const s=cur().scenes&&cur().scenes[sc.n]; return s&&s.way?F.shots(sc,s.way,cur().me,s.ins):[]; }
+function coverNow(){ return F.coverage(F.planRows(SCENES,n=>cur().scenes&&cur().scenes[n],cur().me),cutOf().takes); }
+function packFiles(){ const k=cutOf(), t=filmName(), slug=F.slug(t), cv=coverNow(), R=F.planRows(SCENES,n=>cur().scenes&&cur().scenes[n],cur().me);
+ let by=''; try{ by=(window.You&&You.get().name)||''; }catch(e){}
+ const brief=F.brief(t,SCENES.map(sc=>({n:sc.n,heading:sc.heading,brief:(k.brief||{})[sc.n]||{},takes:k.takes[sc.n]||[],shots:doneOf(sc)})),k.fps);
+ return [{name:slug+' READ ME.txt',data:F.packReadme({title:t,slug,by,date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),link:k.link||'',cover:F.coverWords(cv),note:k.packNote||''})},
+  {name:slug+' editor brief.txt',data:brief},{name:slug+' plan.csv',data:F.planCsv(R)},{name:slug+' plan vs got.csv',data:F.gotCsv(cv,k.fps,t)},
+  {name:slug+' cut.edl',data:F.edl(t,pieces(),k.fps)},{name:slug+' cut.csv',data:F.cutCsv(pieces())}]; }
+/* LOG THE DAY: the day's clips one at a time, in the order you shot them */
+let DAY=null;
+async function dayOpen(files){
+ const L=F.dayOrder(files.filter(f=>/^video\//.test(f.type)||/\.(mov|mp4|m4v|webm)$/i.test(f.name))); if(!L.length){ toast('No video clips in that.'); return; }
+ DAY={L,i:0,n:(SCENES[0]||{}).n||1,done:0,skip:0}; dayDraw();
+}
+function dayClose(){ const o=$('dayov'); if(o){ const v=o.querySelector('video'); if(v&&v.src) URL.revokeObjectURL(v.src); o.remove(); } document.body.classList.remove('mcopen'); const n=DAY&&DAY.done; DAY=null; render(); if(n) toast(n+' clip'+(n===1?'':'s')+' logged.'); }
+async function dayDraw(){
+ const D=DAY; if(!D) return; let o=$('dayov'); if(!o){ o=document.createElement('div'); o.id='dayov'; o.className='mc'; document.body.appendChild(o); document.body.classList.add('mcopen'); }
+ if(D.i>=D.L.length){ o.innerHTML='<div class="mchead"><b>Log the day</b><button class="btn sm" id="dayx">DONE</button></div><div style="padding:16px;overflow:auto"><p style="font-size:17px">'+D.done+' logged'+(D.skip?', '+D.skip+' skipped':'')+'.</p><p class="faint">'+esc(F.coverWords(coverNow()))+'</p></div>'; $('dayx').onclick=dayClose; return; }
+ const f=D.L[D.i], k=cutOf(), ex=(k.takes[D.n]||[]).find(x=>x.name===f.name&&x.size===f.size), sc=SCENES.find(x=>x.n===D.n)||SCENES[0], shots=sc?shotsFor(sc):[];
+ D.mark=D.mark!==undefined&&D.keepMark?D.mark:(ex&&ex.mark)||''; D.keepMark=false;
+ const when=f.lastModified?new Date(f.lastModified).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):'';
+ o.innerHTML='<div class="mchead"><b>Clip '+(D.i+1)+' of '+D.L.length+'</b><button class="btn sm" id="dayx">CLOSE</button></div>'
+  +'<div style="padding:0 14px 16px;overflow:auto;flex:1"><p class="faint" style="font-size:13px;margin:0 0 6px;word-break:break-all">'+esc(f.name)+(when?' · shot '+esc(when):'')+'<span id="daydur"></span></p>'
+  +'<video id="dayv" playsinline controls preload="metadata" style="width:100%;max-height:42vh;background:#111;border-radius:8px"></video>'
+  +'<label class="faint" style="font-size:12px;display:block;margin-top:8px">Scene</label><select class="field" id="daysc">'+SCENES.map(x=>'<option value="'+x.n+'"'+(x.n===D.n?' selected':'')+'>'+x.n+'. '+esc(x.heading)+'</option>').join('')+'</select>'
+  +'<label class="faint" style="font-size:12px;display:block;margin-top:6px">Shot</label><select class="field" id="daysh"><option value="">Not on the shot list</option>'+shots.map((x,i)=>'<option value="'+esc(x.id)+'"'+((ex&&ex.shot===x.id)||(!ex&&D.shot===x.id)?' selected':'')+'>'+(i+1)+'. '+esc(x.what)+'</option>').join('')+'</select>'
+  +(shots.length?'':'<p class="faint" style="font-size:12px;margin:4px 0 0">No shot list for this scene yet. Pick a way for it in SCENES.</p>')
+  +'<div class="row" style="gap:6px;margin-top:8px">'+[['gold','GOLD'],['backup','BACKUP'],['never','NEVER USE'],['','NO MARK']].map(([v,l])=>'<button class="btn sm'+(D.mark===v?' pri':'')+'" data-daymark="'+v+'">'+l+'</button>').join('')+'</div>'
+  +'<input class="field" id="daynote" placeholder="What happens in it (the one where he laughs)" value="'+esc(ex?ex.note||'':'')+'" style="margin-top:8px">'
+  +'<div class="row" style="margin-top:10px"><button class="btn" id="dayback"'+(D.i?'':' disabled')+'>BACK</button><button class="btn" id="dayskip">SKIP</button><button class="btn pri" id="daynext" style="flex:1">'+(D.i===D.L.length-1?'LOG IT, DONE':'LOG IT, NEXT')+'</button></div></div>';
+ const v=$('dayv'); v.src=URL.createObjectURL(f);
+ $('dayx').onclick=dayClose;
+ $('daysc').onchange=()=>{ D.n=+$('daysc').value; D.shot=''; D.keepMark=true; D.mark=o.querySelector('[data-daymark].pri')?o.querySelector('[data-daymark].pri').dataset.daymark:''; dayDraw(); };
+ o.querySelectorAll('[data-daymark]').forEach(b=>b.onclick=()=>{ D.mark=b.dataset.daymark; o.querySelectorAll('[data-daymark]').forEach(x=>x.classList.toggle('pri',x===b)); });
+ $('dayback').onclick=()=>{ D.i=Math.max(0,D.i-1); dayDraw(); };
+ $('dayskip').onclick=()=>{ D.skip++; D.i++; dayDraw(); };
+ $('daynext').onclick=async()=>{ const k=cutOf(), n=+$('daysc').value, shot=$('daysh').value, note=$('daynote').value.trim(); k.takes[n]=k.takes[n]||[];
+  let t=k.takes[n].find(x=>x.name===f.name&&x.size===f.size);
+  if(!t){ const d=await clipLength(f); t={id:rid('t'),name:f.name,size:f.size,dur:Math.round(d*100)/100,in:0,out:Math.round(d*100)/100,use:false,at:Date.now()}; k.takes[n].push(t); }
+  FILES[t.id]=f; if(shot) t.shot=shot; else delete t.shot; if(note) t.note=note; if(D.mark) t.mark=D.mark; else delete t.mark;
+  if(t.mark==='never') t.use=false; else if(t.mark==='gold'&&!k.takes[n].some(x=>x.use)) t.use=true;
+  save(); D.done++; D.n=n; D.shot=shot; D.i++; D.mark=''; dayDraw(); };
+}
 function vCut(){
  const k=cutOf(), P=pieces(), len=F.cutLength(P), diff=k.target-len;
  let h='<p class="kicker">Cut to length</p><p class="dim" style="font-size:14px;margin:-2px 0 12px">Add the takes you shot, keep the one you want for each scene, set where it starts and ends. They line up in script order. Then hand the list to your editor.</p>';
  h+='<div class="card"><div class="row"><label class="faint" style="font-size:13px">Aim for</label><input class="field" id="ctarget" value="'+esc(F.mmss(k.target))+'" style="flex:0 1 90px"><label class="faint" style="font-size:13px">Frame rate</label><select class="field" id="cfps" style="flex:0 1 110px">'+Object.keys(F.FPS).map(x=>'<option'+(x===k.fps?' selected':'')+'>'+x+'</option>').join('')+'</select></div>'
   +'<div class="runtime"><b>'+F.mmss(len)+'</b><span>'+(P.length?(Math.abs(diff)<0.05?'right on '+F.mmss(k.target):diff>0?F.mmss(diff)+' to go to '+F.mmss(k.target):F.mmss(-diff)+' over '+F.mmss(k.target)):'nothing in the cut yet')+' · '+P.length+' piece'+(P.length===1?'':'s')+'</span></div></div>';
  h+='<div class="card"><p class="kicker">Find a take</p><input class="field" id="cfind" placeholder="bus shelter · rennie · last week · the laugh · never use" value="'+esc(FINDQ)+'" autocomplete="off"><div id="cfindres">'+findHtml()+'</div></div>';
+ h+='<div class="card" id="daycard"><p class="kicker">Log the day</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">Drop the day\'s clips off the phone. They line up in the order you shot them. Tap through, one at a time: which scene, which shot, gold or not, a note. Each becomes a take on its scene.</p><label class="btn pri sm"><input type="file" accept="video/*,.mov,.mp4,.m4v" multiple class="hide" id="dayin">PICK THE DAY\'S CLIPS</label></div>';
  h+=logBox()+footBox();
  SCENES.forEach(sc=>{
   const T=k.takes[sc.n]||[];
@@ -472,10 +516,17 @@ function vCut(){
     +'<div class="row" style="margin-top:6px"><label class="faint" style="font-size:12px">In</label><input class="field" data-tin="'+sc.n+'|'+t.id+'" value="'+F.mmss(t.in)+'" style="flex:1 1 70px">'+(f?'<button class="btn sm" data-tsetin="'+sc.n+'|'+t.id+'">HERE</button>':'')
     +'<label class="faint" style="font-size:12px">Out</label><input class="field" data-tout="'+sc.n+'|'+t.id+'" value="'+F.mmss(t.out)+'" style="flex:1 1 70px">'+(f?'<button class="btn sm" data-tsetout="'+sc.n+'|'+t.id+'">HERE</button>':'')+'</div>'
     +'<input class="field tnote" data-tnote="'+sc.n+'|'+t.id+'" value="'+esc(t.note||'')+'" placeholder="A note you\'ll remember it by (the one where he laughs)">'
+    +(()=>{ const L=shotsFor(sc); return L.length?'<select class="field" data-tshot="'+sc.n+'|'+t.id+'" style="margin-top:4px" aria-label="Which shot">'+'<option value="">Shot: not on the shot list</option>'+L.map((x,i)=>'<option value="'+esc(x.id)+'"'+(t.shot===x.id?' selected':'')+'>Shot '+(i+1)+': '+esc(x.what)+'</option>').join('')+'</select>':''; })()
     +F.watchNotes(t).map(w=>'<div class="wnote"><span><b>'+F.mmss(w.at)+'</b> in the take'+(w.cut!=null?' · '+F.mmss(w.cut)+' in the cut':'')+': '+esc(w.text)+'</span><button class="x" data-wdel="'+sc.n+'|'+t.id+'|'+w.id+'" aria-label="Delete this note">×</button></div>').join('')
     +'<div class="row" style="justify-content:space-between;margin-top:4px"><span class="faint" style="font-size:12px">'+F.mmss(Math.max(0,t.out-t.in))+' used'+(f?'':' · pick the file again to preview it')+(adrKept(t)?' · <b class="adrtag">ADR</b> your line replaces it, original '+UNDERS.find(u=>u[1]===t.adr.under)[0].toLowerCase():'')+'</span>'+(f?'<button class="btn sm" data-adr="'+sc.n+'|'+t.id+'">ADR</button>':'')+'</div></div>'; }).join('');
   h+='<div class="row" style="margin-top:8px"><button class="btn sm pri" style="flex:1" data-shoot="'+sc.n+'">SHOOT A TAKE</button><label class="btn sm" style="flex:1"><input type="file" accept="video/*,.mov,.mp4,.m4v" multiple class="hide" data-tadd="'+sc.n+'">+ ADD TAKES</label></div>'+briefBox(sc)+'</div>';
  });
+ { const cv=coverNow();
+ h+='<div class="card" id="packcard"><p class="kicker">Editor pack</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">One thing to send your editor: the brief, the plan, the plan against what you got, your picks as an edit list, and the link to the footage. The footage itself stays a link.</p>'
+  +'<p style="font-size:14px;margin:0 0 8px" id="packcover">'+esc(F.coverWords(cv))+'</p>'
+  +'<input class="field" id="packlink" placeholder="Link to the footage (Drive, Dropbox, WeTransfer)" value="'+esc(k.link||'')+'">'
+  +'<textarea class="field" id="packnote" placeholder="A note to your editor (optional)" style="margin-top:6px;min-height:60px">'+esc(k.packNote||'')+'</textarea>'
+  +'<div class="row" style="margin-top:8px"><button class="btn pri" id="packzip">SAVE THE EDITOR PACK (.ZIP)</button><button class="btn" id="packplan">PLAN (.CSV)</button><button class="btn" id="packgot">PLAN VS GOT (.CSV)</button></div></div>'; }
  h+='<div class="card"><p class="kicker">Hand it to your editor</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">An EDL opens in DaVinci Resolve, Premiere and Avid. Point it at your footage and it relinks by file name. In and out count from the start of each file.</p>'
   +'<div class="row"><button class="btn pri" id="cedl"'+(P.length?'':' disabled')+'>EDIT LIST (.EDL)</button><button class="btn" id="ccsv"'+(P.length?'':' disabled')+'>LIST (.CSV)</button><button class="btn" id="cbrief">EDITOR BRIEF (.TXT)</button></div>'
   +watchBox(P)+creditsBox()
@@ -669,6 +720,15 @@ function wireCut(){
     const d=await clipLength(f); k.takes[n].push({id:id,name:f.name,size:f.size,dur:Math.round(d*100)/100,in:0,out:Math.round(d*100)/100,use:!k.takes[n].some(x=>x.use),at:Date.now()}); }
    save(); render(); toast(fl.length+' take'+(fl.length===1?'':'s')+' added to scene '+n+'.'); });
  document.querySelectorAll('[data-tuse]').forEach(b=>b.onchange=()=>{ const r=findT(b.dataset.tuse); if(!r.t) return; r.t.use=b.checked; save(); render(); });
+ const dyi=$('dayin'); if(dyi) dyi.onchange=()=>{ const fl=[...dyi.files]; dyi.value=''; if(fl.length) dayOpen(fl); };
+ document.querySelectorAll('[data-tshot]').forEach(b=>b.onchange=()=>{ const r=findT(b.dataset.tshot); if(!r.t) return; if(b.value) r.t.shot=b.value; else delete r.t.shot; save(); const pc=$('packcover'); if(pc) pc.textContent=F.coverWords(coverNow()); });
+ const plk=$('packlink'); if(plk) plk.oninput=()=>{ k.link=plk.value.trim(); save(); };
+ const pnt=$('packnote'); if(pnt) pnt.oninput=()=>{ k.packNote=pnt.value; save(); };
+ const pzp=$('packzip'); if(pzp) pzp.onclick=async()=>{ const z=window.Zip.make(packFiles()), fn=F.slug(filmName())+' editor pack.zip', file=new File([z],fn,{type:'application/zip'});
+  try{ if(/Android|iPhone|iPad/i.test(navigator.userAgent)&&navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:fn}); return; } }catch(e){ if(e&&e.name==='AbortError') return; }
+  dl(fn,z,'application/zip'); };
+ const ppl=$('packplan'); if(ppl) ppl.onclick=()=>{ const f=packFiles()[2]; dl(f.name,f.data,'text/csv'); };
+ const pgt=$('packgot'); if(pgt) pgt.onclick=()=>{ const f=packFiles()[3]; dl(f.name,f.data,'text/csv'); };
  document.querySelectorAll('[data-tdel]').forEach(b=>b.onclick=()=>{ const [n,id]=b.dataset.tdel.split('|'); k.takes[n]=(k.takes[n]||[]).filter(x=>x.id!==id); delete FILES[id]; save(); render(); });
  const setT=(sel,key)=>document.querySelectorAll(sel).forEach(i=>i.onchange=()=>{ const r=findT(i.dataset[key]); if(!r.t) return; let s=F.secs(i.value); if(s==null){ render(); return; }
    s=Math.max(0,Math.min(r.t.dur||s,s)); if(key==='tin') r.t.in=s; else r.t.out=s; if(r.t.out<r.t.in){ toast('Out is before in. Check the times.'); } save(); render(); });
