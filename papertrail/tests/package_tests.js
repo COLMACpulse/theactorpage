@@ -1,0 +1,38 @@
+/* PACKAGE: the facts from the pages, drafts built from your own lines, lengths said plainly; and the PDF it saves.
+   Made-up script.  node papertrail/tests/package_tests.js */
+const fs=require('fs'), path=require('path');
+new Function('window',fs.readFileSync(path.join(__dirname,'../../actor-os/sides.js'),'utf8'))(globalThis);
+require('../../film/film.js');
+const T=require('../trail.js'), PDF=require('../../shared/textpdf.js');
+let pass=0,fail=0; const ok=(n,c,x)=>{ if(c){pass++;console.log('PASS',n)}else{fail++;console.log('FAIL',n,x===undefined?'':JSON.stringify(x))} };
+const RIDGE='Title: Ridge Line\nCredit: Written by\nAuthor: Sam Actor\n\nEXT. RIDGE - DAY\n\nVALE (40s), a wiry guide with a bad knee, climbs the ridge alone. Wind.\n\nVALE\nHand me the rope.\n\nHALE\nYou sure about this?\n\nINT. CABIN - NIGHT\n\nHale sits by the cold stove. He has not eaten in days.\n\nHALE\nShe isn\'t coming back.\n\nVALE\nThen we go get her.\n\nEXT. RIVER - DAWN\n\nThe bridge is gone. Vale stares at the water and starts to wade in.\n\nVALE\nStay close.\n';
+const sc=T.scenes(RIDGE,'script'), F=T.pkFacts(sc,RIDGE,'feature');
+ok('facts: scenes, the lead, who speaks', F.scenes===3&&F.lead==='VALE'&&F.speakers===2, F);
+ok('pages, said against the usual range', F.pages===1&&/^About 1 page\. Features usually run 90 to 120\. This one is shorter\.$/.test(F.pageWords), F.pageWords);
+ok('a short in range says nothing extra', /Shorts usually run 5 to 40\. This one is shorter\./.test(T.pkFacts(sc,RIDGE,'short').pageWords));
+ok('title page found', F.titlePage&&/Title page: there\./.test(F.titleWords));
+ok('no title page: says Writer\'s Blockage puts one on the PDF', !T.pkFacts(sc,'EXT. RIDGE - DAY\n\nVale climbs.','feature').titlePage);
+const many=Array.from({length:120},(_,i)=>'INT. ROOM '+i+' - DAY\n\nVale paces the room and looks out the window at the long road home again.\n\nVALE\nWe wait here until morning, and then we go, whatever happens out there tonight.\n\nHALE\nFine.\n').join('\n');
+ok('a long script: about 13 lines a scene, 55 to a page', (p=>p>=24&&p<=34)(T.pkPages(T.scenes(many,'script'))), T.pkPages(T.scenes(many,'script')));
+ok('the lead\'s introduction, from the action', T.pkIntro('VALE',sc)==='VALE (40s), a wiry guide with a bad knee, climbs the ridge alone.', T.pkIntro('VALE',sc));
+const c={title:'Ridge Line',scenes:sc,text:RIDGE,kind:'feature',facts:F,you:{name:'Sam Actor',email:'sam@example.com'}};
+const lg=T.pkDraft('logline',c);
+ok('logline draft: built from your own lines, the lead in it', /wiry guide with a bad knee/.test(lg)&&/bridge is gone/.test(lg), lg);
+const sh=T.pkDraft('short',c);
+ok('short synopsis draft: the first, middle and last scenes, in your words', /climbs the ridge alone/.test(sh)&&/cold stove/.test(sh)&&/bridge is gone/.test(sh), sh);
+const tr=T.pkDraft('treatment',c);
+ok('treatment draft: every scene, its heading and its first lines', /^EXT\. RIDGE - DAY\n/.test(tr)&&/INT\. CABIN - NIGHT\nHale sits by the cold stove\. He has not eaten in days\./.test(tr), tr);
+ok('characters draft: one line each, from where they come in', /^VALE: VALE \(40s\)/.test(T.pkDraft('characters',c))&&/HALE: Hale sits by the cold stove\./.test(T.pkDraft('characters',c)), T.pkDraft('characters',c));
+const q=T.pkDraft('query',Object.assign({},c,{logline:'A guide with a bad knee crosses a river to bring her back.'}));
+ok('query draft: title, pages, your logline, your name, blanks marked for you', /read Ridge Line, a 1-page feature\./.test(q)&&/A guide with a bad knee/.test(q)&&/\[Your short synopsis\.\]/.test(q)&&/Sam Actor\nsam@example\.com$/.test(q), q);
+ok('logline check: one sentence, in range', /^29 words, 1 sentence\. Loglines are one sentence, usually 25 to 50 words\.$/.test(T.pkCheck('logline','A guide with a bad knee crosses a flooded river to bring back the woman who left him, before the snow closes the only pass out of the valley.')), T.pkCheck('logline','A guide with a bad knee crosses a flooded river to bring back the woman who left him, before the snow closes the only pass out of the valley.'));
+ok('logline check: two sentences, said', /This is 2\./.test(T.pkCheck('logline','He climbs. She waits.')));
+ok('synopsis check: shorter, said', /One-page synopses usually run 300 to 650\. This is shorter\./.test(T.pkCheck('synopsis','Vale climbs. Hale waits.')), T.pkCheck('synopsis','Vale climbs. Hale waits.'));
+ok('nothing written: nothing said', T.pkCheck('logline','')==='');
+ok('no em dashes in the drafts or checks', !/—/.test(lg+sh+tr+q+F.pageWords+F.titleWords+T.pkCheck('query',q)));
+const pdf=PDF.make([{title:'RIDGE LINE',paras:['Written by Sam Actor']},{title:'LOGLINE',paras:['A guide \u201cwith\u201d a bad knee \u2014 crosses (a river).'],page:true},{title:'TREATMENT',paras:Array(80).fill('Vale climbs the ridge alone in the wind and does not look back at the cabin below.'),page:true}],{font:'Courier'});
+const str=Buffer.from(pdf).toString('latin1');
+ok('the PDF: a real PDF, pages counted, built-in Courier', /^%PDF-1\.4/.test(str)&&/%%EOF\n$/.test(str)&&/\/Count [4-9]/.test(str)&&/\/BaseFont \/Courier/.test(str), str.match(/\/Count \d+/));
+ok('the PDF: curly quotes and a dash kept, brackets escaped', /\\223with\\224/.test(str)&&/\\227/.test(str)&&/\\\(a river\\\)/.test(str));
+const xref=+str.match(/startxref\n(\d+)/)[1]; ok('the PDF: its index points where it should', str.slice(xref,xref+4)==='xref');
+console.log(pass+' passed, '+fail+' failed'); process.exit(fail?1:0);

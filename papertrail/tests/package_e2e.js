@@ -1,0 +1,47 @@
+/* PAPER TRAIL: PACKAGE. The facts from the pages; each piece drafted from your own lines or written by you, its length
+   said; the package saved as a PDF; the query copied; SCRIPT PDF opens the draft in Writer's Blockage. Made-up script.
+   Server on :8811.  NODE_PATH=... node papertrail/tests/package_e2e.js */
+const {chromium}=require('playwright'); const fs=require('fs');
+(async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,500))); if(!x) ok=false; };
+const c=await b.newContext({viewport:{width:390,height:844},acceptDownloads:true}); await c.grantPermissions(['clipboard-read','clipboard-write'],{origin:'http://localhost:8811'});
+const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
+await p.goto('http://localhost:8811/papertrail/'); await p.evaluate(()=>{ localStorage.removeItem('paper_trail_v1'); localStorage.setItem('theactorpage_you_v1',JSON.stringify({name:'Sam Actor',email:'sam@example.com',phone:'555-0100',credits:[],photos:[],edited:{},from:{}})); indexedDB.deleteDatabase('paper_trail'); }); await p.reload(); await p.waitForTimeout(700);
+await p.click('#tabs [data-tab="add"]'); await p.fill('#ptitle','Ridge Line');
+await p.fill('#paste','Title: Ridge Line\nAuthor: Sam Actor\n\nEXT. RIDGE - DAY\n\nVALE (40s), a wiry guide with a bad knee, climbs the ridge alone. Wind.\n\nVALE\nHand me the rope.\n\nHALE\nYou sure about this?\n\nINT. CABIN - NIGHT\n\nHale sits by the cold stove. He has not eaten in days.\n\nHALE\nShe isn\'t coming back.\n\nEXT. RIVER - DAWN\n\nThe bridge is gone. Vale stares at the water and starts to wade in.\n\nVALE\nStay close.\n\nVALE\nNow.\n');
+await p.click('#readit'); await p.waitForTimeout(500); await p.click('[data-open]'); await p.waitForTimeout(300);
+await p.click('#tabs [data-tab="package"]'); await p.waitForTimeout(300);
+let m=await p.innerText('#main');
+want('PACKAGE: what it is, write it or draft it, nothing sent', /What this script needs to go out, in one place/.test(m)&&/DRAFT FROM MY PAGES/.test(m)&&/Nothing is sent from here/.test(m));
+want('the facts from the pages, said plainly', /3 scenes · 2 speaking parts · the most lines: VALE/.test(m)&&/About 1 page\. Features usually run 90 to 120\. This one is shorter\./.test(m)&&/Title page: there\./.test(m), m.slice(0,600));
+want('written by: from your profile', await p.inputValue('#pkby')==='Sam Actor');
+await p.selectOption('#pkkind','short'); await p.waitForTimeout(250);
+want('pick Short: the range changes', /Shorts usually run 5 to 40\./.test(await p.innerText('#pkfacts')));
+want('six pieces, each with what it is', (await p.$$eval('[data-pkcard]',x=>x.map(y=>y.dataset.pkcard))).join()==='logline,short,synopsis,treatment,characters,query');
+await p.click('[data-pkdraft="logline"]'); await p.waitForTimeout(250);
+const lg=await p.inputValue('[data-pk="logline"]');
+want('logline drafted from your own lines, its length said', /wiry guide with a bad knee/.test(lg)&&/words, \d+ sentences?\. Loglines are one sentence/.test(await p.innerText('#pkc_logline')), [lg,await p.innerText('#pkc_logline')]);
+await p.fill('[data-pk="logline"]','A guide with a bad knee crosses a flooded river to bring back the woman who left him, before the snow closes the only pass out.');
+await p.waitForTimeout(150);
+want('rewrite it: the check follows as you type', /^\d+ words, 1 sentence\. Loglines are one sentence, usually 25 to 50 words\.$/.test(await p.innerText('#pkc_logline')), await p.innerText('#pkc_logline'));
+await p.click('[data-pkdraft="short"]'); await p.waitForTimeout(200); await p.click('[data-pkdraft="characters"]'); await p.waitForTimeout(200); await p.click('[data-pkdraft="treatment"]'); await p.waitForTimeout(200);
+await p.click('[data-pkdraft="logline"]'); await p.waitForTimeout(300);
+want('drafting over your words asks first (accepted here)', /wiry guide/.test(await p.inputValue('[data-pk="logline"]')));
+await p.fill('[data-pk="logline"]','A guide with a bad knee crosses a flooded river to bring back the woman who left him.');
+await p.click('[data-pkdraft="query"]'); await p.waitForTimeout(250);
+const q=await p.inputValue('[data-pk="query"]');
+want('query drafted: the title, pages, your logline and short synopsis, your name, blanks for the rest', /read Ridge Line, a 1-page short\./.test(q)&&/crosses a flooded river/.test(q)&&/climbs the ridge alone/.test(q)&&/\[A line or two about you\.\]/.test(q)&&/Sam Actor\nsam@example\.com · 555-0100/.test(q), q);
+await p.reload(); await p.waitForTimeout(800); await p.click('[data-open]'); await p.waitForTimeout(200); await p.click('#tabs [data-tab="package"]'); await p.waitForTimeout(300);
+want('kept after a reload', /crosses a flooded river/.test(await p.inputValue('[data-pk="logline"]'))&&await p.inputValue('#pkkind')==='short');
+const [dl]=await Promise.all([p.waitForEvent('download'),p.click('#pkpdf')]);
+const pdf=fs.readFileSync(await dl.path(),'latin1');
+want('SAVE THE PACKAGE: a PDF named for the script', dl.suggestedFilename()==='Ridge Line package.pdf'&&/^%PDF-1\.4/.test(pdf)&&/%%EOF\n$/.test(pdf), dl.suggestedFilename());
+want('in it: title page, one-sheet with the logline, treatment; your name; the empty synopsis left out', /\(RIDGE LINE\)/.test(pdf)&&/\(Written by\)/.test(pdf)&&/RIDGE LINE: ONE-SHEET/.test(pdf)&&/crosses a flooded river/.test(pdf)&&/\(TREATMENT\)/.test(pdf)&&!/\(SYNOPSIS\)/.test(pdf.replace(/ONE-SHEET[\s\S]*?\(SYNOPSIS\)/,''))&&/Sam Actor/.test(pdf), pdf.match(/\(([^)]{3,40})\) Tj/g).slice(0,14));
+await p.click('#pkq'); await p.waitForTimeout(300);
+want('COPY THE QUERY', /read Ridge Line/.test(await p.evaluate(()=>navigator.clipboard.readText())));
+await p.click('#pkscript'); await p.waitForURL(/writers-blockage/); await p.waitForTimeout(2200);
+const wb=await p.evaluate(()=>document.body.innerText);
+want('SCRIPT PDF: the draft opens in Writer\'s Blockage, which says to export it', /From Paper Trail\. Export, then PDF/.test(wb)&&/RIDGE/.test(wb)&&/wiry guide/.test(wb), wb.slice(0,300));
+want('no em dashes', !/—/.test(m+q));
+want('no page errors', !errs.length, errs);
+await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();

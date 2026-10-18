@@ -479,6 +479,54 @@ T.vClosest=function(mine,base,names,n){
  return {pairs:pairs.sort((a,b)=>b.s-a.s).filter(p=>!seen.has(p.k)&&seen.add(p.k)).slice(0,n).map(({mine,yours,words})=>({mine,yours,words})),same};
 };
 
+
+/* ---------- PACKAGE: what a script needs to go out. The facts from the pages, and each piece drafted from your
+   own lines if you ask (raw material to rewrite, never sent as is) or written by you. Lengths said plainly. ---------- */
+T.PK_KINDS=[['feature','Feature',90,120],['short','Short',5,40],['tv30','TV half hour',25,35],['tv60','TV hour',50,65]];
+T.PK_PIECES=[['logline','Logline','One sentence: who, what they want, what is in the way.'],['short','Short synopsis','One paragraph. Goes on the one-sheet and in the query.'],['synopsis','Synopsis','About a page, the whole story, ending included.'],['treatment','Treatment','The story told scene by scene, in the present tense.'],['characters','Characters','One line each for the leads.'],['query','Query letter','A short email asking them to read it.']];
+const pkAction=s=>String(s.text||'').split('\n').filter(l=>!/^([^:]{1,40}):\s/.test(l)||!(s.lines||[]).some(x=>T.norm(x.name)===T.norm(l.split(':')[0]))).join(' ');
+const pkSpeech=s=>String(s.text||'').split('\n').filter(l=>{ const m=l.match(/^([^:]{1,40}):\s(.*)$/); return m&&(s.lines||[]).some(x=>T.norm(x.name)===T.norm(m[1])); });
+const pkSent=t=>String(t||'').replace(/\b(Mr|Mrs|Ms|Dr|St|Jr|Sr|Lt|Sgt|Capt|Gen|Col|Det|Prof|Rev|Mt|vs|etc|No)\./gi,'$1\u0001').split(/(?<=[.!?\u2026]["')\]]?)\s+/).map(x=>x.replace(/\u0001/g,'.').trim()).filter(x=>/[A-Za-z0-9]/.test(x));
+const firstSent=t=>pkSent(t)[0]||'';
+const cap=(t,n)=>{ const w=String(t||'').split(/\s+/).filter(Boolean); return w.length>n?w.slice(0,n).join(' ')+'…':w.join(' '); };
+/* pages the way a script lays out: action wraps near 61 characters, dialogue near 35, 55 lines a page */
+T.pkPages=function(scenes){ let L=0; (scenes||[]).forEach(s=>{ L+=2; String(s.text||'').split('\n').forEach(l=>{ const m=l.match(/^([^:]{1,40}):\s(.*)$/), sp=m&&(s.lines||[]).some(x=>T.norm(x.name)===T.norm(m[1]));
+ if(sp) L+=2+Math.ceil(m[2].length/35); else if(l.trim()) L+=1+Math.ceil(l.length/61); }); }); return Math.max(1,Math.round(L/55)); };
+T.pkIntro=function(name,scenes){ const re=T.nameRe(name); if(!re) return '';
+ for(const s of scenes||[]){ const S=pkSent(pkAction(s)); const hit=S.find(x=>re.test(x)); if(hit) return hit; } return ''; };
+T.pkFacts=function(scenes,text,kind){
+ const K=T.PK_KINDS.find(k=>k[0]===kind)||T.PK_KINDS[0], pages=T.pkPages(scenes), C=T.characters([{id:'d',scenes:scenes||[]}]).filter(c=>(c.by.d||0)>0);
+ const head=String(text||'').split(/\n\s*\n/)[0]||'', titlePage=/^\s*title\s*:/im.test(head)||/written by/i.test(String(text||'').slice(0,600));
+ const inRange=pages>=K[2]&&pages<=K[3];
+ return {pages,scenes:(scenes||[]).length,speakers:C.length,lead:C[0]?C[0].name:'',chars:C.map(c=>({name:c.name,lines:c.by.d})),words:(scenes||[]).reduce((n,s)=>n+(s.words||0),0),titlePage,kind:K[0],
+  pageWords:'About '+pages+' page'+(pages===1?'':'s')+'. '+K[1]+'s usually run '+K[2]+' to '+K[3]+'.'+(inRange?'':pages<K[2]?' This one is shorter.':' This one is longer.'),
+  titleWords:titlePage?'Title page: there.':'No title page in this draft. Writer’s Blockage puts one on the PDF.'};
+};
+T.pkDraft=function(piece,c){
+ const sc=c.scenes||[], F=c.facts||T.pkFacts(sc,c.text,c.kind), lead=F.lead, n=sc.length, title=c.title||'Untitled';
+ const sceneLine=s=>{ const a=firstSent(pkAction(s)); if(a) return a; const sp=pkSpeech(s)[0]; if(!sp) return ''; const m=sp.match(/^([^:]{1,40}):\s(.*)$/); return m[1]+': “'+cap(m[2],18)+'”'; };
+ const pick=k=>{ if(n<=k) return sc.slice(); const out=[]; for(let i=0;i<k;i++) out.push(sc[Math.round(i*(n-1)/(k-1))]); return out.filter((x,i,a)=>a.indexOf(x)===i); };
+ if(piece==='logline'){ const a=lead?T.pkIntro(lead,sc):'', b=n?firstSent(pkAction(sc[n-1])):''; return cap([a,b].filter(Boolean).join(' '),50); }
+ if(piece==='short'){ return cap(pick(3).map(sceneLine).filter(Boolean).join(' '),160); }
+ if(piece==='synopsis'){ const L=pick(30).map(sceneLine).filter(Boolean), P=[]; for(let i=0;i<L.length;i+=5) P.push(L.slice(i,i+5).join(' ')); return cap(P.join('\n\n'),600).replace(/ ?…$/,'…'); }
+ if(piece==='treatment'){ const beat=(s,i,k)=>{ const A=pkSent(pkAction(s)).slice(0,k).join(' '), sp=pkSpeech(s)[0]; return (s.heading||('Scene '+(i+1)))+'\n'+(A||(sp?sp.replace(/^([^:]{1,40}):\s/,'$1: '):'')); };
+  let t=sc.map((s,i)=>beat(s,i,2)).join('\n\n'); if(vWords(t).length>4500) t=sc.map((s,i)=>beat(s,i,1)).join('\n\n'); return t; }
+ if(piece==='characters'){ return (F.chars||[]).slice(0,6).map(ch=>{ const i=T.pkIntro(ch.name,sc); return ch.name+': '+(i||ch.lines+' line'+(ch.lines===1?'':'s')+'.'); }).join('\n'); }
+ if(piece==='query'){ const y=c.you||{}, K=(T.PK_KINDS.find(k=>k[0]===F.kind)||T.PK_KINDS[0])[1].toLowerCase();
+  return ['Dear [their name],','','I’m writing to ask if you’d read '+title+', a '+F.pages+'-page '+K+(c.genre?' '+c.genre.toLowerCase():'')+'.','',(c.logline||'[Your logline.]'),'',(c.short||'[Your short synopsis.]'),'','[A line or two about you.]','','Thank you for your time.','',(y.name||'[Your name]'),[y.email,y.phone].filter(Boolean).join(' · ')].join('\n').replace(/\n+$/,''); }
+ return '';
+};
+T.pkCheck=function(piece,text){
+ const w=vWords(text).length, S=vSent(text).length, say=(lo,hi,what)=>w+' words. '+what+' usually run'+(what.endsWith('s')?'':'s')+' '+lo+' to '+hi+'.'+(w<lo?' This is shorter.':w>hi?' This is longer.':'');
+ if(!String(text||'').trim()) return '';
+ if(piece==='logline') return w+' word'+(w===1?'':'s')+', '+S+' sentence'+(S===1?'':'s')+'. Loglines are one sentence, usually 25 to 50 words.'+(S>1?' This is '+S+'.':'')+(w>50?' This is longer.':'');
+ if(piece==='short') return say(80,160,'Short synopses');
+ if(piece==='synopsis') return say(300,650,'One-page synopses');
+ if(piece==='treatment') return say(1000,6000,'Treatments');
+ if(piece==='characters'){ const n=String(text).split('\n').filter(x=>x.trim()).length; return n+' character'+(n===1?'':'s')+'.'; }
+ if(piece==='query') return w+' words. Queries are best kept under 300.'+(w>300?' This is longer.':'');
+ return '';
+};
 if(typeof module!=='undefined') module.exports=T;
 g.PaperTrail=T;
 })(typeof window!=='undefined'?window:globalThis);

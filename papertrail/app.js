@@ -130,7 +130,7 @@ async function docxText(buf){
 function tabs(){
  const p=VIEW.p&&DB.projects[VIEW.p];
  const t=[['projects','Projects'],['add','Add drafts'],['allchars','All characters'],['voice','Sounds like you']];
- if(p) t.push(['scenes','Scenes'],['read','Table read'],['bones','Boneyard'],['research','Research'],['threads','Setups'],['drafts','Drafts'],['characters','Characters']);
+ if(p) t.push(['scenes','Scenes'],['read','Table read'],['bones','Boneyard'],['research','Research'],['threads','Setups'],['drafts','Drafts'],['characters','Characters'],['package','Package']);
  $('tabs').innerHTML=t.map(([k,l])=>'<button data-tab="'+k+'" class="'+(VIEW.tab===k?'on':'')+'">'+l+'</button>').join('');
  $('crumb').innerHTML='<a data-go="projects">Paper Trail</a>'+(p?' &nbsp;/&nbsp; <a data-go="scenes">'+esc(p.title)+'</a>':'')+(VIEW.scene!=null&&p?' &nbsp;/&nbsp; scene':'');
 }
@@ -148,6 +148,7 @@ function render(){
  else if(VIEW.tab==='bones') m.innerHTML=vBones(p);
  else if(VIEW.tab==='threads') m.innerHTML=vThreads(p);
  else if(VIEW.tab==='research') m.innerHTML=vResearch(p);
+ else if(VIEW.tab==='package') m.innerHTML=vPackage(p);
  wire();
 }
 /* ---------- the front: speech, mic and camera, as tiles, before you go looking ---------- */
@@ -637,6 +638,32 @@ function vVoice(){
  if(C.same.length) h+='<p class="note">'+C.same.length+' line'+(C.same.length===1?' here is':'s here are')+' word for word in your other drafts, so '+(C.same.length===1?'it isn\'t':'they aren\'t')+' shown as matches: '+C.same.slice(0,3).map(u=>'“'+esc(u.text.length>80?u.text.slice(0,79)+'…':u.text)+'”').join(' ')+(C.same.length>3?' and '+(C.same.length-3)+' more.':'')+'</p>';
  return h;
 }
+/* ---------- PACKAGE: what this script needs to go out. Facts from the pages; each piece drafted from your own lines
+   (DRAFT FROM MY PAGES) or written by you. Nothing is sent from here. ---------- */
+function pkOf(p){ p.package=p.package||{kind:'feature',genre:'',by:''}; return p.package; }
+function pkCtx(p){ const c=current(p), sc=c?scenesOf(c):[], pk=pkOf(p); let you={}; try{ you=window.You?You.get():{}; }catch(e){}
+ return {title:p.title,scenes:sc,text:c?TEXT[c.id]||'':'',kind:pk.kind,facts:T.pkFacts(sc,c?TEXT[c.id]||'':'',pk.kind),you:Object.assign({},you,{name:pk.by||you.name||''}),genre:pk.genre,logline:pk.logline,short:pk.short}; }
+function vPackage(p){
+ const c=current(p); if(!c) return '<div class="panel">A package needs a script draft. <button class="btn sm" data-tab="add">ADD DRAFTS</button></div>';
+ const pk=pkOf(p), X=pkCtx(p), F=X.facts;
+ let h='<p class="note">What this script needs to go out, in one place. Each piece: write it yourself, or DRAFT FROM MY PAGES and rewrite what it pulls from your script. Nothing is sent from here.</p>';
+ h+='<div class="panel"><div class="eyebrow" style="margin-top:0">The script</div><div class="row" style="gap:8px;margin-bottom:8px"><select class="field" id="pkkind" style="flex:1 1 140px">'+T.PK_KINDS.map(k=>'<option value="'+k[0]+'"'+(pk.kind===k[0]?' selected':'')+'>'+k[1]+'</option>').join('')+'</select><input class="field" id="pkgenre" placeholder="Genre (your words)" value="'+esc(pk.genre||'')+'" style="flex:1 1 140px"><input class="field" id="pkby" placeholder="Written by" value="'+esc(pk.by||X.you.name||'')+'" style="flex:1 1 140px"></div>'
+  +'<p class="note" style="margin:0" id="pkfacts">'+esc(c.label)+' · '+F.scenes+' scenes · '+F.speakers+' speaking parts'+(F.lead?' · the most lines: '+esc(F.lead):'')+'<br>'+esc(F.pageWords)+' Writer\u2019s Blockage gives the exact count.<br>'+esc(F.titleWords)+'</p></div>';
+ T.PK_PIECES.forEach(([k,label,say])=>{ const v=pk[k]||'';
+  h+='<div class="panel" data-pkcard="'+k+'"><div class="row" style="justify-content:space-between"><div class="eyebrow" style="margin:0">'+label+'</div><button class="btn sm ghost" data-pkdraft="'+k+'">DRAFT FROM MY PAGES</button></div>'
+   +'<p class="note" style="margin:4px 0 8px">'+esc(say)+'</p><textarea class="field" data-pk="'+k+'" style="min-height:'+(k==='treatment'||k==='synopsis'?'180':k==='query'?'200':'80')+'px">'+esc(v)+'</textarea><p class="note" id="pkc_'+k+'" style="margin:6px 0 0">'+esc(T.pkCheck(k,v))+'</p></div>'; });
+ h+='<div class="eyebrow">Send it out</div><div class="panel"><div class="row"><button class="btn pri" id="pkpdf">SAVE THE PACKAGE (.pdf)</button><button class="btn" id="pkscript">SCRIPT PDF</button><button class="btn ghost" id="pkq">COPY THE QUERY</button><button class="btn ghost" data-tab="drafts">PROOF OF DRAFT</button></div>'
+  +'<p class="note" style="margin:8px 0 0">The package: a title page, the one-sheet (logline, short synopsis, characters, the facts), the synopsis and the treatment, in Courier. Pieces you leave empty stay out. SCRIPT PDF opens this draft in Writer\u2019s Blockage for the formatted screenplay with its title page.</p></div>';
+ return h;
+}
+function pkSections(p){ const pk=pkOf(p), X=pkCtx(p), F=X.facts, by=pk.by||X.you.name||'', y=X.you||{}, K=(T.PK_KINDS.find(k=>k[0]===pk.kind)||T.PK_KINDS[0])[1];
+ const S=[{title:'',paras:['','','','','','',String(p.title||'Untitled').toUpperCase(),'',by?'Written by':'',by,'','','','','','',[y.email,y.phone].filter(Boolean).join('   '),y.rep?'Represented by '+y.rep+(y.repPhone?', '+y.repPhone:''):'']}];
+ const one=[]; if(pk.logline) one.push('LOGLINE','',pk.logline,''); if(pk.short) one.push('SYNOPSIS','',pk.short,''); if(pk.characters) one.push('CHARACTERS','',pk.characters,'');
+ one.push('THE SCRIPT','',K+(pk.genre?', '+pk.genre:'')+'. About '+F.pages+' pages.'+(by?' Written by '+by+'.':''));
+ S.push({title:String(p.title||'Untitled').toUpperCase()+': ONE-SHEET',paras:one,page:true});
+ if(pk.synopsis) S.push({title:'SYNOPSIS',paras:pk.synopsis.split(/\n\s*\n/),page:true});
+ if(pk.treatment) S.push({title:'TREATMENT',paras:pk.treatment.split(/\n\s*\n/),page:true});
+ return S; }
 function vChars(p){
  const ds=draftsOf(p.id).filter(d=>d.kind==='script'&&!d.retired);
  if(!ds.length) return '<div class="panel">No script drafts yet.</div>';
@@ -668,6 +695,15 @@ function wire(){
  document.querySelectorAll('[data-scene]').forEach(b=>b.onclick=()=>{ VIEW.scene=Number(b.dataset.scene); render(); window.scrollTo(0,0); });
  document.querySelectorAll('[data-goscene]').forEach(b=>b.onclick=()=>{ VIEW.tab='scenes'; VIEW.scene=Number(b.dataset.goscene); render(); window.scrollTo(0,0); });
  document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>{ VIEW.scene=null; render(); });
+ /* PACKAGE */
+ { const p=VIEW.p&&DB.projects[VIEW.p]; if(VIEW.tab==='package'&&p){ const pk=pkOf(p);
+  document.querySelectorAll('[data-pk]').forEach(t=>t.oninput=()=>{ pk[t.dataset.pk]=t.value; p.updated=Date.now(); save(); const ck=$('pkc_'+t.dataset.pk); if(ck) ck.textContent=T.pkCheck(t.dataset.pk,t.value); });
+  [['pkkind','kind'],['pkgenre','genre'],['pkby','by']].forEach(([id,k])=>{ const el=$(id); if(el) el[el.tagName==='SELECT'?'onchange':'oninput']=()=>{ pk[k]=el.value; save(); if(k==='kind') render(); }; });
+  document.querySelectorAll('[data-pkdraft]').forEach(b=>b.onclick=()=>{ const k=b.dataset.pkdraft; if((pk[k]||'').trim()&&!confirm('Replace what you have here with a draft from your pages?')) return; pk[k]=T.pkDraft(k,pkCtx(p)); save(); render(); const t=document.querySelector('[data-pk="'+k+'"]'); if(t){ t.scrollIntoView({block:'center'}); } toast('Drafted from your own lines. Rewrite it in your words.'); });
+  const pf=$('pkpdf'); if(pf) pf.onclick=()=>{ if(!window.TextPDF) return; const b=new Blob([TextPDF.make(pkSections(p),{font:'Courier'})],{type:'application/pdf'}), a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=(p.title+' package').replace(/[^\w .-]+/g,'').trim()+'.pdf'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),3000); };
+  const ps=$('pkscript'); if(ps) ps.onclick=()=>{ const c=current(p); if(!c) return; try{ localStorage.setItem('theactorpage_handoff_premise',JSON.stringify({from:'papertrail',title:p.title,fountain:TEXT[c.id]||'',at:Date.now()})); }catch(e){} location.href='../write/writers-blockage.html'; };
+  const pq=$('pkq'); if(pq) pq.onclick=()=>{ const t=pk.query||T.pkDraft('query',pkCtx(p)); try{ navigator.clipboard.writeText(t).then(()=>toast('The query is copied.'),()=>toast('Could not copy here.')); }catch(e){ toast('Could not copy here.'); } };
+ } }
  /* PROOF OF DRAFT */
  const pm=$('proofmk'); if(pm) pm.onclick=async()=>{ const p=DB.projects[VIEW.p]; if(!p) return; const t=T.proof(await proofItems([p]),Date.now()), o=$('proofout');
   o.innerHTML='<div class="read" style="margin-top:10px">'+esc(t)+'</div><div class="row" style="margin-top:8px"><button class="btn sm" id="pcopy">COPY</button><button class="btn sm ghost" id="psave">SAVE AS TEXT</button></div>';
