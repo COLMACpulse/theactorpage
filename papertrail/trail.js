@@ -527,6 +527,26 @@ T.pkCheck=function(piece,text){
  if(piece==='query') return w+' words. Queries are best kept under 300.'+(w>300?' This is longer.':'');
  return '';
 };
+
+/* ---------- SENT OUT: where each script went, when, which draft, the fee, what came back. Your words, your marks. ---------- */
+T.SEND_KINDS=[['contest','Contest'],['fellowship','Fellowship or lab'],['hosting','Hosting site'],['manager','Manager'],['agent','Agent'],['company','Production company'],['festival','Festival'],['other','Other']];
+T.SEND_STATUS=[['planned','Going to send'],['sent','Sent, waiting'],['asked','They asked for more'],['advanced','Moved on a round'],['won','Won or placed'],['passed','Passed'],['quiet','No answer']];
+T.sendLabel=(L,k)=>(L.find(x=>x[0]===k)||[k,k])[1];
+const dshort=d=>{ if(!d) return ''; const x=new Date(d+'T12:00:00'); return isNaN(x)?String(d):x.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
+T.sendWords=function(e){ const L=[T.sendLabel(T.SEND_KINDS,e.kind)];
+ if(e.status==='planned') L.push(e.deadline?'deadline '+dshort(e.deadline):'not sent yet'); else if(e.sent) L.push('sent '+dshort(e.sent));
+ if(e.fee) L.push('fee '+String(e.fee).replace(/^\$?/,'$')); if(e.draft) L.push(e.draft); if(e.heard) L.push('heard '+dshort(e.heard));
+ return L.join(' · '); };
+T.sendSummary=function(list){ const c={}; (list||[]).forEach(e=>{ c[e.status]=(c[e.status]||0)+1; });
+ const out=(list||[]).filter(e=>e.status!=='planned').length, fees=(list||[]).reduce((n,e)=>n+(parseFloat(String(e.fee||'').replace(/[^0-9.]/g,''))||0),0);
+ const L=[out+' sent'];
+ [['sent','waiting'],['asked','asked for more'],['advanced','moved on'],['won','won or placed'],['passed','passed'],['quiet','no answer'],['planned','going to send']].forEach(([k,w])=>{ if(c[k]) L.push(c[k]+' '+w); });
+ if(fees) L.push('$'+(Math.round(fees*100)/100).toLocaleString('en-US')+' in fees');
+ return (list||[]).length?L.join(' · '):'Nothing sent yet.'; };
+/* deadlines coming up, for what you're going to send: the next 30 days */
+T.sendDue=function(list,now){ const d0=new Date(now||Date.now()); d0.setHours(0,0,0,0);
+ return (list||[]).filter(e=>e.status==='planned'&&e.deadline).map(e=>({e,days:Math.round((new Date(e.deadline+'T00:00:00')-d0)/86400000)})).filter(x=>x.days>=0&&x.days<=30).sort((a,b)=>a.days-b.days); };
+T.sendText=function(rows){ return rows.map(r=>[r.title,r.e.where,T.sendLabel(T.SEND_STATUS,r.e.status),T.sendWords(r.e),r.e.notes||''].filter(Boolean).join(' | ')).join('\n'); };
 if(typeof module!=='undefined') module.exports=T;
 g.PaperTrail=T;
 })(typeof window!=='undefined'?window:globalThis);

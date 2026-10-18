@@ -129,8 +129,8 @@ async function docxText(buf){
 /* ---------- views ---------- */
 function tabs(){
  const p=VIEW.p&&DB.projects[VIEW.p];
- const t=[['projects','Projects'],['add','Add drafts'],['allchars','All characters'],['voice','Sounds like you']];
- if(p) t.push(['scenes','Scenes'],['read','Table read'],['bones','Boneyard'],['research','Research'],['threads','Setups'],['drafts','Drafts'],['characters','Characters'],['package','Package']);
+ const t=[['projects','Projects'],['add','Add drafts'],['allchars','All characters'],['voice','Sounds like you'],['allsent','All sent out']];
+ if(p) t.push(['scenes','Scenes'],['read','Table read'],['bones','Boneyard'],['research','Research'],['threads','Setups'],['drafts','Drafts'],['characters','Characters'],['package','Package'],['sent','Sent out']);
  $('tabs').innerHTML=t.map(([k,l])=>'<button data-tab="'+k+'" class="'+(VIEW.tab===k?'on':'')+'">'+l+'</button>').join('');
  $('crumb').innerHTML='<a data-go="projects">Paper Trail</a>'+(p?' &nbsp;/&nbsp; <a data-go="scenes">'+esc(p.title)+'</a>':'')+(VIEW.scene!=null&&p?' &nbsp;/&nbsp; scene':'');
 }
@@ -140,6 +140,7 @@ function render(){
  if(VIEW.tab==='add') m.innerHTML=vAdd();
  else if(VIEW.tab==='allchars') m.innerHTML=vAllChars();
  else if(VIEW.tab==='voice') m.innerHTML=vVoice();
+ else if(VIEW.tab==='allsent') m.innerHTML=vAllSent();
  else if(!p||VIEW.tab==='projects') m.innerHTML=vProjects();
  else if(VIEW.tab==='scenes') m.innerHTML=VIEW.scene!=null?vScene(p,VIEW.scene):vScenes(p);
  else if(VIEW.tab==='drafts') m.innerHTML=vDrafts(p);
@@ -149,6 +150,7 @@ function render(){
  else if(VIEW.tab==='threads') m.innerHTML=vThreads(p);
  else if(VIEW.tab==='research') m.innerHTML=vResearch(p);
  else if(VIEW.tab==='package') m.innerHTML=vPackage(p);
+ else if(VIEW.tab==='sent') m.innerHTML=vSent(p);
  wire();
 }
 /* ---------- the front: speech, mic and camera, as tiles, before you go looking ---------- */
@@ -652,7 +654,7 @@ function vPackage(p){
  T.PK_PIECES.forEach(([k,label,say])=>{ const v=pk[k]||'';
   h+='<div class="panel" data-pkcard="'+k+'"><div class="row" style="justify-content:space-between"><div class="eyebrow" style="margin:0">'+label+'</div><button class="btn sm ghost" data-pkdraft="'+k+'">DRAFT FROM MY PAGES</button></div>'
    +'<p class="note" style="margin:4px 0 8px">'+esc(say)+'</p><textarea class="field" data-pk="'+k+'" style="min-height:'+(k==='treatment'||k==='synopsis'?'180':k==='query'?'200':'80')+'px">'+esc(v)+'</textarea><p class="note" id="pkc_'+k+'" style="margin:6px 0 0">'+esc(T.pkCheck(k,v))+'</p></div>'; });
- h+='<div class="eyebrow">Send it out</div><div class="panel"><div class="row"><button class="btn pri" id="pkpdf">SAVE THE PACKAGE (.pdf)</button><button class="btn" id="pkscript">SCRIPT PDF</button><button class="btn ghost" id="pkq">COPY THE QUERY</button><button class="btn ghost" data-tab="drafts">PROOF OF DRAFT</button></div>'
+ h+='<div class="eyebrow">Send it out</div><div class="panel"><div class="row"><button class="btn pri" id="pkpdf">SAVE THE PACKAGE (.pdf)</button><button class="btn" id="pkscript">SCRIPT PDF</button><button class="btn ghost" id="pkq">COPY THE QUERY</button><button class="btn ghost" data-tab="drafts">PROOF OF DRAFT</button><button class="btn ghost" data-tab="sent">SENT OUT</button></div>'
   +'<p class="note" style="margin:8px 0 0">The package: a title page, the one-sheet (logline, short synopsis, characters, the facts), the synopsis and the treatment, in Courier. Pieces you leave empty stay out. SCRIPT PDF opens this draft in Writer\u2019s Blockage for the formatted screenplay with its title page.</p></div>';
  return h;
 }
@@ -664,6 +666,47 @@ function pkSections(p){ const pk=pkOf(p), X=pkCtx(p), F=X.facts, by=pk.by||X.you
  if(pk.synopsis) S.push({title:'SYNOPSIS',paras:pk.synopsis.split(/\n\s*\n/),page:true});
  if(pk.treatment) S.push({title:'TREATMENT',paras:pk.treatment.split(/\n\s*\n/),page:true});
  return S; }
+/* ---------- SENT OUT: where each script went. Per project, and all of them together. ---------- */
+const WHERE='<details class="panel" id="where"><summary class="eyebrow" style="margin:0;cursor:pointer">Where a script can go, without an agent</summary>'
+ +'<p class="note">Checked October 2026. The rules change every year: check their site before you pay.</p>'
+ +'<p><b>Contests and fellowships</b> take scripts from anyone, usually for a fee, once a year. The Nicholl (the Academy\u2019s) took its 2026 entries only through the Black List or the Writers Guild Foundation, each with a cap. Others writers name: Austin Film Festival, the PAGE Awards, Script Pipeline.</p>'
+ +'<p><b>Hosting sites.</b> The Black List hosts your script where industry readers can find it, for a monthly fee, with paid evaluations.</p>'
+ +'<p><b>Managers and agents.</b> A query letter first (it\u2019s in Package). Many don\u2019t read queries they didn\u2019t ask for. A placing in a known contest gets read.</p>'
+ +'<p><b>Production companies.</b> Most won\u2019t read a script that doesn\u2019t come through a rep, or without a signed release form. If one sends you a release, read it before you sign.</p>'
+ +'<p><b>Festivals</b> take films, not scripts, except their screenplay contests (Austin has one). A short you made goes in FILM.</p>'
+ +'<p class="note">Sources: <a href="https://press.oscars.org/news/academy-announces-partners-2026-2027-nicholl-fellowships-screenwriting-program" target="_blank" rel="noopener">the Academy on the 2026 Nicholl</a> · <a href="https://wgfoundation.org/nicholl" target="_blank" rel="noopener">Writers Guild Foundation</a> · <a href="https://www.scriptreaderpro.com/screenwriting-contests/" target="_blank" rel="noopener">Script Reader Pro on contests</a></p></details>';
+let SENTF='all';
+const today=()=>new Date().toISOString().slice(0,10);
+function sendRow(e,title,pid){ return '<div class="li" data-send="'+e.id+'"><div class="w">'+(title?'<a data-sopen="'+esc(pid)+'">'+esc(title)+'</a> \u00b7 ':'')+'<b>'+esc(e.where||'(where?)')+'</b>'
+  +'<small>'+esc(T.sendWords(e))+'</small>'+(e.notes?'<small>'+esc(e.notes)+'</small>':'')+(e.link?'<small><a href="'+esc(e.link)+'" target="_blank" rel="noopener">'+esc(e.link.replace(/^https?:\/\//,'').slice(0,40))+'</a></small>':'')
+  +'<div class="row" style="gap:4px;margin-top:6px">'+T.SEND_STATUS.map(([k,l])=>'<button class="btn sm'+(e.status===k?' pri':' ghost')+'" data-sst="'+esc(pid)+'|'+e.id+'|'+k+'">'+esc(l)+'</button>').join('')+'</div></div>'
+  +'<button class="btn sm ghost" data-sdel="'+esc(pid)+'|'+e.id+'">DELETE</button></div>'; }
+function dueHtml(rows){ return rows.length?'<div class="panel" style="border-color:var(--gold)">'+rows.map(x=>'<p style="margin:2px 0"><b>'+(x.days===0?'Deadline today':'Deadline in '+x.days+' day'+(x.days===1?'':'s'))+':</b> '+esc(x.e.where)+(x.title?' ('+esc(x.title)+')':'')+'</p>').join('')+'</div>':''; }
+function vSent(p){
+ const L=(p.sends=p.sends||[]).slice().sort((a,b)=>String(b.sent||b.deadline||'').localeCompare(String(a.sent||a.deadline||''))), ds=draftsOf(p.id).filter(d=>d.kind==='script'), c=current(p);
+ let h='<p class="note">Where '+esc(p.title)+' has gone: contests, managers, companies, festivals. When, which draft, the fee, and what came back, in your marks.</p>';
+ h+='<div class="stats"><div style="flex:1"><span>'+esc(T.sendSummary(L))+'</span></div></div>'+dueHtml(T.sendDue(L).map(x=>Object.assign(x,{title:''})));
+ h+='<details class="panel" id="saddbox"'+(L.length?'':' open')+'><summary class="eyebrow" style="margin:0;cursor:pointer">Add where you sent it</summary>'
+  +'<input class="field" id="sw" placeholder="Where (the contest, the manager, the company)" style="margin-top:8px">'
+  +'<div class="row" style="gap:6px;margin-top:6px"><select class="field" id="sk" style="flex:1 1 140px">'+T.SEND_KINDS.map(([k,l])=>'<option value="'+k+'">'+l+'</option>').join('')+'</select><select class="field" id="ss" style="flex:1 1 140px">'+T.SEND_STATUS.map(([k,l])=>'<option value="'+k+'"'+(k==='sent'?' selected':'')+'>'+l+'</option>').join('')+'</select></div>'
+  +'<div class="row" style="gap:6px;margin-top:6px"><label class="note" style="flex:1 1 120px">Sent<input class="field" type="date" id="sd" value="'+today()+'"></label><label class="note" style="flex:1 1 120px">Deadline<input class="field" type="date" id="sdl"></label><label class="note" style="flex:1 1 90px">Fee<input class="field" id="sf" placeholder="$0" inputmode="decimal"></label></div>'
+  +'<select class="field" id="sdr" style="margin-top:6px">'+ds.map(d=>'<option value="'+esc(d.id)+'"'+(c&&d.id===c.id?' selected':'')+'>Which draft: '+esc(d.label)+'</option>').join('')+'</select>'
+  +'<input class="field" id="sl" placeholder="Link (optional)" style="margin-top:6px"><textarea class="field" id="sn" placeholder="Notes (who, what they said)" style="margin-top:6px;min-height:60px"></textarea>'
+  +'<div class="row" style="margin-top:8px"><button class="btn pri" id="sadd">ADD IT</button></div></details>';
+ h+='<div class="list">'+(L.length?L.map(e=>sendRow(e,'',p.id)).join(''):'<div class="li note">Nothing sent yet.</div>')+'</div>';
+ return h+WHERE;
+}
+function allSends(){ const R=[]; projects().forEach(p=>(p.sends||[]).forEach(e=>R.push({e,title:p.title,pid:p.id}))); return R.sort((a,b)=>String(b.e.sent||b.e.deadline||'').localeCompare(String(a.e.sent||a.e.deadline||''))); }
+function vAllSent(){
+ const R=allSends(), counts={}; R.forEach(r=>counts[r.e.status]=(counts[r.e.status]||0)+1);
+ let h='<p class="note">Everywhere your scripts have gone, every project. Tap a title to open that project.</p>';
+ h+='<div class="stats"><div style="flex:1"><span>'+esc(T.sendSummary(R.map(r=>r.e)))+'</span></div></div>'+dueHtml(T.sendDue(R.map(r=>r.e)).map(x=>Object.assign(x,{title:(R.find(r=>r.e===x.e)||{}).title})));
+ if(R.length) h+='<div class="row" style="gap:4px;margin-bottom:10px">'+[['all','All']].concat(T.SEND_STATUS.filter(([k])=>counts[k])).map(([k,l])=>'<button class="btn sm'+(SENTF===k?' pri':' ghost')+'" data-sf="'+k+'">'+esc(l)+(k==='all'?'':' '+counts[k])+'</button>').join('')+'</div>';
+ const F=R.filter(r=>SENTF==='all'||r.e.status===SENTF);
+ h+='<div class="list">'+(F.length?F.map(r=>sendRow(r.e,r.title,r.pid)).join(''):'<div class="li note">'+(R.length?'Nothing marked that.':'Nothing sent yet. Open a project, then SENT OUT.')+'</div>')+'</div>';
+ if(R.length) h+='<div class="row" style="margin-top:10px"><button class="btn ghost" id="stxt">SAVE AS TEXT</button></div>';
+ return h+WHERE;
+}
 function vChars(p){
  const ds=draftsOf(p.id).filter(d=>d.kind==='script'&&!d.retired);
  if(!ds.length) return '<div class="panel">No script drafts yet.</div>';
@@ -695,6 +738,18 @@ function wire(){
  document.querySelectorAll('[data-scene]').forEach(b=>b.onclick=()=>{ VIEW.scene=Number(b.dataset.scene); render(); window.scrollTo(0,0); });
  document.querySelectorAll('[data-goscene]').forEach(b=>b.onclick=()=>{ VIEW.tab='scenes'; VIEW.scene=Number(b.dataset.goscene); render(); window.scrollTo(0,0); });
  document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>{ VIEW.scene=null; render(); });
+ /* SENT OUT */
+ { const p=VIEW.p&&DB.projects[VIEW.p];
+  const sa=$('sadd'); if(sa&&p) sa.onclick=()=>{ const w=$('sw').value.trim(); if(!w){ toast('Where did it go?'); return; } const d=DB.drafts[$('sdr').value];
+   p.sends=p.sends||[]; p.sends.push({id:rid('s'),where:w,kind:$('sk').value,status:$('ss').value,sent:$('ss').value==='planned'?'':$('sd').value,deadline:$('sdl').value,fee:$('sf').value.trim(),draftId:d?d.id:'',draft:d?d.label+(/^[0-9a-f]{64}$/.test(d.hash||'')?', fingerprint '+d.hash.slice(0,8):''):'',link:$('sl').value.trim(),notes:$('sn').value.trim(),at:Date.now()});
+   p.updated=Date.now(); save(); render(); toast('Added.'); };
+  document.querySelectorAll('[data-sst]').forEach(b=>b.onclick=()=>{ const [pid,id,k]=b.dataset.sst.split('|'), q=DB.projects[pid], e=q&&(q.sends||[]).find(x=>x.id===id); if(!e) return;
+   e.status=k; if(k==='planned') {} else if(!e.sent) e.sent=today(); if(['asked','advanced','won','passed'].includes(k)) e.heard=today(); q.updated=Date.now(); save(); render(); });
+  document.querySelectorAll('[data-sdel]').forEach(b=>b.onclick=()=>{ const [pid,id]=b.dataset.sdel.split('|'), q=DB.projects[pid]; if(!q||!confirm('Delete this one from the list?')) return; q.sends=(q.sends||[]).filter(x=>x.id!==id); save(); render(); });
+  document.querySelectorAll('[data-sf]').forEach(b=>b.onclick=()=>{ SENTF=b.dataset.sf; render(); });
+  document.querySelectorAll('[data-sopen]').forEach(a=>a.onclick=()=>{ VIEW.p=a.dataset.sopen; go('sent'); });
+  const st=$('stxt'); if(st) st.onclick=()=>saveText('Paper Trail sent out '+stamp(),T.sendText(allSends()));
+ }
  /* PACKAGE */
  { const p=VIEW.p&&DB.projects[VIEW.p]; if(VIEW.tab==='package'&&p){ const pk=pkOf(p);
   document.querySelectorAll('[data-pk]').forEach(t=>t.oninput=()=>{ pk[t.dataset.pk]=t.value; p.updated=Date.now(); save(); const ck=$('pkc_'+t.dataset.pk); if(ck) ck.textContent=T.pkCheck(t.dataset.pk,t.value); });

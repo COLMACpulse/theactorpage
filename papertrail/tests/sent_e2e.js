@@ -1,0 +1,51 @@
+/* PAPER TRAIL: SENT OUT. Per project: add where it went (which draft, with its fingerprint), mark what came back;
+   a deadline coming up said; all projects together, filtered; where a script can go; saved as text. Made-up entries.
+   Server on :8811.  NODE_PATH=... node papertrail/tests/sent_e2e.js */
+const {chromium}=require('playwright'); const fs=require('fs');
+(async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,500))); if(!x) ok=false; };
+const c=await b.newContext({viewport:{width:390,height:844},acceptDownloads:true}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
+await p.goto('http://localhost:8811/papertrail/'); await p.evaluate(()=>{ localStorage.removeItem('paper_trail_v1'); indexedDB.deleteDatabase('paper_trail'); }); await p.reload(); await p.waitForTimeout(700);
+const add=async(t,x)=>{ await p.click('#tabs [data-tab="add"]'); await p.fill('#ptitle',t); await p.fill('#paste',x); await p.click('#readit'); await p.waitForTimeout(500); };
+await add('Ridge Line','Title: Ridge Line\n\nEXT. RIDGE - DAY\n\nVale climbs.\n\nVALE\nRope.\n');
+await add('Dry Gulch','Title: Dry Gulch\n\nINT. SALOON - NIGHT\n\nVALE\nWhiskey.\n');
+const pid=await p.evaluate(()=>Object.values(window.__trail.DB().projects).find(x=>x.title==='Ridge Line').id);
+await p.click('#tabs [data-tab="projects"]'); await p.click('[data-open="'+pid+'"]'); await p.waitForTimeout(200);
+await p.click('#tabs [data-tab="sent"]'); await p.waitForTimeout(200);
+let m=await p.innerText('#main');
+want('SENT OUT: what it is, nothing yet, the add form open', /Where Ridge Line has gone/.test(m)&&/Nothing sent yet\./.test(m)&&await p.evaluate(()=>document.getElementById('saddbox').open));
+await p.fill('#sw','Salt Flats Screenplay Contest'); await p.selectOption('#sk','contest'); await p.fill('#sf','65'); await p.fill('#sn','Second round in March.'); await p.click('#sadd'); await p.waitForTimeout(300);
+m=await p.innerText('#main');
+want('added: where, kind, sent today, the fee, which draft with its fingerprint', /Salt Flats Screenplay Contest/.test(m)&&/Contest · sent \w{3} \d{1,2}, \d{4} · fee \$65 · Draft 1, fingerprint [0-9a-f]{8}/.test(m)&&/Second round in March\./.test(m), m.slice(0,600));
+want('the summary', /1 sent · 1 waiting · \$65 in fees/i.test(m));
+await p.click('[data-sst$="|advanced"]'); await p.waitForTimeout(200);
+m=await p.innerText('#main');
+want('mark what came back: moved on a round, heard today', /1 moved on/i.test(m)&&/heard \w{3} \d{1,2}, \d{4}/.test(m));
+// going to send, deadline in 5 days
+const dl=await p.evaluate(()=>{ const d=new Date(); d.setDate(d.getDate()+5); return d.toISOString().slice(0,10); });
+await p.click('#saddbox summary'); await p.fill('#sw','Dry Creek Fellowship'); await p.selectOption('#sk','fellowship'); await p.selectOption('#ss','planned'); await p.fill('#sdl',dl); await p.click('#sadd'); await p.waitForTimeout(300);
+want('going to send: the deadline coming up, said in days', /Deadline in [45] days: Dry Creek Fellowship/.test(await p.innerText('#main')), (await p.innerText('#main')).slice(0,400));
+want('where a script can go: there, dated, with sources', /Where a script can go, without an agent/i.test(await p.innerText('#where'))&&await p.evaluate(()=>{ const d=document.getElementById('where'); d.open=true; return /Checked October 2026/.test(d.innerText)&&/Nicholl/.test(d.innerText)&&/release form/.test(d.innerText)&&d.querySelectorAll('a[href^="https://"]').length===3; }));
+// another project
+const pid2=await p.evaluate(()=>Object.values(window.__trail.DB().projects).find(x=>x.title==='Dry Gulch').id);
+await p.click('#tabs [data-tab="projects"]'); await p.click('[data-open="'+pid2+'"]'); await p.waitForTimeout(200); await p.click('#tabs [data-tab="sent"]'); await p.waitForTimeout(200);
+await p.fill('#sw','Northgate Pictures'); await p.selectOption('#sk','company'); await p.click('#sadd'); await p.waitForTimeout(200);
+await p.click('[data-sst$="|passed"]'); await p.waitForTimeout(200);
+await p.click('#tabs [data-tab="allsent"]'); await p.waitForTimeout(300);
+m=await p.innerText('#main');
+want('ALL SENT OUT: every project, together', /Ridge Line · Salt Flats Screenplay Contest/.test(m)&&/Dry Gulch · Northgate Pictures/.test(m)&&/2 sent · 1 moved on · 1 passed · 1 going to send · \$65 in fees/i.test(m), m.slice(0,600));
+want('the deadline, with its project', /Deadline in [45] days: Dry Creek Fellowship \(Ridge Line\)/.test(m));
+await p.click('[data-sf="passed"]'); await p.waitForTimeout(200);
+want('filter: just the passes', (await p.$$eval('[data-send]',x=>x.length))===1&&/Northgate/.test(await p.innerText('#main')));
+await p.click('[data-sf="all"]'); await p.waitForTimeout(200);
+const [d]=await Promise.all([p.waitForEvent('download'),p.click('#stxt')]); const txt=fs.readFileSync(await d.path(),'utf8');
+want('SAVE AS TEXT: a line each', txt.split('\n').length===3&&/Dry Gulch \| Northgate Pictures \| Passed/.test(txt), txt);
+await p.click('[data-sopen="'+pid+'"]'); await p.waitForTimeout(200);
+want('tap a title: that project\'s list', /Where Ridge Line has gone/.test(await p.innerText('#main')));
+await p.click('[data-sdel$="|'+(await p.evaluate(id=>window.__trail.DB().projects[id].sends[0].id,pid))+'"]'); await p.waitForTimeout(200);
+want('delete one', await p.evaluate(id=>window.__trail.DB().projects[id].sends.length,pid)===1);
+await p.click('#tabs [data-tab="package"]'); await p.waitForTimeout(200);
+want('Package has a way to SENT OUT', !!(await p.$('#main [data-tab="sent"]')));
+want('no em dashes', !/—/.test(await p.innerText('body')));
+want('no page errors', !errs.length, errs);
+await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();
