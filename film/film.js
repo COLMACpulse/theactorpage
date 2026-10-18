@@ -719,8 +719,10 @@ F.wrapText=function(o){ const L=[], shots=o.shots||[], log=o.log||[];
  Object.keys(byN).forEach(n=>{ const b=byN[n]; L.push('SCENE '+n+' · '+b.heading);
   b.list.forEach(x=>{ const tk=log.filter(t=>t.n==+n&&t.shot===x.shot.id);
    L.push('  '+(x.done?'[x]':'[ ]')+' '+x.idx+'. '+x.shot.what+(tk.length?' · '+tk.length+' take'+(tk.length===1?'':'s'):''));
-   tk.forEach(t=>{ if(t.mark||t.note) L.push('      take '+t.take+(t.mark?' '+F.markWord(t.mark):'')+(t.note?': '+t.note:'')); }); });
+   tk.forEach(t=>{ if(t.mark||t.note) L.push('      take '+t.take+(t.mark?' '+F.markWord(t.mark):'')+(t.note?': '+t.note:'')); });
+   const a=o.reads&&o.reads[x.n+'|'+x.shot.id], KK=g.FieldKit; if(a&&KK) L.push('      angle: '+KK.rollWord(a.roll)+', '+KK.pitchWord(a.pitch,0.5,a.flat)); });
   L.push(''); });
+ const KK=g.FieldKit, dl=KK?KK.delayLines(o.delays,F.clockWord):[]; if(dl.length){ dl.forEach(l=>L.push(l)); L.push(''); }
  const left=shots.filter(x=>!x.done); if(left.length){ L.push('STILL TO SHOOT'); left.forEach(x=>L.push('  Scene '+x.n+', shot '+x.idx+': '+x.shot.what)); L.push(''); }
  return L.join('\n').replace(/\n+$/,'\n'); };
 /* ---------- from the set to the cut: the takes you logged on set, matched to the day's clips ----------

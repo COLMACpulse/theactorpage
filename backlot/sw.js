@@ -1,5 +1,5 @@
 /* BACKLOT offline shell. Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='backlot-0.1.4';
+const CACHE='backlot-0.1.5';
 const FILES=['./','index.html','app.js','manifest.webmanifest','../shared/hot.js','../actor-os/sides.js','../film/film.js','../shared/backlot.js','../shared/kit.js','fonts/jost-latin-400-normal.woff2','fonts/jost-latin-500-normal.woff2','fonts/jost-latin-600-normal.woff2','fonts/courier-prime-latin-400-normal.woff2','fonts/courier-prime-latin-700-normal.woff2','icons/icon-192.png','icons/icon-512.png','icons/icon-maskable-512.png','icons/apple-touch-icon.png'];
 self.addEventListener('install',e=>{ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting())); });
 self.addEventListener('activate',e=>{ e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE&&k.startsWith('backlot-')).map(k=>caches.delete(k)))).then(()=>self.clients.claim())); });
