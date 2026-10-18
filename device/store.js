@@ -30,7 +30,8 @@ D.TOOLS=[
  {id:'headshots', name:'Headshots', href:'../headshots/', ls:[/^theactorpage_headshots/,/^headshots_ui/], db:[/^theactorpage_headshot_refs$/]},
  {id:'booth', name:'VO Booth', href:'../booth/', ls:[/^booth_/], db:[/^booth_media$/]},
  {id:'setlist', name:'Set List', href:'../setlist/', ls:[/^setlist_/], db:[/^setlist_media$/]},
- {id:'filmhub', name:'Film Hub', href:'../filmhub/', ls:[/^filmhub_/], db:[/^filmhub$/]}
+ {id:'filmhub', name:'Film Hub', href:'../filmhub/', ls:[/^filmhub_/], db:[/^filmhub$/]},
+ {id:'backlot', name:'Backlot', href:'../backlot/', ls:[/^backlot_/], db:[]}
 ];
 D.OWN_KEY='theactorpage_device_v1';
 /* passing notes between tools (gone in minutes) and things that can't go in a file */

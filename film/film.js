@@ -85,7 +85,7 @@ F.find=function(text,list){
 F.owns=function(scene,owned){
  const text=(scene.place+' '+scene.action.join(' ')).toLowerCase();
  const words=new Set(text.match(/[a-z']+/g)||[]);
- return (owned||[]).filter(o=>o.kind!=='location').filter(o=>{
+ return (owned||[]).filter(o=>o.kind!=='location'&&o.kind!=='person').filter(o=>{
   const ws=String(o.name||'').toLowerCase().match(/[a-z']+/g)||[];
   return ws.some(w=>w.length>=4&&words.has(w));
  });

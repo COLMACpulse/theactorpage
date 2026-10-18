@@ -67,6 +67,9 @@ function fromShelf(id){
  SH.use(id,TOOL); open(it.id,it.text,it.file,it.me); TAB='scenes'; OPEN=null; render();
 }
 function adopt(){
+ /* from BACKLOT: a start dealt from your ground, headings only. A new script, not on the actor's shelf. */
+ let hf=null; try{ hf=JSON.parse(localStorage.getItem('theactorpage_handoff_film')||'null'); localStorage.removeItem('theactorpage_handoff_film'); }catch(e){}
+ if(hf&&hf.text&&F.scenes(hf.text).length){ open('b'+Date.now().toString(36),hf.text,hf.title||'From the ground',''); TAB='scenes'; setTimeout(()=>toast('From BACKLOT: '+(hf.title||'a start')+'.'),300); return; }
  if(!SH) return;
  const p=SH.pending(TOOL);
  if(p){ SH.markSeen(TOOL,p.id); open(p.id,p.text,p.file,p.me); TAB='scenes';
@@ -333,7 +336,7 @@ function lastCard(who,n){
  Object.keys(c.scenes||{}).map(Number).filter(k=>k<n).sort((a,b)=>b-a).some(k=>{ const v=c.scenes[k].cont&&c.scenes[k].cont[who]; if(v&&Object.values(v).some(Boolean)){ best={n:k,v:v}; return true; } return false; });
  return best;
 }
-const KINDS=[['location','Locations','What it can play, e.g. bus shelter, motel lot'],['prop','Props',''],['wardrobe','Wardrobe',''],['gear','Gear','']];
+const KINDS=[['location','Locations','What it can play, e.g. bus shelter, motel lot'],['prop','Props',''],['vehicle','Vehicles',''],['animal','Animals',''],['wardrobe','Wardrobe',''],['person','People you can get',''],['gear','Gear','']];
 function vLoc(o){
  let h='<button class="back" data-oback="1">‹ Everything you own</button><div class="card"><p class="kicker">'+(o.kind==='location'?'Location':esc(o.kind))+'</p>';
  const F2=[['name','Name',''],['plays','Can play','bus shelter, motel lot'],['light','Light','best light, when'],['sound','Sound','what you hear there'],['access','Access','power, parking, who to ask'],['notes','Notes','']];
@@ -356,7 +359,7 @@ function vOwn(){
  if(OEDIT){ const o=owned().find(x=>x.id===OEDIT); if(o) return vLoc(o); OEDIT=null; }
  let h='';
  if(DB.owned===null||!owned().length){
-  h+='<div class="card"><p class="kicker">What you own</p><p>Your locations, props, wardrobe and gear. Scenes get matched to them.</p>'
+  h+='<div class="card"><p class="kicker">What you own</p><p>Your locations, props, wardrobe and gear. Scenes get matched to them. Same list as BACKLOT.</p>'
    +'<button class="btn pri block" id="ranch">START FROM THE RANCH LIST</button><p class="faint" style="font-size:13px;margin:6px 0 10px">Barn, porch, creek, workshop, oak treeline, corral, fire pit, the pickup, the gear. 40 things. Edit or remove any.</p>'
    +'<button class="btn block ghost" id="empty">Start empty</button></div>';
   if(DB.owned===null) return h;
@@ -840,6 +843,8 @@ function wire(){
 document.addEventListener('visibilitychange',()=>{ if(document.hidden&&MC.stream) mcClose(); if(document.hidden&&ADRREC) adrStopRec(); });
 document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{ TAB=b.dataset.t; if(TAB!=='scenes') OPEN=null; OEDIT=null; render(); });
 $('file').addEventListener('change',e=>{ const f=e.target.files[0]; e.target.value=''; if(f) readFile(f); });
+/* the OWNED list is shared with BACKLOT: changed in another tab, take theirs */
+window.addEventListener('storage',e=>{ if(e.key===KEY&&e.newValue){ try{ const d=JSON.parse(e.newValue); if(d&&Array.isArray(d.owned)){ DB.owned=d.owned; render(); } }catch(x){} } });
 window.addEventListener('storage',e=>{ if(e.key&&/shelf/.test(e.key)){ const p=SH&&SH.pending(TOOL); if(p){ adopt(); render(); } } });
 
 adopt(); if(cur()&&TAB==='script'&&SCENES.length) TAB='scenes';
