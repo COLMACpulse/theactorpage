@@ -594,30 +594,33 @@ function coverNow(){ return F.coverage(F.planRows(SCENES,n=>cur().scenes&&cur().
 function packFiles(){ const k=cutOf(), t=filmName(), slug=F.slug(t), cv=coverNow(), R=F.planRows(SCENES,n=>cur().scenes&&cur().scenes[n],cur().me);
  let by=''; try{ by=(window.You&&You.get().name)||''; }catch(e){}
  const brief=F.brief(t,SCENES.map(sc=>({n:sc.n,heading:sc.heading,brief:(k.brief||{})[sc.n]||{},takes:k.takes[sc.n]||[],shots:doneOf(sc)})),k.fps);
- return [{name:slug+' READ ME.txt',data:F.packReadme({title:t,slug,by,date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),link:k.link||'',cover:F.coverWords(cv),note:k.packNote||''})},
+ return [{name:slug+' READ ME.txt',data:F.packReadme({wrap:setOf().log.length>0,title:t,slug,by,date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),link:k.link||'',cover:F.coverWords(cv),note:k.packNote||''})},
   {name:slug+' editor brief.txt',data:brief},{name:slug+' plan.csv',data:F.planCsv(R)},{name:slug+' plan vs got.csv',data:F.gotCsv(cv,k.fps,t)},
-  {name:slug+' cut.edl',data:F.edl(t,pieces(),k.fps)},{name:slug+' cut.csv',data:F.cutCsv(pieces())}]; }
+  {name:slug+' cut.edl',data:F.edl(t,pieces(),k.fps)},{name:slug+' cut.csv',data:F.cutCsv(pieces())}].concat(setOf().log.length?[{name:slug+' wrap report.txt',data:F.wrapText({title:t,date:cur().dayDate||ymd(new Date()),shots:dayList(),log:setOf().log})}]:[]); }
 /* LOG THE DAY: the day's clips one at a time, in the order you shot them */
 let DAY=null;
 async function dayOpen(files){
  const L=F.dayOrder(files.filter(f=>/^video\//.test(f.type)||/\.(mov|mp4|m4v|webm)$/i.test(f.name))); if(!L.length){ toast('No video clips in that.'); return; }
- DAY={L,i:0,n:(SCENES[0]||{}).n||1,done:0,skip:0}; dayDraw();
+ DAY={L,i:0,n:(SCENES[0]||{}).n||1,done:0,skip:0,match:F.matchSet(L.map(f=>({name:f.name,time:f.lastModified})),cur()?setOf().log:[])}; dayDraw();
 }
 function dayClose(){ const o=$('dayov'); if(o){ const v=o.querySelector('video'); if(v&&v.src) URL.revokeObjectURL(v.src); o.remove(); } document.body.classList.remove('mcopen'); const n=DAY&&DAY.done; DAY=null; render(); if(n) toast(n+' clip'+(n===1?'':'s')+' logged.'); }
 async function dayDraw(){
  const D=DAY; if(!D) return; let o=$('dayov'); if(!o){ o=document.createElement('div'); o.id='dayov'; o.className='mc'; document.body.appendChild(o); document.body.classList.add('mcopen'); }
  if(D.i>=D.L.length){ o.innerHTML='<div class="mchead"><b>Log the day</b><button class="btn sm" id="dayx">DONE</button></div><div style="padding:16px;overflow:auto"><p style="font-size:17px">'+D.done+' logged'+(D.skip?', '+D.skip+' skipped':'')+'.</p><p class="faint">'+esc(F.coverWords(coverNow()))+'</p></div>'; $('dayx').onclick=dayClose; return; }
- const f=D.L[D.i], k=cutOf(), ex=(k.takes[D.n]||[]).find(x=>x.name===f.name&&x.size===f.size), sc=SCENES.find(x=>x.n===D.n)||SCENES[0], shots=sc?shotsFor(sc):[];
+ const f=D.L[D.i], se=D.match&&D.match.pairs[D.i];
+ if(se&&D.auto!==D.i&&!SCENES.some(x=>(cutOf().takes[x.n]||[]).some(t=>t.name===f.name&&t.size===f.size))){ D.n=se.n; D.shot=se.shot; D.mark=se.mark; D.keepMark=true; D.note=se.note; D.auto=D.i; }
+ const k=cutOf(), ex=(k.takes[D.n]||[]).find(x=>x.name===f.name&&x.size===f.size), sc=SCENES.find(x=>x.n===D.n)||SCENES[0], shots=sc?shotsFor(sc):[];
  D.mark=D.mark!==undefined&&D.keepMark?D.mark:(ex&&ex.mark)||''; D.keepMark=false;
  const when=f.lastModified?new Date(f.lastModified).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):'';
  o.innerHTML='<div class="mchead"><b>Clip '+(D.i+1)+' of '+D.L.length+'</b><button class="btn sm" id="dayx">CLOSE</button></div>'
   +'<div style="padding:0 14px 16px;overflow:auto;flex:1"><p class="faint" style="font-size:13px;margin:0 0 6px;word-break:break-all">'+esc(f.name)+(when?' · shot '+esc(when):'')+'<span id="daydur"></span></p>'
+  +(se?'<p class="fromset">From the set: scene '+se.n+', take '+se.take+(se.mark?', '+F.markWord(se.mark):'')+(se.note?', "'+esc(se.note)+'"':'')+'<small>'+(D.match.mode==='time'?'Matched by when it was shot ('+F.clockWord(se.at)+'). ':'Matched by order. ')+'Change anything below.</small></p>':'')
   +'<video id="dayv" playsinline controls preload="metadata" style="width:100%;max-height:42vh;background:#111;border-radius:8px"></video>'
   +'<label class="faint" style="font-size:12px;display:block;margin-top:8px">Scene</label><select class="field" id="daysc">'+SCENES.map(x=>'<option value="'+x.n+'"'+(x.n===D.n?' selected':'')+'>'+x.n+'. '+esc(x.heading)+'</option>').join('')+'</select>'
   +'<label class="faint" style="font-size:12px;display:block;margin-top:6px">Shot</label><select class="field" id="daysh"><option value="">Not on the shot list</option>'+shots.map((x,i)=>'<option value="'+esc(x.id)+'"'+((ex&&ex.shot===x.id)||(!ex&&D.shot===x.id)?' selected':'')+'>'+(i+1)+'. '+esc(x.what)+'</option>').join('')+'</select>'
   +(shots.length?'':'<p class="faint" style="font-size:12px;margin:4px 0 0">No shot list for this scene yet. Pick a way for it in SCENES.</p>')
-  +'<div class="row" style="gap:6px;margin-top:8px">'+[['gold','GOLD'],['backup','BACKUP'],['never','NEVER USE'],['','NO MARK']].map(([v,l])=>'<button class="btn sm'+(D.mark===v?' pri':'')+'" data-daymark="'+v+'">'+l+'</button>').join('')+'</div>'
-  +'<input class="field" id="daynote" placeholder="What happens in it (the one where he laughs)" value="'+esc(ex?ex.note||'':'')+'" style="margin-top:8px">'
+  +'<div class="row" style="gap:6px;margin-top:8px">'+[['gold','CIRCLE'],['backup','HOLD'],['never','NO GOOD'],['','NO MARK']].map(([v,l])=>'<button class="btn sm'+(D.mark===v?' pri':'')+'" data-daymark="'+v+'">'+l+'</button>').join('')+'</div>'
+  +'<input class="field" id="daynote" placeholder="What happens in it (the one where he laughs)" value="'+esc(ex?ex.note||'':(se&&D.auto===D.i?D.note||'':''))+'" style="margin-top:8px">'
   +'<div class="row" style="margin-top:10px"><button class="btn" id="dayback"'+(D.i?'':' disabled')+'>BACK</button><button class="btn" id="dayskip">SKIP</button><button class="btn pri" id="daynext" style="flex:1">'+(D.i===D.L.length-1?'LOG IT, DONE':'LOG IT, NEXT')+'</button></div></div>';
  const v=$('dayv'); v.src=URL.createObjectURL(f);
  $('dayx').onclick=dayClose;
@@ -630,6 +633,7 @@ async function dayDraw(){
   if(!t){ const d=await clipLength(f); t={id:rid('t'),name:f.name,size:f.size,dur:Math.round(d*100)/100,in:0,out:Math.round(d*100)/100,use:false,at:Date.now()}; k.takes[n].push(t); }
   FILES[t.id]=f; if(shot) t.shot=shot; else delete t.shot; if(note) t.note=note; if(D.mark) t.mark=D.mark; else delete t.mark;
   if(t.mark==='never') t.use=false; else if(t.mark==='gold'&&!k.takes[n].some(x=>x.use)) t.use=true;
+  if(se){ se.clip=f.name; t.setTake=se.take; }
   save(); D.done++; D.n=n; D.shot=shot; D.i++; D.mark=''; dayDraw(); };
 }
 function vCut(){
@@ -639,12 +643,12 @@ function vCut(){
   +'<div class="runtime"><b>'+F.mmss(len)+'</b><span>'+(P.length?(Math.abs(diff)<0.05?'right on '+F.mmss(k.target):diff>0?F.mmss(diff)+' to go to '+F.mmss(k.target):F.mmss(-diff)+' over '+F.mmss(k.target)):'nothing in the cut yet')+' · '+P.length+' piece'+(P.length===1?'':'s')+'</span></div></div>';
  h+='<div class="card"><p class="kicker">Find a take</p><input class="field" id="cfind" placeholder="bus shelter · rennie · last week · the laugh · never use" value="'+esc(FINDQ)+'" autocomplete="off"><div id="cfindres">'+findHtml()+'</div></div>';
  h+='<div class="card" id="daycard"><p class="kicker">Log the day</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">Drop the day\'s clips off the phone. They line up in the order you shot them. Tap through, one at a time: which scene, which shot, gold or not, a note. Each becomes a take on its scene.</p><label class="btn pri sm"><input type="file" accept="video/*,.mov,.mp4,.m4v" multiple class="hide" id="dayin">PICK THE DAY\'S CLIPS</label></div>';
- h+=logBox()+footBox();
+ h+=setBox()+logBox()+footBox();
  SCENES.forEach(sc=>{
   const T=k.takes[sc.n]||[];
   h+='<div class="card"><div class="hd" style="font:700 14px/1.35 var(--mono)">'+sc.n+'. '+esc(sc.heading)+'</div>';
   h+=T.map(t=>{ const f=FILES[t.id];
-   return '<div class="take'+(t.use?' on':'')+(t.mark==='never'?' never':'')+'" data-trow="'+sc.n+'|'+t.id+'"><div class="row" style="justify-content:space-between"><label class="row" style="gap:8px"><input type="checkbox" data-tuse="'+sc.n+'|'+t.id+'"'+(t.use?' checked':'')+(t.mark==='never'?' disabled':'')+'><b style="font-size:14px;word-break:break-all">'+esc(t.name)+'</b></label><span class="faint" style="font-size:13px">'+(t.dur?F.mmss(t.dur):'length?')+'</span><select class="field mark" data-tmark="'+sc.n+'|'+t.id+'" aria-label="Mark this take">'+[['','—'],['gold','gold'],['backup','backup'],['never','never use']].map(o=>'<option value="'+o[0]+'"'+((t.mark||'')===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select><button class="x" data-tdel="'+sc.n+'|'+t.id+'" aria-label="Remove">×</button></div>'
+   return '<div class="take'+(t.use?' on':'')+(t.mark==='never'?' never':'')+'" data-trow="'+sc.n+'|'+t.id+'"><div class="row" style="justify-content:space-between"><label class="row" style="gap:8px"><input type="checkbox" data-tuse="'+sc.n+'|'+t.id+'"'+(t.use?' checked':'')+(t.mark==='never'?' disabled':'')+'><b style="font-size:14px;word-break:break-all">'+esc(t.name)+'</b></label><span class="faint" style="font-size:13px">'+(t.dur?F.mmss(t.dur):'length?')+'</span><select class="field mark" data-tmark="'+sc.n+'|'+t.id+'" aria-label="Mark this take">'+[['','no mark'],['gold','gold'],['backup','backup'],['never','never use']].map(o=>'<option value="'+o[0]+'"'+((t.mark||'')===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select><button class="x" data-tdel="'+sc.n+'|'+t.id+'" aria-label="Remove">×</button></div>'
     +(f?'<video class="tprev" data-tvid="'+t.id+'" playsinline controls preload="metadata"></video>':'')
     +'<div class="row" style="margin-top:6px"><label class="faint" style="font-size:12px">In</label><input class="field" data-tin="'+sc.n+'|'+t.id+'" value="'+F.mmss(t.in)+'" style="flex:1 1 70px">'+(f?'<button class="btn sm" data-tsetin="'+sc.n+'|'+t.id+'">HERE</button>':'')
     +'<label class="faint" style="font-size:12px">Out</label><input class="field" data-tout="'+sc.n+'|'+t.id+'" value="'+F.mmss(t.out)+'" style="flex:1 1 70px">'+(f?'<button class="btn sm" data-tsetout="'+sc.n+'|'+t.id+'">HERE</button>':'')+'</div>'
@@ -801,6 +805,12 @@ function dl(name,text,type){ const a=document.createElement('a'); a.href=URL.cre
 let LOGMSG='';
 function logMap(){ const L=DB.log; if(!L) return {}; const auto=F.logSceneMap(L.rows,SCENES); return Object.assign(auto,L.map||{}); }
 function foundPaths(){ const o={}; if(FOOT) FOOT.files.forEach(f=>{ if(F.isMedia(f.name)) o[F.nameKey(f.name)]=f.webkitRelativePath||f.name; }); return o; }
+/* FROM THE SET: what was logged on the day, waiting for its clips */
+function setBox(){ const S=setOf(); if(!S.log.length) return '';
+ const open=S.log.filter(t=>t.mark==='gold'&&!t.clip).slice(0,8);
+ return '<div class="card"><p class="kicker">From the set</p>'+F.setSummary(S.log).map(w=>'<p style="margin:4px 0;font-size:15px">'+esc(w)+'</p>').join('')
+  +(open.length?'<div class="tklist" style="margin-top:8px">'+open.map(t=>'<div><b>SC '+t.n+' · TAKE '+t.take+'</b><span class="tm tm-gold">CIRCLE</span><small>'+esc(((shotsFor(SCENES.find(x=>x.n===t.n)||{speakers:[],props:[],action:[]})||[]).find(x=>x.id===t.shot)||{}).what||'')+(t.note?' · '+esc(t.note):'')+'</small><small class="faint">'+F.clockWord(t.at)+'</small></div>').join('')+'</div>':'')
+  +'<p class="faint" style="font-size:13px;margin:8px 0 10px">Drop the day\'s clips in LOG THE DAY: each one comes up with the scene, shot, mark and note called on set, matched by when it was shot.</p><button class="btn sm" id="setwrapdl">WRAP REPORT</button></div>'; }
 function logBox(){
  const L=DB.log;
  let h='<div class="card" id="logcard"><p class="kicker">Footage log</p>';
@@ -860,6 +870,7 @@ function wireCut(){
  const pzp=$('packzip'); if(pzp) pzp.onclick=async()=>{ const z=window.Zip.make(packFiles()), fn=F.slug(filmName())+' editor pack.zip', file=new File([z],fn,{type:'application/zip'});
   try{ if(/Android|iPhone|iPad/i.test(navigator.userAgent)&&navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:fn}); return; } }catch(e){ if(e&&e.name==='AbortError') return; }
   dl(fn,z,'application/zip'); };
+ const swd=$('setwrapdl'); if(swd) swd.onclick=()=>{ const c=cur(), t=F.wrapText({title:filmName(),date:c.dayDate||ymd(new Date()),shots:dayList(),log:setOf().log}); dl(F.slug(filmName())+' wrap report.txt',t,'text/plain'); };
  const ppl=$('packplan'); if(ppl) ppl.onclick=()=>{ const f=packFiles()[2]; dl(f.name,f.data,'text/csv'); };
  const pgt=$('packgot'); if(pgt) pgt.onclick=()=>{ const f=packFiles()[3]; dl(f.name,f.data,'text/csv'); };
  document.querySelectorAll('[data-tdel]').forEach(b=>b.onclick=()=>{ const [n,id]=b.dataset.tdel.split('|'); k.takes[n]=(k.takes[n]||[]).filter(x=>x.id!==id); delete FILES[id]; save(); render(); });
@@ -999,5 +1010,5 @@ async function fromTakes(){
  if(n||TAB==='cut') render();
 }
 fromTakes();
-window.__film={DB:()=>DB,SCENES:()=>SCENES};
+window.__film={DB:()=>DB,SCENES:()=>SCENES,dayOpen:f=>dayOpen(f),packFiles:()=>packFiles()};
 })();

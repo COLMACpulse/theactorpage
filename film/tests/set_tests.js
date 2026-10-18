@@ -25,4 +25,14 @@ ok('the wrap: each shot, its takes, the marks and notes', /\[x\] 1\. Wide master
 ok('the wrap: still to shoot', /STILL TO SHOOT\n  Scene 1, shot 2: Two-shot/.test(W));
 ok('marks in set words', F.markWord('gold')==='CIRCLE'&&F.markWord('backup')==='HOLD'&&F.markWord('never')==='NO GOOD');
 ok('no em dashes', !/—/.test(W+c1.words+F.sunNow(sun,mid)));
+// from the set to the cut
+const T0=new Date(2026,9,18,9,0).getTime(), mn=60000;
+const LOG=[{id:'a',n:1,shot:'wide',take:1,mark:'never',note:'boom',at:T0+2*mn},{id:'b',n:1,shot:'wide',take:2,mark:'gold',note:'',at:T0+6*mn},{id:'c',n:1,shot:'two',take:1,mark:'',note:'',at:T0+30*mn}];
+const clips=[{name:'C002.MOV',time:T0+5.5*mn},{name:'C001.MOV',time:T0+1.5*mn},{name:'C003.MOV',time:T0+29*mn},{name:'C004.MOV',time:T0+90*mn}];
+const M=F.matchSet(clips,LOG);
+ok('by time: each clip gets the take logged right after it; a clip with none nearby gets nothing', M.mode==='time'&&M.pairs[1].id==='a'&&M.pairs[0].id==='b'&&M.pairs[2].id==='c'&&M.pairs[3]===null, M.pairs.map(x=>x&&x.id));
+const same=[{time:T0+200*mn},{time:T0+200*mn},{time:T0+200*mn}];
+ok('copied clips (all one time): by order when the counts agree, else nothing', F.matchSet(same,LOG).mode==='order'&&F.matchSet(same,LOG).pairs[2].id==='c'&&F.matchSet(same.slice(0,2),LOG).mode==='none');
+ok('no log, no clips: nothing', F.matchSet([],LOG).mode==='none'&&F.matchSet(clips,[]).mode==='none');
+ok('the set in words for POST', F.setSummary(LOG).join(' ')==='3 takes logged on set, on 2 shots. 1 circled. None matched to a clip yet. 1 circled take not matched to a clip yet.'&&F.setSummary([])[0]==='Nothing logged on set yet.', F.setSummary(LOG));
 console.log(pass+' passed, '+fail+' failed'); process.exit(fail?1:0);

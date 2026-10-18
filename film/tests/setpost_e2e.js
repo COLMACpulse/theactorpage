@@ -1,0 +1,40 @@
+/* Story Studio: from the set to the cut. Takes logged ON SET come up on their clips in LOG THE DAY, matched by when they
+   were shot; POST says what's matched; the editor pack carries the wrap report. Made-up script and clips. Server on :8811.
+   NODE_PATH=... node film/tests/setpost_e2e.js */
+const {chromium}=require('playwright'); const path=require('path'), fs=require('fs');
+(async()=>{ const SHOTS=process.env.SHOTS||'/tmp';
+const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,500))); if(!x) ok=false; };
+const p=await (await b.newContext({viewport:{width:390,height:844}})).newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
+await p.goto('http://localhost:8811/film/'); await p.evaluate(()=>localStorage.clear()); await p.reload(); await p.waitForTimeout(400);
+await p.setInputFiles('#file',{name:'low_tide.fountain',mimeType:'text/plain',buffer:fs.readFileSync(path.join(__dirname,'..','..','shared','fixtures','low_tide.fountain'))}); await p.waitForTimeout(800);
+await p.click('#tabs [data-r="set"]'); await p.waitForTimeout(200); await p.click('[data-allway="crew"]'); await p.waitForTimeout(200);
+await p.fill('#setnote','boom in frame'); await p.click('[data-mk="never"]'); await p.waitForTimeout(150); await p.click('[data-mk="gold"]'); await p.waitForTimeout(150);
+await p.click('#shotdone'); await p.waitForTimeout(150); await p.fill('#setnote','use the end'); await p.click('[data-mk="backup"]'); await p.waitForTimeout(150);
+const T0=new Date(2026,9,18,9,0).getTime(), mn=60000;
+await p.evaluate(([T0,mn])=>{ const d=JSON.parse(localStorage.getItem('film_os_v1')), c=d.scripts[d.cur]; c.set.log.forEach((t,i)=>t.at=T0+[2,6,30][i]*mn); localStorage.setItem('film_os_v1',JSON.stringify(d)); },[T0,mn]);
+await p.reload(); await p.waitForTimeout(500); await p.click('#tabs [data-r="post"]'); await p.waitForTimeout(300);
+let m=await p.innerText('#main');
+want('POST: from the set, in words', /3 takes logged on set, on 2 shots\. 1 circled\./.test(m)&&/None matched to a clip yet\./.test(m)&&/1 circled take not matched to a clip yet\./.test(m), m.slice(0,500));
+const clip=fs.readFileSync(path.join(__dirname,'..','..','shared','fixtures','made_up_clip.mp4')).toString('base64');
+await p.evaluate(([b64,T0,mn])=>{ const bin=Uint8Array.from(atob(b64),c=>c.charCodeAt(0)); const mk=(n,t)=>new File([bin],n,{type:'video/mp4',lastModified:t});
+ window.__film.dayOpen([mk('C001.MP4',T0+1.5*mn),mk('C002.MP4',T0+5.5*mn),mk('C003.MP4',T0+29*mn)]); },[clip,T0,mn]); await p.waitForTimeout(600);
+let ov=await p.innerText('#dayov');
+want('clip 1: the set\'s take on it, matched by time; scene, mark and note filled in', /From the set: scene \d+, take 1, NO GOOD, "boom in frame"/.test(ov)&&/Matched by when it was shot \(9:02 AM\)/.test(ov)&&await p.inputValue('#daynote')==='boom in frame'&&!!(await p.$('[data-daymark="never"].pri'))&&(await p.$eval('#daysh',s=>s.options[s.selectedIndex].text)).includes('Wide'), ov.slice(0,400));
+await p.screenshot({path:SHOTS+'/setpost_day.png'});
+await p.click('#daynext'); await p.waitForTimeout(500);
+want('clip 2: take 2, CIRCLE', /take 2, CIRCLE/.test(await p.innerText('#dayov'))&&!!(await p.$('[data-daymark="gold"].pri')));
+await p.click('#daynext'); await p.waitForTimeout(500);
+want('clip 3: the next shot, HOLD, its note', /take 1, HOLD, "use the end"/.test(await p.innerText('#dayov'))&&await p.inputValue('#daynote')==='use the end'&&!(await p.$eval('#daysh',s=>s.options[s.selectedIndex].text)).includes('Wide'));
+await p.click('#daynext'); await p.waitForTimeout(500); await p.click('#dayx'); await p.waitForTimeout(400);
+const got=await p.evaluate(()=>{ const d=JSON.parse(localStorage.getItem('film_os_v1')), c=d.scripts[d.cur]; const T=[].concat(...Object.values(c.cut.takes)); return {takes:T.map(t=>[t.name,t.mark||'',t.note||'',t.shot||'',t.setTake||0]),log:c.set.log.map(t=>t.clip||'')}; });
+want('in CUT: three takes with the set\'s marks, notes and shots', JSON.stringify(got.takes.map(t=>t.slice(0,3)))===JSON.stringify([['C001.MP4','never','boom in frame'],['C002.MP4','gold',''],['C003.MP4','backup','use the end']])&&got.takes.every(t=>t[3]), got.takes);
+want('the set log knows its clips', got.log.join()==='C001.MP4,C002.MP4,C003.MP4', got.log);
+m=await p.innerText('#main');
+want('POST: 3 matched', /3 matched to clips so far\./.test(m)&&!/not matched to a clip yet/.test(m), m.slice(0,400));
+const names=await p.evaluate(()=>window.__film.packFiles().map(f=>f.name));
+const readme=await p.evaluate(()=>window.__film.packFiles()[0].data);
+want('the editor pack carries the wrap report, and the READ ME says so', names.some(n=>/wrap report\.txt$/.test(n))&&/wrap report\.txt: the set's own log/.test(readme), names);
+want('no em dashes', !/—/.test(m+readme));
+want('no page errors', !errs.length, errs);
+await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();

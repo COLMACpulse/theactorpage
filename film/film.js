@@ -638,7 +638,7 @@ F.dayOrder=function(files){ return (files||[]).slice().sort((a,b)=>(a.lastModifi
 F.packReadme=function(o){ return [o.title+': editor pack','',
  'From '+(o.by||'the director')+', '+o.date+'.','',o.link?'The footage: '+o.link:'The footage: ask me for the link.','',
  'In here:','- '+o.slug+' editor brief.txt: scene by scene, how much freedom you have, what must stay, which take, backups, never-use takes, what is missing, when to ask me first.',
- '- '+o.slug+' plan.csv: the shot list before we shot.','- '+o.slug+' plan vs got.csv: every planned shot and the takes that cover it, NOT SHOT where there is none, my marks (GOLD, backup, never use), notes, and moments (time in the take, what happens).',
+ '- '+o.slug+' plan.csv: the shot list before we shot.',(o.wrap?'- '+o.slug+' wrap report.txt: the set\'s own log, day by day: every take, its mark (circled, hold, no good) and the note called on set.':''),'- '+o.slug+' plan vs got.csv: every planned shot and the takes that cover it, NOT SHOT where there is none, my marks (GOLD, backup, never use), notes, and moments (time in the take, what happens).',
  '- '+o.slug+' cut.edl: my picks, in and out, in script order. Opens in Resolve, Premiere and Avid; it relinks by file name.','- '+o.slug+' cut.csv: the same picks as a list.','',
  o.cover,'',o.note?'From me: '+o.note:''].join('\n').replace(/\n+$/,'\n'); };
 /* ---------- YOUR SHOT LIST: the spreadsheet you already plan from (CSV, Excel, or pasted), read as it is ----------
@@ -723,6 +723,23 @@ F.wrapText=function(o){ const L=[], shots=o.shots||[], log=o.log||[];
   L.push(''); });
  const left=shots.filter(x=>!x.done); if(left.length){ L.push('STILL TO SHOOT'); left.forEach(x=>L.push('  Scene '+x.n+', shot '+x.idx+': '+x.shot.what)); L.push(''); }
  return L.join('\n').replace(/\n+$/,'\n'); };
+/* ---------- from the set to the cut: the takes you logged on set, matched to the day's clips ----------
+   By time: a clip's file time is when the camera stopped; the take was logged right after. Each clip gets the take logged
+   nearest after it (within 15 minutes), in order, one each. Clip times all the same (copied, not shot)? By order, only when
+   the counts agree. Otherwise nothing is guessed: you pick. */
+F.matchSet=function(clips,log,win){ win=(win||15)*60000; const C=(clips||[]).map((c,i)=>({i,t:+c.time||0})), L=(log||[]).slice().sort((a,b)=>a.at-b.at), out=C.map(()=>null);
+ if(!C.length||!L.length) return {pairs:out,mode:'none'};
+ const ts=C.map(c=>c.t).filter(Boolean), spread=ts.length?Math.max(...ts)-Math.min(...ts):0, lspread=L[L.length-1].at-L[0].at;
+ if(ts.length<C.length||(spread<60000&&lspread>300000)){ if(C.length===L.length){ C.forEach((c,k)=>out[c.i]=L[k]); return {pairs:out,mode:'order'}; } return {pairs:out,mode:'none'}; }
+ let j=0; C.slice().sort((a,b)=>a.t-b.t).forEach(c=>{ while(j<L.length&&L[j].at<c.t-60000) j++; if(j<L.length&&L[j].at-c.t<=win){ out[c.i]=L[j]; j++; } });
+ return {pairs:out,mode:out.some(Boolean)?'time':'none'}; };
+/* what the set log adds up to, for POST */
+F.setSummary=function(log,shots){ const L=log||[], g=L.filter(t=>t.mark==='gold'), m=L.filter(t=>t.clip), sh=new Set(L.map(t=>t.n+'|'+t.shot));
+ const W=[]; if(!L.length) return ['Nothing logged on set yet.'];
+ W.push(L.length+' take'+(L.length===1?'':'s')+' logged on set, on '+sh.size+' shot'+(sh.size===1?'':'s')+'. '+g.length+' circled.');
+ W.push(m.length?m.length+' matched to clips so far.':'None matched to a clip yet.');
+ const open=g.filter(t=>!t.clip); if(open.length) W.push(open.length+' circled take'+(open.length===1?'':'s')+' not matched to a clip yet.');
+ return W; };
 if(typeof module!=='undefined') module.exports=F;
 g.FilmOS=F;
 })(typeof window!=='undefined'?window:globalThis);
