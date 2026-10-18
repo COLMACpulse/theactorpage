@@ -128,6 +128,9 @@ body.has .sigil{width:110px;margin-bottom:16px}
 .tool:first-child{border-top:0;padding-top:0}
 .tool-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
 .tool-name{font-family:var(--script);font-weight:700;font-size:1rem;letter-spacing:.04em}
+.tool-name{display:inline-flex;align-items:center;gap:10px}.tool-name .ticon{width:34px;height:34px;padding:5px;box-sizing:border-box;flex:none;fill:none;stroke:var(--tungsten);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;background:var(--stock-up);border:1px solid var(--rule);align-self:center}
+.tool-head{align-items:center}
+
 .lead{flex:1 1 40px;min-width:20px;border-bottom:1px dotted var(--rule);transform:translateY(-4px)}
 .tool-role{font-family:var(--script);font-size:.82rem;color:var(--grey);white-space:nowrap}
 .tool p{margin:9px 0 0;max-width:46em;color:#c3c8d0;font-size:.98rem;line-height:1.62}
@@ -462,7 +465,7 @@ body.stopen{overflow:hidden}
     <div>
       <div class="tool">
         <div class="tool-head">
-          <span class="tool-name">ACTOR OS</span>
+          <span class="tool-name"><svg class="ticon" viewBox="0 0 32 32" aria-hidden="true"><rect x="9" y="3" width="14" height="26" rx="2.5"/><path d="M14 6h4"/><circle cx="16" cy="16" r="3.2"/><circle cx="16" cy="25" r="1"/></svg>ACTOR OS</span>
           <span class="lead"></span>
           <span class="tool-role">self-tape studio</span>
           <span class="status live">OPEN</span>
@@ -477,7 +480,7 @@ body.stopen{overflow:hidden}
       <div class="tool-group">Support tools</div>
       <div class="tool">
         <div class="tool-head">
-          <span class="tool-name">BREAKDOWN</span>
+          <span class="tool-name"><svg class="ticon" viewBox="0 0 32 32" aria-hidden="true"><path d="M8 3h11l5 5v21H8z"/><path d="M19 3v5h5"/><path d="M11 14h10M11 18h7M11 22h9"/><path d="M10 13.2h8" stroke-width="3.4" stroke-opacity=".35"/></svg>BREAKDOWN</span>
           <span class="lead"></span>
           <span class="tool-role">your role on the page</span>
           <span class="status live">OPEN</span>
@@ -488,7 +491,7 @@ body.stopen{overflow:hidden}
       </div>
       <div class="tool">
         <div class="tool-head">
-          <span class="tool-name">MEMORIZER</span>
+          <span class="tool-name"><svg class="ticon" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 7h22v14H14l-6 5v-5H5z"/><path d="M10 12h12M10 16h8"/></svg>MEMORIZER</span>
           <span class="lead"></span>
           <span class="tool-role">off book</span>
           <span class="status live">OPEN</span>
@@ -499,7 +502,7 @@ body.stopen{overflow:hidden}
       </div>
       <div class="tool">
         <div class="tool-head">
-          <span class="tool-name">CPS</span>
+          <span class="tool-name"><svg class="ticon" viewBox="0 0 32 32" aria-hidden="true"><path d="M6 6c4 2 16 2 20 0v8c0 7-4 12-10 12S6 21 6 14z"/><path d="M11 13h2.5M18.5 13h2.5"/><path d="M12 19c2 2 6 2 8 0"/></svg>CPS</span>
           <span class="lead"></span>
           <span class="tool-role">hold a role</span>
           <span class="status live">OPEN</span>
@@ -510,7 +513,7 @@ body.stopen{overflow:hidden}
       </div>
       <div class="tool">
         <div class="tool-head">
-          <span class="tool-name">VO BOOTH</span>
+          <span class="tool-name"><svg class="ticon" viewBox="0 0 32 32" aria-hidden="true"><rect x="11" y="3" width="10" height="16" rx="5"/><path d="M11 9h3M11 13h3M18 9h3M18 13h3"/><path d="M7 15a9 9 0 0 0 18 0M16 24v5M11 29h10"/></svg>VO BOOTH</span>
           <span class="lead"></span>
           <span class="tool-role">voice over</span>
           <span class="status live">OPEN</span>
@@ -527,7 +530,7 @@ body.stopen{overflow:hidden}
       </div>
       <div class="tool">
         <div class="tool-head">
-          <span class="tool-name">NOTES</span>
+          <span class="tool-name"><svg class="ticon" viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="5" width="20" height="24" rx="2"/><path d="M11 3v4M16 3v4M21 3v4"/><path d="M10 13h12M10 18h12M10 23h7"/></svg>NOTES</span>
           <span class="lead"></span>
           <span class="tool-role">what they told you</span>
           <span class="status live">OPEN</span>
@@ -538,7 +541,7 @@ body.stopen{overflow:hidden}
       </div>
       <div class="tool">
         <div class="tool-head">
-          <span class="tool-name">SPOTTED</span>
+          <span class="tool-name"><svg class="ticon" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 16s5-8 13-8 13 8 13 8-5 8-13 8S3 16 3 16z"/><circle cx="16" cy="16" r="4"/></svg>SPOTTED</span>
           <span class="lead"></span>
           <span class="tool-role">just passing this along</span>
           <span class="status live">OPEN</span>
@@ -549,7 +552,7 @@ body.stopen{overflow:hidden}
       </div>
       <div class="tool">
         <div class="tool-head">
-          <span class="tool-name">HEADSHOTS</span>
+          <span class="tool-name"><svg class="ticon" viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="3" width="20" height="26" rx="1"/><circle cx="16" cy="12" r="4"/><path d="M9 25c1-5 4-7 7-7s6 2 7 7"/></svg>HEADSHOTS</span>
           <span class="lead"></span>
           <span class="tool-role">in your own words</span>
           <span class="status live">OPEN</span>
@@ -560,7 +563,7 @@ body.stopen{overflow:hidden}
       </div>
       <div class="tool">
         <div class="tool-head">
-          <span class="tool-name">SLATE MAKER</span>
+          <span class="tool-name"><svg class="ticon" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 13h24v15H4z"/><path d="M4 13l2-7 22-3 1 6z"/><path d="M9 6l3 6M15 5l3 6M21 4l3 6" stroke-width="1.4"/><path d="M8 19h9M8 23h6"/></svg>SLATE MAKER</span>
           <span class="lead"></span>
           <span class="tool-role">slates</span>
           <span class="status live">OPEN</span>
@@ -571,7 +574,7 @@ body.stopen{overflow:hidden}
       </div>
       <div class="tool">
         <div class="tool-head">
-          <span class="tool-name">ARCHBOOK</span>
+          <span class="tool-name"><svg class="ticon" viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="4" width="22" height="24" rx="1.5"/><path d="M10 4v24M22 4v24"/><path d="M5 9h5M5 14h5M5 19h5M5 24h5M22 9h5M22 14h5M22 19h5M22 24h5"/><path d="M14 13l5 3-5 3z"/></svg>ARCHBOOK</span>
           <span class="lead"></span>
           <span class="tool-role">your footage, by type</span>
           <span class="status live">OPEN</span>
@@ -582,7 +585,7 @@ body.stopen{overflow:hidden}
       </div>
       <div class="tool">
         <div class="tool-head">
-          <span class="tool-name">VIRTUAL RESUME</span>
+          <span class="tool-name"><svg class="ticon" viewBox="0 0 32 32" aria-hidden="true"><path d="M8 3h16v26H8z"/><circle cx="13" cy="10" r="2.5"/><path d="M18 9h3M18 12h3M11 17h10M11 21h10M11 25h6"/></svg>VIRTUAL RESUME</span>
           <span class="lead"></span>
           <span class="tool-role">credits</span>
           <span class="status live">OPEN</span>
@@ -593,7 +596,7 @@ body.stopen{overflow:hidden}
       </div>
       <div class="tool">
         <div class="tool-head">
-          <span class="tool-name">PROJECT HUB</span>
+          <span class="tool-name"><svg class="ticon" viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="4" width="10" height="10" rx="1.5"/><rect x="18" y="4" width="10" height="10" rx="1.5"/><rect x="4" y="18" width="10" height="10" rx="1.5"/><rect x="18" y="18" width="10" height="10" rx="1.5"/></svg>PROJECT HUB</span>
           <span class="lead"></span>
           <span class="tool-role">credits and auditions</span>
           <span class="status live">OPEN</span>
@@ -647,7 +650,7 @@ body.stopen{overflow:hidden}
     <div>
       <div class="tool">
         <div class="tool-head">
-          <span class="tool-name">WRITERS BLOCKAGE</span>
+          <span class="tool-name"><svg class="ticon" viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="15" width="26" height="12" rx="2"/><path d="M8 15V5h16v10M6 21h20M11 24h10"/><path d="M11 9h10"/></svg>WRITERS BLOCKAGE</span>
           <span class="lead"></span>
           <span class="tool-role">screenwriting, by hand or out loud</span>
           <span class="status live">OPEN</span>
@@ -665,7 +668,7 @@ body.stopen{overflow:hidden}
       </div>
       <div class="tool">
         <div class="tool-head">
-          <span class="tool-name">PAPER TRAIL</span>
+          <span class="tool-name"><svg class="ticon" viewBox="0 0 32 32" aria-hidden="true"><path d="M11 3h12l4 4v18H11z"/><path d="M8 7v21h15"/><path d="M5 10v21h15"/><path d="M15 12h8M15 16h8M15 20h6"/></svg>PAPER TRAIL</span>
           <span class="lead"></span>
           <span class="tool-role">every draft, kept</span>
           <span class="status live">OPEN</span>
@@ -685,7 +688,7 @@ body.stopen{overflow:hidden}
       </div>
       <div class="tool">
         <div class="tool-head">
-          <span class="tool-name">SET LIST</span>
+          <span class="tool-name"><svg class="ticon" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="7" r="4"/><path d="M16 11v16M11 29h10"/><path d="M13 7h6"/></svg>SET LIST</span>
           <span class="lead"></span>
           <span class="tool-role">funny, in order</span>
           <span class="status live">OPEN</span>
@@ -745,7 +748,7 @@ body.stopen{overflow:hidden}
     <div>
       <div class="tool">
         <div class="tool-head">
-          <span class="tool-name">STORY STUDIO</span>
+          <span class="tool-name"><svg class="ticon" viewBox="0 0 32 32" aria-hidden="true"><circle cx="10" cy="8" r="5"/><circle cx="21" cy="8" r="4"/><rect x="5" y="14" width="18" height="11" rx="1.5"/><path d="M23 18l6-3v9l-6-3z"/><path d="M14 25v4M10 29h8"/></svg>STORY STUDIO</span>
           <span class="lead"></span>
           <span class="tool-role">make it alone</span>
           <span class="status live">OPEN</span>
@@ -763,7 +766,7 @@ body.stopen{overflow:hidden}
       </div>
       <div class="tool">
         <div class="tool-head">
-          <span class="tool-name">FILM HUB</span>
+          <span class="tool-name"><svg class="ticon" viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="6" width="24" height="20" rx="1.5"/><path d="M9 6v20M23 6v20M4 11h5M4 16h5M4 21h5M23 11h5M23 16h5M23 21h5"/></svg>FILM HUB</span>
           <span class="lead"></span>
           <span class="tool-role">your films</span>
           <span class="status live">OPEN</span>
@@ -774,7 +777,7 @@ body.stopen{overflow:hidden}
       </div>
       <div class="tool">
         <div class="tool-head">
-          <span class="tool-name">BACKLOT</span>
+          <span class="tool-name"><svg class="ticon" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 14L16 5l12 9"/><path d="M6 13v15h20V13"/><rect x="12" y="19" width="8" height="9"/><path d="M12 19l8 9M20 19l-8 9"/><circle cx="16" cy="12" r="1.6"/></svg>BACKLOT</span>
           <span class="lead"></span>
           <span class="tool-role">the ground you have</span>
           <span class="status live">OPEN</span>
@@ -803,7 +806,7 @@ body.stopen{overflow:hidden}
          work. That stays where you put it.</p>
       <div class="tool">
         <div class="tool-head">
-          <span class="tool-name">ON THIS DEVICE</span>
+          <span class="tool-name"><svg class="ticon" viewBox="0 0 32 32" aria-hidden="true"><rect x="9" y="3" width="14" height="26" rx="2.5"/><path d="M16 9v10M12 15l4 4 4-4"/><path d="M12 24h8"/></svg>ON THIS DEVICE</span>
           <span class="lead"></span>
           <span class="tool-role">your backup</span>
           <span class="status live">OPEN</span>
