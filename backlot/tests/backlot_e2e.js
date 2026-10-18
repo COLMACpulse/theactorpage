@@ -31,7 +31,7 @@ const own=await p.evaluate(()=>JSON.parse(localStorage.getItem('film_os_v1')).ow
 want('it is Story Studio\'s list: 3 locations, 5 things, the barn\'s photo as a scout entry', own.filter(o=>o.kind==='location').length===3&&own.length===8&&own.find(o=>o.name==='Red barn').scout[0].photo&&own.find(o=>o.name==='Red barn').when.join()==='morning,dusk', own);
 await p.screenshot({path:SHOTS+'/bl_spots.png',fullPage:true});
 // Story Studio sees it
-const s2=await ctx.newPage(); s2.on('pageerror',e=>errs.push('film: '+e.message)); await s2.goto('http://localhost:8811/film/'); await s2.waitForTimeout(500); await s2.click('#tabs [data-t="own"]'); await s2.waitForTimeout(300);
+const s2=await ctx.newPage(); s2.on('pageerror',e=>errs.push('film: '+e.message)); await s2.goto('http://localhost:8811/film/'); await s2.waitForTimeout(500); await s2.click('#sub [data-t="own"]'); await s2.waitForTimeout(300);
 const ow=await s2.innerText('#main');
 want('Story Studio\'s OWNED tab: the same spots, vehicles and people', /Red barn/.test(ow)&&/Plays: stable, jail, saloon back room/.test(ow)&&/Vehicles/.test(ow)&&/People you can get/.test(ow), ow.slice(0,500));
 // scripts: one in Story Studio, one in Paper Trail

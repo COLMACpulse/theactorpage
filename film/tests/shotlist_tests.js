@@ -1,0 +1,28 @@
+/* Story Studio: YOUR SHOT LIST, read from the spreadsheet you plan from. A made-up list in the usual shape.  node film/tests/shotlist_tests.js */
+const fs=require('fs'), path=require('path');
+new Function('window',fs.readFileSync(path.join(__dirname,'../../actor-os/sides.js'),'utf8'))(globalThis);
+const F=require('../film.js'), X=require('../../shared/xlsx.js');
+let pass=0,fail=0; const ok=(n,c,x)=>{ if(c){pass++;console.log('PASS',n)}else{fail++;console.log('FAIL',n,x===undefined?'':JSON.stringify(x).slice(0,600))} };
+const CSV='SCENE #,SHOT #,SETUP,SHOT TYPE,CAMERA ,CAMERA MOVE,CAST,ACTION,PROPS\nTEASER,,,,,,,,\nT1,1,DUNES,POV,MEDIUM,,3,"HANDS HOLD LANTERN, SEARCH",LANTERN\nT1,2,DUNES,POV,CU,,3,FINDS A KEY,"LANTERN, KEY"\n,,,,,,,,\n1,3,CABIN,,WIDE,HD,"1,2",TWO MEN ARGUE,\nOMIT,4,CABIN,INSERT,CU,HD,1,HAND ON THE DOOR,\n1,5,"CABIN,PORCH",SHOT THRU WINDOW,MEDIUM,STATIC,"1,2",DOG BARKS OUTSIDE,\n1,5B,CABIN,,CU,HD,2,VALE LISTENS,\n10C,,,,,,,,\n2,,PORCH,,,HD,1,VALE WAITS,\n2,,PORCH,,,HD,1,VALE LEAVES,\nEND,,,,,,,"WIND, THEN NOTHING",\n';
+const L=F.shotList(X.csv(CSV),'Made Up - Sheet1.csv');
+ok('the header found by its names, even with # and a trailing space', L.cols.join()==='scene,shot,setup,type,size,move,cast,action,props', L.cols);
+ok('rows read; the blank and empty-scene rows skipped', L.rows.length===9, L.rows.map(r=>r.scene+':'+r.shot));
+ok('a word on its own is a section, for the scene right after it only', L.rows[0].section==='TEASER'&&L.rows[0].scene==='T1'&&L.rows[2].section==='', L.rows.map(r=>r.section));
+ok('OMIT: kept, struck, on its scene', L.rows[3].omit&&L.rows[3].scene==='1'&&L.omitted===1);
+ok('every column as written', JSON.stringify(L.rows[4])===JSON.stringify({id:'L1-5',scene:'1',section:'',shot:'5',setup:'CABIN,PORCH',type:'SHOT THRU WINDOW',size:'MEDIUM',move:'STATIC',cast:'1,2',action:'DOG BARKS OUTSIDE',props:'',lens:'',notes:'',omit:false}), L.rows[4]);
+ok('a shot with no number gets one from its place; ids never collide', L.rows.filter(r=>r.scene==='2').map(r=>r.shot).join()==='1,2'&&new Set(L.rows.map(r=>r.id)).size===L.rows.length);
+ok('END with an action is its own last scene', L.rows[L.rows.length-1].scene==='END'&&L.scenes.map(s=>s.label).join()==='T1,1,2,END', L.scenes.map(s=>s.label));
+ok('setups per scene', L.scenes.find(s=>s.label==='1').setups.join('|')==='CABIN|CABIN,PORCH');
+ok('cast ids and a key', F.castIds(L.rows).join()==='3,1,2'&&F.castWords('1,2',{1:'VALE',2:'HALE'})==='VALE, HALE'&&F.castWords('1,2',{})==='1, 2');
+const sc1={rows:L.rows.filter(r=>r.scene==='1'),cast:{1:'VALE',2:'HALE'}};
+const S=F.shots({n:1,speakers:[],props:[],action:[]},'list','',null,sc1);
+ok('on the day: your shots, not the omitted one, as written, framing in the how, the cast by name', S.length===3&&S[0].what==='TWO MEN ARGUE'&&S[0].how==='WIDE · HD'&&S[0].who==='VALE, HALE'&&S[1].how==='SHOT THRU WINDOW · MEDIUM · STATIC'&&!S.some(x=>/HAND ON THE DOOR/.test(x.what)), S);
+ok('on camera: the cast in it', F.onCamera({},'list','',sc1).join()==='VALE, HALE'.split(', ').join());
+const T=F.listScript(L,'Made Up');
+const SC=F.scenes(T);
+ok('no script: scenes made from the list, one a scene, in order, with their setups', SC.length===4&&SC[0].heading==='SCENE T1 - DUNES'&&SC[1].heading==='SCENE 1 - CABIN / CABIN,PORCH'&&SC[3].heading==='SCENE END', SC.map(x=>x.heading));
+const back=X.csv(F.listCsv(L));
+ok('out again as a CSV, OMIT kept, reads back the same', F.shotList(back).rows.length===9&&F.shotList(back).omitted===1&&back[0][0]==='SCENE');
+ok('no header: says so', F.shotList([['a','b'],['1','2']]).notes[0]==='No header row: it needs at least SCENE, and SHOT or ACTION.');
+ok('no em dashes', !/—/.test(JSON.stringify(S)+T));
+console.log(pass+' passed, '+fail+' failed'); process.exit(fail?1:0);

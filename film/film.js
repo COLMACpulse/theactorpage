@@ -114,7 +114,8 @@ F.lead=function(scene,me){
  if(me&&sp.includes(me)) return me;
  return sp[0]||'';
 };
-F.shots=function(scene,way,me,ins){
+F.shots=function(scene,way,me,ins,list){
+ if(way==='list') return (list&&list.rows||[]).filter(r=>!r.omit).map(r=>F.listShot(r,list.cast));
  const L0=F.shots0(scene,way,me,ins), vo=scene.speakers.filter(s=>s.voice&&F.seen(scene).indexOf(s.name)<0);
  if(!vo.length) return L0;
  const tone=L0.pop();
@@ -183,7 +184,8 @@ F.shots0=function(scene,way,me,pick){
  return L;
 };
 /* who has to be dressed and lit as themselves on camera in this way */
-F.onCamera=function(scene,way,me){
+F.onCamera=function(scene,way,me,list){
+ if(way==='list') return [...new Set((list&&list.rows||[]).filter(r=>!r.omit).flatMap(r=>F.castWords(r.cast,list.cast).split(', ').filter(Boolean)))];
  const sp=F.seen(scene), lead=F.lead(scene,me);
  if(sp.length<2) return sp;
  if(way==='keep'||way==='crew') return sp;
@@ -608,7 +610,7 @@ F.logCsv=function(rows,found){ found=found||{}; const H=['FILE','FOUND AT','SCEN
 /* every planned shot, scene by scene (scenes with no way picked have no shot list yet) */
 F.planRows=function(scenes,stOf,me){ const R=[];
  (scenes||[]).forEach(sc=>{ const s=stOf(sc.n)||{}; if(!s.way){ R.push({n:sc.n,heading:sc.heading,none:true}); return; }
-  F.shots(sc,s.way,me,s.ins).forEach((x,i)=>R.push({n:sc.n,heading:sc.heading,i:i+1,id:x.id,what:x.what,how:x.how,who:x.who,done:!!(s.done&&s.done[x.id])})); });
+  F.shots(sc,s.way,me,s.ins,s.list).forEach((x,i)=>R.push({n:sc.n,heading:sc.heading,i:i+1,id:x.id,what:x.what,how:x.how,who:x.who,done:!!(s.done&&s.done[x.id])})); });
  return R; };
 /* each planned shot with the takes logged to it; takes on no planned shot; shots with nothing */
 F.coverage=function(rows,takes){ takes=takes||{}; const plan=rows.filter(r=>!r.none), known={};
@@ -639,12 +641,55 @@ F.packReadme=function(o){ return [o.title+': editor pack','',
  '- '+o.slug+' plan.csv: the shot list before we shot.','- '+o.slug+' plan vs got.csv: every planned shot and the takes that cover it, NOT SHOT where there is none, my marks (GOLD, backup, never use), notes, and moments (time in the take, what happens).',
  '- '+o.slug+' cut.edl: my picks, in and out, in script order. Opens in Resolve, Premiere and Avid; it relinks by file name.','- '+o.slug+' cut.csv: the same picks as a list.','',
  o.cover,'',o.note?'From me: '+o.note:''].join('\n').replace(/\n+$/,'\n'); };
+/* ---------- YOUR SHOT LIST: the spreadsheet you already plan from (CSV, Excel, or pasted), read as it is ----------
+   Columns by their names: SCENE, SHOT, SETUP / LOCATION, SHOT TYPE, CAMERA / SIZE, CAMERA MOVE, CAST, ACTION, PROPS, LENS, NOTES.
+   A row of only a word (TEASER, END) marks a section. OMIT in the scene column: kept, struck, never on the day.
+   A shot with no number gets one from its place. Nothing is guessed: what isn't in a column stays blank. */
+const SLCOLS=[['scene',/^(scene|sc|scene no|scene number|scn)$/],['shot',/^(shot|shot no|shot number|sh)$/],['setup',/^(setup|set up|location|loc|set|place)$/],
+ ['type',/^(shot type|type|angle)$/],['size',/^(camera|size|shot size|framing|frame|camera size)$/],['move',/^(camera move|move|movement|camera movement|rig)$/],
+ ['cast',/^(cast|actors|characters|talent|who)$/],['action',/^(action|description|what happens|what|desc|shot description)$/],['props',/^(props|prop)$/],['lens',/^(lens|lenses|focal length)$/],['notes',/^(notes|note|comments)$/]];
+const cellv=c=>c==null?'':typeof c==='object'?(c.v==null?'':String(c.v)):String(c);
+const norm=s=>String(s||'').replace(/\s+/g,' ').trim();
+F.shotList=function(rows,file){
+ const R=(rows||[]).map(r=>(r||[]).map(cellv));
+ let hi=-1, map={};
+ for(let i=0;i<Math.min(R.length,15)&&hi<0;i++){ const m={}; R[i].forEach((h,j)=>{ const k=norm(h).toLowerCase().replace(/[#.:]/g,'').replace(/\s+/g,' ').trim(); const c=SLCOLS.find(x=>x[1].test(k)); if(c&&m[c[0]]==null) m[c[0]]=j; });
+  if(m.scene!=null&&(m.shot!=null||m.action!=null)&&Object.keys(m).length>=3){ hi=i; map=m; } }
+ if(hi<0) return {rows:[],scenes:[],notes:['No header row: it needs at least SCENE, and SHOT or ACTION.'],file:file||''};
+ const out=[], scenes=[], seen={}; let section='', last='', count={}, omitted=0;
+ R.slice(hi+1).forEach((r,ri)=>{ const g=k=>map[k]==null?'':norm(r[map[k]]); const filled=Object.keys(map).filter(k=>g(k));
+  if(!filled.length) return;
+  const sc=g('scene');
+  if(filled.length===1&&filled[0]==='scene'&&!/\d/.test(sc)){ section=sc.toUpperCase(); return; }       // TEASER, END
+  if(filled.length===1&&filled[0]==='scene') return;                                                // a scene number with nothing in it (10C)
+  const omit=/^omit(ted)?$/i.test(sc); let label=omit?last:sc;
+  if(!label) label=last||'?';
+  if(!omit&&sc) last=sc;
+  if(/^end$/i.test(sc)){ label='END'; }
+  if(!seen[label]){ seen[label]=1; scenes.push({label,section,setups:[]}); section=''; }
+  const S=scenes.find(x=>x.label===label); const setup=g('setup'); if(setup&&!S.setups.includes(setup)) S.setups.push(setup);
+  count[label]=(count[label]||0)+1;
+  const shot=g('shot')||String(count[label]);
+  out.push({id:'L'+label+'-'+shot+(out.some(x=>x.scene===label&&x.shot===shot)?'-'+ri:''),scene:label,section:S.section,shot,setup,type:g('type'),size:g('size'),move:g('move'),cast:g('cast'),action:g('action'),props:g('props'),lens:g('lens'),notes:g('notes'),omit});
+  if(omit) omitted++; });
+ return {rows:out,scenes,omitted,file:file||'',cols:Object.keys(map),notes:[]};
+};
+F.castIds=list=>[...new Set((list||[]).flatMap(r=>String(r.cast||'').split(/\s*[,/&]\s*|\s+and\s+/).map(x=>x.trim()).filter(Boolean)))];
+F.castWords=(cast,key)=>String(cast||'').split(/\s*[,/&]\s*|\s+and\s+/).map(x=>x.trim()).filter(Boolean).map(x=>(key&&key[x])||x).join(', ');
+/* a row as a shot on the day: what happens, and how it's framed */
+F.listShot=(r,key)=>({id:r.id,what:r.action||'Shot '+r.shot,how:[r.type,r.size,r.move,r.lens].filter(Boolean).join(' · '),who:F.castWords(r.cast,key),shot:r.shot,props:r.props,setup:r.setup,omit:r.omit});
+/* scenes made from the list when there's no script: one heading a scene, the setups as the place */
+F.listScript=function(L,title){ return (title?'Title: '+title+'\n\n':'')+L.scenes.map(s=>'.SCENE '+s.label+(s.setups.length?' - '+s.setups.slice(0,2).join(' / '):'')+'\n\n'+L.rows.filter(r=>r.scene===s.label&&!r.omit&&r.action).slice(0,1).map(r=>r.action).join('')+'\n').join('\n'); };
+/* the list back out, as a CSV, with your edits */
+F.listCsv=function(L){ const q=v=>{ v=String(v==null?'':v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
+ return [['SCENE','SHOT','SETUP','SHOT TYPE','CAMERA','CAMERA MOVE','CAST','ACTION','PROPS','LENS','NOTES']].concat(L.rows.map(r=>[r.omit?'OMIT':r.scene,r.shot,r.setup,r.type,r.size,r.move,r.cast,r.action,r.props,r.lens,r.notes])).map(r=>r.map(q).join(',')).join('\r\n')+'\r\n'; };
 /* ---------- ON SET: the day as one list of shots, where you are in it, the clock, the sun, the wrap ---------- */
 /* every shot of the day, in shooting order. state(n) -> {way, ins, done} for the scene */
 F.dayShots=function(blocks,state,me){ const L=[];
- (blocks||[]).forEach((b,bi)=>b.items.forEach(x=>{ const s=state(x.scene.n)||{}; if(!s.way) return; const sh=F.shots(x.scene,s.way,me,s.ins);
+ (blocks||[]).forEach((b,bi)=>b.items.forEach(x=>{ const s=state(x.scene.n)||{}; if(!s.way) return; const sh=F.shots(x.scene,s.way,me,s.ins,s.list);
   sh.forEach((h,i)=>L.push({n:x.scene.n,heading:x.scene.heading,where:b.where,block:bi,idx:i+1,of:sh.length,shot:h,done:!!(s.done&&s.done[h.id])})); }));
  return L; };
+F.wayName=id=>id==='list'?'Your shot list':((F.WAYS.find(w=>w.id===id)||{}).name||'');
 F.MARKS=[['gold','CIRCLE'],['backup','HOLD'],['never','NO GOOD']];
 F.markWord=m=>(F.MARKS.find(x=>x[0]===m)||['',''])[1];
 const hhmm=s=>{ const m=String(s||'').match(/^(\d{1,2}):(\d{2})/); return m?(+m[1])*60+(+m[2]):null; };

@@ -1,0 +1,48 @@
+/* Story Studio PREP · SHOT LIST: paste or drop the spreadsheet you plan from; ON SET runs it. Made-up list. Server on :8811.
+   NODE_PATH=... node film/tests/shotlist_e2e.js */
+const {chromium}=require('playwright'); const path=require('path'), fs=require('fs');
+(async()=>{ const SHOTS=process.env.SHOTS||'/tmp';
+const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,500))); if(!x) ok=false; };
+const ctx=await b.newContext({viewport:{width:390,height:844},acceptDownloads:true}); const p=await ctx.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
+const CSV='SCENE #,SHOT #,SETUP,SHOT TYPE,CAMERA ,CAMERA MOVE,CAST,ACTION,PROPS\nTEASER,,,,,,,,\nT1,1,DUNES,POV,MEDIUM,,3,"HANDS HOLD LANTERN, SEARCH",LANTERN\nT1,2,DUNES,POV,CU,,3,FINDS A KEY,"LANTERN, KEY"\n,,,,,,,,\n1,3,CABIN,,WIDE,HD,"1,2",TWO MEN ARGUE,\nOMIT,4,CABIN,INSERT,CU,HD,1,HAND ON THE DOOR,\n1,5,"CABIN,PORCH",SHOT THRU WINDOW,MEDIUM,STATIC,"1,2",DOG BARKS OUTSIDE,\n2,,PORCH,,,HD,1,VALE WAITS,\n';
+await p.goto('http://localhost:8811/film/'); await p.evaluate(()=>localStorage.clear()); await p.reload(); await p.waitForTimeout(400);
+await p.click('#sub [data-t="shots"]'); await p.waitForTimeout(200);
+want('PREP has SHOT LIST; no script: says the scenes get made from it', /No script\? The scenes are made from the list\./.test(await p.innerText('#main')));
+await p.fill('#slpaste',CSV); await p.click('#slread'); await p.waitForTimeout(500);
+let m=await p.innerText('#main');
+want('read: 5 shots, 1 omitted, 3 scenes made', /5 shots read, 1 omitted\. Made 3 scenes from it\./.test(m)&&/5 shots in 3 scenes · 1 omitted/.test(m), m.slice(0,300));
+want('the list by scene, OMIT struck', (await p.$$('.slr.omit')).length===1&&/TEASER · Scene T1 · DUNES/i.test(m), m.slice(0,800));
+await p.fill('[data-castkey="1"]','VALE'); await p.dispatchEvent('[data-castkey="1"]','change'); await p.fill('[data-castkey="2"]','HALE'); await p.dispatchEvent('[data-castkey="2"]','change'); await p.waitForTimeout(150);
+await p.screenshot({path:SHOTS+'/sl_prep.png',fullPage:true});
+await p.click('#tabs [data-r="set"]'); await p.waitForTimeout(300);
+want('ON SET runs it: first shot as written, framing, cast', /HANDS HOLD LANTERN, SEARCH/.test(await p.innerText('.nowcard h2'))&&/POV · MEDIUM/.test(await p.innerText('.nowcard'))&&/SHOT 1 OF 2/.test(await p.innerText('.nowcard .nk')), await p.innerText('.nowcard'));
+await p.click('#shotdone'); await p.click('#shotdone'); await p.waitForTimeout(200);
+want('next scene: names from the cast key, the omitted shot never comes up', /TWO MEN ARGUE/.test(await p.innerText('.nowcard h2'))&&/VALE, HALE/.test(await p.innerText('.nowcard'))&&/SHOT 1 OF 2/.test(await p.innerText('.nowcard .nk')), await p.innerText('.nowcard'));
+await p.click('#tabs [data-r="prep"]'); await p.click('#sub [data-t="scenes"]'); await p.waitForTimeout(200);
+want('PREP scenes: the way is your shot list', /Your shot list/i.test(await p.innerText('#main')));
+await p.click('[data-scene="2"]'); await p.waitForTimeout(200);
+want('a scene: "Your shot list" is picked, its shots listed', !!(await p.$('[data-way="list"].on'))&&/DOG BARKS OUTSIDE/.test(await p.innerText('#main'))&&!/HAND ON THE DOOR/.test(await p.innerText('#main')));
+await p.click('#sub [data-t="shots"]'); await p.waitForTimeout(200);
+const [dl]=await Promise.all([p.waitForEvent('download'),p.click('#slcsv')]); const back=fs.readFileSync(await dl.path(),'utf8');
+want('save as CSV: OMIT kept, columns in order', /^﻿SCENE,SHOT,SETUP,SHOT TYPE,CAMERA,CAMERA MOVE,CAST,ACTION,PROPS,LENS,NOTES/.test(back)&&/\nOMIT,4,CABIN/.test(back), back.slice(0,200));
+// with a script: by number, the rest picked by hand
+await p.evaluate(()=>localStorage.clear()); await p.reload(); await p.waitForTimeout(400);
+await p.setInputFiles('#file',{name:'low_tide.fountain',mimeType:'text/plain',buffer:fs.readFileSync(path.join(__dirname,'..','..','shared','fixtures','low_tide.fountain'))}); await p.waitForTimeout(800);
+await p.click('#sub [data-t="shots"]'); await p.waitForTimeout(200);
+await p.setInputFiles('#slfile',{name:'made up - Sheet1.csv',mimeType:'text/csv',buffer:Buffer.from(CSV)}); await p.waitForTimeout(500);
+m=await p.innerText('#main');
+want('with a script: scenes 1 and 2 by number, T1 to pick', /2 of 3 scenes are on the script by number; pick the rest below\./.test(m)&&(await p.$$('[data-slmap]')).length===1, m.slice(0,300));
+await p.selectOption('[data-slmap="T1"]','3'); await p.waitForTimeout(300);
+want('picked: none left to place', !(await p.$('[data-slmap]')));
+const ways=await p.evaluate(()=>{ const d=JSON.parse(localStorage.getItem('film_os_v1')), c=d.scripts[d.cur]; return [1,2,3].map(n=>c.scenes[n]&&c.scenes[n].way); });
+want('each scene now shoots from the list', ways.join()==='list,list,list', ways);
+await p.click('#sldel'); await p.waitForTimeout(200);
+const w2=await p.evaluate(()=>{ const d=JSON.parse(localStorage.getItem('film_os_v1')), c=d.scripts[d.cur]; return [!!c.shotlist,[1,2,3].map(n=>c.scenes[n]&&c.scenes[n].way||'')]; });
+want('remove it: the list gone, those scenes back to no way', !w2[0]&&w2[1].join()===',,', w2);
+await p.click('#sub [data-t="shots"]'); await p.waitForTimeout(100);
+await p.fill('#slpaste','name,age\nx,3'); await p.click('#slread'); await p.waitForTimeout(200);
+want('not a shot list: says what it needs', /Nothing read\. No header row: it needs at least SCENE, and SHOT or ACTION\./.test(await p.innerText('#main')));
+want('nothing runs off the side, no em dashes', await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)&&!/—/.test(await p.innerText('#main')));
+want('no page errors', !errs.length, errs);
+await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();

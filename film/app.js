@@ -80,7 +80,7 @@ function adopt(){
 }
 
 /* ---------- the rooms: PREP (script, scenes, what you own, the days), ON SET (today), POST (the cut, the pack) ---------- */
-const ROOMS={prep:[['script','SCRIPT'],['scenes','SCENES'],['own','OWNED'],['day','DAYS']],set:[['set','TODAY']],post:[['cut','CUT']]};
+const ROOMS={prep:[['script','SCRIPT'],['shots','SHOT LIST'],['scenes','SCENES'],['own','OWNED'],['day','DAYS']],set:[['set','TODAY']],post:[['cut','CUT']]};
 const ROOMNAME={prep:'PREP',set:'ON SET',post:'POST'};
 const roomOf=t=>Object.keys(ROOMS).find(r=>ROOMS[r].some(x=>x[0]===t))||'prep';
 const LASTIN={prep:'scenes',set:'set',post:'cut'};
@@ -97,6 +97,7 @@ function render(){
  const m=$('main');
  if(TAB==='script') m.innerHTML=vScript();
  else if(!c&&TAB==='cut') m.innerHTML=logBox()+'<div class="msg">'+(DB.log?'Or bring in the script first, and the log goes on its scenes.':'No script yet. Open your footage log above and make the scenes from it, or bring in the script.')+'</div><button class="btn block" data-go="script">SCRIPT</button>';
+ else if(TAB==='shots') m.innerHTML=vShots();
  else if(!c&&TAB!=='own') m.innerHTML='<div class="msg">Bring in a script first.</div><button class="btn pri block" data-go="script">SCRIPT</button>';
  else if(TAB==='scenes') m.innerHTML=OPEN?vScene(OPEN):vScenes();
  else if(TAB==='own') m.innerHTML=vOwn();
@@ -127,7 +128,7 @@ function vScript(){
 }
 function wayOf(n){ return (cur().scenes&&cur().scenes[n]&&cur().scenes[n].way)||''; }
 function whereName(n){ const s=cur().scenes&&cur().scenes[n]; const o=s&&s.where&&owned().find(x=>x.id===s.where); return o?o.name:''; }
-function doneOf(sc){ const s=cur().scenes&&cur().scenes[sc.n]; if(!s||!s.way) return null; const L=F.shots(sc,s.way,cur().me,s.ins); return {d:L.filter(x=>s.done&&s.done[x.id]).length,t:L.length}; }
+function doneOf(sc){ const s=cur().scenes&&cur().scenes[sc.n]; if(!s||!s.way) return null; const L=F.shots(sc,s.way,cur().me,s.ins,s.list); return {d:L.filter(x=>s.done&&s.done[x.id]).length,t:L.length}; }
 /* ---------- the front: what you can do with the camera and mic, before you go looking ---------- */
 let LASTSCENE=null;
 function takesIn(n){ return (cutOf().takes[n]||[]).length; }
@@ -142,7 +143,7 @@ function front(){
 }
 function vScenes(){
  return '<p class="kicker">Tap a scene to pick how you\'ll make it</p>'+SCENES.map(sc=>{
-  const w=wayOf(sc.n), wn=w?F.WAYS.find(x=>x.id===w).name:'', where=whereName(sc.n), dn=doneOf(sc);
+  const w=wayOf(sc.n), wn=w?F.wayName(w):'', where=whereName(sc.n), dn=doneOf(sc);
   return '<button class="sc" data-scene="'+sc.n+'"><div class="hd">'+sc.n+'. '+esc(sc.heading)+'</div>'
    +'<div class="sub">'+(sc.speakers.length?sc.speakers.map(s=>esc(s.name)+' '+s.lines+(s.voice?' (voice)':'')).join(' · '):'No dialogue')+'</div>'
    +'<div class="tags">'+(wn?'<span class="tag on">'+esc(wn)+'</span>':'<span class="tag">way not picked</span>')
@@ -157,9 +158,9 @@ function vScene(n){
  let h='<button class="back" data-back="1">‹ All scenes</button>';
  h+='<div class="card"><div class="hd" style="font:700 15px/1.35 var(--mono)">'+sc.n+'. '+esc(sc.heading)+'</div>'
   +'<div class="dim" style="font-size:14px;margin-top:6px">'+(sc.speakers.length?sc.speakers.map(x=>esc(x.name)+': '+x.lines+' line'+(x.lines===1?'':'s')+(x.voice?' ('+esc(x.voice)+', voice only)':'')).join(' · '):'No dialogue')+'</div></div>';
- const seen=F.seen(sc);
- if(seen.length>1){
-  h+='<p class="kicker">How do you shoot it?</p><div class="ways">'+F.WAYS.map(w=>'<button class="way'+(s.way===w.id?' on':'')+'" data-way="'+w.id+'"><b>'+w.name+'</b><span>'+esc(w.say)+'</span></button>').join('')+'</div>';
+ const seen=F.seen(sc), WS=F.WAYS.concat(s.list?[{id:'list',name:'Your shot list',say:'The shots from your spreadsheet for this scene, as you wrote them.'}]:[]);
+ if(seen.length>1||s.list){
+  h+='<p class="kicker">How do you shoot it?</p><div class="ways">'+WS.map(w=>'<button class="way'+(s.way===w.id?' on':'')+'" data-way="'+w.id+'"><b>'+w.name+'</b><span>'+esc(w.say)+'</span></button>').join('')+'</div>';
   if(s.way==='compress'||s.way==='proof') h+='<p class="faint" style="font-size:13px">On camera: <b class="dim">'+esc(F.lead(sc,me))+'</b>'+(me&&seen.includes(me)?'':' (most lines; pick who you play on the SCRIPT tab)')+'.</p>';
  } else if(!s.way){ s.way='keep'; save(); }
  // where
@@ -175,7 +176,7 @@ function vScene(n){
  const mine=F.owns(sc,owned());
  const bits=[];
  const ins=Array.isArray(s.ins)?s.ins:sc.props.slice(0,6);
- if(sc.props.length) bits.push('<p class="kicker" style="margin:12px 0 6px">In the action · tap for an insert</p><div class="chips">'+sc.props.map(p=>'<button class="chip'+(ins.includes(p)?' on':'')+'" data-ins="'+esc(p)+'">'+esc(p)+'</button>').join('')+'</div>');
+ if(sc.props.length&&s.way!=='list') bits.push('<p class="kicker" style="margin:12px 0 6px">In the action · tap for an insert</p><div class="chips">'+sc.props.map(p=>'<button class="chip'+(ins.includes(p)?' on':'')+'" data-ins="'+esc(p)+'">'+esc(p)+'</button>').join('')+'</div>');
  if(mine.length) bits.push('<p class="kicker" style="margin:12px 0 6px">Yours, named in the scene</p><div class="chips">'+mine.map(o=>'<span class="tag on">'+esc(o.name)+'</span>').join('')+'</div>');
  if(sc.people.length) bits.push('<p class="kicker" style="margin:12px 0 6px">People in the action, no lines</p><div class="chips">'+sc.people.map(p=>'<span class="tag">'+esc(p)+'</span>').join('')+'</div><p class="faint" style="font-size:13px;margin:6px 0 0">A walk-by, a shoulder, or a sound. Not a cast.</p>');
  const L1=s.where&&owned().find(o=>o.id===s.where);
@@ -183,7 +184,7 @@ function vScene(n){
  h+=bits.join('');
  // shots
  if(s.way){
-  const L=F.shots(sc,s.way,me,s.ins), d=L.filter(x=>s.done[x.id]).length;
+  const L=F.shots(sc,s.way,me,s.ins,s.list), d=L.filter(x=>s.done[x.id]).length;
   h+='<p class="kicker" style="margin-top:18px">Shots · '+d+' of '+L.length+'</p>'+L.map(x=>'<label class="shot'+(s.done[x.id]?' done':'')+'"><input type="checkbox" data-shot="'+esc(x.id)+'"'+(s.done[x.id]?' checked':'')+'><div><b>'+esc(x.what)+'</b>'+(x.how?'<small>'+esc(x.how)+'</small>':'')+'</div></label>').join('');
   if(s.way==='keep'&&seen.length>1) h+='<p class="faint" style="font-size:13px">Shoot every angle of one part, change wardrobe, then the next.</p>';
   if(s.way==='crew'&&seen.length>1) h+='<p class="faint" style="font-size:13px">Master first. Then everything facing one way, turn around, everything facing the other.</p>';
@@ -447,7 +448,13 @@ function callSheetHtml(D){
    done, see what's next. The clock against your wrap and the light, worked out on this phone. Wrap: the report. ---------- */
 let WRAPVIEW=false, DICT=null;
 function setOf(){ const c=cur(); c.set=c.set||{cur:null,log:[],plan:{call:'',wrap:'',per:15}}; c.set.plan=c.set.plan||{call:'',wrap:'',per:15}; c.set.log=c.set.log||[]; return c.set; }
-function dayList(){ const c=cur(); return F.dayShots(dayBlocks(),n=>(c.scenes||{})[n],c.me); }
+/* the day's order: your shot list's order when you have one (that's how you planned it), else grouped by place and light */
+function listBlocks(){ const c=cur(), L=c.shotlist, B=[]; if(!L||!L.map) return null;
+ L.scenes.forEach(x=>{ const n=L.map[x.label], sc=n&&SCENES.find(y=>y.n===n); if(!sc) return; const where=x.setups[0]||sc.place||'No place';
+  const last=B[B.length-1]; if(last&&last.where===where) last.items.push({scene:sc}); else B.push({where,tod:'',set:true,items:[{scene:sc}]}); });
+ SCENES.forEach(sc=>{ if(!B.some(b=>b.items.some(i=>i.scene.n===sc.n))) B.push({where:sc.place||'No place',tod:sc.tod||'',set:false,items:[{scene:sc}]}); });
+ return B; }
+function dayList(){ const c=cur(); return F.dayShots(listBlocks()||dayBlocks(),n=>(c.scenes||{})[n],c.me); }
 function nowIdx(D){ const S=setOf(); let i=S.cur?D.findIndex(x=>x.n===S.cur.n&&x.shot.id===S.cur.shot):-1; if(i<0) i=D.findIndex(x=>!x.done); if(i<0) i=D.length-1; return i; }
 function takesOf(x){ return setOf().log.filter(t=>t.n===x.n&&t.shot===x.shot.id); }
 function locOf(n){ const s=(cur().scenes||{})[n]; return s&&s.where?owned().find(o=>o.id===s.where):null; }
@@ -505,6 +512,56 @@ function wireWrap(){ const c=cur(), t=$('main').querySelector('pre.wrap').textCo
  $('wrapback').onclick=()=>{ WRAPVIEW=false; render(); };
  $('wrapcopy').onclick=async()=>{ try{ await navigator.clipboard.writeText(t); toast('Copied.'); }catch(e){ toast('This browser would not copy. Use SAVE AS TEXT.'); } };
  $('wrapsave').onclick=()=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([t],{type:'text/plain'})); a.download=String(c.file||'Script').replace(/\.(pdf|txt|fountain|fdx)$/i,'').replace(/[\\/:*?"<>|]+/g,' ')+' - wrap '+(c.dayDate||ymd(new Date()))+'.txt'; document.body.appendChild(a); a.click(); a.remove(); toast('Saved.'); }; }
+/* ---------- PREP · SHOT LIST: the spreadsheet you plan from. Drop it in (CSV or Excel) or paste it. Each scene's shots
+   become how you shoot it, and ON SET runs them. No script? The scenes are made from the list. ---------- */
+let SLMSG='';
+function vShots(){
+ const c=cur(), L=c&&c.shotlist;
+ let h=SLMSG?'<div class="msg'+(/<b>/.test(SLMSG)?' bad':'')+'">'+SLMSG+'</div>':'';
+ const drop='<div class="drop" id="sldrop"><b>DROP YOUR SHOT LIST</b><span class="dim">CSV or Excel. Or tap to pick one.</span></div><input type="file" id="slfile" accept=".csv,.xlsx,.txt,.tsv,text/csv" class="hide">'
+  +'<textarea class="field" id="slpaste" placeholder="Or paste it here, header row first: SCENE, SHOT, SETUP, SHOT TYPE, CAMERA, CAMERA MOVE, CAST, ACTION, PROPS"></textarea><button class="btn block" id="slread" style="margin-top:8px">READ IT</button>';
+ if(!L) return h+'<div class="card"><p class="kicker">Your shot list</p><p class="dim" style="margin:0 0 10px">The spreadsheet you already plan from. Columns are found by their names: scene, shot, setup or location, shot type, camera or size, camera move, cast, action, props, lens, notes. OMIT rows stay, struck, and never come up on the day.</p><p class="faint" style="font-size:13px;margin:0">'+(c?'Its scenes go on the script\'s scenes by number.':'No script? The scenes are made from the list.')+'</p></div>'+drop;
+ const by={}; L.rows.forEach(r=>(by[r.scene]=by[r.scene]||[]).push(r));
+ const ids=F.castIds(L.rows.filter(r=>!r.omit));
+ h+='<div class="card"><p class="kicker">Your shot list</p><b>'+esc(L.file||'Shot list')+'</b><div class="dim" style="font-size:14px;margin-top:4px">'+(L.rows.length-L.omitted)+' shots in '+L.scenes.length+' scenes'+(L.omitted?' · '+L.omitted+' omitted':'')+'</div>'
+  +'<div class="row" style="margin-top:12px"><button class="btn sm" data-go="set">RUN IT ON SET</button><button class="btn sm" id="slcsv">SAVE AS CSV</button><button class="btn sm ghost" id="slagain">REPLACE IT</button><button class="btn sm ghost" id="sldel">REMOVE IT</button></div></div>';
+ if(ids.length) h+='<div class="card"><p class="kicker">Who the cast numbers are</p><div class="row">'+ids.map(id=>'<label class="lab" style="margin:0;flex:1 1 130px">'+esc(id)+'<input class="field" data-castkey="'+esc(id)+'" value="'+esc((L.cast||{})[id]||'')+'" placeholder="Name"></label>').join('')+'</div><p class="faint" style="font-size:13px;margin:8px 0 0">Optional. ON SET says the name instead of the number.</p></div>';
+ const un=L.scenes.filter(x=>!(L.map&&L.map[x.label]));
+ if(un.length&&!L.made) h+='<div class="card"><p class="kicker">Not on a script scene yet · '+un.length+'</p>'+un.map(x=>'<label class="lab">Scene '+esc(x.label)+(x.setups.length?' · '+esc(x.setups.join(', ')):'')+'<select class="field" data-slmap="'+esc(x.label)+'"><option value="">Pick the script scene</option>'+SCENES.map(sc=>'<option value="'+sc.n+'">'+sc.n+'. '+esc(sc.heading)+'</option>').join('')+'</select></label>').join('')+'</div>';
+ h+=L.scenes.map(x=>'<div class="card slsc"><p class="kicker" style="margin:0 0 6px">'+(x.section?esc(x.section)+' · ':'')+'Scene '+esc(x.label)+(x.setups.length?' · '+esc(x.setups.join(', ')):'')+(L.map&&L.map[x.label]?' <span class="faint">→ '+esc((SCENES.find(sc=>sc.n===L.map[x.label])||{}).heading||'')+'</span>':'')+'</p>'
+  +(by[x.label]||[]).map(r=>'<div class="slr'+(r.omit?' omit':'')+'"><b>'+esc(r.shot)+'</b><span>'+esc(r.action||'')+(r.omit?' <i>OMIT</i>':'')+'<small>'+esc([r.type,r.size,r.move,r.lens].filter(Boolean).join(' · '))+(r.cast?' · '+esc(F.castWords(r.cast,L.cast)):'')+(r.props?' · '+esc(r.props):'')+'</small></span></div>').join('')+'</div>').join('');
+ if(SLAGAIN) h+=drop;
+ return h;
+}
+let SLAGAIN=false;
+function applyList(){ const c=cur(), L=c.shotlist; if(!L) return; L.map=L.map||{};
+ Object.keys(c.scenes||{}).forEach(n=>{ const s=c.scenes[n]; if(s.list){ delete s.list; if(s.way==='list') s.way=''; } });
+ L.scenes.forEach(x=>{ const n=L.map[x.label]; if(!n) return; const s=st(n); s.list={rows:L.rows.filter(r=>r.scene===x.label),cast:L.cast||{}}; s.way='list'; });
+ save(); }
+async function readList(f,text){
+ SLMSG=''; let L;
+ try{ if(f&&/\.xlsx$/i.test(f.name)){ const sh=await window.XLSX.read(await f.arrayBuffer()); let best=null; for(const s of sh){ const r=F.shotList(s.rows,f.name); if(r.rows.length&&(!best||r.rows.length>best.rows.length)) best=r; } L=best||F.shotList([],f.name); }
+  else L=F.shotList(window.XLSX.csv(f?await f.text():text),f?f.name:'Pasted shot list'); }catch(e){ SLMSG='<b>That file would not open.</b> Save it as CSV and try again.'; render(); return; }
+ if(!L.rows.length){ SLMSG='<b>Nothing read.</b> '+esc(L.notes[0]||'No shots under the header.'); render(); return; }
+ let c=cur();
+ const title=String(L.file).replace(/\.(csv|xlsx|txt|tsv)$/i,'').replace(/\s*-\s*Sheet\d+$/i,'').replace(/[_]+/g,' ').trim();
+ if(!c){ open('sl'+Date.now().toString(36),F.listScript(L,title),title,''); c=cur(); L.made=true; L.map={}; SCENES.forEach((sc,i)=>{ if(L.scenes[i]) L.map[L.scenes[i].label]=sc.n; }); }
+ else { const keep=c.shotlist&&c.shotlist.cast; L.cast=keep||{}; L.map={}; L.scenes.forEach(x=>{ const k=SCENES.find(sc=>String(sc.n)===x.label); if(k) L.map[x.label]=k.n; }); if(c.shotlist&&c.shotlist.made){ L.made=true; L.map={}; SCENES.forEach((sc,i)=>{ if(L.scenes[i]) L.map[L.scenes[i].label]=sc.n; }); } }
+ L.cast=L.cast||{}; L.at=Date.now(); c.shotlist=L; SLAGAIN=false; applyList();
+ const on=Object.keys(L.map).length;
+ SLMSG=(L.rows.length-L.omitted)+' shots read'+(L.omitted?', '+L.omitted+' omitted':'')+'. '+(L.made?'Made '+SCENES.length+' scenes from it.':on+' of '+L.scenes.length+' scenes are on the script by number'+(on<L.scenes.length?'; pick the rest below.':'.'));
+ TAB='shots'; render(); }
+function wireShots(){
+ const fi=$('slfile'), dr=$('sldrop'); if(dr&&fi){ dr.onclick=()=>fi.click(); fi.onchange=()=>{ const f=fi.files[0]; fi.value=''; if(f) readList(f); };
+  dr.ondragover=e=>{ e.preventDefault(); dr.classList.add('over'); }; dr.ondragleave=()=>dr.classList.remove('over'); dr.ondrop=e=>{ e.preventDefault(); dr.classList.remove('over'); const f=e.dataTransfer.files[0]; if(f) readList(f); }; }
+ if($('slread')) $('slread').onclick=()=>{ const t=$('slpaste').value; if(t.trim()) readList(null,t); };
+ const c=cur(), L=c&&c.shotlist; if(!L) return;
+ document.querySelectorAll('[data-castkey]').forEach(el=>el.onchange=()=>{ L.cast=L.cast||{}; const v=el.value.trim(); if(v) L.cast[el.dataset.castkey]=v; else delete L.cast[el.dataset.castkey]; applyList(); });
+ document.querySelectorAll('[data-slmap]').forEach(el=>el.onchange=()=>{ if(el.value) L.map[el.dataset.slmap]=+el.value; applyList(); SLMSG=''; render(); });
+ if($('slcsv')) $('slcsv').onclick=()=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['\ufeff'+F.listCsv(L)],{type:'text/csv'})); a.download=String(L.file||'Shot list').replace(/\.(csv|xlsx|txt|tsv)$/i,'')+' - Story Studio.csv'; document.body.appendChild(a); a.click(); a.remove(); toast('Saved.'); };
+ if($('slagain')) $('slagain').onclick=()=>{ SLAGAIN=true; render(); };
+ if($('sldel')) $('sldel').onclick=()=>{ if(!confirm('Remove the shot list? Scenes using it go back to no way picked. Your takes stay.')) return; delete c.shotlist; Object.keys(c.scenes||{}).forEach(n=>{ const s=c.scenes[n]; if(s.list){ delete s.list; if(s.way==='list') s.way=''; } }); save(); SLMSG=''; render(); };
+}
 function vDay(){
  const c=cur();
  const B=dayBlocks();
@@ -513,7 +570,7 @@ function vDay(){
  B.forEach((b,i)=>{
   h+='<div class="blk'+(b.set?'':' unset')+'"><h3>'+(i+1)+'. '+esc(b.where)+(b.tod?' · '+esc(b.tod):'')+'</h3>'+(b.set?'':'<div class="faint" style="font-size:13px">Where you\'ll shoot this isn\'t picked yet.</div>')
    +(()=>{ const it0=b.items[0], s0=it0&&(c.scenes||{})[it0.scene.n], o0=s0&&s0.where&&owned().find(x=>x.id===s0.where), sn=sunOf(o0); return sn?'<div class="faint" style="font-size:13px;margin:2px 0 6px">Sun'+(c.dayDate?'':' (today; set the date above)')+': '+esc(F.sunFor(b.tod,sn))+'</div>':''; })()
-   +b.items.map(x=>{ const dn=doneOf(x.scene); return '<div class="it"><b>Scene '+x.scene.n+'</b> <small>'+esc(x.scene.heading)+'</small><br><small>'+(x.way?esc(F.WAYS.find(w=>w.id===x.way).name)+' · ':'Way not picked · ')+'on camera: '+esc(x.who.join(', ')||'nobody')+(x.wardrobe?' · '+esc(x.wardrobe):'')+(dn?' · '+dn.d+' of '+dn.t+' shot':'')+'</small></div>'; }).join('')+'</div>';
+   +b.items.map(x=>{ const dn=doneOf(x.scene); return '<div class="it"><b>Scene '+x.scene.n+'</b> <small>'+esc(x.scene.heading)+'</small><br><small>'+(x.way?esc(F.wayName(x.way))+' · ':'Way not picked · ')+'on camera: '+esc(x.who.join(', ')||'nobody')+(x.wardrobe?' · '+esc(x.wardrobe):'')+(dn?' · '+dn.d+' of '+dn.t+' shot':'')+'</small></div>'; }).join('')+'</div>';
  });
  if(SCENES.length) h+=peopleBox()+callBox();
  return h;
@@ -532,7 +589,7 @@ let CREDOPEN=false;
 const FILES={};   // the clip files picked this session, for the preview; only names and lengths are kept
 function cutOf(){ const c=cur(); c.cut=c.cut||{target:300,fps:'30',takes:{}}; return c.cut; }
 function pieces(){ const k=cutOf(); const out=[]; SCENES.forEach(sc=>(k.takes[sc.n]||[]).forEach(t=>{ if(t.use&&t.out>t.in){ const a=adrKept(t); out.push({scene:sc.n,heading:sc.heading,name:t.name,in:t.in,out:t.out,id:t.id,adr:a?{id:a.id,at:a.at+(a.nudge||0)/1000,under:t.adr.under}:null}); } })); return out; }
-function shotsFor(sc){ const s=cur().scenes&&cur().scenes[sc.n]; return s&&s.way?F.shots(sc,s.way,cur().me,s.ins):[]; }
+function shotsFor(sc){ const s=cur().scenes&&cur().scenes[sc.n]; return s&&s.way?F.shots(sc,s.way,cur().me,s.ins,s.list):[]; }
 function coverNow(){ return F.coverage(F.planRows(SCENES,n=>cur().scenes&&cur().scenes[n],cur().me),cutOf().takes); }
 function packFiles(){ const k=cutOf(), t=filmName(), slug=F.slug(t), cv=coverNow(), R=F.planRows(SCENES,n=>cur().scenes&&cur().scenes[n],cur().me);
  let by=''; try{ by=(window.You&&You.get().name)||''; }catch(e){}
@@ -911,6 +968,7 @@ function wire(){
  const kt=$('ktxt'); if(kt) kt.onclick=()=>{ const D=callData(); dl(sheetName()+' call sheet'+(D.date?' '+D.date:'')+'.txt',F.callSheet(D).text,'text/plain'); };
  const kp=$('kprint'); if(kp) kp.onclick=()=>{ $('printsheet').innerHTML=callSheetHtml(callData()); window.print(); };
  if(TAB==='cut'){ if(cur()) wireCut(); wireLog(); }
+ if(TAB==='shots') wireShots();
  if(TAB==='set'&&cur()){ if(WRAPVIEW) wireWrap(); else wireSet(); }
  fillPhotos();
 }
