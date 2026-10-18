@@ -1,7 +1,7 @@
 {
-  "name": "STORY STUDIO · Make it alone",
+  "name": "STORY STUDIO · Crew or solo",
   "short_name": "STORY STUDIO",
-  "description": "One person makes the whole scene: you play the parts, the others become a shoulder, hands, a voice, shot on what you own.",
+  "description": "Shoot with a crew, or do it yourself: shot list, shoot day, takes, and a pack for your editor.",
   "start_url": "./", "scope": "./", "display": "standalone",
   "background_color": "#121110", "theme_color": "#121110",
   "icons": [
