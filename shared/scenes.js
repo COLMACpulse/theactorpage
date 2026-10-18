@@ -2098,12 +2098,12 @@ D.isPractice=function(f){ return /^(?:Practice scene|Today's scene) - /.test(Str
 D.pick=function(){ let last=''; try{ last=localStorage.getItem(LKEY)||''; }catch(e){}
  const pool=SCENES.filter(s=>s.id!==last), s=pool[Math.floor(Math.random()*pool.length)]||SCENES[0]; try{ localStorage.setItem(LKEY,s.id); }catch(e){} return s; };
 D.current=function(){ let id=''; try{ id=localStorage.getItem(LKEY)||''; }catch(e){} return D.get(id)||D.pick(); };
-D.handoff=function(s,me,tool){ try{ localStorage.setItem(HKEY,JSON.stringify({id:s.id,me:me||s.you,tool:tool,at:Date.now()})); }catch(e){} };
+D.handoff=function(s,me,tool){ try{ localStorage.setItem(HKEY,JSON.stringify({id:s.id,me:me||s.you,tool:tool,at:Date.now(),scene:s.yours?{id:s.id,yours:true,title:s.title,text:s.text,parts:s.parts,you:s.you,src:s.src}:null})); }catch(e){} };
 D.takeHandoff=function(tool){ let h=null; try{ h=JSON.parse(localStorage.getItem(HKEY)||'null'); }catch(e){}
- if(!h||h.tool!==tool||Date.now()-h.at>10*60000) return null; try{ localStorage.removeItem(HKEY); }catch(e){} const s=D.get(h.id); return s?{scene:s,text:s.text,file:D.fileName(s),me:h.me}:null; };
+ if(!h||h.tool!==tool||Date.now()-h.at>10*60000) return null; try{ localStorage.removeItem(HKEY); }catch(e){} const s=h.scene&&h.scene.yours?h.scene:D.get(h.id); return s?{scene:s,text:s.text,file:D.fileName(s),me:h.me}:null; };
 /* practice scenes put on the shelf by the old version: taken off, so they stop showing up as your sides */
 D.cleanShelf=function(){ const S=g.Shelf; if(!S||!S.all) return 0; let n=0; S.all().forEach(it=>{ if(D.isPractice(it.file)){ S.remove(it.id); n++; } }); return n; };
-D.parts=function(s){ const n=[]; s.text.replace(/^([A-Z][A-Z]+)$/gm,(m,x)=>{ if(n.indexOf(x)<0) n.push(x); }); return n; };
+D.parts=function(s){ if(s&&s.parts) return s.parts.slice(); const n=[]; s.text.replace(/^([A-Z][A-Z]+)$/gm,(m,x)=>{ if(n.indexOf(x)<0) n.push(x); }); return n; };
 
 if(typeof module!=='undefined') module.exports=D;
 g.DailyScenes=D;
