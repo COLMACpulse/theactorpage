@@ -80,6 +80,17 @@ nav.tabs button.on{color:var(--tung-text)}
 .lnk{background:none;border:0;color:var(--tung-text);padding:6px 4px;font-size:13.5px;text-decoration:none}.lnk.faint{color:var(--faint)}
 a.btn{text-decoration:none;color:inherit}
 .stg{display:inline-block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--tung-text);margin-top:4px}.stg.bad{color:var(--bad)}
+.seg{display:flex;gap:6px;margin:0 0 12px}
+.mapw{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel2)}
+#map{display:block;width:100%;height:auto;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+#map.drag{cursor:grabbing}
+.mg{stroke:var(--line);stroke-width:1}.ml{stroke:var(--tung);stroke-width:1.2;stroke-dasharray:4 4;opacity:.8}
+.mp{cursor:pointer}.mp .hit{fill:transparent}.mp circle:not(.hit){fill:var(--tung);stroke:var(--tung-ink);stroke-width:1.5}.mp.on circle:not(.hit){fill:var(--bad)}
+.mp text{font-family:var(--sans);font-weight:600;fill:var(--ink);text-anchor:middle;paint-order:stroke;stroke:var(--panel2);stroke-width:4px;stroke-linejoin:round;pointer-events:none}
+.mn path{fill:var(--ink)}.mn text{font:600 12px var(--sans);fill:var(--ink);text-anchor:middle}
+.ms path{fill:none;stroke:var(--ink);stroke-width:1.5}.ms text{font-family:var(--mono);fill:var(--ink);text-anchor:middle}
+.mz{position:absolute;left:8px;top:8px;display:flex;gap:6px}.mz .btn{min-height:40px;min-width:40px;padding:0 10px;background:var(--panel)}
+.mph{display:block;width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin:10px 0}
 .sc{display:grid;grid-template-columns:72px 1fr;gap:12px;align-items:center;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px;margin:0 0 10px;color:inherit}
 .sc .th{width:72px;height:54px;border-radius:8px;background:var(--panel2);overflow:hidden;display:flex;align-items:center;justify-content:center}
 .sc .th img{width:100%;height:100%;object-fit:cover}.sc .th svg{width:26px;height:26px;fill:none;stroke:var(--faint);stroke-width:1.5}

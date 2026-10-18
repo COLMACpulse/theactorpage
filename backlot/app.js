@@ -61,13 +61,15 @@ function spotView(o){
  const fld=(k,l,ph,v)=>'<label class="lab" for="f_'+k+'">'+l+'</label><input class="field" id="f_'+k+'" data-f="'+k+'" value="'+esc(v!=null?v:(o[k]||''))+'" placeholder="'+esc(ph)+'">';
  let h='<div class="row" style="margin-bottom:10px"><button class="lnk" id="back">‹ All spots</button></div><div class="card">';
  h+='<div class="photos">'+s.photos.map(p=>'<span class="ph"><img data-photo="'+esc(p)+'" alt="'+esc(s.name)+'" hidden><button class="lnk faint" data-pdel="'+esc(p)+'" aria-label="Remove photo">✕</button></span>').join('')+'<label class="ph add"><input type="file" id="morephoto" accept="image/*" capture="environment" hidden><span>+ PHOTO</span></label></div>';
+ const pin=B.coords(o.where);
+ h+='<label class="lab" for="f_where">Where it is</label><div class="row" style="gap:6px"><input class="field" id="f_where" data-f="where" value="'+esc(o.where||'')+'" placeholder="Stand there and tap I\'M HERE" style="flex:1;margin:0"><button class="btn" id="here">I\'M HERE</button></div><p class="faint small" style="margin:4px 0 0">'+(pin?'Pinned. It shows on the MAP.':'Your phone asks first. The pin stays on this phone. Or paste a pin from your maps app.')+'</p>';
  h+=fld('name','Name','Back porch',o.name)+fld('plays','What it can pass for','stable, jail, saloon back room')+'<p class="faint small" style="margin:4px 0 0">Your words. Scenes in your scripts get matched to these.</p>';
  h+='<p class="lab">Inside or out</p>'+chips('ie',IE,o.ie)+'<p class="lab">When the light works</p>'+chips('when',B.LIGHT,o.when||[],true);
  h+=fld('sound','Noise','road at noon, dogs, planes')+'<p class="lab">Power</p>'+chips('power',POW,o.power)+'<p class="lab">Gear</p>'+chips('gear',B.GEAR,o.gear);
  h+='<p class="lab">Whose it is</p>'+chips('whose',B.WHOSE,o.whose)+'<p class="lab">Can you use it</p>'+chips('perm',B.PERM,o.perm);
  h+='<label class="lab" for="f_takes">What it takes to make it pass</label><textarea class="field" id="f_takes" data-f="takes" placeholder="Hang a lantern, sweep the hay, hide the satellite dish">'+esc(o.takes||'')+'</textarea>';
  h+=fld('notes','Notes','')+'</div>';
- h+='<p class="faint small">Map pin, sun times and scout notes for this spot are in Story Studio\'s OWNED tab.</p><div class="row" style="justify-content:flex-end"><button class="lnk faint" id="delspot">delete this spot</button></div>';
+ h+='<p class="faint small">Sun times and scout notes for this spot are in Story Studio\'s OWNED tab.</p><div class="row" style="justify-content:flex-end"><button class="lnk faint" id="delspot">delete this spot</button></div>';
  return h;
 }
 
@@ -122,7 +124,7 @@ function groundView(){
  if(DEAL) h+=dealCard(DEAL,true);
  return h+keptView();
 }
-function dealCard(d,live,i){ return '<div class="card deal"><p class="kicker">'+(live?'Dealt':'Kept')+'</p><p class="dl">'+esc(d.line)+'</p><pre class="hds">'+d.headings.map(esc).join('\n')+'</pre>'+(d.notes.length?'<p class="faint small">What it takes: '+d.notes.map(esc).join('; ')+'</p>':'')
+function dealCard(d,live,i){ return '<div class="card deal"><p class="kicker">'+(live?'Dealt':'Kept')+'</p><p class="dl">'+esc(d.line)+'</p><pre class="hds">'+d.headings.map(esc).join('\n')+'</pre>'+(d.notes.length?'<p class="faint small">What it takes: '+d.notes.map(esc).join('; ')+'</p>':'')+(()=>{ const P=B.pins(B.fromOwned(owned()).spots), r=B.route(P,d.spots,d.spots[0]); return r.stops.length>1?'<p class="faint small">Between them: '+B.far(r.m)+', '+B.walk(r.m)+'.</p>':''; })()
  +'<div class="row" style="margin-top:10px">'+(live?'<button class="btn" id="again">ANOTHER</button><button class="btn" id="keep">KEEP IT</button>':'')+'<a class="btn" href="../write/writers-blockage.html" data-hw="'+(live?'live':i)+'">WRITE IT</a><a class="btn" href="../film/" data-hf="'+(live?'live':i)+'">PLAN THE SHOOT</a>'+(live?'':'<button class="lnk faint" data-kdel="'+i+'">remove</button>')+'</div>'
  +(live?'<p class="faint small" style="margin:8px 0 0">Write it: Writer\'s Blockage opens with the headings and your line as a note. Plan the shoot: Story Studio opens it as a new script.</p>':'')+'</div>'; }
 function keptView(){ return (M.kept||[]).length?'<p class="kicker" style="margin-top:18px">Kept · '+M.kept.length+'</p>'+M.kept.map((d,i)=>dealCard(d,false,i)).join(''):''; }
@@ -134,11 +136,50 @@ function handoff(d,to){ const title=d.names.join(', ');
 /* ---------- LIST ---------- */
 function listView(){
  const G=B.fromOwned(owned());
+ const seg='<div class="seg" role="tablist"><button class="chip sm'+(M.view!=='map'?' on':'')+'" data-view="list">List</button><button class="chip sm'+(M.view==='map'?' on':'')+'" data-view="map">Map</button></div>';
+ if(M.view==='map') return seg+mapView(G);
+ return seg+listOnly(G);
+}
+function listOnly(G){
  if(!G.spots.length&&!G.onhand.length) return '<div class="card"><p class="dim" style="margin:0 0 10px">Nothing on the list yet.</p><button class="btn pri" data-tab="spots">ADD A SPOT</button></div>';
  let h='<div class="row" style="margin-bottom:12px"><button class="btn" id="savetxt">SAVE AS TEXT</button><button class="btn" id="savecsv">SAVE AS A SPREADSHEET</button><button class="btn ghost" id="copy">COPY</button></div>';
  h+='<p class="kicker">Spots · '+G.spots.length+'</p><div class="card">'+G.spots.map(s=>'<div class="li">'+(s.photos[0]?'<img data-photo="'+esc(s.photos[0])+'" alt="" hidden>':'<span class="nop"></span>')+'<span>'+esc(B.spotLine(s))+'</span></div>').join('')+'</div>';
  B.KINDS.forEach(([k,l])=>{ const L=G.onhand.filter(x=>x.kind===k); if(L.length) h+='<p class="kicker">'+esc(l)+' · '+(k==='person'?B.people(G.onhand):L.length)+'</p><div class="card">'+L.map(x=>'<div class="li"><span>'+esc(x.name)+(k==='person'&&+x.count>1?' ('+x.count+')':'')+(x.notes?' <span class="faint">· '+esc(x.notes)+'</span>':'')+'</span></div>').join('')+'</div>'; });
  return h;
+}
+/* ---------- MAP: your pins, to scale, north up. Drawn here; no map service, nothing sent. ---------- */
+let VB=null, SEL='';
+function mapView(G){
+ const P=B.pins(G.spots), none=G.spots.filter(s=>!B.coords(s.where));
+ const unp=none.length?'<p class="lab">No pin yet</p><div class="row" style="gap:6px">'+none.map(s=>'<button class="chip sm" data-open-spot="'+esc(s.id)+'">'+esc(s.name)+'</button>').join('')+'</div>':'';
+ if(!P.length) return '<div class="card"><p class="dim" style="margin:0 0 8px">No pins yet. Open a spot, stand there and tap I\'M HERE. Or paste a pin from your maps app.</p>'+unp+'</div>';
+ const Gs=B.groups(P); if(M.grp==null||M.grp>=Gs.length) M.grp=0; const grp=M.grp===-1?P:Gs[M.grp];
+ let h='';
+ if(Gs.length>1) h+='<div class="row" style="gap:6px;margin-bottom:8px">'+Gs.map((g,i)=>'<button class="chip sm'+(M.grp===i?' on':'')+'" data-grp="'+i+'">'+esc(g[0].name)+(g.length>1?' + '+(g.length-1):'')+'</button>').join('')+'<button class="chip sm'+(M.grp===-1?' on':'')+'" data-grp="-1">All</button></div>';
+ const W=600, H=Math.round(W*(innerWidth<640?1.15:0.7)), xs=grp.map(p=>p.x), ys=grp.map(p=>p.y);
+ let x0=Math.min(...xs), x1=Math.max(...xs), y0=Math.min(...ys), y1=Math.max(...ys); const cx=(x0+x1)/2, cy=(y0+y1)/2;
+ const k=Math.min(W/Math.max(60,(x1-x0)*1.6),H/Math.max(60,(y1-y0)*1.7)), across=W/k;   // px per meter at zoom 1; room for labels
+ const u=W/Math.max(300,Math.min(W,innerWidth-34));   // so text reads the same size on any screen
+ if(!VB||VB.key!==M.grp+'|'+grp.length) VB={key:M.grp+'|'+grp.length,cx:0,cy:0,z:1};
+ const z=VB.z, sc=B.scale(across/z), stepPx=sc.m*k*z;
+ const X=p=>W/2+(p.x-cx)*k*z+VB.cx, Y=p=>H/2+(p.y-cy)*k*z+VB.cy;
+ let g='';
+ for(let i=-40;i<=40;i++){ const gx=W/2+VB.cx%stepPx+i*stepPx, gy=H/2+VB.cy%stepPx+i*stepPx; if(gx>-1&&gx<W+1) g+='<line class="mg" x1="'+gx.toFixed(1)+'" y1="0" x2="'+gx.toFixed(1)+'" y2="'+H+'"/>'; if(gy>-1&&gy<H+1) g+='<line class="mg" x1="0" y1="'+gy.toFixed(1)+'" x2="'+W+'" y2="'+gy.toFixed(1)+'"/>'; }
+ const sel=grp.find(p=>p.id===SEL);
+ if(sel) grp.forEach(p=>{ if(p!==sel) g+='<line class="ml" x1="'+X(sel).toFixed(1)+'" y1="'+Y(sel).toFixed(1)+'" x2="'+X(p).toFixed(1)+'" y2="'+Y(p).toFixed(1)+'"/>'; });
+ grp.forEach(p=>{ const on=p.id===SEL; g+='<g class="mp'+(on?' on':'')+'" data-pin="'+esc(p.id)+'" transform="translate('+X(p).toFixed(1)+' '+Y(p).toFixed(1)+')" tabindex="0"><circle class="hit" r="'+Math.round(22*u)+'"/><circle r="'+Math.round((on?9:6.5)*u)+'"/><text y="'+Math.round(-12*u)+'" font-size="'+Math.round(13*u)+'">'+esc(p.name.length>20?p.name.slice(0,19)+'…':p.name)+'</text></g>'; });
+ g+='<g class="mn" transform="translate('+(W-22*u)+' '+(30*u)+') scale('+u.toFixed(2)+')"><path d="M0 -16L7 6L0 1L-7 6Z"/><text y="20">N</text></g>';
+ g+='<g class="ms" transform="translate('+(14*u)+' '+(H-16*u)+')"><path d="M0 0v'+(6*u).toFixed(1)+'h'+stepPx.toFixed(1)+'v-'+(6*u).toFixed(1)+'" stroke-width="'+(1.5*u).toFixed(1)+'"/><text x="'+(stepPx/2).toFixed(1)+'" y="'+(-5*u).toFixed(1)+'" font-size="'+Math.round(12*u)+'">'+sc.label+'</text></g>';
+ h+='<div class="mapw"><svg id="map" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Your spots, north up, to scale">'+g+'</svg><div class="mz"><button class="btn sm" id="zin" aria-label="Closer">+</button><button class="btn sm" id="zout" aria-label="Farther">−</button><button class="btn sm ghost" id="zfit">FIT</button></div></div>';
+ h+='<p class="faint small" style="margin:6px 0 12px">Drawn on this phone from your pins. Drag to move, + and − to zoom. Nothing is looked up or sent.</p>';
+ if(sel){ const s=G.spots.find(x=>x.id===sel.id), nn=B.nearest(grp,sel.id), rt=B.route(grp,grp.map(p=>p.id),sel.id);
+  h+='<div class="card"><div class="row" style="justify-content:space-between"><b style="font-size:17px">'+esc(sel.name)+'</b><button class="btn sm" data-open-spot="'+esc(sel.id)+'">OPEN SPOT</button></div>'
+   +(s&&s.photos[0]?'<img class="mph" data-photo="'+esc(s.photos[0])+'" alt="" hidden>':'')
+   +(nn.length?'<ul class="facts">'+nn.slice(0,8).map(x=>'<li>'+esc(x.name)+': '+B.far(x.m)+', '+B.walk(x.m)+'</li>').join('')+'</ul>':'')
+   +(rt.stops.length>2?'<p class="small" style="margin:10px 0 0"><span class="faint">All of them from here, nearest next:</span> '+rt.stops.map(p=>esc(p.name)).join(' → ')+'. '+B.far(rt.m)+', '+B.walk(rt.m)+'.</p>':'')
+   +'<p style="margin:10px 0 0"><a class="lnk" href="https://www.google.com/maps/search/?api=1&query='+sel.lat.toFixed(6)+','+sel.lng.toFixed(6)+'" target="_blank" rel="noopener">Open this pin in a maps app ↗</a> <span class="faint small">(that sends the pin to the map company)</span></p></div>'; }
+ else h+='<p class="dim small">Tap a pin: how far the others are, on foot, and the walk to all of them.</p>';
+ return h+unp;
 }
 function saveFile(text,name,type){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); }
 
@@ -170,6 +211,20 @@ function wire(){
  if($('morephoto')) $('morephoto').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; if(await addPhoto(M.open,f)) { render(); toast('Photo kept on this phone.'); } };
  R.querySelectorAll('[data-pdel]').forEach(b=>b.onclick=()=>{ if(!confirm('Remove this photo?')) return; const pid=b.dataset.pdel; edit(M.open,o=>{ o.scout=(o.scout||[]).filter(x=>x.photo!==pid||(x.note&&(x.photo='',true))); }); delPhoto(pid); render(); });
  if($('delspot')) $('delspot').onclick=()=>{ if(!confirm('Delete this spot, here and in Story Studio?')) return; const o=owned().find(x=>x.id===M.open); (o&&o.scout||[]).forEach(x=>x.photo&&delPhoto(x.photo)); putOwned(owned().filter(x=>x.id!==M.open)); M.open=''; saveM(); render(); };
+ if($('here')) $('here').onclick=()=>{ const b=$('here'); if(!navigator.geolocation){ toast('This phone won\'t share where it is. Paste a pin instead.'); return; } b.textContent='FINDING…';
+  navigator.geolocation.getCurrentPosition(pos=>{ const v=pos.coords.latitude.toFixed(6)+', '+pos.coords.longitude.toFixed(6); edit(M.open,o=>{ o.where=v; }); render(); toast('Pinned'+(pos.coords.accuracy?', within about '+Math.round(pos.coords.accuracy*3.28084)+' ft':'')+'.'); },
+   ()=>{ b.textContent='I\'M HERE'; toast('No location. You can paste a pin instead.'); },{enableHighAccuracy:true,timeout:15000,maximumAge:0}); };
+ R.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{ M.view=b.dataset.view; saveM(); render(); });
+ R.querySelectorAll('[data-grp]').forEach(b=>b.onclick=()=>{ M.grp=+b.dataset.grp; SEL=''; VB=null; saveM(); render(); });
+ R.querySelectorAll('[data-open-spot]').forEach(b=>b.onclick=()=>{ M.tab='spots'; M.open=b.dataset.openSpot; saveM(); render(); scrollTo(0,0); });
+ const mp=$('map');
+ if(mp){ const zoom=f=>{ VB.z=Math.max(0.25,Math.min(64,VB.z*f)); VB.cx*=f; VB.cy*=f; render(); };
+  $('zin').onclick=()=>zoom(2); $('zout').onclick=()=>zoom(0.5); $('zfit').onclick=()=>{ VB=null; render(); };
+  let d=null; const pt=e=>{ const r=mp.getBoundingClientRect(), s=mp.viewBox.baseVal.width/r.width; return {x:e.clientX*s,y:e.clientY*s}; };
+  mp.onpointerdown=e=>{ d={p:pt(e),cx:VB.cx,cy:VB.cy,moved:false,pin:e.target.closest('[data-pin]')}; try{ mp.setPointerCapture(e.pointerId); }catch(x){} };
+  mp.onpointermove=e=>{ if(!d) return; const q=pt(e), dx=q.x-d.p.x, dy=q.y-d.p.y; if(Math.abs(dx)+Math.abs(dy)>8) d.moved=true; if(d.moved){ VB.cx=d.cx+dx; VB.cy=d.cy+dy; const v=mp.viewBox.baseVal; mp.setAttribute('viewBox',(-dx)+' '+(-dy)+' '+v.width+' '+v.height); mp.classList.add('drag'); } };
+  mp.onpointerup=()=>{ if(!d) return; const was=d; d=null; mp.classList.remove('drag'); if(was.moved){ render(); return; } if(was.pin){ SEL=SEL===was.pin.dataset.pin?'':was.pin.dataset.pin; render(); } };
+  mp.querySelectorAll('[data-pin]').forEach(g=>g.onkeydown=e=>{ if(e.key==='Enter'){ SEL=SEL===g.dataset.pin?'':g.dataset.pin; render(); } }); }
  /* drawer */
  if($('tofilm')){ $('tofilm').onclick=()=>{ const x=DRAWER.src.find(s=>s.id===M.open); if(!x) return; try{ localStorage.setItem('theactorpage_handoff_film',JSON.stringify({from:'backlot',title:x.title,text:x.text,at:Date.now()})); }catch(e){} location.href='../film/'; }; }
  /* ground */

@@ -45,4 +45,17 @@ ok('the list as a CSV: commas quoted', csv.split('\r\n')[1].startsWith('spot,Red
 ok('no em dashes', !/—/.test(lt+csv+W.join()+g4.line+fo));
 const G=B.fromOwned([{id:'l1',kind:'location',name:'Barn',plays:'stable, jail or saloon',when:['dusk'],ie:'both',sound:'road at noon',scout:[{id:'x',photo:'ph1'},{id:'y',note:'no photo'}]},{id:'p1',kind:'prop',name:'Lantern'},{id:'v1',kind:'person',name:'Jo Park',count:''}]);
 ok('Story Studio\'s list is the list: locations are spots, plays is what they pass for, sound is the noise', G.spots.length===1&&G.spots[0].passes.join('|')==='stable|jail|saloon'&&G.spots[0].noise==='road at noon'&&G.spots[0].photos.join()==='ph1'&&G.onhand.length===2&&B.spotFor('SALOON',G.spots).as==='saloon');
+// the map: made-up pins near a made-up crossroads
+const SP=[{id:'a',name:'Red barn',where:'38.8400, -97.6100'},{id:'b',name:'Creek rocks',where:'38.8409, -97.6100'},{id:'c',name:'Kitchen',where:'https://maps.example.com/?q=38.8400,-97.6110'},{id:'d',name:'Hardware store',where:'38.8800, -97.6100'},{id:'e',name:'No pin',where:''}];
+ok('pins read from numbers or a maps link; no pin left off', B.pins(SP).length===4&&B.coords('38.84° N, 97.61° W').lng===-97.61);
+const P=B.pins(SP), m1=B.meters(P[0],P[1]);
+ok('100 m north is 100 m', Math.abs(m1-100.1)<1, m1);
+ok('north is up: the creek above the barn', P[1].y<P[0].y&&Math.abs(P[1].x-P[0].x)<0.01);
+ok('in feet near, miles far, and on foot', B.far(m1)==='330 ft'&&B.far(B.meters(P[0],P[3]))==='2.8 mi'&&B.walk(m1)==='about 1 min on foot'&&B.walk(B.meters(P[0],P[3]))==='about 55 min on foot'&&B.walk(20000)==='a drive', [B.far(m1),B.far(B.meters(P[0],P[3])),B.walk(B.meters(P[0],P[3]))]);
+const Gr=B.groups(P);
+ok('groups: your ground (3) and the town (1)', Gr.length===2&&Gr[0].length===3&&Gr[1][0].name==='Hardware store', Gr.map(g=>g.map(p=>p.name)));
+ok('nearest first', B.nearest(P,'a').map(x=>x.name).join()==='Kitchen,Creek rocks,Hardware store', B.nearest(P,'a'));
+const rt=B.route(P,['d','b','a','c'],'c');
+ok('a round in walking order from where you start', rt.stops.map(p=>p.name).join()==='Kitchen,Red barn,Creek rocks,Hardware store', rt.stops.map(p=>p.name));
+ok('a scale bar: round numbers', B.scale(400).label==='250 ft'&&B.scale(20000).label==='2 mi', [B.scale(400),B.scale(20000)]);
 console.log(pass+' passed, '+fail+' failed'); if(fail) process.exit(1);

@@ -93,6 +93,34 @@ B.deal=function(ground,opts,seed){
 /* the hand-offs: headings and your line as a note, never dialogue */
 B.fountain=function(d,title){ return 'Title: '+(title||'From the ground')+'\n\n[[From the ground: '+d.line+(d.notes.length?' What it takes: '+d.notes.join('; ')+'.':'')+' Yours to change.]]\n\n'+d.headings.join('\n\n')+'\n'; };
 
+/* THE MAP: your pins, on this phone. No map service, nothing sent: the spots where you stood, north up, to scale.
+   where: "38.84, -97.61" or a maps link (Story Studio's F.coords reads both). */
+B.coords=function(s){ s=String(s||'').trim(); if(!s) return null; let m=s.match(/@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/)||s.match(/[?&](?:q|ll|query)=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/), lat, lng;
+ if(m){ lat=+m[1]; lng=+m[2]; } else { m=s.match(/(-?\d+(?:\.\d+)?)\s*°?\s*([NS])?\s*[,; ]\s*(-?\d+(?:\.\d+)?)\s*°?\s*([EW])?/i); if(!m) return null; lat=+m[1]; lng=+m[3]; if(m[2]&&/S/i.test(m[2])) lat=-Math.abs(lat); if(m[4]&&/W/i.test(m[4])) lng=-Math.abs(lng); }
+ return Math.abs(lat)<=90&&Math.abs(lng)<=180?{lat,lng}:null; };
+const R=6371008.8, rad=d=>d*Math.PI/180;
+B.meters=function(a,b){ const dl=rad(b.lat-a.lat), dn=rad(b.lng-a.lng), x=Math.sin(dl/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dn/2)**2; return 2*R*Math.asin(Math.min(1,Math.sqrt(x))); };
+/* in feet under a tenth of a mile, else miles. Walking: 3 miles an hour, with gear call it slower, so we say "about". */
+B.far=function(m){ const ft=m*3.28084; if(ft<528) return (ft<50?Math.round(ft/5)*5:Math.round(ft/10)*10)+' ft'; const mi=m/1609.344; return (mi<10?mi.toFixed(1):Math.round(mi))+' mi'; };
+B.walk=function(m){ const min=m/80.47; if(min<1) return 'under a minute on foot'; if(min>90) return 'a drive'; return 'about '+Math.round(min)+' min on foot'; };
+/* spots with pins, flat x/y in meters around the middle of them (north up) */
+B.pins=function(spots){ const P=(spots||[]).map(s=>({s,c:B.coords(s.where)})).filter(x=>x.c); if(!P.length) return [];
+ const lat0=P.reduce((a,x)=>a+x.c.lat,0)/P.length, lng0=P.reduce((a,x)=>a+x.c.lng,0)/P.length, k=Math.cos(rad(lat0));
+ return P.map(x=>({id:x.s.id,name:x.s.name,lat:x.c.lat,lng:x.c.lng,x:rad(x.c.lng-lng0)*R*k,y:-rad(x.c.lat-lat0)*R})); };
+/* groups: pins within a mile of another pin in the group. Your ground, and the town. */
+B.groups=function(pins,limit){ limit=limit||1609; const g=pins.map((_,i)=>i), find=i=>g[i]===i?i:(g[i]=find(g[i]));
+ for(let i=0;i<pins.length;i++) for(let j=i+1;j<pins.length;j++) if(B.meters(pins[i],pins[j])<=limit) g[find(i)]=find(j);
+ const by={}; pins.forEach((p,i)=>{ (by[find(i)]=by[find(i)]||[]).push(p); }); return Object.values(by).sort((a,b)=>b.length-a.length||a[0].name.localeCompare(b[0].name)); };
+B.nearest=function(pins,id){ const a=pins.find(p=>p.id===id); if(!a) return []; return pins.filter(p=>p.id!==id).map(p=>({id:p.id,name:p.name,m:B.meters(a,p)})).sort((x,y)=>x.m-y.m); };
+/* a round of spots in walking order, nearest next, starting where you say */
+B.route=function(pins,ids,start){ let left=ids.map(id=>pins.find(p=>p.id===id)).filter(Boolean); if(!left.length) return {stops:[],m:0};
+ let cur=left.find(p=>p.id===start)||left[0], out=[cur], m=0; left=left.filter(p=>p!==cur);
+ while(left.length){ left.sort((a,b)=>B.meters(cur,a)-B.meters(cur,b)); const n=left.shift(); m+=B.meters(cur,n); out.push(n); cur=n; }
+ return {stops:out,m}; };
+/* a nice round length for the scale bar, in feet or miles, about a quarter of the width */
+B.scale=function(metersAcross){ const want=metersAcross/4, ft=want*3.28084; if(ft<2640){ const st=[10,25,50,100,250,500,1000,2000].reduce((a,b)=>Math.abs(b-ft)<Math.abs(a-ft)?b:a); return {m:st/3.28084,label:st+' ft'}; }
+ const mi=want/1609.344, st=[0.5,1,2,5,10,20,50].reduce((a,b)=>Math.abs(b-mi)<Math.abs(a-mi)?b:a); return {m:st*1609.344,label:st+' mi'}; };
+
 /* Story Studio's OWNED list is the one list (localStorage film_os_v1 .owned). Locations are spots; the rest is on hand.
    BACKLOT's own fields live on the same records: ie, when, power, gear, whose, perm, takes. 'plays' is what it can pass for. */
 B.split=t=>String(t||'').split(/\s*[,;\n]\s*|\s+or\s+/i).map(x=>x.trim()).filter(Boolean);
