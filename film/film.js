@@ -100,11 +100,12 @@ F.places=function(scene,owned){
  }).filter(x=>x.words.length);
 };
 
-/* ---------- three ways to make it alone ---------- */
+/* ---------- four ways to shoot it: three alone, one with a crew ---------- */
 F.WAYS=[
  {id:'keep',name:'Keep it',say:'You play every part. Same frame, one side at a time, then cut it together.'},
  {id:'compress',name:'Compress it',say:'You play one part on camera. The others are a shoulder, hands, a voice.'},
- {id:'proof',name:'Fastest proof',say:'One face, one setup. The others are a voice. Inserts and sound carry the rest.'}
+ {id:'proof',name:'Fastest proof',say:'One face, one setup. The others are a voice. Inserts and sound carry the rest.'},
+ {id:'crew',name:'With a crew',say:'Everyone plays their own part. A master, a two-shot, then each of them over the shoulder and close.'}
 ];
 /* Who you are on camera when the others are compressed: your character if you picked one, else whoever speaks most. */
 F.seen=function(scene){ const v=scene.speakers.filter(s=>!s.voice); return (v.length?v:scene.speakers).map(s=>s.name); };
@@ -136,6 +137,18 @@ F.shots0=function(scene,way,me,pick){
   add('cu-'+lead,lead+' close-up','The whole scene in one take.',lead);
   ins.forEach(p=>add('ins-'+p,'Insert: '+p,''));
   add('tone','Room tone, 60 seconds','Same place, same mics.');
+  return L;
+ }
+ if(way==='crew'){
+  add('wide','Wide master','Everyone in, the whole scene top to bottom. Get one clean for sound.');
+  add(sp.length===2?'two':'group',sp.length===2?'Two-shot':'Group medium',sp.length===2?sp.join(' and ')+', the whole scene.':'All of them in, the whole scene.');
+  sp.forEach(x=>{
+   const o=sp.filter(n=>n!==x)[0];
+   add('ots-'+x,'Over '+o+'\'s shoulder onto '+x,o+' plays it off camera, so '+x+' has the eyeline.',x);
+   add('cu-'+x,x+' close-up','The whole scene again, tighter. '+o+' stays in for the lines.',x);
+  });
+  ins.forEach(p=>add('ins-'+p,'Insert: '+p,''));
+  add('tone','Room tone, 60 seconds','Everyone still, same place, same mics.');
   return L;
  }
  if(way==='keep'){
@@ -173,7 +186,7 @@ F.shots0=function(scene,way,me,pick){
 F.onCamera=function(scene,way,me){
  const sp=F.seen(scene), lead=F.lead(scene,me);
  if(sp.length<2) return sp;
- if(way==='keep') return sp;
+ if(way==='keep'||way==='crew') return sp;
  if(way==='compress') return sp;              // the others are on camera as a shoulder or hands
  return [lead];
 };

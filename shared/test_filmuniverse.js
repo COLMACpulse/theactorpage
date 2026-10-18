@@ -18,7 +18,7 @@ ok('where they stand', U.facts.includes('Where they stand: 1 planning, 1 cutting
 ok('from the scripts: how many read', U.scenes[0]==='From 2 scripts read in Story Studio:', U.scenes);
 ok('inside or out, time of day', U.scenes.includes('Inside or out: inside 75%, outside 25%.')&&U.scenes.includes('Time of day: night 75%, day 25%.'), U.scenes);
 ok('a place in both films', U.scenes.includes('Places in more than one film: DINER (2).'), U.scenes);
-ok('speaking parts, you in it, how you shoot alone', U.scenes.includes('Speaking parts: 2 a film.')&&U.scenes.includes('You play a part yourself in 1 of 2.')&&U.scenes.includes('How you shoot alone: Compress it 2 scenes, Fastest proof 1 scene.'), U.scenes);
+ok('speaking parts, you in it, how you shoot', U.scenes.includes('Speaking parts: 2 a film.')&&U.scenes.includes('You play a part yourself in 1 of 2.')&&U.scenes.includes('How you shoot: Compress it 2 scenes, Fastest proof 1 scene.'), U.scenes);
 ok('who you keep working with: Jo Park on 3, Dana Pell on 2, with jobs', /Jo Park \(3 films, Sound\)/.test(U.crew[0])&&/Dana Pell \(2 films, plays ROSS, plays WREN\)/.test(U.crew[0]), U.crew);
 ok('map: 3 films, people, the diner once', by('film').length===3&&by('person').length>=5&&by('place').filter(n=>n.label==='DINER').length===1, U.nodes.map(n=>n.type+':'+n.label));
 ok('map: Jo Park joined to all three', U.edges.filter(e=>e.b==='p:jopark').length===3, U.edges.filter(e=>e.b==='p:jopark'));

@@ -83,7 +83,7 @@ function adopt(){
 function render(){
  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===TAB));
  const c=cur();
- $('title').textContent=c?String(c.file||'Script').replace(/\.(pdf|txt|fountain|fdx)$/i,'').replace(/_/g,' '):'Make it alone';
+ $('title').textContent=c?String(c.file||'Script').replace(/\.(pdf|txt|fountain|fdx)$/i,'').replace(/_/g,' '):'Crew or solo';
  $('count').textContent=c?SCENES.length+' scene'+(SCENES.length===1?'':'s')+(c.me?' · you are '+c.me:''):'';
  const m=$('main');
  if(TAB==='script') m.innerHTML=vScript();
@@ -149,8 +149,8 @@ function vScene(n){
   +'<div class="dim" style="font-size:14px;margin-top:6px">'+(sc.speakers.length?sc.speakers.map(x=>esc(x.name)+': '+x.lines+' line'+(x.lines===1?'':'s')+(x.voice?' ('+esc(x.voice)+', voice only)':'')).join(' · '):'No dialogue')+'</div></div>';
  const seen=F.seen(sc);
  if(seen.length>1){
-  h+='<p class="kicker">How do you make it alone?</p><div class="ways">'+F.WAYS.map(w=>'<button class="way'+(s.way===w.id?' on':'')+'" data-way="'+w.id+'"><b>'+w.name+'</b><span>'+esc(w.say)+'</span></button>').join('')+'</div>';
-  if(s.way&&s.way!=='keep') h+='<p class="faint" style="font-size:13px">On camera: <b class="dim">'+esc(F.lead(sc,me))+'</b>'+(me&&seen.includes(me)?'':' (most lines; pick who you play on the SCRIPT tab)')+'.</p>';
+  h+='<p class="kicker">How do you shoot it?</p><div class="ways">'+F.WAYS.map(w=>'<button class="way'+(s.way===w.id?' on':'')+'" data-way="'+w.id+'"><b>'+w.name+'</b><span>'+esc(w.say)+'</span></button>').join('')+'</div>';
+  if(s.way==='compress'||s.way==='proof') h+='<p class="faint" style="font-size:13px">On camera: <b class="dim">'+esc(F.lead(sc,me))+'</b>'+(me&&seen.includes(me)?'':' (most lines; pick who you play on the SCRIPT tab)')+'.</p>';
  } else if(!s.way){ s.way='keep'; save(); }
  // where
  const locs=owned().filter(o=>o.kind==='location'), sug=F.places(sc,owned());
@@ -176,6 +176,7 @@ function vScene(n){
   const L=F.shots(sc,s.way,me,s.ins), d=L.filter(x=>s.done[x.id]).length;
   h+='<p class="kicker" style="margin-top:18px">Shots · '+d+' of '+L.length+'</p>'+L.map(x=>'<label class="shot'+(s.done[x.id]?' done':'')+'"><input type="checkbox" data-shot="'+esc(x.id)+'"'+(s.done[x.id]?' checked':'')+'><div><b>'+esc(x.what)+'</b>'+(x.how?'<small>'+esc(x.how)+'</small>':'')+'</div></label>').join('');
   if(s.way==='keep'&&seen.length>1) h+='<p class="faint" style="font-size:13px">Shoot every angle of one part, change wardrobe, then the next.</p>';
+  if(s.way==='crew'&&seen.length>1) h+='<p class="faint" style="font-size:13px">Master first. Then everything facing one way, turn around, everything facing the other.</p>';
   // continuity
   const who=F.onCamera(sc,s.way,me);
   h+='<p class="kicker" style="margin-top:18px">Continuity</p><p class="faint" style="font-size:13px;margin:-4px 0 4px">So the next scene with them matches this one.</p>';

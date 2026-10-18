@@ -125,7 +125,7 @@ H.universe=function(films,F,people,me){
   const back=Object.keys(placeFilms).filter(pl=>placeFilms[pl].length>1).sort((a,b)=>placeFilms[b].length-placeFilms[a].length); if(back.length) scen.push('Places in more than one film: '+back.slice(0,5).map(pl=>pl+' ('+placeFilms[pl].length+')').join(', ')+'.');
   if(parts.length) scen.push('Speaking parts: '+(Math.min(...parts)===Math.max(...parts)?parts[0]:Math.min(...parts)+' to '+Math.max(...parts))+' a film.');
   scen.push('You play a part yourself in '+inIt+' of '+read+'.');
-  const wn=(F.WAYS||[]).filter(x=>ways[x.id]).map(x=>x.name+' '+pl(ways[x.id],'scene')); if(wn.length) scen.push('How you shoot alone: '+wn.join(', ')+'.');
+  const wn=(F.WAYS||[]).filter(x=>ways[x.id]).map(x=>x.name+' '+pl(ways[x.id],'scene')); if(wn.length) scen.push('How you shoot: '+wn.join(', ')+'.');
   scen.unshift('From '+pl(read,'script')+' read in Story Studio:'); }
  const again=people.filter(p=>p.films.length>1);
  const crew=again.length?['Who you keep working with: '+again.slice(0,6).map(p=>p.name+' ('+p.films.length+' films'+(()=>{ const j=[...new Set([].concat(...p.films.map(x=>x.jobs)))].slice(0,2); return j.length?', '+j.join(', '):''; })()+')').join('; ')+'.']:(people.length?['Nobody on more than one film yet.']:[]);

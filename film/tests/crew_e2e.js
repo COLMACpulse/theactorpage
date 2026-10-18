@@ -1,0 +1,24 @@
+/* Story Studio: WITH A CREW on a scene. Made-up script (LOW TIDE). Server on :8811.  NODE_PATH=... node film/tests/crew_e2e.js */
+const {chromium}=require('playwright'); const path=require('path'), fs=require('fs');
+(async()=>{ const SHOTS=process.env.SHOTS||'/tmp';
+const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,500))); if(!x) ok=false; };
+const p=await (await b.newContext({viewport:{width:390,height:844}})).newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
+await p.goto('http://localhost:8811/film/'); await p.evaluate(()=>localStorage.clear()); await p.reload(); await p.waitForTimeout(500);
+want('the title: crew or solo', /Crew or solo/.test(await p.innerText('#title'))&&/Crew or solo/.test(await p.title()));
+const text=fs.readFileSync(path.join(__dirname,'..','..','shared','fixtures','low_tide.fountain'),'utf8');
+await p.setInputFiles('#file',{name:'low_tide.fountain',mimeType:'text/plain',buffer:Buffer.from(text)}); await p.waitForTimeout(800);
+const n=await p.evaluate(()=>{ const S=window.__film.SCENES(); const s=S.find(x=>F_seen(x)); return s?s.n:null; function F_seen(x){ return window.FilmOS.seen(x).length>1; } });
+await p.click('[data-scene="'+n+'"]'); await p.waitForTimeout(300);
+let m=await p.innerText('#main');
+want('the question: how do you shoot it, four ways', /How do you shoot it\?/i.test(m)&&(await p.$$('[data-way]')).length===4&&/With a crew/.test(m), m.slice(0,600));
+await p.click('[data-way="crew"]'); await p.waitForTimeout(300); m=await p.innerText('#main');
+want('With a crew: master, two-shot, over the shoulder and close for each', /Wide master/.test(m)&&/(Two-shot|Group medium)/.test(m)&&/plays it off camera/.test(m)&&/close-up/.test(m), m.slice(0,1200));
+want('no wardrobe swaps or voices for people who are there', !/You in .* wardrobe|as a voice.*Record them \(you or a friend\)/.test(m));
+want('the crew tip: master first, then turn around', /Master first\. Then everything facing one way, turn around, everything facing the other\./.test(m));
+want('no "on camera: just you" line', !/^On camera:/m.test(m));
+await p.screenshot({path:SHOTS+'/ss_crew.png',fullPage:true});
+want('kept on the scene', await p.evaluate(n=>{ const d=JSON.parse(localStorage.getItem('film_os_v1')); return d.scripts[d.cur].scenes[n].way; },n)==='crew');
+want('nothing runs off the side, no em dashes', await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)&&!/—/.test(m));
+want('no page errors', !errs.length, errs);
+await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();
