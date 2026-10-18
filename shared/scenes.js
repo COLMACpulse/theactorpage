@@ -2084,13 +2084,25 @@ D.doneCount=function(){ return Object.keys(read().done).length; };
 D.fileName=function(s){ return "Practice scene - "+s.title; };
 /* sides kept under the old name still count */
 D.fromFile=function(f){ const m=String(f||'').match(/^(?:Practice scene|Today's scene) - (.+)$/); return m?SCENES.find(s=>s.title===m[1])||null:null; };
-/* Put it on the sides shelf so every ACT tool has it, with your part picked. */
+/* Old: put it on the sides shelf. No longer used (practice keeps to its own lane); kept so old calls don't break. */
 D.toShelf=function(s,me){
  if(!g.Shelf) return null;
  const it=g.Shelf.put({text:s.text,file:D.fileName(s),from:"Practice scene",tool:'daily'});
  if(it) g.Shelf.setMe(it.id,me||s.you,'daily');
  return it;
 };
+/* Practice scenes keep to their own lane: never on the sides shelf, never your current sides anywhere.
+   A tap hands one scene to one tool, once (TAPE IT -> Actor OS, LEARN -> Memorizer). */
+const HKEY='theactorpage_handoff_practice', LKEY='theactorpage_practice_last';
+D.isPractice=function(f){ return /^(?:Practice scene|Today's scene) - /.test(String(f||'')); };
+D.pick=function(){ let last=''; try{ last=localStorage.getItem(LKEY)||''; }catch(e){}
+ const pool=SCENES.filter(s=>s.id!==last), s=pool[Math.floor(Math.random()*pool.length)]||SCENES[0]; try{ localStorage.setItem(LKEY,s.id); }catch(e){} return s; };
+D.current=function(){ let id=''; try{ id=localStorage.getItem(LKEY)||''; }catch(e){} return D.get(id)||D.pick(); };
+D.handoff=function(s,me,tool){ try{ localStorage.setItem(HKEY,JSON.stringify({id:s.id,me:me||s.you,tool:tool,at:Date.now()})); }catch(e){} };
+D.takeHandoff=function(tool){ let h=null; try{ h=JSON.parse(localStorage.getItem(HKEY)||'null'); }catch(e){}
+ if(!h||h.tool!==tool||Date.now()-h.at>10*60000) return null; try{ localStorage.removeItem(HKEY); }catch(e){} const s=D.get(h.id); return s?{scene:s,text:s.text,file:D.fileName(s),me:h.me}:null; };
+/* practice scenes put on the shelf by the old version: taken off, so they stop showing up as your sides */
+D.cleanShelf=function(){ const S=g.Shelf; if(!S||!S.all) return 0; let n=0; S.all().forEach(it=>{ if(D.isPractice(it.file)){ S.remove(it.id); n++; } }); return n; };
 D.parts=function(s){ const n=[]; s.text.replace(/^([A-Z][A-Z]+)$/gm,(m,x)=>{ if(n.indexOf(x)<0) n.push(x); }); return n; };
 
 if(typeof module!=='undefined') module.exports=D;

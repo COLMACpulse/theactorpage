@@ -1,5 +1,5 @@
 /* NOTES offline shell. Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='notes-0.1.8';
+const CACHE='notes-0.1.9';
 const FILES=['./','index.html','app.js','manifest.webmanifest','../shared/hot.js','../shared/kit.js','../shared/capture.js','../shared/takes.js','../shared/shelf.js','../actor-os/sides.js','../actor-os/pdf.js','../shared/intake.js','../shared/notes.js',
  'fonts/jost-latin-400-normal.woff2','fonts/jost-latin-500-normal.woff2','fonts/jost-latin-600-normal.woff2',
  'fonts/courier-prime-latin-400-normal.woff2','fonts/courier-prime-latin-700-normal.woff2',

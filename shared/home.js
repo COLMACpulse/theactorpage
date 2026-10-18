@@ -180,7 +180,7 @@ function putAway(k){ const a=away(); if(!a.includes(k)) a.push(k); try{ localSto
 let PLAYOPEN=(()=>{ try{ return sessionStorage.getItem('home_inplay_open')==='1'; }catch(e){ return false; } })(), PLAYALL=false;
 function showPlay(){
  const A=away(), now=new Date().toISOString();
- const S=Sh.all().filter(x=>!A.includes('s:'+x.id));
+ const S=Sh.all().filter(x=>!A.includes('s:'+x.id)&&!(window.DailyScenes&&DailyScenes.isPractice(x.file)));
  const R=I.all('request').filter(x=>x.data.due&&x.data.due>=now.slice(0,16)&&!A.includes('r:'+x.id)).sort((a,b)=>String(a.data.due).localeCompare(String(b.data.due)));
  const D=I.all('draft').filter(x=>!A.includes('d:'+x.id));
  document.body.classList.toggle('has',!!(Sh.all().length||I.all('request').length||I.all('draft').length||(Y&&Y.has())));

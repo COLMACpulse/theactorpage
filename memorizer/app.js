@@ -41,6 +41,7 @@ function shelfPut(text,file,f){
 }
 /* Sides that arrived on the shelf since Memorizer last looked: open them. */
 function adoptShelf(){
+ try{ if(window.DailyScenes){ DailyScenes.cleanShelf(); const h=DailyScenes.takeHandoff('memorizer'); if(h){ addScript({text:h.text,file:h.file,me:h.me,from:'Practice scene'}); DB.tab='drill'; save(); setTimeout(()=>toast(h.scene.title+': a practice scene, you\'re '+h.me+'.'),300); return true; } } }catch(e){}
  if(!SH) return false;
  const p=SH.pending('memorizer'); if(!p) return false;
  SH.markSeen('memorizer',p.id);
