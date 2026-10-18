@@ -639,6 +639,45 @@ F.packReadme=function(o){ return [o.title+': editor pack','',
  '- '+o.slug+' plan.csv: the shot list before we shot.','- '+o.slug+' plan vs got.csv: every planned shot and the takes that cover it, NOT SHOT where there is none, my marks (GOLD, backup, never use), notes, and moments (time in the take, what happens).',
  '- '+o.slug+' cut.edl: my picks, in and out, in script order. Opens in Resolve, Premiere and Avid; it relinks by file name.','- '+o.slug+' cut.csv: the same picks as a list.','',
  o.cover,'',o.note?'From me: '+o.note:''].join('\n').replace(/\n+$/,'\n'); };
+/* ---------- ON SET: the day as one list of shots, where you are in it, the clock, the sun, the wrap ---------- */
+/* every shot of the day, in shooting order. state(n) -> {way, ins, done} for the scene */
+F.dayShots=function(blocks,state,me){ const L=[];
+ (blocks||[]).forEach((b,bi)=>b.items.forEach(x=>{ const s=state(x.scene.n)||{}; if(!s.way) return; const sh=F.shots(x.scene,s.way,me,s.ins);
+  sh.forEach((h,i)=>L.push({n:x.scene.n,heading:x.scene.heading,where:b.where,block:bi,idx:i+1,of:sh.length,shot:h,done:!!(s.done&&s.done[h.id])})); }));
+ return L; };
+F.MARKS=[['gold','CIRCLE'],['backup','HOLD'],['never','NO GOOD']];
+F.markWord=m=>(F.MARKS.find(x=>x[0]===m)||['',''])[1];
+const hhmm=s=>{ const m=String(s||'').match(/^(\d{1,2}):(\d{2})/); return m?(+m[1])*60+(+m[2]):null; };
+const clockWord=ms=>{ const d=new Date(ms); let h=d.getHours(), m=d.getMinutes(); const ap=h<12?'AM':'PM'; h=h%12||12; return h+':'+String(m).padStart(2,'0')+' '+ap; };
+F.clockWord=clockWord;
+/* the plan against now: shots left at so many minutes each, when you wrap, ahead of or behind the wrap you set */
+F.setClock=function(o){ const left=o.left||0, per=Math.max(1,+o.per||15), now=o.now||Date.now(), est=now+left*per*60000, out={left,per,est,words:''};
+ if(!left){ out.words='Every shot on the list is done.'; return out; }
+ let w=left+' shot'+(left===1?'':'s')+' left. At '+per+' min a shot, you wrap about '+clockWord(est)+'.';
+ const wm=hhmm(o.wrap); if(wm!=null){ const d=new Date(now); d.setHours(Math.floor(wm/60),wm%60,0,0); const diff=Math.round((d.getTime()-est)/60000); out.diff=diff;
+  w+=' '+(Math.abs(diff)<5?'Right on your wrap at '+clockWord(d.getTime())+'.':diff>0?diff+' min ahead of your '+clockWord(d.getTime())+' wrap.':(-diff)+' min past your '+clockWord(d.getTime())+' wrap.'); }
+ out.words=w; return out; };
+/* the light, from now: in words */
+F.sunNow=function(sun,now){ if(!sun) return ''; if(sun.polar) return sun.polar; now=now||Date.now(); const t=x=>x?x.getTime():null, mins=x=>Math.round((t(x)-now)/60000);
+ const S={dawn:t(sun.dawn),rise:t(sun.sunrise),gm:t(sun.goldenMorningEnds),ge:t(sun.goldenEveningStarts),set:t(sun.sunset),dusk:t(sun.dusk)};
+ if(S.rise&&now<S.rise) return 'Sunrise in '+mins(sun.sunrise)+' min ('+clockWord(S.rise)+'). Golden light until '+clockWord(S.gm)+'.';
+ if(S.gm&&now<S.gm) return 'Golden light now, until '+clockWord(S.gm)+' ('+mins(sun.goldenMorningEnds)+' min).';
+ if(S.ge&&now<S.ge) return 'Golden hour in '+mins(sun.goldenEveningStarts)+' min ('+clockWord(S.ge)+'). Sunset '+clockWord(S.set)+'.';
+ if(S.set&&now<S.set) return 'Golden hour now. Sunset in '+mins(sun.sunset)+' min ('+clockWord(S.set)+').';
+ if(S.dusk&&now<S.dusk) return 'Sun is down. Last light in '+mins(sun.dusk)+' min ('+clockWord(S.dusk)+').';
+ return 'After dark. Sunrise '+clockWord(S.rise)+'.'; };
+/* the wrap: what got shot, what's left, the circled takes and every note. Plain text for the editor and the crew. */
+F.wrapText=function(o){ const L=[], shots=o.shots||[], log=o.log||[];
+ L.push((o.title||'The day')+(o.date?' · '+o.date:'')+' · wrap'); L.push('');
+ const done=shots.filter(x=>x.done).length; L.push(done+' of '+shots.length+' shots done. '+log.length+' take'+(log.length===1?'':'s')+' logged, '+log.filter(x=>x.mark==='gold').length+' circled.'); L.push('');
+ const byN={}; shots.forEach(x=>{ (byN[x.n]=byN[x.n]||{heading:x.heading,list:[]}).list.push(x); });
+ Object.keys(byN).forEach(n=>{ const b=byN[n]; L.push('SCENE '+n+' · '+b.heading);
+  b.list.forEach(x=>{ const tk=log.filter(t=>t.n==+n&&t.shot===x.shot.id);
+   L.push('  '+(x.done?'[x]':'[ ]')+' '+x.idx+'. '+x.shot.what+(tk.length?' · '+tk.length+' take'+(tk.length===1?'':'s'):''));
+   tk.forEach(t=>{ if(t.mark||t.note) L.push('      take '+t.take+(t.mark?' '+F.markWord(t.mark):'')+(t.note?': '+t.note:'')); }); });
+  L.push(''); });
+ const left=shots.filter(x=>!x.done); if(left.length){ L.push('STILL TO SHOOT'); left.forEach(x=>L.push('  Scene '+x.n+', shot '+x.idx+': '+x.shot.what)); L.push(''); }
+ return L.join('\n').replace(/\n+$/,'\n'); };
 if(typeof module!=='undefined') module.exports=F;
 g.FilmOS=F;
 })(typeof window!=='undefined'?window:globalThis);

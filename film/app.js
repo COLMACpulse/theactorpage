@@ -443,18 +443,68 @@ function callSheetHtml(D){
  if(D.notes) h+='<h2>Notes</h2><div style="white-space:pre-wrap">'+esc(D.notes)+'</div>';
  return h;
 }
-/* ON SET, for now: the camera and mic, and today's scenes in shooting order with how far along each is.
-   The full on-set screen (the shot you're on, takes, the clock, the sun) comes next. */
+/* ---------- ON SET: one screen for the day. The shot you're on, big. Log each take with a mark and a note, mark the shot
+   done, see what's next. The clock against your wrap and the light, worked out on this phone. Wrap: the report. ---------- */
+let WRAPVIEW=false, DICT=null;
+function setOf(){ const c=cur(); c.set=c.set||{cur:null,log:[],plan:{call:'',wrap:'',per:15}}; c.set.plan=c.set.plan||{call:'',wrap:'',per:15}; c.set.log=c.set.log||[]; return c.set; }
+function dayList(){ const c=cur(); return F.dayShots(dayBlocks(),n=>(c.scenes||{})[n],c.me); }
+function nowIdx(D){ const S=setOf(); let i=S.cur?D.findIndex(x=>x.n===S.cur.n&&x.shot.id===S.cur.shot):-1; if(i<0) i=D.findIndex(x=>!x.done); if(i<0) i=D.length-1; return i; }
+function takesOf(x){ return setOf().log.filter(t=>t.n===x.n&&t.shot===x.shot.id); }
+function locOf(n){ const s=(cur().scenes||{})[n]; return s&&s.where?owned().find(o=>o.id===s.where):null; }
+function setLines(){ const el=$('setclock'); if(!el) return; const D=dayList(), i=nowIdx(D), x=D[i], now=Date.now(), S=setOf();
+ el.innerHTML=esc(F.clockWord(now))+'<small>'+esc(new Date(now).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}))+'</small>';
+ $('setplan').textContent=F.setClock({left:D.filter(y=>!y.done).length,per:S.plan.per,now,wrap:S.plan.wrap}).words;
+ const sun=x?sunOf(locOf(x.n),new Date(now)):null; $('setsun').textContent=sun?F.sunNow(sun,now):(x?'Pin '+(locOf(x.n)?locOf(x.n).name:'the place')+' in OWNED for the light here.':''); }
+setInterval(()=>{ if(TAB==='set'&&!WRAPVIEW) setLines(); },30000);
 function vSet(){
- const c=cur(), B=dayBlocks(); let h=front();
- const today=new Date(), ymdT=ymd(today), when=c.dayDate?(c.dayDate===ymdT?'Today':c.dayDate>ymdT?'Next shoot day: '+c.dayDate:'Last shoot day: '+c.dayDate):'No shoot day set';
- h+='<p class="kicker">'+esc(when)+'</p>';
- if(!B.length) return h+'<div class="msg">No scenes yet.</div>';
- h+=B.map((b,i)=>'<div class="setday"><h3>'+(i+1)+'. '+esc(b.where)+(b.tod?' · '+esc(b.tod):'')+'</h3>'+b.items.map(x=>{ const dn=doneOf(x.scene), pc=dn&&dn.t?Math.round(dn.d/dn.t*100):0;
-   return '<button class="sc" data-scene="'+x.scene.n+'" style="margin-top:10px"><b>Scene '+x.scene.n+'</b> <span class="sub">'+esc(x.scene.heading)+'</span><div class="prog"><i style="width:'+pc+'%"></i></div><span class="sub">'+(dn?dn.d+' of '+dn.t+' shots done':'How you\'ll shoot it isn\'t picked yet')+' · '+takesIn(x.scene.n)+' take'+(takesIn(x.scene.n)===1?'':'s')+'</span></button>'; }).join('')+'</div>').join('');
- h+='<div class="row" style="margin-top:6px"><button class="btn" data-go="day">THE DAYS AND THE CALL SHEET</button></div>';
+ const c=cur(), S=setOf();
+ if(WRAPVIEW) return vWrap();
+ const D=dayList();
+ if(!D.length){ const unset=SCENES.filter(sc=>!wayOf(sc.n));
+  return '<div class="card"><p class="kicker">Nothing on the list yet</p><p class="dim" style="margin:0 0 12px">Pick how you\'ll shoot each scene and its shots line up here, in shooting order.</p>'
+   +(unset.length?'<p class="lab" style="margin-top:0">Every scene with no way yet:</p><div class="row">'+F.WAYS.map(w=>'<button class="btn sm" data-allway="'+w.id+'">'+esc(w.name)+'</button>').join('')+'</div>':'')
+   +'<div class="row" style="margin-top:12px"><button class="btn" data-go="scenes">PICK SCENE BY SCENE</button></div></div>'+'<p class="kicker" style="margin-top:18px">This phone</p>'+front(); }
+ const i=nowIdx(D), x=D[i], tk=takesOf(x), nx=D.slice(i+1).find(y=>!y.done), loc=locOf(x.n);
+ let h='<div class="clockrow"><b id="setclock"></b><button class="btn sm ghost" id="wrapit">WRAP</button></div><p class="sline" id="setplan"></p><p class="sline" id="setsun"></p>';
+ h+='<div class="nowcard'+(x.done?' isdone':'')+'"><span class="nk">NOW · SCENE '+x.n+' · SHOT '+x.idx+' OF '+x.of+(x.done?' · DONE':'')+'</span><h2>'+esc(x.shot.what)+'</h2>'
+  +(x.shot.how?'<p class="nh">'+esc(x.shot.how)+'</p>':'')+'<p class="nw">'+esc([x.where,x.shot.who].filter(Boolean).join(' · '))+'</p>'
+  +'<div class="takeno">TAKE '+(tk.length+1)+'</div></div>';
+ h+='<div class="noterow"><input class="field" id="setnote" placeholder="Note for this take: boom in frame, use the end" value="'+esc(S.draft||'')+'"><button class="btn" id="setsay" aria-label="Say the note">SAY IT</button></div>';
+ h+='<div class="marks">'+F.MARKS.map(([k,l])=>'<button class="btn mk mk-'+k+'" data-mk="'+k+'">'+l+'</button>').join('')+'</div><button class="btn block" data-mk="" style="margin-top:8px">LOG TAKE, NO MARK</button>';
+ h+='<div class="row" style="margin-top:12px"><button class="btn pri" id="shotdone" style="flex:1">'+(x.done?'SHOT DONE ✓ · NEXT':'SHOT DONE · NEXT')+'</button>'+(tk.length?'<button class="btn ghost sm" id="undotake">UNDO TAKE '+tk.length+'</button>':'')+'</div>';
+ if(tk.length) h+='<div class="tklist">'+tk.slice().reverse().map(t=>'<div><b>TAKE '+t.take+'</b>'+(t.mark?'<span class="tm tm-'+t.mark+'">'+F.markWord(t.mark)+'</span>':'')+(t.note?'<small>'+esc(t.note)+'</small>':'')+'<small class="faint">'+F.clockWord(t.at)+'</small></div>').join('')+'</div>';
+ h+='<p class="sline" style="margin-top:12px">'+(nx?'Next: scene '+nx.n+', shot '+nx.idx+', '+esc(nx.shot.what)+(nx.block!==x.block?'. Then you move to '+esc(nx.where)+'.':'.'):'That\'s the last shot on the list.')+'</p>';
+ h+='<details class="card"><summary class="kicker" style="cursor:pointer;margin:0">The day · '+D.filter(y=>y.done).length+' of '+D.length+' done</summary>'+D.map((y,k)=>(k===0||D[k-1].block!==y.block?'<p class="lab">'+esc(y.where)+'</p>':'')+'<button class="dl'+(k===i?' on':'')+(y.done?' done':'')+'" data-jump="'+k+'"><span>'+(y.done?'✓':'')+'</span><b>'+y.n+'.'+y.idx+'</b> '+esc(y.shot.what)+(takesOf(y).length?' <i>'+takesOf(y).length+' tk</i>':'')+'</button>').join('')+'</details>';
+ h+='<details class="card"><summary class="kicker" style="cursor:pointer;margin:0">The plan</summary><div class="row" style="margin-top:10px"><label class="lab" style="margin:0">Call<input type="time" class="field" data-plan="call" value="'+esc(S.plan.call||'')+'"></label><label class="lab" style="margin:0">Wrap<input type="time" class="field" data-plan="wrap" value="'+esc(S.plan.wrap||'')+'"></label><label class="lab" style="margin:0">Min a shot<input type="number" min="1" max="240" class="field" data-plan="per" value="'+esc(S.plan.per||15)+'" style="width:96px"></label></div></details>';
+ h+='<p class="kicker" style="margin-top:18px">This phone</p>'+front();
  return h;
 }
+function vWrap(){ const c=cur(), S=setOf(), t=F.wrapText({title:String(c.file||'Script').replace(/\.(pdf|txt|fountain|fdx)$/i,'').replace(/_/g,' '),date:c.dayDate||ymd(new Date()),shots:dayList(),log:S.log});
+ return '<div class="row" style="margin-bottom:10px"><button class="lnk" id="wrapback">‹ Back to the day</button></div><div class="card"><p class="kicker">Wrap report</p><pre class="wrap">'+esc(t)+'</pre>'
+  +'<div class="row"><button class="btn" id="wrapcopy">COPY</button><a class="btn" id="wrapmail" href="mailto:?subject='+encodeURIComponent('Wrap: '+t.split('\n')[0])+'&body='+encodeURIComponent(t)+'">EMAIL IT</a><button class="btn" id="wrapsave">SAVE AS TEXT</button></div>'
+  +'<p class="faint" style="font-size:13px;margin:10px 0 0">For the editor and the crew. The circled takes and every note, scene by scene, and what\'s still to shoot.</p></div>'; }
+function wireSet(){
+ setLines(); const S=setOf();
+ document.querySelectorAll('[data-allway]').forEach(b=>b.onclick=()=>{ SCENES.forEach(sc=>{ if(!wayOf(sc.n)) st(sc.n).way=b.dataset.allway; }); save(); render(); });
+ const D=dayList(); if(!D.length) return; const i=nowIdx(D), x=D[i];
+ const note=$('setnote'); if(note) note.oninput=()=>{ S.draft=note.value; save(); };
+ document.querySelectorAll('[data-mk]').forEach(b=>b.onclick=()=>{ const tk=takesOf(x); S.log.push({id:rid('k'),n:x.n,shot:x.shot.id,take:tk.length+1,mark:b.dataset.mk,note:(note&&note.value.trim())||'',at:Date.now()}); S.draft=''; S.cur={n:x.n,shot:x.shot.id}; save(); render();
+  toast('Take '+(tk.length+1)+(b.dataset.mk?' '+F.markWord(b.dataset.mk):'')+' logged.'); });
+ if($('undotake')) $('undotake').onclick=()=>{ const tk=takesOf(x), last=tk[tk.length-1]; if(!last) return; S.log=S.log.filter(t=>t!==last); save(); render(); };
+ if($('shotdone')) $('shotdone').onclick=()=>{ const s=st(x.n); s.done[x.shot.id]=1; const nx=D.slice(i+1).find(y=>!y.done)||D.find((y,k)=>k!==i&&!y.done); S.cur=nx?{n:nx.n,shot:nx.shot.id}:{n:x.n,shot:x.shot.id}; LASTSCENE=S.cur.n; save(); render(); };
+ document.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>{ const y=D[+b.dataset.jump]; S.cur={n:y.n,shot:y.shot.id}; LASTSCENE=y.n; save(); render(); });
+ document.querySelectorAll('[data-plan]').forEach(el=>el.onchange=()=>{ S.plan[el.dataset.plan]=el.dataset.plan==='per'?Math.max(1,+el.value||15):el.value; save(); setLines(); });
+ if($('wrapit')) $('wrapit').onclick=()=>{ WRAPVIEW=true; render(); };
+ const say=$('setsay'), SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(say){ if(!SR){ say.disabled=true; say.title='This browser can\'t turn speech into words.'; }
+  else say.onclick=()=>{ if(DICT){ try{ DICT.stop(); }catch(e){} return; } const r=new SR(); DICT=r; r.lang=navigator.language||'en-US'; r.interimResults=false; say.textContent='LISTENING'; say.classList.add('pri');
+   r.onresult=e=>{ const w=[...e.results].map(z=>z[0].transcript).join(' ').trim(); if(w){ note.value=(note.value?note.value+' ':'')+w; S.draft=note.value; save(); } };
+   r.onend=()=>{ DICT=null; say.textContent='SAY IT'; say.classList.remove('pri'); }; r.onerror=()=>{}; try{ r.start(); }catch(e){ DICT=null; } }; }
+}
+function wireWrap(){ const c=cur(), t=$('main').querySelector('pre.wrap').textContent;
+ $('wrapback').onclick=()=>{ WRAPVIEW=false; render(); };
+ $('wrapcopy').onclick=async()=>{ try{ await navigator.clipboard.writeText(t); toast('Copied.'); }catch(e){ toast('This browser would not copy. Use SAVE AS TEXT.'); } };
+ $('wrapsave').onclick=()=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([t],{type:'text/plain'})); a.download=String(c.file||'Script').replace(/\.(pdf|txt|fountain|fdx)$/i,'').replace(/[\\/:*?"<>|]+/g,' ')+' - wrap '+(c.dayDate||ymd(new Date()))+'.txt'; document.body.appendChild(a); a.click(); a.remove(); toast('Saved.'); }; }
 function vDay(){
  const c=cur();
  const B=dayBlocks();
@@ -861,10 +911,11 @@ function wire(){
  const kt=$('ktxt'); if(kt) kt.onclick=()=>{ const D=callData(); dl(sheetName()+' call sheet'+(D.date?' '+D.date:'')+'.txt',F.callSheet(D).text,'text/plain'); };
  const kp=$('kprint'); if(kp) kp.onclick=()=>{ $('printsheet').innerHTML=callSheetHtml(callData()); window.print(); };
  if(TAB==='cut'){ if(cur()) wireCut(); wireLog(); }
+ if(TAB==='set'&&cur()){ if(WRAPVIEW) wireWrap(); else wireSet(); }
  fillPhotos();
 }
 document.addEventListener('visibilitychange',()=>{ if(document.hidden&&MC.stream) mcClose(); if(document.hidden&&ADRREC) adrStopRec(); });
-document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{ const r=b.dataset.r; if(roomOf(TAB)!==r) TAB=LASTIN[r]; OPEN=null; OEDIT=null; render(); });
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{ const r=b.dataset.r; if(roomOf(TAB)!==r) TAB=LASTIN[r]; OPEN=null; OEDIT=null; WRAPVIEW=false; render(); });
 $('file').addEventListener('change',e=>{ const f=e.target.files[0]; e.target.value=''; if(f) readFile(f); });
 /* the OWNED list is shared with BACKLOT: changed in another tab, take theirs */
 window.addEventListener('storage',e=>{ if(e.key===KEY&&e.newValue){ try{ const d=JSON.parse(e.newValue); if(d&&Array.isArray(d.owned)){ DB.owned=d.owned; render(); } }catch(x){} } });

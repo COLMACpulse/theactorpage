@@ -1,0 +1,28 @@
+/* Story Studio ON SET: the day's shots, the clock, the sun in words, the wrap. Made-up scenes.  node film/tests/set_tests.js */
+const fs=require('fs'), path=require('path');
+new Function('window',fs.readFileSync(path.join(__dirname,'../../actor-os/sides.js'),'utf8'))(globalThis);
+const F=require('../film.js');
+let pass=0,fail=0; const ok=(n,c,x)=>{ if(c){pass++;console.log('PASS',n)}else{fail++;console.log('FAIL',n,x===undefined?'':JSON.stringify(x).slice(0,500))} };
+const S=F.scenes('INT. DINER - NIGHT\n\nLENA\nCoffee.\n\nROSS\nCold.\n\nEXT. PIER - DAY\n\nLENA\nThere.\n');
+const B=F.day(S.map(sc=>({scene:sc,where:sc.place,set:false,wardrobe:'',way:'crew',who:F.seen(sc)})));
+const st={1:{way:'crew',ins:[],done:{wide:1}},2:{way:'',done:{}}};
+const D=F.dayShots(B,n=>st[n],'');
+ok('the day: every shot of the scenes with a way, in order; scenes with no way left out', D.length===7&&D.every(x=>x.n===1)&&D[0].shot.id==='wide'&&D[0].done&&D[1].idx===2&&D[1].of===7, D.map(x=>x.n+':'+x.shot.id));
+const now=new Date(2026,9,18,15,0).getTime();
+const c1=F.setClock({left:6,per:15,now,wrap:'18:00'});
+ok('the clock: 6 left at 15 min, wrap about 4:30, 90 min ahead', c1.words==='6 shots left. At 15 min a shot, you wrap about 4:30 PM. 90 min ahead of your 6:00 PM wrap.', c1.words);
+ok('behind', /30 min past your 4:00 PM wrap/.test(F.setClock({left:6,per:15,now,wrap:'16:00'}).words));
+ok('on it', /Right on your wrap at 4:30 PM/.test(F.setClock({left:6,per:15,now,wrap:'16:30'}).words));
+ok('no wrap set: just the estimate; nothing left: said', F.setClock({left:1,per:20,now}).words==='1 shot left. At 20 min a shot, you wrap about 3:20 PM.'&&F.setClock({left:0,now}).words==='Every shot on the list is done.');
+const sun=F.sun(new Date(2026,9,18),38.84,-97.61);
+const mid=(sun.goldenMorningEnds.getTime()+sun.goldenEveningStarts.getTime())/2, before=sun.dawn.getTime()-30*60000, late=sun.dusk.getTime()+60*60000;
+ok('the sun in words through the day', /^Sunrise in/.test(F.sunNow(sun,before))&&/^Golden light now/.test(F.sunNow(sun,new Date(sun.sunrise.getTime()+10*60000).getTime()))&&/^Golden hour in \d+ min/.test(F.sunNow(sun,mid))&&/^Golden hour now\. Sunset in/.test(F.sunNow(sun,sun.sunset.getTime()-20*60000))&&/^Sun is down/.test(F.sunNow(sun,sun.sunset.getTime()+5*60000))&&/^After dark/.test(F.sunNow(sun,late)), [F.sunNow(sun,mid)]);
+ok('no pin, no sun words', F.sunNow(null,now)==='');
+const log=[{n:1,shot:'wide',take:1,mark:'never',note:'boom in frame'},{n:1,shot:'wide',take:2,mark:'gold',note:''},{n:1,shot:'two',take:1,mark:'',note:''}];
+const W=F.wrapText({title:'Low Tide',date:'2026-10-18',shots:D,log});
+ok('the wrap: done of total, takes, circled', /^Low Tide · 2026-10-18 · wrap\n\n1 of 7 shots done\. 3 takes logged, 1 circled\./.test(W), W);
+ok('the wrap: each shot, its takes, the marks and notes', /\[x\] 1\. Wide master · 2 takes\n      take 1 NO GOOD: boom in frame\n      take 2 CIRCLE/.test(W)&&/\[ \] 2\. Two-shot · 1 take/.test(W), W);
+ok('the wrap: still to shoot', /STILL TO SHOOT\n  Scene 1, shot 2: Two-shot/.test(W));
+ok('marks in set words', F.markWord('gold')==='CIRCLE'&&F.markWord('backup')==='HOLD'&&F.markWord('never')==='NO GOOD');
+ok('no em dashes', !/—/.test(W+c1.words+F.sunNow(sun,mid)));
+console.log(pass+' passed, '+fail+' failed'); process.exit(fail?1:0);

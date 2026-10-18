@@ -17,7 +17,7 @@ const tiles=()=>p.evaluate(()=>[...document.querySelectorAll('.kit .kt')].map(t=
 want('the front: four tiles, the camera and mic say OFF', (await tiles()).join()==='shoot:OFF,match:OFF,adr:OFF,scout:-', await tiles());
 let m=await p.innerText('#main');
 want('each says what it does here', /Shoot a take/.test(m)&&/Scene 1, take 1/.test(m)&&/Match a shot/.test(m)&&/Re-record a line/.test(m)&&/Shoot or add a take first/.test(m)&&/Scout a place/.test(m), m.slice(0,500));
-want('ON SET: then the day, scene by scene', /ON SET/.test(await p.innerText('#roomname'))&&await p.$$eval('[data-scene]',x=>x.length)>0, m.slice(0,400));
+want('ON SET: no way picked yet, so it says so, with the tiles under it', /ON SET/.test(await p.innerText('#roomname'))&&/Nothing on the list yet/i.test(m)&&(await p.$$('[data-allway]')).length===4, m.slice(0,400));
 // shoot
 await p.click('[data-kit="shoot"]'); await p.waitForTimeout(1500);
 want('SHOOT A TAKE: the camera opens, slate says scene 1, take 1', await p.evaluate(()=>{ const v=document.getElementById('shvid'); return !!(v&&v.videoWidth); })&&/SCENE 1 · TAKE 1/.test(await p.innerText('#shslate')), await p.innerText('#shslate'));
