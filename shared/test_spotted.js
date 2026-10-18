@@ -136,4 +136,25 @@ ok('LOOK: no types: just the general one', S.look([],'').map(r=>r.label).join()=
 const u=new URL(S.lookUrl(LK[0].q,'deadline')), q=u.searchParams.get('q');
 ok('LOOK: Google News search, your word in quotes, the stage words, the trade site, the last 30 days', u.hostname==='news.google.com'&&u.pathname==='/search'&&/^"western" \(casting OR "pre-production"/.test(q)&&/ site:deadline\.com when:30d$/.test(q), q);
 ok('LOOK: NEWS has no site; BACKSTAGE looks for casting and auditions', !/site:/.test(new URL(S.lookUrl(LK[0].q,'news')).searchParams.get('q'))&&/\(casting OR auditions\) site:backstage\.com/.test(new URL(S.lookUrl(LK[0].q,'backstage')).searchParams.get('q')));
+// where it stands, as written. Made-up stories.
+const NOW=new Date(2026,9,18).getTime();
+const st1=S.stage('Published: October 3, 2026\n\nNorthgate Pictures\' western "Dry Gulch" is set to begin filming in March in Kansas. The production is now casting locals for several speaking roles.');
+ok('stage: in prep, the phrase as written, casting its own line, dated, the age', st1.stages.join()==='prep'&&st1.claims[0].phrase==='set to begin filming'&&st1.casting[0].phrase==='now casting'&&st1.dated==='2026-10-03', st1);
+const w1=S.stageWords(st1,NOW);
+ok('in words', w1.join('|')==='Stage, as written: in prep ("set to begin filming").|Casting, as written: "now casting".|The story is dated Oct 3, 2026, 15 days ago.', w1);
+const st2=S.stage('June 1, 2026. The Netflix series "Salt Road" will not begin filming until 2028 after financing collapsed.');
+ok('a "not" in front: said, not counted', !st2.stages.length&&st2.claims.length===1&&st2.claims[0].not, st2);
+const w2=S.stageWords(st2,NOW);
+ok('the not, quoted; and stale past 120 days', /^Said with a not: "The Netflix series "Salt Road" will not begin filming until 2028/.test(w2[0])&&/Not counted as in prep\./.test(w2[0])&&/Stale: past 120 days/.test(w2[w2.length-1]), w2);
+const st3=S.stage('Sep 30, 2026 - "Low Tide" director Wren Ashby says the sequel is in the works. The first film wrapped filming in 2019, and the new one began filming last week in Maine.');
+ok('more than one stage: all shown, never picked', st3.stages.includes('development')&&st3.stages.includes('filming')&&st3.stages.includes('wrapped'), st3.stages);
+ok('two stages in words', /^Two stages in it: |^3 stages in it: /.test(S.stageWords(st3,NOW)[0]), S.stageWords(st3,NOW));
+ok('a company developing an app is not a production; developing a series is', !S.stage('Northgate is developing new software for crews.').stages.length&&S.stage('Northgate is developing a limited series about ranchers.').stages.join()==='development');
+ok('no date: said to check', S.stageWords(S.stage('Ridge Line is now casting.'),NOW).includes('No date in what you pasted. Check when it ran.'));
+ok('no stage words: said', S.stageWords(S.stage('A nice day at the beach.'),NOW)[0]==='No stage words in it.');
+ok('stopped is its own stage', S.stage('Production on "The Watch" was halted.').stages.join()==='stopped');
+ok('"won\'t be casting" is not casting', !S.stage('They won\'t be casting locals this time.').casting.length);
+ok('stale check', S.isStale(st2,NOW)&&!S.isStale(st1,NOW));
+const cd=S.read('Published: October 3, 2026\n\n"Dry Gulch" is set to begin filming in March. Now casting locals.');
+ok('on the card, and in the pass-along', cd.stage.stages.join()==='prep'&&/Stage, as written: in prep \("set to begin filming"\)\.\nCasting, as written: "now casting"\./i.test(S.passAlong(cd,[],{name:'Sam Actor'}).body), S.passAlong(cd,[],{name:'Sam Actor'}).body);
 console.log(pass+' passed, '+fail+' failed'); if(fail) process.exit(1);

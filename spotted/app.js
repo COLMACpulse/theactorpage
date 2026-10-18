@@ -48,6 +48,7 @@ function spotView(){
  }
  if(DRAFT.many) return manyView();
  const c=DRAFT.card, F=S.facts(c,ctx());
+ h+=stageHtml(c);
  h+='<div class="card"><p class="kicker">What it says</p>'+cardFields(c)+saidHtml(c)+'</div>';
  h+=factsHtml(F);
  h+='<div class="row"><button class="btn ghost" id="redo">START OVER</button><button class="btn pri" id="keep" style="flex:1">KEEP IT</button></div>';
@@ -67,6 +68,11 @@ function keepMany(){
  DRAFT.many.forEach((c,i)=>{ if(!DRAFT.pick[i]) return; D.items.push({id:uid(),at:now+i,raw:'',card:c,status:'spotted',history:[{s:'spotted',at:now}],note:'',mine:''}); n++; });
  save(); DRAFT=null; U.open=''; U.tab='offices'; saveU(); render(); toast(n+' kept. Here\'s who is casting them.');
 }
+/* where it stands, as written: the stage words quoted, a "not" said, casting, how old the story is */
+const stageOf=c=>c.stage||(c.stage===undefined&&c.about?S.stage(c.about):null);
+function stageHtml(c){ const st=stageOf(c); if(!st) return ''; const W=S.stageWords(st), stale=S.isStale(st);
+ return '<div class="card stg'+(stale?' stale':'')+'" id="stagebox"><p class="kicker">Where it stands, as written</p><ul class="facts">'+W.map(w=>'<li'+(/^Said with a not|^Stale|Stale:/.test(w)?' class="warn"':'')+'>'+esc(w)+'</li>').join('')+'</ul>'
+  +(st.claims.length?'<details style="margin-top:8px"><summary class="faint small" style="cursor:pointer">The sentences</summary>'+st.claims.concat(st.casting.map(x=>Object.assign({word:'casting'},x))).map(x=>'<p class="small" style="margin:6px 0"><span class="faint">'+esc(x.word)+(x.not?' (with a not)':'')+':</span> '+esc(x.sentence)+'</p>').join('')+'</details>':'')+'</div>'; }
 function cardFields(c){
  const f=(k,l,v,ph)=>'<label class="lab" for="cf_'+k+'">'+l+'</label><input class="field" id="cf_'+k+'" data-cf="'+k+'" value="'+esc(v)+'" placeholder="'+esc(ph||'Not written')+'">';
  let h=f('project','Project',c.project)+f('role','Role',c.role);
@@ -108,6 +114,7 @@ function itemView(it){
  h+='<div class="card"><p class="kicker">'+esc(day(it.at))+'</p><h2 style="font-size:20px">'+esc(c.project||'(no title)')+'</h2><p class="dim" style="margin:4px 0 10px">'+esc([c.role,(c.casting||[]).length?c.casting.join(' & ')+' casting':''].filter(Boolean).join(' · '))+'</p>'
   +'<div class="row">'+S.STATUS.map(([k,l])=>'<button class="chip sm'+(it.status===k?' on':'')+'" data-st="'+k+'">'+l+'</button>').join('')+'</div>'
   +'<label class="lab" for="inote">Your note (on the list your manager sees)</label><input class="field" id="inote" value="'+esc(it.note)+'" placeholder="e.g. Rep submitted 10/20"></div>';
+ h+=stageHtml(c);
  h+=factsHtml(F);
  h+='<details class="card"><summary class="kicker" style="cursor:pointer;margin:0">What it says</summary><div style="margin-top:10px">'+cardFields(c)+saidHtml(c)+'</div></details>';
  if(!D.me.reps.length) h+='<div class="msg">Add your reps on YOU and EMAIL goes straight to them.</div>';
@@ -122,7 +129,7 @@ function itemView(it){
 }
 
 /* ---------- LIST ---------- */
-function rowHtml(it){ const c=it.card; return '<button class="it" data-open="'+it.id+'"><span class="st">'+esc(S.statusWord(it.status))+'</span><b>'+esc(c.project||'(no title)')+(c.role?' · '+esc(c.role):'')+'</b><small>'+esc([(c.casting||[]).join(' & '),c.type,day(it.at)].filter(Boolean).join(' · '))+'</small></button>'; }
+function rowHtml(it){ const c=it.card; return '<button class="it" data-open="'+it.id+'"><span class="st">'+esc(S.statusWord(it.status))+'</span><b>'+esc(c.project||'(no title)')+(c.role?' · '+esc(c.role):'')+'</b><small>'+esc([(c.casting||[]).join(' & '),c.type,(()=>{ const st=stageOf(c); return st&&st.stages.length===1?st.claims.find(x=>!x.not).word:st&&st.stages.length>1?'stages differ':''; })(),day(it.at)].filter(Boolean).join(' · '))+(S.isStale(stageOf(c))?' · <i class="stl">story over 120 days old</i>':'')+'</small></button>'; }
 function listed(){ const L=D.items.map(it=>Object.assign({},it,{facts:factsFor(it)})); return S.find(L,U.q).filter(x=>!U.st||x.status===U.st).sort((a,b)=>b.at-a.at); }
 function listView(){
  if(U.open&&item(U.open)) return itemView(item(U.open));

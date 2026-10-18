@@ -118,9 +118,61 @@ S.read=function(raw,opts){
  if(c.wardrobe&&!c.musts.some(m=>m.indexOf(c.wardrobe)>=0)) c.musts.push('Wardrobe: '+c.wardrobe);
  if(opts.url&&!c.links.includes(opts.url)&&!S.PRIVATE.test(opts.url)) c.links.unshift(opts.url);
  c.source=c.links[0]||'';
+ c.stage=S.stage(raw);
  ['project','role','casting','union','type','network','where','conflicts','status','genre','dates','pay','musts','links'].forEach(k=>{ const v=c[k]; if(v&&(!Array.isArray(v)||v.length)) c.found.push(k); });
  return c;
 };
+
+/* ---------- where it stands, as written ---------- */
+/* The stage words in the story, each with the phrase as written and its sentence. A "not" in front (won't, not until,
+   delayed, no longer) is said, and doesn't count as that stage. Two stages: both shown, never picked. Casting words
+   are their own line. How old the story is, from the date written in it; past 120 days it's stale. Nothing guessed. */
+S.STAGES=[
+ ['stopped','stopped',/\b(?:shut down|halted|shelved|cancel(?:l)?ed|scrapped|pulled the plug|production (?:was )?suspended)\b/i],
+ ['wrapped','wrapped',/\b(?:wrapped (?:filming|production|principal photography|shooting)|has wrapped|production (?:has )?wrapped|filming (?:has )?wrapped|wrapped in)\b/i],
+ ['filming','filming',/\b(?:currently (?:filming|shooting|in production)|now filming|filming (?:is )?underway|production (?:is )?underway|began (?:filming|shooting|production)|started (?:filming|shooting|production)|cameras (?:are )?rolling|principal photography (?:began|started|is underway|has begun)|is (?:filming|shooting) (?:in|on|now|this)|on set in)\b/i],
+ ['prep','in prep',/\b(?:pre-?production|location scouting|scouting locations|crew(?:ing)? up|hiring crew|(?:set|scheduled|slated|expected|due|aims?|planning|plans) to (?:begin |start )?(?:filming|shooting|production|lens|shoot)|(?:begins|starts|start|begin|will begin|will start) (?:filming|shooting|production|principal photography)|(?:filming|shooting|production) (?:begins|starts|is set to begin|is scheduled|will begin|will start)|(?:set|slated) to shoot|goes? (?:in)?to production)\b/i],
+ ['greenlit','greenlit',/\b(?:greenlit|green-?lit|greenlighted|given the green light|series order|ordered (?:to|a) series|picked up (?:to|for) series|straight-to-series)\b/i],
+ ['development','in development',/\b(?:in development|in the works|being developed|(?:is|are|been) developing (?:an? |the )?(?:[\w'’-]+ ){0,3}(?:series|film|movie|feature|show|adaptation|pilot|script|drama|comedy|thriller|western|horror|remake|reboot|documentary|limited series)|set up at|optioned|has been optioned|attached to (?:direct|star|write)|in early development|financing (?:is )?(?:in place|secured)|has (?:landed|found) (?:a )?(?:home|financing))\b/i]
+];
+S.CASTING=/\b(?:now casting|casting (?:locals|local talent|extras|background|now|call|for)|open (?:casting )?calls?|open auditions?|auditions? (?:are|will be) held|holding auditions|seeking (?:local )?(?:actors|talent|extras|background)|looking for (?:local )?(?:actors|talent|extras)|submissions? (?:are )?(?:open|now open)|accepting submissions|casting directors? (?:is|are) looking)\b/i;
+const NOT=/\b(?:not|n't|never|no longer|won'?t|isn'?t|aren'?t|wasn'?t|until|delayed|postponed|pushed (?:back|to)|on hold|off|before)\b/i;
+const MON={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,sept:8,oct:9,nov:10,dec:11};
+/* the date the story ran: a "Published" or dateline date first, else the first full date with a year */
+S.storyDate=function(text){ const t=String(text||'');
+ const pick=s=>{ let m=s.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(20\d\d)\b/i); if(m) return new Date(+m[3],MON[m[1].toLowerCase()],+m[2]);
+  m=s.match(/\b(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.?,?\s+(20\d\d)\b/i); if(m) return new Date(+m[3],MON[m[2].toLowerCase()],+m[1]);
+  m=s.match(/\b(20\d\d)-(\d\d)-(\d\d)\b/); if(m) return new Date(+m[1],+m[2]-1,+m[3]);
+  m=s.match(/\b(\d{1,2})\/(\d{1,2})\/(20\d\d)\b/); if(m) return new Date(+m[3],+m[1]-1,+m[2]); return null; };
+ const L=t.split('\n'), pub=L.find(l=>/\b(?:published|posted|updated|date)\b\s*[:\-–]?/i.test(l)&&pick(l));
+ const d=pub?pick(pub):pick(t.slice(0,600))||null; return d&&!isNaN(d)?d:null; };
+S.stage=function(raw){
+ const text=clean(raw).replace(/\bhttps?:\/\/\S+/gi,' '), L=sentences(text), claims=[], casting=[];
+ L.forEach(snt=>{ S.STAGES.forEach(([k,word,re])=>{ const m=snt.match(re); if(!m) return; if(k==='wrapped'&&claims.some(c=>c.sentence===snt&&c.stage==='filming')) return;
+   const before=snt.slice(Math.max(0,m.index-40),m.index), neg=NOT.test(before)||/^\s*until\b/i.test(snt.slice(m.index+m[0].length,m.index+m[0].length+8));
+   claims.push({stage:k,word,phrase:m[0],sentence:snt.slice(0,240),not:neg}); });
+  const c=snt.match(S.CASTING); if(c&&!NOT.test(snt.slice(Math.max(0,c.index-30),c.index))) casting.push({phrase:c[0],sentence:snt.slice(0,240)}); });
+ const d=S.storyDate(text);
+ const stages=[...new Set(claims.filter(c=>!c.not).map(c=>c.stage))];
+ return {claims,stages,casting,dated:d?d.toISOString().slice(0,10):''};
+};
+const MONW=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+S.dayWords=iso=>{ const [y,m,d]=String(iso).split('-').map(Number); return MONW[m-1]+' '+d+', '+y; };
+/* in words, with the age counted from today (so a kept story gets older) */
+S.stageWords=function(st,now){
+ if(!st) return [];
+ const L=[], by=k=>st.claims.filter(c=>c.stage===k&&!c.not), q=c=>'"'+c.phrase+'"';
+ if(st.stages.length===1){ const c=by(st.stages[0]); L.push('Stage, as written: '+c[0].word+' ('+uniq(c.map(q)).join(', ')+').'); }
+ else if(st.stages.length>1) L.push((st.stages.length===2?'Two':st.stages.length)+' stages in it: '+st.stages.map(k=>{ const c=by(k); return c[0].word+' ('+uniq(c.map(q)).join(', ')+')'; }).join(st.stages.length===2?' and ':', ')+'. '+(st.stages.length===2?'Both':'All')+' shown; read it and see which is now.');
+ st.claims.filter(c=>c.not).forEach(c=>L.push('Said with a not: "'+c.sentence+'" Not counted as '+c.word+'.'));
+ if(!st.stages.length&&!st.claims.length) L.push('No stage words in it.');
+ if(st.casting.length) L.push('Casting, as written: '+uniq(st.casting.map(c=>'"'+c.phrase+'"')).join(', ')+'.');
+ if(st.dated){ const t=now||Date.now(), [y,m,d]=st.dated.split('-').map(Number), days=Math.floor((new Date(new Date(t).getFullYear(),new Date(t).getMonth(),new Date(t).getDate())-new Date(y,m-1,d))/86400000);
+  L.push('The story is dated '+S.dayWords(st.dated)+(days<0?'.':days===0?', today.':', '+days+' day'+(days===1?'':'s')+' ago.')+(days>120?' Stale: past 120 days, it may have moved on.':'')); }
+ else L.push('No date in what you pasted. Check when it ran.');
+ return L;
+};
+S.isStale=(st,now)=>!!(st&&st.dated)&&((now||Date.now())-new Date(st.dated+'T00:00:00').getTime())/86400000>120;
 
 /* ---------- your facts, next to it ---------- */
 const STOP=new Set('the a an and or of in on for with to at by from as is are mr mrs ms dr man woman guy girl boy lady male female person type role lead supporting featured background extra day player co star costar guest recurring series regular principal adult young old older younger mid late early'.split(' '));
@@ -180,6 +232,7 @@ S.passAlong=function(card,facts,me){
  card.dates.slice(0,3).forEach(d=>L.push(d.text));
  if(card.pay.length) L.push('Pay as written: '+card.pay[0]);
  if(card.conflicts) L.push('Conflicts: '+card.conflicts);
+ if(card.stage){ S.stageWords(card.stage).filter(w=>/^(Stage|Two stages|Casting)/.test(w)).forEach(w=>L.push(w)); }
  if(card.source) L.push(card.source);
  const f=(facts||[]).filter(x=>x.k!=='spotted').map(x=>x.t);  // includes a held conflict: your reps need that
  if(f.length){ L.push(''); f.forEach(t=>L.push(t)); }
