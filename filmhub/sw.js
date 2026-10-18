@@ -1,6 +1,6 @@
 /* FILM HUB offline shell. Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='filmhub-0.1.15';
-const FILES=['./','index.html','app.js','manifest.webmanifest','../shared/hot.js','../actor-os/sides.js','../film/film.js','../shared/you.js','../shared/filmhub.js','../shared/graph.js','../shared/capture.js','../shared/kit.js','../shared/notecam.js',
+const CACHE='filmhub-0.1.16';
+const FILES=['../shared/view.js','./','index.html','app.js','manifest.webmanifest','../shared/hot.js','../actor-os/sides.js','../film/film.js','../shared/you.js','../shared/filmhub.js','../shared/graph.js','../shared/capture.js','../shared/kit.js','../shared/notecam.js',
  'fonts/jost-latin-400-normal.woff2','fonts/jost-latin-500-normal.woff2','fonts/jost-latin-600-normal.woff2',
  'fonts/courier-prime-latin-400-normal.woff2','fonts/courier-prime-latin-700-normal.woff2',
  'icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];

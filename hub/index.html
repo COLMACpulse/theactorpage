@@ -3763,4 +3763,5 @@ function reelRoomView(){
    it. Now: browser cache, then folder, then the seeding and filtering run on
    whatever won. */
 seed();render();loadArts().then(()=>loadMeta()).then(()=>vaultAuto()).then(()=>{const n=credits.length;credits=credits.filter(c=>!isTombed(c.title));if(credits.length!==n)saveCredits();}).then(()=>seedAuditions()).then(()=>fromInbox()).then(()=>fromYou()).then(()=>fromTakes()).then(render);
-</script></body></html>
+</script><script src="../shared/view.js"></script>
+</body></html>

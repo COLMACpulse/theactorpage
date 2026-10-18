@@ -1,6 +1,6 @@
 /* PAPER TRAIL offline shell. Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='paper-trail-0.11.17';
-const FILES=['./','index.html','../shared/hot.js','../shared/kit.js','../shared/capture.js','../shared/notecam.js','app.js','trail.js','../shared/graph.js','../shared/you.js','../shared/textpdf.js','manifest.webmanifest',
+const CACHE='paper-trail-0.11.18';
+const FILES=['../shared/view.js','./','index.html','../shared/hot.js','../shared/kit.js','../shared/capture.js','../shared/notecam.js','app.js','trail.js','../shared/graph.js','../shared/you.js','../shared/textpdf.js','manifest.webmanifest',
  '../shared/shelf.js','../shared/inbox.js','../shared/xlsx.js','../actor-os/sides.js','../actor-os/pdf.js','../film/film.js',
  'icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];
 self.addEventListener('install',e=>{ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting())); });

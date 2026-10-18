@@ -71,11 +71,11 @@ async function route(items){
   const it=Sh.put({text:x.text,file:x.name,fileSig:x.file?Sh.sig(x.file):'',me:me,from:'home'});
   if(it){ x.shelfId=it.id; if(me&&it.me!==me) Sh.setMe(it.id,me); x.me=me||it.me||''; x.meFrom=from?(from.title||'the request'):''; x.parts=sp.slice(0,12);
    if(x.file&&x.fk==='pdf'&&Sh.putFile) Sh.putFile(it.id,x.file).catch(()=>{}); }
-  x.went=x.kind==='sides'?'On the sides shelf: every ACT tool has it.':'On the sides shelf, and in Paper Trail next time you open it.';
+  const Vw=window.View, sh=n=>!Vw||Vw.has(n); x.went=x.kind==='sides'?(sh('act')?'On the sides shelf: every ACT tool has it.':'On the sides shelf.'):'On the sides shelf'+(sh('write')?', and in Paper Trail next time you open it.':'.');
   if(x.kind==='script') I.put('draft',{text:x.text,file:x.name},'draft|'+x.name+'|'+x.text.length);
  });
  const media=items.filter(x=>x.kind==='media');
- if(media.length) media.forEach(x=>{ x.went='A page can\'t keep video, so Story Studio reads it from your footage folder when you open its footage check.'; });
+ if(media.length) media.forEach(x=>{ x.went=(!window.View||View.has('film'))?'A page can\'t keep video, so Story Studio reads it from your footage folder when you open its footage check.':'Footage is for Story Studio, in FILM, which you\'ve hidden. SHOW ME FILM to use it.'; });
  // a résumé: your profile, which every tool reads for its blanks
  for(const x of items.filter(x=>x.kind==='resume'&&Y)){ if(x.file) x.kept=await Y.setResume(x.file,'drop'); if(!x.profile) { x.went='Kept in YOUR PROFILE. Nothing on it could be read into the fields; fill them in by hand.'; continue; } x.changed=Y.fill(x.profile,x.name); x.went='In your profile. Every tool that asks for any of it fills its blanks from there; nothing you typed in a tool is changed.'+(x.kept?' The file is kept there too, to send.':'');
   const nm=Y.get().name; try{ if(nm&&!localStorage.getItem('actor_os_name')) localStorage.setItem('actor_os_name',nm.toUpperCase().replace(/\bMC([A-Z])/g,'Mc$1')); }catch(e){} }
