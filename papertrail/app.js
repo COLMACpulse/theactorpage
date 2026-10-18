@@ -948,6 +948,7 @@ async function handoff(){
 async function fromInbox(){ if(!window.Inbox) return; const L=Inbox.pending(TOOL,'draft'); const got=[];
  for(const it of L){ try{ const r=await addDraft(it.data.text||'',it.data.file||'Untitled.fountain',it.data.source||'Home',{title:it.data.title||undefined,label:it.data.label||undefined}); if(r&&r.ok) got.push(r); }catch(e){} Inbox.take(TOOL,it.id); }
  if(got.length){ ADDED=got; VIEW.tab='add'; toast(got.length===1?'From home: '+got[0].p.title+', '+got[0].d.label+'.':'From home: '+got.length+' drafts.'); } }
-(async()=>{ await loadTexts(); await handoff(); await fromInbox(); render(); })();
+/* a link can open a tab: ?tab=allchars (the home page's Characters) */
+(async()=>{ await loadTexts(); await handoff(); await fromInbox(); try{ const t=new URLSearchParams(location.search).get('tab'); if(t&&['allchars','voice','allsent','add','projects'].includes(t)&&VIEW.tab==='projects') VIEW.tab=t; }catch(e){} render(); })();
 window.__trail={DB:()=>DB,TEXT:()=>TEXT,addDraft:addDraft,docxText:docxText};
 })();
