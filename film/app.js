@@ -79,9 +79,18 @@ function adopt(){
  const c=cur(); if(c&&c.text) SCENES=F.scenes(c.text);
 }
 
+/* ---------- the rooms: PREP (script, scenes, what you own, the days), ON SET (today), POST (the cut, the pack) ---------- */
+const ROOMS={prep:[['script','SCRIPT'],['scenes','SCENES'],['own','OWNED'],['day','DAYS']],set:[['set','TODAY']],post:[['cut','CUT']]};
+const ROOMNAME={prep:'PREP',set:'ON SET',post:'POST'};
+const roomOf=t=>Object.keys(ROOMS).find(r=>ROOMS[r].some(x=>x[0]===t))||'prep';
+const LASTIN={prep:'scenes',set:'set',post:'cut'};
 /* ---------- views ---------- */
 function render(){
- document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===TAB));
+ const room=roomOf(TAB); LASTIN[room]=TAB;
+ document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.r===room));
+ $('roomname').textContent=ROOMNAME[room];
+ $('sub').innerHTML=ROOMS[room].length>1?ROOMS[room].map(([t,l])=>'<button data-t="'+t+'"'+(t===TAB?' class="on"':'')+'>'+l+'</button>').join(''):'';
+ $('sub').querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{ TAB=b.dataset.t; if(TAB!=='scenes') OPEN=null; OEDIT=null; render(); });
  const c=cur();
  $('title').textContent=c?String(c.file||'Script').replace(/\.(pdf|txt|fountain|fdx)$/i,'').replace(/_/g,' '):'Crew or solo';
  $('count').textContent=c?SCENES.length+' scene'+(SCENES.length===1?'':'s')+(c.me?' · you are '+c.me:''):'';
@@ -93,6 +102,7 @@ function render(){
  else if(TAB==='own') m.innerHTML=vOwn();
  else if(TAB==='day') m.innerHTML=vDay();
  else if(TAB==='cut') m.innerHTML=vCut();
+ else if(TAB==='set') m.innerHTML=vSet();
  wire();
  window.scrollTo(0,0);
 }
@@ -131,7 +141,7 @@ function front(){
  ])+'<p class="faint" style="font-size:13px;margin:-6px 0 18px">'+(all?all+' take'+(all===1?'':'s')+' so far. They\'re in CUT.':'Takes you shoot here go straight into CUT, on their scene.')+'</p>':'';
 }
 function vScenes(){
- return front()+'<p class="kicker">Tap a scene to pick how you\'ll make it</p>'+SCENES.map(sc=>{
+ return '<p class="kicker">Tap a scene to pick how you\'ll make it</p>'+SCENES.map(sc=>{
   const w=wayOf(sc.n), wn=w?F.WAYS.find(x=>x.id===w).name:'', where=whereName(sc.n), dn=doneOf(sc);
   return '<button class="sc" data-scene="'+sc.n+'"><div class="hd">'+sc.n+'. '+esc(sc.heading)+'</div>'
    +'<div class="sub">'+(sc.speakers.length?sc.speakers.map(s=>esc(s.name)+' '+s.lines+(s.voice?' (voice)':'')).join(' · '):'No dialogue')+'</div>'
@@ -431,6 +441,18 @@ function callSheetHtml(D){
  if(D.crew.length) h+='<h2>Crew</h2><table>'+D.crew.map(c=>'<tr><td>'+esc(c.job)+'</td><td>'+esc(c.name)+'</td></tr>').join('')+'</table>';
  if(D.contacts.length) h+='<h2>Contacts</h2>'+D.contacts.map(c=>'<div>'+esc(c)+'</div>').join('');
  if(D.notes) h+='<h2>Notes</h2><div style="white-space:pre-wrap">'+esc(D.notes)+'</div>';
+ return h;
+}
+/* ON SET, for now: the camera and mic, and today's scenes in shooting order with how far along each is.
+   The full on-set screen (the shot you're on, takes, the clock, the sun) comes next. */
+function vSet(){
+ const c=cur(), B=dayBlocks(); let h=front();
+ const today=new Date(), ymdT=ymd(today), when=c.dayDate?(c.dayDate===ymdT?'Today':c.dayDate>ymdT?'Next shoot day: '+c.dayDate:'Last shoot day: '+c.dayDate):'No shoot day set';
+ h+='<p class="kicker">'+esc(when)+'</p>';
+ if(!B.length) return h+'<div class="msg">No scenes yet.</div>';
+ h+=B.map((b,i)=>'<div class="setday"><h3>'+(i+1)+'. '+esc(b.where)+(b.tod?' · '+esc(b.tod):'')+'</h3>'+b.items.map(x=>{ const dn=doneOf(x.scene), pc=dn&&dn.t?Math.round(dn.d/dn.t*100):0;
+   return '<button class="sc" data-scene="'+x.scene.n+'" style="margin-top:10px"><b>Scene '+x.scene.n+'</b> <span class="sub">'+esc(x.scene.heading)+'</span><div class="prog"><i style="width:'+pc+'%"></i></div><span class="sub">'+(dn?dn.d+' of '+dn.t+' shots done':'How you\'ll shoot it isn\'t picked yet')+' · '+takesIn(x.scene.n)+' take'+(takesIn(x.scene.n)===1?'':'s')+'</span></button>'; }).join('')+'</div>').join('');
+ h+='<div class="row" style="margin-top:6px"><button class="btn" data-go="day">THE DAYS AND THE CALL SHEET</button></div>';
  return h;
 }
 function vDay(){
@@ -788,7 +810,7 @@ function wire(){
  const r=$('readit'); if(r) r.onclick=()=>{ const t=$('paste').value; if(t.trim()) take(t,'Pasted script'); };
  document.querySelectorAll('[data-shelf]').forEach(b=>b.onclick=()=>fromShelf(b.dataset.shelf));
  document.querySelectorAll('[data-me]').forEach(b=>b.onclick=()=>{ const c=cur(); c.me=b.dataset.me; save(); if(SH&&SH.get(DB.cur)) SH.setMe(DB.cur,c.me,TOOL); render(); });
- document.querySelectorAll('[data-scene]').forEach(b=>b.onclick=()=>{ OPEN=Number(b.dataset.scene); LASTSCENE=OPEN; render(); });
+ document.querySelectorAll('[data-scene]').forEach(b=>b.onclick=()=>{ OPEN=Number(b.dataset.scene); LASTSCENE=OPEN; TAB='scenes'; render(); });
  if(window.Kit) Kit.wire($('main'),{
   shoot:()=>openShoot(LASTSCENE),
   match:()=>{ TAB='scenes'; OPEN=LASTSCENE||(SCENES[0]&&SCENES[0].n)||null; render(); const b=document.querySelector('[data-match]'); if(b){ b.scrollIntoView({block:'center'}); toast('Pick who you\'re matching.'); } },
@@ -842,7 +864,7 @@ function wire(){
  fillPhotos();
 }
 document.addEventListener('visibilitychange',()=>{ if(document.hidden&&MC.stream) mcClose(); if(document.hidden&&ADRREC) adrStopRec(); });
-document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{ TAB=b.dataset.t; if(TAB!=='scenes') OPEN=null; OEDIT=null; render(); });
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{ const r=b.dataset.r; if(roomOf(TAB)!==r) TAB=LASTIN[r]; OPEN=null; OEDIT=null; render(); });
 $('file').addEventListener('change',e=>{ const f=e.target.files[0]; e.target.value=''; if(f) readFile(f); });
 /* the OWNED list is shared with BACKLOT: changed in another tab, take theirs */
 window.addEventListener('storage',e=>{ if(e.key===KEY&&e.newValue){ try{ const d=JSON.parse(e.newValue); if(d&&Array.isArray(d.owned)){ DB.owned=d.owned; render(); } }catch(x){} } });
