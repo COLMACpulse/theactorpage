@@ -1,0 +1,31 @@
+/* node shared/test_filmuniverse.js : FILM HUB, YOUR UNIVERSE. What kind of films you make, counted; what you're into and
+   want, in your words, kept apart. Every title, name and number here is made up. */
+const fs=require('fs'), path=require('path');
+new Function('window',fs.readFileSync(path.join(__dirname,'../actor-os/sides.js'),'utf8'))(globalThis);
+const F=require('../film/film.js'), H=require('./filmhub.js'), G=require('./graph.js');
+let pass=0,fail=0; const ok=(n,c,x)=>{ if(c){pass++;console.log('PASS',n);} else {fail++;console.log('FAIL',n,x===undefined?'':JSON.stringify(x).slice(0,600));} };
+const A='Title: Salt Road\n\nINT. DINER - NIGHT\n\nRain.\n\nLENA\nCoffee.\n\nROSS\nCold.\n\nEXT. PIER - DAY\n\nGulls.\n\nLENA\nThere.\n';
+const B='Title: Dry Creek\n\nINT. DINER - NIGHT\n\nEmpty.\n\nHAL BRODY\nClosed.\n\nINT. BARN - NIGHT\n\nDark.\n\nHAL BRODY\nWho?\n\nWREN\nMe.\n\nWREN\nOut.\n';
+const sA={text:A,me:'LENA',scenes:{1:{way:'compress'},2:{way:'proof'}},people:{actors:{ROSS:'Dana Pell'},me:'Sam Actor',crew:'Sound: Jo Park\nCamera: Wren Ashby'}};
+const sB={text:B,scenes:{1:{way:'compress'}},people:{actors:{'HAL BRODY':'Ross Okafor',WREN:'Dana Pell'},crew:'Sound: Jo Park'}};
+const people=H.people({a:sA,b:sB},F,[{title:'The Watch',people:'Directed by: Sam Actor\nSound: Jo Park'}]);
+const films=[{id:'s:a',title:'Salt Road',kind:'Short',year:'2025',runtime:'12 min',stage:'cutting',script:sA},{id:'s:b',title:'Dry Creek',kind:'short film',year:'2026',runtime:'9',stage:'planning',script:sB},{id:'h1',title:'The Watch',kind:'Pilot',year:'2019',runtime:'1 hr',stage:'done',script:null}];
+const U=H.universe(films,F,people,{into:['westerns','long takes'],want:['a feature','a music video','work with a real DP']});
+const by=t=>U.nodes.filter(n=>n.type===t);
+ok('kinds counted from what you typed', U.facts[0]==='3 films: 2 shorts, 1 pilot.', U.facts);
+ok('years and runtimes, an hour read as 60 min', U.facts.includes('From 2019 to 2026.')&&U.facts.includes('Runtimes: 9 to 60 min.'), U.facts);
+ok('where they stand', U.facts.includes('Where they stand: 1 planning, 1 cutting, 1 done.'), U.facts);
+ok('from the scripts: how many read', U.scenes[0]==='From 2 scripts read in Story Studio:', U.scenes);
+ok('inside or out, time of day', U.scenes.includes('Inside or out: inside 75%, outside 25%.')&&U.scenes.includes('Time of day: night 75%, day 25%.'), U.scenes);
+ok('a place in both films', U.scenes.includes('Places in more than one film: DINER (2).'), U.scenes);
+ok('speaking parts, you in it, how you shoot alone', U.scenes.includes('Speaking parts: 2 a film.')&&U.scenes.includes('You play a part yourself in 1 of 2.')&&U.scenes.includes('How you shoot alone: Compress it 2 scenes, Fastest proof 1 scene.'), U.scenes);
+ok('who you keep working with: Jo Park on 3, Dana Pell on 2, with jobs', /Jo Park \(3 films, Sound\)/.test(U.crew[0])&&/Dana Pell \(2 films, plays ROSS, plays WREN\)/.test(U.crew[0]), U.crew);
+ok('map: 3 films, people, the diner once', by('film').length===3&&by('person').length>=5&&by('place').filter(n=>n.label==='DINER').length===1, U.nodes.map(n=>n.type+':'+n.label));
+ok('map: Jo Park joined to all three', U.edges.filter(e=>e.b==='p:jopark').length===3, U.edges.filter(e=>e.b==='p:jopark'));
+ok('your words kept as you said them', U.into.join()==='westerns,long takes'&&U.wants.map(w=>w.text).join('|')==='a feature|a music video|work with a real DP');
+ok('a want that names a kind: the count next to it, nothing more', U.wants[0].kind==='feature'&&U.wants[0].made===0&&U.wants[1].kind==='music video'&&U.wants[2].made===null, U.wants);
+ok('nothing in: no films, no errors', H.universe([],F,[],{}).facts[0]==='No films yet.'&&H.universe([],F,[],{}).nodes.length===0);
+const L=G.fit(G.layout(U,600,860,200),600,860);
+ok('layout: one spot each, inside the frame, same every time', L.length===U.nodes.length&&L.every(p=>p.x>=70&&p.x<=530&&p.y>=40&&p.y<=810)&&JSON.stringify(L)===JSON.stringify(G.fit(G.layout(U,600,860,200),600,860)));
+ok('no em dashes', !/—/.test(JSON.stringify(U)));
+console.log(pass+' passed, '+fail+' failed'); if(fail) process.exit(1);

@@ -727,10 +727,7 @@ function uData(){ const P=projects().map(p=>({p,c:current(p)})).filter(x=>x.c), 
  const keep=n=>n.type==='project'||(n.type==='character'&&UF.c)||(n.type==='place'&&UF.l)||(n.type==='thread'&&UF.t), nodes=U.nodes.filter(keep), ids=new Set(nodes.map(n=>n.id));
  const V={nodes,edges:U.edges.filter(e=>ids.has(e.a)&&ids.has(e.b)),facts:U.facts}, key=JSON.stringify([nodes.map(n=>n.id),V.edges.length]);
  const narrow=(typeof innerWidth!=='undefined'?innerWidth:1000)<640, W=narrow?600:1000, H=narrow?860:640;
- if(UCACHE.k!==key+W){ const L=T.uLayout(V,W,H,nodes.length>200?160:260);
-  /* fill the frame: stretch what the layout found to the edges, keeping room for labels */
-  if(L.length>1){ const xs=L.map(q=>q.x), ys=L.map(q=>q.y), x0=Math.min(...xs), x1=Math.max(...xs), y0=Math.min(...ys), y1=Math.max(...ys);
-   L.forEach(q=>{ q.x=Math.round(70+(x1>x0?(q.x-x0)/(x1-x0):.5)*(W-140)); q.y=Math.round(40+(y1>y0?(q.y-y0)/(y1-y0):.5)*(H-90)); }); }
+ if(UCACHE.k!==key+W){ const L=Graph.fit(T.uLayout(V,W,H,nodes.length>200?160:260),W,H);
   UCACHE={k:key+W,U:V,P:L,W,H}; } return UCACHE; }
 function vUniverse(){
  const P=projects().filter(p=>current(p));

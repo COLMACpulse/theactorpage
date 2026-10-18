@@ -11,7 +11,7 @@ await p.click('.tool details.more summary'); await p.waitForTimeout(150);
 want('More: the full description', await p.evaluate(()=>{ const d=document.querySelector('.tool details.more'); return d.open&&d.querySelector('p').textContent.length>150; }));
 want('the VO Booth mic is still there, outside the fold', await p.evaluate(()=>{ const m=document.getElementById('mic'); return !!m&&!m.closest('details'); }));
 const F=await p.$$eval('.fcol',x=>x.map(c=>c.querySelector('.froom').textContent+':'+c.querySelectorAll('.ftool').length));
-want('the footer: every tool, by room, Characters under WRITE', F.join()==='ACT:10,WRITE:4,FILM:2,YOURS:6'&&!!(await p.$('.fcol:nth-child(2) a[href="papertrail/?tab=allchars"]')), F);
+want('the footer: every tool, by room, Characters under WRITE', F.join()==='ACT:10,WRITE:4,FILM:3,YOURS:6'&&!!(await p.$('.fcol:nth-child(2) a[href="papertrail/?tab=allchars"]')), F);
 await p.click('footer a[href="papertrail/?tab=allchars"]'); await p.waitForURL(/papertrail/); await p.waitForTimeout(900);
 want('Characters opens Paper Trail on All characters', await p.$eval('#tabs .tsub .on',x=>x.textContent).catch(()=>'')==='All characters');
 want('no em dashes in the one-liners', !T.some(t=>/—/.test(t.one)));

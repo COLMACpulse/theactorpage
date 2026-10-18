@@ -79,6 +79,61 @@ H.pageHtml=function(films,me){
   +'</style></head><body><main><h1>'+esc(banner)+'</h1>'+(me.banner&&me.name?'<p class="who">'+esc(me.name)+'</p>':'')+(me.about?'<p class="about">'+esc(me.about)+'</p>':'')
   +shown.map(card).join('\n')+(me.email?'<p class="who" style="margin-top:28px">'+esc(me.email)+'</p>':'')+'</main></body></html>';
 };
+/* YOUR UNIVERSE, the filmmaker's side: what kind of films you make, counted from the films themselves, and what you
+   say you're into and want to get into, in your words, kept apart. Plus a map: films, the people on more than one,
+   the places you go back to. Counts only. films: [{id,title,kind,year,runtime,stage,script (Story Studio project or null)}]
+   people: H.people(...) output.  me: {into:[], want:[]} */
+const KINDS=[['feature',/\bfeatures?\b/i],['short',/\bshorts?\b/i],['pilot',/\bpilots?\b/i],['series',/\b(series|web ?series|episodic)\b/i],['music video',/\bmusic videos?\b/i],['documentary',/\b(doc|docs|documentar(y|ies))\b/i],['commercial',/\b(commercials?|spots?|ads?)\b/i],['sketch',/\bsketch(es)?\b/i]];
+H.kindOf=t=>{ const k=KINDS.find(x=>x[1].test(String(t||''))); return k?k[0]:''; };
+const share=o=>{ const t=Object.values(o).reduce((a,b)=>a+b,0); return t?Object.keys(o).sort((a,b)=>o[b]-o[a]).map(k=>k+' '+Math.round(o[k]/t*100)+'%'):[]; };
+const mins=r=>{ const m=String(r||'').match(/(\d+(?:\.\d+)?)\s*(h|hr|hour|m|min)?/i); if(!m) return 0; return /^h/i.test(m[2]||'')?Math.round(+m[1]*60):+m[1]; };
+H.universe=function(films,F,people,me){
+ films=films||[]; people=people||[]; me=me||{};
+ const nodes=[], edges=[], facts=[], idx={}, add=(id,type,label,size,data)=>{ if(idx[id]!=null) return nodes[idx[id]]; idx[id]=nodes.length; const n={id,type,label,size,data:data||{}}; nodes.push(n); return n; };
+ const kinds={}, stages={}, years=[], runs=[], ie={}, tod={}, placeFilms={}, ways={}, parts=[]; let read=0, inIt=0;
+ films.forEach(f=>{ const k=H.kindOf(f.kind)||'', S=[]; kinds[k||'no kind given']=(kinds[k||'no kind given']||0)+1; stages[f.stage||'script']=(stages[f.stage||'script']||0)+1;
+  const y=+String(f.year||'').match(/\d{4}/)?.[0]; if(y) years.push(y); const r=mins(f.runtime); if(r) runs.push(r);
+  let sc=[]; try{ sc=f.script&&f.script.text?F.scenes(f.script.text):[]; }catch(e){ sc=[]; }
+  add('f:'+f.id,'film',f.title||'Untitled',Math.min(30,14+Math.sqrt(sc.length||1)*2),{fid:f.id,kind:k,year:f.year||'',stage:f.stage||'',scenes:sc.length,hand:!f.script});
+  if(sc.length){ read++; const st=(f.script&&f.script.scenes)||{}, here={};
+   sc.forEach(x=>{ if(x.ie) ie[x.ie==='EXT'?'outside':x.ie==='INT'?'inside':'both']=(ie[x.ie==='EXT'?'outside':x.ie==='INT'?'inside':'both']||0)+1;
+    const t=String(x.tod||'').split(/[\s/]+/)[0]; if(/^(DAY|NIGHT|MORNING|EVENING|DUSK|DAWN|AFTERNOON|SUNSET|SUNRISE)$/.test(t)) tod[t.toLowerCase()]=(tod[t.toLowerCase()]||0)+1;
+    const pl=String(x.place||'').split(/\s+-\s+/)[0].trim().toUpperCase(); if(pl) here[pl]=(here[pl]||0)+1;
+    const w=st[x.n]&&st[x.n].way; if(w) ways[w]=(ways[w]||0)+1; });
+   Object.keys(here).forEach(pl=>{ (placeFilms[pl]=placeFilms[pl]||[]).push({fid:f.id,title:f.title||'Untitled',n:here[pl]}); });
+   try{ parts.push(F.parts(sc).length); }catch(e){}
+   if(f.script.me) inIt++; } });
+ /* people on two or more films; or everyone, when there are only a few */
+ const few=people.length<=16, pm=people.filter(p=>few||p.films.length>1).slice(0,30);
+ const byTitle={}; films.forEach(f=>{ (byTitle[f.title||'Untitled']=byTitle[f.title||'Untitled']||[]).push(f.id); });
+ pm.forEach(p=>{ const n=add('p:'+p.name.toLowerCase().replace(/[^a-z0-9]+/g,''),'person',p.name,Math.min(16,6+p.films.length*2.5),{films:p.films}); p.films.forEach(x=>(byTitle[x.film]||[]).forEach(fid=>edges.push({a:'f:'+fid,b:n.id,kind:'on'}))); });
+ /* places: in more than one film, or the top three of each */
+ const keepPl={}; Object.keys(placeFilms).forEach(pl=>{ if(placeFilms[pl].length>1) keepPl[pl]=1; });
+ films.forEach(f=>{ Object.keys(placeFilms).filter(pl=>placeFilms[pl].some(x=>x.fid===f.id)).sort((a,b)=>placeFilms[b].find(x=>x.fid===f.id).n-placeFilms[a].find(x=>x.fid===f.id).n).slice(0,3).forEach(pl=>keepPl[pl]=1); });
+ Object.keys(keepPl).slice(0,40).forEach(pl=>{ const L=placeFilms[pl], n=add('l:'+pl,'place',pl,Math.min(13,5+L.length*2.5),{films:L.map(x=>x.title),scenes:L.reduce((a,x)=>a+x.n,0)}); L.forEach(x=>edges.push({a:'f:'+x.fid,b:n.id,kind:'at'})); });
+ /* the counts, said plainly */
+ if(!films.length) facts.push('No films yet.');
+ else {
+  const kw=Object.keys(kinds).sort((a,b)=>kinds[b]-kinds[a]).map(k=>k==='no kind given'?kinds[k]+' with no kind given':pl(kinds[k],k,k==='series'?'series':k==='documentary'?'documentaries':k==='sketch'?'sketches':null));
+  facts.push(pl(films.length,'film')+': '+kw.join(', ')+'.');
+  if(years.length) facts.push(Math.min(...years)===Math.max(...years)?'All from '+years[0]+'.':'From '+Math.min(...years)+' to '+Math.max(...years)+'.');
+  if(runs.length) facts.push(runs.length===1?'Runtime: '+runs[0]+' min.':'Runtimes: '+Math.min(...runs)+' to '+Math.max(...runs)+' min.');
+  const sw=H.STAGES.filter(x=>stages[x[0]]).map(x=>stages[x[0]]+' '+x[1].toLowerCase()); facts.push('Where they stand: '+sw.join(', ')+'.');
+ }
+ const scen=[];
+ if(read){ const a=share(ie), t=share(tod); if(a.length) scen.push('Inside or out: '+a.join(', ')+'.'); if(t.length) scen.push('Time of day: '+t.slice(0,4).join(', ')+'.');
+  const back=Object.keys(placeFilms).filter(pl=>placeFilms[pl].length>1).sort((a,b)=>placeFilms[b].length-placeFilms[a].length); if(back.length) scen.push('Places in more than one film: '+back.slice(0,5).map(pl=>pl+' ('+placeFilms[pl].length+')').join(', ')+'.');
+  if(parts.length) scen.push('Speaking parts: '+(Math.min(...parts)===Math.max(...parts)?parts[0]:Math.min(...parts)+' to '+Math.max(...parts))+' a film.');
+  scen.push('You play a part yourself in '+inIt+' of '+read+'.');
+  const wn=(F.WAYS||[]).filter(x=>ways[x.id]).map(x=>x.name+' '+pl(ways[x.id],'scene')); if(wn.length) scen.push('How you shoot alone: '+wn.join(', ')+'.');
+  scen.unshift('From '+pl(read,'script')+' read in Story Studio:'); }
+ const again=people.filter(p=>p.films.length>1);
+ const crew=again.length?['Who you keep working with: '+again.slice(0,6).map(p=>p.name+' ('+p.films.length+' films'+(()=>{ const j=[...new Set([].concat(...p.films.map(x=>x.jobs)))].slice(0,2); return j.length?', '+j.join(', '):''; })()+')').join('; ')+'.']:(people.length?['Nobody on more than one film yet.']:[]);
+ /* what you said, next to what's counted: only where a kind is named */
+ const wants=(me.want||[]).map(w=>{ const k=H.kindOf(w); return {text:w,kind:k,made:k?(kinds[k]||0):null}; });
+ return {nodes,edges,facts,scenes:scen,crew,into:(me.into||[]).slice(),wants};
+};
+
 g.FilmHub=H;
 if(typeof module!=='undefined') module.exports=H;
 })(typeof window!=='undefined'?window:globalThis);

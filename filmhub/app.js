@@ -9,11 +9,13 @@ const H=window.FilmHub, F=window.FilmOS, Y=window.You;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const KEY='filmhub_v1', UK='filmhub_ui_v1';
-const blank=()=>({films:[],studio:{},notes:[],me:{banner:'',about:'',email:''}});
+const blank=()=>({films:[],studio:{},notes:[],me:{banner:'',about:'',email:'',into:[],want:[]}});
 function load(){ try{ const d=JSON.parse(localStorage.getItem(KEY)||'null'); if(d&&Array.isArray(d.films)) return Object.assign(blank(),d,{me:Object.assign(blank().me,d.me||{})}); }catch(e){} return blank(); }
 let D=load();
 const save=()=>{ try{ localStorage.setItem(KEY,JSON.stringify(D)); }catch(e){ toast('This phone would not save.'); } };
+addEventListener('resize',()=>{ clearTimeout(window.__ur); window.__ur=setTimeout(()=>{ if(U.tab==='you') render(); },250); });
 let U=(()=>{ try{ return Object.assign({tab:'films',open:''},JSON.parse(localStorage.getItem(UK)||'{}')); }catch(e){ return {tab:'films',open:''}; } })();
+try{ const t=new URLSearchParams(location.search).get('tab'); if(['films','page','people','you'].includes(t)){ U.tab=t; U.open=''; } }catch(e){}
 const saveU=()=>{ try{ localStorage.setItem(UK,JSON.stringify(U)); }catch(e){} };
 function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('on'),3000); }
 const uid=()=>'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
@@ -136,11 +138,43 @@ function peopleView(){
  return '<div class="card">'+P.map(p=>'<div class="pp"><b>'+esc(p.name)+'</b><small>'+p.films.map(f=>esc(f.film)+(f.jobs.length?' ('+esc(f.jobs.join(', '))+')':'')).join(' · ')+'</small></div>').join('')+'</div>';
 }
 
+/* ---------- YOU: your universe ---------- */
+let USEL='';
+function uni(){ const S=studio(), L=films().map(f=>({id:f.id,title:f.title,kind:f.kind,year:f.year,runtime:f.runtime,stage:f.from==='hand'?'done':f.stage,script:f.from==='studio'?S[f.sid]:null}));
+ return H.universe(L,F,H.people(S,F,D.films.map(f=>({title:f.title,people:f.people}))),D.me); }
+const PLK={feature:'Features',short:'Shorts',pilot:'Pilots',series:'Series','music video':'Music videos',documentary:'Documentaries',commercial:'Commercials',sketch:'Sketches'};
+function youView(){
+ const U=uni(), narrow=innerWidth<640, W=narrow?600:1000, Hh=narrow?(U.nodes.length>14?860:640):560;
+ let h='<p class="dim small" style="margin:0 0 12px">What kind of filmmaker you are, counted from your own films. What you\'re into and what you want to get into, in your words. The two are kept apart.</p>';
+ h+='<div class="card" id="ufacts"><p class="kicker">From your films</p><ul class="facts">'+U.facts.map(f=>'<li>'+esc(f)+'</li>').join('')+'</ul>'
+  +(U.scenes.length?'<p class="lab" style="margin-top:10px">'+esc(U.scenes[0])+'</p><ul class="facts">'+U.scenes.slice(1).map(f=>'<li>'+esc(f)+'</li>').join('')+'</ul>':'')
+  +(U.crew.length?'<ul class="facts" style="margin-top:10px">'+U.crew.map(f=>'<li>'+esc(f)+'</li>').join('')+'</ul>':'')
+  +(!films().length?'<a class="btn" href="../film/" style="margin-top:10px;text-decoration:none">OPEN STORY STUDIO</a>':'')+'</div>';
+ if(U.nodes.length>1){ const L=Graph.fit(Graph.layout(U,W,Hh,220),W,Hh), ix={}, k=W/Math.max(300,Math.min(W,innerWidth-34)); U.nodes.forEach((n,i)=>ix[n.id]=i);
+  const near=new Set(); if(USEL) U.edges.forEach(e=>{ if(e.a===USEL) near.add(e.b); if(e.b===USEL) near.add(e.a); });
+  let g=''; U.edges.forEach(e=>{ const a=L[ix[e.a]], b=L[ix[e.b]]; g+='<line class="ue ue-'+e.kind+(USEL&&(e.a===USEL||e.b===USEL)?' uon':'')+'" x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'"/>'; });
+  U.nodes.forEach((n,i)=>{ const q=L[i], r=Math.round(n.size*Math.max(1,k*.75)), fs=Math.round((n.type==='film'?13:11)*k), lab=n.label.length>22?n.label.slice(0,21)+'…':n.label, hw=Math.max(r+6,lab.length*fs*.33,14*k);
+   const shape=n.type==='place'?'<rect class="ush" x="'+(-r)+'" y="'+(-r)+'" width="'+(2*r)+'" height="'+(2*r)+'" rx="2"/>':'<circle class="ush" r="'+r+'"/>';
+   g+='<g class="un un-'+n.type+(USEL===n.id?' usel':near.has(n.id)?' uon':'')+'" data-un="'+esc(n.id)+'" transform="translate('+q.x+' '+q.y+')" tabindex="0"><rect class="uhit" x="'+(-hw)+'" y="'+(-r-6)+'" width="'+(2*hw)+'" height="'+(2*r+fs+12)+'"/>'+shape+'<text y="'+(r+fs+2)+'" font-size="'+fs+'">'+esc(lab)+'</text></g>'; });
+  h+='<div class="card" style="padding:10px"><p class="kicker" style="margin:4px 6px 8px">The map</p><div class="umap"><svg'+(USEL?' class="ufocus"':'')+' viewBox="0 0 '+W+' '+Hh+'" role="img" aria-label="Your films, the people on them, the places">'+g+'</svg></div>'
+   +'<div class="ulegend"><span><i class="lf"></i>film</span><span><i class="lp"></i>person</span><span><i class="ll"></i>place</span></div><div id="uinfo" class="small">'+uInfo(U)+'</div></div>'; }
+ const wl=(k,ph,ex)=>'<div class="row" style="gap:8px;margin-top:8px"><input class="field" id="uadd_'+k+'" placeholder="'+esc(ph)+'" style="flex:1;margin:0"><button class="btn sm" data-uadd="'+k+'">ADD</button></div>'+(ex?'<p class="faint small" style="margin:6px 0 0">'+esc(ex)+'</p>':'');
+ h+='<div class="card"><p class="kicker">In your words</p><p class="lab">What you\'re into</p>'+(U.into.length?'<div class="row" style="flex-wrap:wrap;gap:6px">'+U.into.map((t,i)=>'<span class="chip on">'+esc(t)+' <button class="lnk" data-urm="into|'+i+'" aria-label="Remove">✕</button></span>').join('')+'</div>':'<p class="faint small" style="margin:0">Nothing yet.</p>')
+  +wl('into','A genre, a filmmaker, a film, a way of shooting','Westerns. Long takes. Anything shot at night.')
+  +'<p class="lab" style="margin-top:16px">What you want to get into</p>'+(U.wants.length?'<ul class="facts">'+U.wants.map((w,i)=>'<li>'+esc(w.text)+(w.kind?' <span class="faint">· '+esc(PLK[w.kind])+' made so far: '+w.made+'</span>':'')+' <button class="lnk faint" data-urm="want|'+i+'" aria-label="Remove">✕</button></li>').join('')+'</ul>':'<p class="faint small" style="margin:0">Nothing yet.</p>')
+  +wl('want','A kind of film, a job, a person, a place','A feature. A music video. Shoot in the desert.')+'</div>';
+ return h;
+}
+function uInfo(U){ const n=USEL&&U.nodes.find(x=>x.id===USEL); if(!n) return '<span class="faint">Tap a film, a person or a place.</span>';
+ if(n.type==='film') return '<b>'+esc(n.label)+'</b> <span class="dim">'+esc([n.data.year,n.data.kind,n.data.stage?H.stageWord(n.data.stage):'',n.data.scenes?n.data.scenes+' scenes':''].filter(Boolean).join(' · '))+'</span><div class="row" style="margin-top:8px"><button class="btn sm" data-uopen="'+esc(n.data.fid)+'">OPEN IT</button></div>';
+ if(n.type==='person') return '<b>'+esc(n.label)+'</b> <span class="dim">'+n.data.films.map(f=>esc(f.film)+(f.jobs.length?' ('+esc(f.jobs.join(', '))+')':'')).join(' · ')+'</span>';
+ return '<b>'+esc(n.label)+'</b> <span class="dim">'+n.data.scenes+' scene'+(n.data.scenes===1?'':'s')+' · in '+n.data.films.map(esc).join(', ')+'</span>'; }
+
 /* ---------- draw and wire ---------- */
 function render(){
  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===U.tab));
  const L=films(); $('count').textContent=L.length?L.length+' film'+(L.length===1?'':'s')+' · '+L.filter(f=>f.stage==='done').length+' done':'';
- $('main').innerHTML=U.tab==='films'?filmsView():U.tab==='page'?pageView():peopleView();
+ $('main').innerHTML=U.tab==='films'?filmsView():U.tab==='page'?pageView():U.tab==='you'?youView():peopleView();
  wire(); fillPosters();
 }
 function wire(){
@@ -167,6 +201,10 @@ function wire(){
  M.querySelectorAll('[data-pm]').forEach(el=>el.onchange=()=>{ D.me[el.dataset.pm]=el.value.trim(); save(); });
  if($('pname')) $('pname').onchange=e=>{ try{ Y.set('name',e.target.value); }catch(x){} };
  M.querySelectorAll('[data-pshow]').forEach(el=>el.onchange=()=>{ const x=rec(film(el.dataset.pshow)); if(x){ x.show=el.checked; save(); } });
+ M.querySelectorAll('[data-un]').forEach(g=>{ const f=()=>{ USEL=USEL===g.dataset.un?'':g.dataset.un; render(); }; g.onclick=f; g.onkeydown=e=>{ if(e.key==='Enter') f(); }; });
+ M.querySelectorAll('[data-uopen]').forEach(b=>b.onclick=()=>{ U.tab='films'; U.open=b.dataset.uopen; USEL=''; saveU(); render(); scrollTo(0,0); });
+ M.querySelectorAll('[data-uadd]').forEach(b=>{ const k=b.dataset.uadd, el=$('uadd_'+k), go=()=>{ const v=el.value.trim(); if(!v) return; D.me[k]=(D.me[k]||[]).concat([v]); save(); render(); const n=$('uadd_'+k); if(n) n.focus(); }; b.onclick=go; el.onkeydown=e=>{ if(e.key==='Enter') go(); }; });
+ M.querySelectorAll('[data-urm]').forEach(b=>b.onclick=()=>{ const [k,i]=b.dataset.urm.split('|'); (D.me[k]||[]).splice(+i,1); save(); render(); });
  if($('pprev')) $('pprev').onclick=async()=>{ const html=await pageHtml(); $('pvbox').innerHTML='<iframe class="pv" sandbox title="Your page"></iframe>'; $('pvbox').firstChild.srcdoc=html; };
  if($('psave')) $('psave').onclick=async()=>{ const html=await pageHtml(), y=you(), a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([html],{type:'text/html'})); a.download=((D.me.banner||y.name||'Films').replace(/[\\/:*?"<>|]+/g,' ').trim())+' - films.html'; document.body.appendChild(a); a.click(); a.remove(); toast('Saved. Attach it, or open it and print.'); };
 }
