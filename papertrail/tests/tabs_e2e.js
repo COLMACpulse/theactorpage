@@ -13,7 +13,7 @@ want('Across projects: its four tabs under it', (await bar()).join('|')==='Proje
 await p.click('#tabs [data-tab="add"]'); await p.fill('#ptitle','Ridge Line'); await p.fill('#paste','Title: Ridge Line\n\nEXT. RIDGE - DAY\n\nVale climbs.\n\nVALE\nRope.\n'); await p.click('#readit'); await p.waitForTimeout(500);
 await p.click('[data-open]'); await p.waitForTimeout(300);
 let B=await bar();
-want('a project open: its name, three rooms, the script room\'s four tabs: 10 buttons, not 14', B.join('|')==='Projects|Add drafts|Across projects|The script|The work|Send it|Scenes|Table read|Characters|Setups'&&/Ridge Line/.test(await p.innerText('#tabs .tproj')), B);
+want('a project open: its name, three rooms, the script room\'s five tabs: 11 buttons, not 15', B.join('|')==='Projects|Add drafts|Across projects|The script|The work|Send it|Scenes|Table read|Characters|Setups|Repeats'&&/Ridge Line/.test(await p.innerText('#tabs .tproj')), B);
 await p.click('#tabs [data-grp="send"]'); await p.waitForTimeout(150);
 want('Send it: Package and Sent out', (await bar()).slice(6).join('|')==='Package|Sent out'&&(await p.$eval('#tabs .tsub .on',x=>x.textContent))==='Package', [await bar()]);
 await p.click('#tabs [data-tab="sent"]'); await p.waitForTimeout(150); await p.click('#tabs [data-grp="work"]'); await p.waitForTimeout(150); await p.click('#tabs [data-grp="send"]'); await p.waitForTimeout(150);

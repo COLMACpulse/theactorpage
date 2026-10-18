@@ -129,7 +129,7 @@ async function docxText(buf){
 /* ---------- views ---------- */
 /* the tabs, in three rooms: never more than a handful in sight */
 const GROUPS=[['all','Across projects',[['universe','Your universe'],['allchars','All characters'],['voice','Sounds like you'],['allsent','All sent out']]],
- ['script','The script',[['scenes','Scenes'],['read','Table read'],['characters','Characters'],['threads','Setups']]],
+ ['script','The script',[['scenes','Scenes'],['read','Table read'],['characters','Characters'],['threads','Setups'],['repeats','Repeats']]],
  ['work','The work',[['bones','Boneyard'],['research','Research'],['drafts','Drafts']]],
  ['send','Send it',[['package','Package'],['sent','Sent out']]]];
 let LASTIN={};
@@ -161,6 +161,7 @@ function render(){
  else if(VIEW.tab==='read') m.innerHTML=vRead(p);
  else if(VIEW.tab==='bones') m.innerHTML=vBones(p);
  else if(VIEW.tab==='threads') m.innerHTML=vThreads(p);
+ else if(VIEW.tab==='repeats') m.innerHTML=vRepeats(p);
  else if(VIEW.tab==='research') m.innerHTML=vResearch(p);
  else if(VIEW.tab==='package') m.innerHTML=vPackage(p);
  else if(VIEW.tab==='sent') m.innerHTML=vSent(p);
@@ -227,10 +228,23 @@ function vScenes(p){
  h+='<div class="grid">'+sc.map((s,i)=>{ const cd=(p.cards||{})[keys[i]]||{}, sb=c?sbFor(p,s,i,keys):null, M=T.missing(s,cd,c?sb:s,studioFor(c,s)).filter(x=>!(c?false:x.what==='Scene text'));
   const miss=M.filter(x=>!x.have).map(x=>x.what), cast=[...new Set([...(s.cast||[]),...((sb&&sb.cast)||[]),...(cd.cast||[])])];
   return '<button class="frame" data-scene="'+i+'">'+perf()+'<div class="fb"><div class="fk"><span>SC '+(s.num||s.n||i+1)+'</span><span>'+(s.tod||'')+'</span></div><div class="ft">'+esc(s.heading)+'</div>'
-   +'<div class="fl">'+(cast.length?esc(cast.join(', ')):'No cast')+'</div>'+(cd.purpose?'<div class="fl" style="margin-top:4px">'+esc(cd.purpose)+'</div>':'')
+   +'<div class="fl">'+(cast.length?esc(cast.join(', ')):'No cast')+'</div>'+(c?carryLine(s):'')+(cd.purpose?'<div class="fl" style="margin-top:4px">'+esc(cd.purpose)+'</div>':'')
    +(miss.length?'<div class="miss">Missing: '+esc(miss.join(', ').toLowerCase())+'</div>':'<div class="have">Everything on the list is here.</div>')+'</div></button>'; }).join('')+'</div>';
  return h;
 }
+/* WHO CARRIES THE SCENE: counts only */
+function carryLine(s){ const C=T.carry(s); return C.length>1?'<div class="fl carry">'+esc(C.slice(0,2).map(x=>x.name+' '+x.pct+'%').join(' · '))+'</div>':''; }
+function carryHtml(s){ const C=T.carry(s); if(!C.length) return '';
+ return '<div class="eyebrow">Who talks</div><div class="carry">'+C.map(x=>'<div class="cr"><span class="cn">'+esc(x.name)+'</span><span class="cb"><i style="width:'+x.pct+'%"></i></span><span class="cv">'+x.pct+'% · '+x.speeches+' speech'+(x.speeches===1?'':'es')+', '+x.words+' words</span></div>').join('')+'</div><p class="note">Share of the words spoken in this scene. Counts only.</p>'; }
+/* REPEATS: words and phrases that come back, and where they bunch up. Shown, never changed. */
+function vRepeats(p){ const c=current(p); if(!c) return '<div class="panel">Repeats need a script draft. <button class="btn sm" data-tab="add">ADD DRAFTS</button></div>';
+ const sc=scenesOf(c), R=T.repeats(sc), num=i=>String((sc[i]&&(sc[i].num||sc[i].n))||i+1);
+ const list=(L,none)=>L.length?'<div class="list">'+L.map(x=>'<div class="li"><div class="w"><b>'+esc(x.w)+'</b><small>'+esc(T.repeatWords(x,num))+'</small></div><button class="btn sm ghost" data-scene="'+x.near.from+'" data-tab-go="scenes">SCENE '+esc(num(x.near.from))+'</button></div>').join('')+'</div>':'<p class="note">'+none+'</p>';
+ let h='<p class="note">Reading the current draft: <b>'+esc(c.label)+'</b>. Words that come back, and where they bunch up: four or more within three scenes, or a dozen anywhere. Names and everyday words aren\'t counted. Some repeats are on purpose. Nothing here changes your script.</p>';
+ h+='<div class="eyebrow">In the action</div>'+list(R.action,'Nothing in the action comes back like that.');
+ h+='<div class="eyebrow">In the dialogue</div>'+list(R.dialogue,'Nothing in the dialogue comes back like that.');
+ h+='<div class="eyebrow">Phrases</div>'+list(R.phrases,'No three-word phrase comes back three times close together.');
+ return h; }
 function vScene(p,i){
  const c=current(p), b=board(p), base=c||b, sc=scenesOf(base), keys=T.keys(sc), s=sc[i]; if(!s){ VIEW.scene=null; return vScenes(p); }
  const cd=card(p,keys[i]), sb=c?sbFor(p,s,i,keys):s, st=studioFor(c,s);
@@ -240,6 +254,7 @@ function vScene(p,i){
  h+='<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">';
  // left: the record
  h+='<div><div class="eyebrow" style="margin-top:0">What the scene is for</div><textarea class="field" data-card="purpose" placeholder="In your words: what this scene has to do. Nobody fills this in but you.">'+esc(cd.purpose)+'</textarea>';
+ h+=carryHtml(s);
  h+='<div class="eyebrow">Cast</div><div class="chips">'+cast.map(x=>'<span class="chip">'+esc(x)+'</span>').join('')+(cd.cast||[]).map((x,j)=>'<span class="chip" style="border-color:var(--gold)">'+esc(x)+' <a data-rm="cast" data-j="'+j+'">×</a></span>').join('')+'<button class="btn sm ghost" data-addto="cast">+ add</button></div>'
   +((s.voices||[]).length?'<p class="note">Voice only in the script: '+esc(s.voices.join(', '))+'</p>':'');
  h+='<div class="eyebrow">Props</div><div class="chips">'+props.map(x=>'<span class="chip">'+esc(x)+'</span>').join('')+(cd.props||[]).map((x,j)=>'<span class="chip" style="border-color:var(--gold)">'+esc(x)+' <a data-rm="props" data-j="'+j+'">×</a></span>').join('')+'<button class="btn sm ghost" data-addto="props">+ add</button></div>'
@@ -782,7 +797,7 @@ function wire(){
  if(window.Kit) Kit.wire($('main'),{ say:()=>kitGo('bones','mic'), rec:()=>{ if(RECORDING){ try{ RECORDING.stop(); }catch(e){} return; } kitGo('research','rrec'); }, photo:()=>kitGo('research','rcam') });
  document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ if(b.dataset.go==='projects'){ VIEW.p=null; } VIEW.scene=null; go(b.dataset.go); });
  document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{ VIEW.p=b.dataset.open; VIEW.scene=null; go('scenes'); });
- document.querySelectorAll('[data-scene]').forEach(b=>b.onclick=()=>{ VIEW.scene=Number(b.dataset.scene); render(); window.scrollTo(0,0); });
+ document.querySelectorAll('[data-scene]').forEach(b=>b.onclick=()=>{ if(b.dataset.tabGo) VIEW.tab=b.dataset.tabGo; VIEW.scene=Number(b.dataset.scene); render(); window.scrollTo(0,0); });
  document.querySelectorAll('[data-goscene]').forEach(b=>b.onclick=()=>{ VIEW.tab='scenes'; VIEW.scene=Number(b.dataset.goscene); render(); window.scrollTo(0,0); });
  document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>{ VIEW.scene=null; render(); });
  /* YOUR UNIVERSE */

@@ -80,6 +80,10 @@ function score(text){
   ok('sides are read as before', W(S.parse('ANNA\nHand me the rope.\n\nMR. DELL\nNo.'))==='ANNA|Hand me the rope. / MR. DELL|No.');
   ok('McCARTHY and MacLEOD are names, as Final Draft writes them', W(S.parse('INT. BAR - NIGHT\n\nMcCARTHY\nYou came.\n\nMacLEOD (CONT\'D)\nI did.\n\nMcCARTHY: Sit.'))==='MCCARTHY|You came. / MACLEOD|I did. / MCCARTHY|Sit.', W(S.parse('McCARTHY\nYou came.\n\nMacLEOD (CONT\'D)\nI did.')));
   ok('a line that starts with Mac is still a line', S.parse('ANNA\nMac said no.').length===1&&S.parse('ANNA\nMac said no.')[0].text==='Mac said no.');
+  ok('a title page is not a speech: SCRIPT TITLE / Written by', !S.speakers(S.parse('SCRIPT TITLE\n\nWritten by\n\nName of First Writer\n\nINT. DINER - NIGHT\n\nDANA\nWe\'re closed.')).some(x=>/TITLE/.test(x.name))&&S.speakers(S.parse('SALT ROAD\nby Dana Pell\n\nINT. DINER - NIGHT\n\nDANA\nWe\'re closed.')).map(x=>x.name).join()==='DANA');
+  ok('a line of dialogue that starts with "by" is still dialogue', W(S.parse('DANA\nBy the door.'))==='DANA|By the door.');
+  ok('a group cue: ANNA/BO/CY speak at once', W(S.parse('INT. BAR - DAY\n\nDELL\nMorning, all.\n\nANNA/BO/CY\nMorning, Dell.'))==='DELL|Morning, all. / ANNA/BO/CY|Morning, Dell.', W(S.parse('DELL\nMorning, all.\n\nANNA/BO/CY\nMorning, Dell.')));
+  ok('INT./EXT. is still a scene, not a group', !S.parse('INT./EXT. CAR - DAY\n\nANNA\nGo.').some(b=>/INT/.test(b.who)));
   ok('an email from a rep is not an interview', S.transcript('From: Pat Rep\nTo: Sam Actor\nSubject: LOW TIDE\nHi Sam: tape due Friday.').kind===''); }
  console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail?1:0);
 })();

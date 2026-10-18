@@ -575,6 +575,34 @@ T.universe=function(projects,opts){ opts=opts||{}; const N=[], E=[], idx={}, add
 };
 /* where each one sits: pulled by its links, pushed off the others. Same input, same picture. */
 T.uLayout=function(U,w,h,iters){ const G=(typeof Graph!=='undefined'&&Graph)||(typeof require!=='undefined'&&require('../shared/graph.js')); return G.layout(U,w,h,iters); };
+
+/* WHO CARRIES THE SCENE: each speaker's share of the scene's spoken words, and speeches. Counts only. */
+const WD=t=>(String(t||'').replace(/\([^)]*\)/g,' ').toLowerCase().match(/[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu)||[]);
+T.speechesOf=function(s){ const names=(s.lines||[]).map(x=>x.name).sort((a,b)=>b.length-a.length), out=[];
+ String(s.text||'').split('\n').forEach(l=>{ const n=names.find(x=>l.startsWith(x+': ')); if(n) out.push({who:n,text:l.slice(n.length+2)}); else out.push({who:'',text:l}); }); return out; };
+T.carry=function(s){ const by={}; let all=0;
+ T.speechesOf(s).forEach(x=>{ if(!x.who) return; const n=WD(x.text).length; const c=by[x.who]=by[x.who]||{name:x.who,speeches:0,words:0}; c.speeches++; c.words+=n; all+=n; });
+ return Object.values(by).map(c=>Object.assign(c,{pct:all?Math.round(c.words/all*100):0})).sort((a,b)=>b.words-a.words||a.name.localeCompare(b.name)); };
+/* REPEATS: a word or phrase that comes back, and where it bunches up. Shown, never changed. Some are on purpose. */
+T.STOP=new Set(('a about above after again against all almost also am an and any are around as at away back be because been before being below between both but by can cannot could did do does doing done down during each even ever every few for from further get gets got had has have having he her here hers herself him himself his how i if in into is it its itself just let like me more most much my myself no nor not now of off on once one only or other our ours out over own really right same she should so some still such than that the their theirs them then there these they this those through to too under until up upon us very was way we well were what when where which while who whom why will with would yeah yes you your yours yourself oh hey okay ok uh um gonna wanna gotta i\'m it\'s don\'t can\'t that\'s you\'re he\'s she\'s we\'re they\'re i\'ll i\'ve didn\'t isn\'t won\'t there\'s what\'s let\'s ain\'t doesn\'t wasn\'t couldn\'t wouldn\'t'+
+ ' looks look looking turns turn goes go going comes come coming takes take into onto back see sees know think want tell says say said').split(' '));
+T.repeats=function(scenes,o){ o=o||{}; const names=new Set(); (scenes||[]).forEach(s=>(s.lines||[]).forEach(x=>String(x.name).toLowerCase().split(/[\s.\/]+/).forEach(w=>w&&names.add(w))));
+ /* the setting isn't a repeat (DINER in INT. SALT ROAD DINER), nor is a name: a cue, a cue's 's, or a word only ever capitalized mid-sentence (Okafor) */
+ const places=new Set(); (scenes||[]).forEach(s=>String(s.heading||'').toLowerCase().replace(/^(int|ext|est|i\/e)[.\s\/]*(int|ext)?\.?\s*/,'').replace(/\s+-\s+.*$/,'').split(/[^a-z0-9']+/).forEach(w=>w&&places.add(w)));
+ const low={}, cap={}; (scenes||[]).forEach(s=>{ const t=String(s.text||''); const re=/[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu; let m;
+  while((m=re.exec(t))){ const w=m[0].toLowerCase().replace(/[’]/g,"'"), before=t.slice(Math.max(0,m.index-3),m.index); const start=m.index===0||/(^|[.!?:"\n]\s*)$/.test(before)||/\n\s*$/.test(t.slice(0,m.index));
+   if(/^\p{Lu}/u.test(m[0])&&!start) cap[w]=(cap[w]||0)+1; else if(/^\p{Ll}/u.test(m[0])) low[w]=(low[w]||0)+1; } });
+ const base=w=>w.replace(/'s$/,'');
+ const keep=w=>w.length>=3&&!T.STOP.has(w)&&!names.has(w)&&!names.has(base(w))&&!places.has(w)&&!places.has(base(w))&&!(cap[w]&&!low[w])&&!/^\d+$/.test(w);
+ const tally={action:{},dialogue:{}}, phr={action:{},dialogue:{}};
+ (scenes||[]).forEach((s,i)=>T.speechesOf(s).forEach(x=>{ const k=x.who?'dialogue':'action', ws=WD(x.text);
+  ws.forEach(w=>{ if(!keep(w)) return; (tally[k][w]=tally[k][w]||[]).push(i); });
+  for(let j=0;j+2<ws.length;j++){ const g=ws.slice(j,j+3); if(!g.some(keep)) continue; const p=g.join(' '); (phr[k][p]=phr[k][p]||[]).push(i); } }));
+ const W=o.window||3, rank=(T2,min,near)=>Object.entries(T2).filter(([,v])=>v.length>=min).map(([w,v])=>{
+   let best={n:0,from:0,to:0}; for(let a=0;a<v.length;a++){ let b=a; while(b+1<v.length&&v[b+1]-v[a]<W) b++; if(b-a+1>best.n) best={n:b-a+1,from:v[a],to:v[b]}; }
+   return {w,n:v.length,scenes:v,near:best}; }).filter(x=>x.near.n>=(near||o.near||4)||x.n>=(o.total||12)).sort((a,b)=>b.near.n-a.near.n||b.n-a.n||a.w.localeCompare(b.w));
+ return {action:rank(tally.action,4).slice(0,15),dialogue:rank(tally.dialogue,4).slice(0,15),phrases:[...rank(phr.action,3,3),...rank(phr.dialogue,3,3)].filter(x=>x.n>=3).sort((a,b)=>b.n-a.n).slice(0,10)}; };
+T.repeatWords=function(x,num){ const sc=i=>num?num(i):i+1; return x.n+' times'+(x.near.n>=2?', '+x.near.n+(x.near.from===x.near.to?' in scene '+sc(x.near.from):' in scenes '+sc(x.near.from)+' to '+sc(x.near.to)):''); };
 if(typeof module!=='undefined') module.exports=T;
 g.PaperTrail=T;
 })(typeof window!=='undefined'?window:globalThis);

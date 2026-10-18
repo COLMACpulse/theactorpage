@@ -507,11 +507,17 @@ A.toSides=function(lines){
  const TRANS=/(^(FADE|SMASH|MATCH|DISSOLVE|CUT)\b.*|\bTO:|:)$/;
  const capIndents=lines.filter(l=>l.text===l.text.toUpperCase()&&l.text.length<34&&/[A-Z]{2}/.test(l.text)&&!TRANS.test(l.text)&&l.x>actionX+20).map(l=>l.x);
  const cueX = capIndents.length ? capIndents.sort((a,b)=>b-a)[Math.floor(capIndents.length*0.25)] : actionX+150;
+ /* a name in the character column is a name even when the PDF kept it in lowercase ("Ross" for ROSS), as long as
+    the same name is a cue in capitals somewhere else in the script */
+ const cueName=t=>t.replace(/\s*\(CONT'?D\)\s*/i,'').replace(/\s*\((V\.?\s?O|O\.?\s?S|O\.?\s?C)\.?\)\s*$/i,'').trim().toUpperCase();
+ const known=new Set(lines.filter(l=>l.x>=cueX-16&&l.text===l.text.toUpperCase()&&l.text.length<34&&/[A-Z]{2}/.test(l.text)&&!TRANS.test(l.text)&&!/^(INT|EXT|I\/E)(?:[\.\s]|\s*:\s*\S)/.test(l.text)).map(l=>cueName(l.text)));
  const out=[]; let lastCue='', actionSince=true;
  lines.forEach(l=>{
   const txt=l.text.replace(/’/g,"'").replace(/‘/g,"'").replace(/[“”]/g,'"').replace(/Õ/g,"'");
   const isCue = l.x>=cueX-16 && txt===txt.toUpperCase() && txt.length<34 && /[A-Z]{2}/.test(txt)
                 && !/^(INT|EXT|I\/E)(?:[\.\s]|\s*:\s*\S)/.test(txt) && !TRANS.test(txt);
+  const lowCue = !isCue && txt!==txt.toUpperCase() && l.x>=cueX-16 && txt.length<34 && !/[.!?,;:"]$/.test(txt) && known.has(cueName(txt));
+  if(lowCue){ const name=txt.toUpperCase().replace(/\s*\(CONT'?D\)\s*/i,'').trim(); out.push('',name,null); lastCue=name; actionSince=false; return; }
   const isAction = !isCue && (l.x<=actionX+12 || (txt===txt.toUpperCase() && TRANS.test(txt)));   // CUT TO: is a transition
   if(isCue){
    const name=txt.replace(/\s*\(CONT'?D\)\s*/i,'').trim();

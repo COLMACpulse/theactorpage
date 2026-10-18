@@ -14,14 +14,15 @@ const MORE=/^\s*\(\s*MORE\s*\)\s*$/i;
 /* a sides watermark comes through pasted text as bits: "E417-E417-", "4:15 PM - 55120 - Mar 3, 2026" */
 const MARK=/(E\d{3}-){2,}|\d{1,2}:\d{2}\s*(AM|PM)\s*-\s*\d{3,}|\b\d{4,6}\s*-\s*[A-Z][a-z]{2}\s+\d{1,2},\s*\d{4}/;
 const PAREN=/^\s*\(.*\)\s*$/;
-const NAMEC=/^\s*([A-Z][A-Z0-9 .'’#&\-]{1,32}|Q|A)\s*:\s*(.+)$/;     // BO: line (and Q: / A: in an interview)
-const NAMEL=/^\s*([A-Z][A-Z0-9 .'’#&\-]{1,32})((\s*\([^)]*\))*)\s*\^?\s*$/; // BO  /  BO (CONT'D)  /  COP #2
+const NAMEC=/^\s*([A-Z][A-Z0-9 .'’#&\-\/]{1,40}|Q|A)\s*:\s*(.+)$/;     // BO: line (and Q: / A: in an interview)
+const NAMEL=/^\s*([A-Z][A-Z0-9 .'’#&\-\/]{1,40})((\s*\([^)]*\))*)\s*\^?\s*$/;  // and ANNA/BO/CY, all three at once // BO  /  BO (CONT'D)  /  COP #2
 /* camera and editing words are never a person: "LOW ANGLE", "POV DECKHAND:", "FLASHBACK:", "LATER" */
 const SHOT=/^(((EXTREME |LOW |HIGH |REVERSE |WIDE |TIGHT )?(ANGLE|CLOSE[ -]?UP|CLOSE( ON)?|SHOT|WIDE|TWO SHOT|INSERT|ECU|ECS|MCU|OTS)|(.* )?POV( .*)?|BACK TO( SCENE| PRESENT)?|(END )?FLASH ?BACK|FLASH|(END )?(MONTAGE|SERIES OF SHOTS|INTERCUT|DREAM|SEQUENCE)|INTERCUT .*|SUPER|SUPERIMPOSE|TITLE( CARD)?|CHYRON|CARD|LATER|MOMENTS LATER|SAME|CONTINUOUS|OVER BLACK|BLACK|BLACKOUT|ON SCREEN|ON TV|ESTABLISHING|AERIAL|TRACKING|OVERHEAD|SLOW MOTION|FREEZE FRAME|SPLIT SCREEN|THE END|END|START|BEGIN|SILENCE|BEAT|PRE-?LAP|VOICES)\b.*)$/;
 /* A name never ends like a sentence. Without this, shouted dialogue such as
    "NOW." or "NO." right under a name was read as a second name and the
    speech was lost. */
 /* McCARTHY, MacLEOD: a name in caps with the Mc or Mac left as written is still a name */
+const BYLINE=/^(?:(?:an?\s+)?(?:original\s+)?(?:screenplay|teleplay|story|script|pilot)?\s*(?:written\s+)?by\b|written\s+by\b|created\s+by\b)/i;
 const MC=s=>String(s).replace(/\bMc(?=[A-Z])/g,'MC').replace(/\bMac(?=[A-Z]{2})/g,'MAC');
 function isName(t){ t=MC(String(t).replace(/^@/,'')); const n=cleanName(t); return NAMEL.test(t) && !/#\s*\d{3,}/.test(t) && t===t.toUpperCase() && !/[.!?,…]$/.test(t) && !SHOT.test(n) && !SLUG.test(t); }
 function cleanName(n){
@@ -137,6 +138,7 @@ A.parse=function(text){
   const SPEECH_W=46;
   const beats=[]; let cur=null, more=null;
   const blank=i=>!raw[i]||!raw[i].trim()||junk[i];
+  let sawSlug=false;
   for(let i=0;i<raw.length;i++){
     const ln=raw[i], t=ln.replace(/\f/g,'').trim();
     if(junk[i]){ continue; }
@@ -144,7 +146,7 @@ A.parse=function(text){
     if(MORE.test(t)){ more=beats.length&&!beats[beats.length-1].action?beats[beats.length-1]:null; cur=null; continue; }
     // after (MORE), a new page starts with its running header ("LOW TIDE - Blue Rev. 10/12/26"): not the script
     if(more&&!isName(t.replace(/^\f/,''))&&(/^\f/.test(ln)||/\d/.test(t))){ continue; }
-    if(SLUG.test(t)||/^\.[A-Za-z0-9]/.test(t)){ cur=null; more=null; continue; }
+    if(SLUG.test(t)||/^\.[A-Za-z0-9]/.test(t)){ sawSlug=true; cur=null; more=null; continue; }
     const dir=DIRECTION(t);
     if(dir!==null){ if(dir) beats.push({who:'',text:dir,action:true}); cur=null; more=null; continue; }
     if(STAGE.test(t)&&!cur){ beats.push({who:'',text:t.replace(/^[\(\[]|[\)\]]$/g,'').trim(),action:true}); continue; }
@@ -156,6 +158,8 @@ A.parse=function(text){
     const forced=/^@/.test(t), tt=t.replace(/^@/,'');
     m=MC(tt).match(NAMEL);
     let nx=i+1; while(nx<raw.length&&junk[nx]) nx++;
+    /* a title page: SCRIPT TITLE / Written by ..., SALT ROAD / by Dana Pell. A byline is not a line of dialogue */
+    if(m && !sawSlug && raw[nx] && BYLINE.test(raw[nx].trim()) && !/[.!?]$/.test(raw[nx].trim())){ cur=null; more=null; continue; }
     if(m && (forced||isName(tt)) && raw[nx] && raw[nx].trim() && !isName(raw[nx].trim()) && DIRECTION(raw[nx].trim())===null){
       const who=cleanName(m[1]);
       let j=nx, buf=[];
