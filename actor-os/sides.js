@@ -21,7 +21,9 @@ const SHOT=/^(((EXTREME |LOW |HIGH |REVERSE |WIDE |TIGHT )?(ANGLE|CLOSE[ -]?UP|C
 /* A name never ends like a sentence. Without this, shouted dialogue such as
    "NOW." or "NO." right under a name was read as a second name and the
    speech was lost. */
-function isName(t){ t=String(t).replace(/^@/,''); const n=cleanName(t); return NAMEL.test(t) && !/#\s*\d{3,}/.test(t) && t===t.toUpperCase() && !/[.!?,…]$/.test(t) && !SHOT.test(n) && !SLUG.test(t); }
+/* McCARTHY, MacLEOD: a name in caps with the Mc or Mac left as written is still a name */
+const MC=s=>String(s).replace(/\bMc(?=[A-Z])/g,'MC').replace(/\bMac(?=[A-Z]{2})/g,'MAC');
+function isName(t){ t=MC(String(t).replace(/^@/,'')); const n=cleanName(t); return NAMEL.test(t) && !/#\s*\d{3,}/.test(t) && t===t.toUpperCase() && !/[.!?,…]$/.test(t) && !SHOT.test(n) && !SLUG.test(t); }
 function cleanName(n){
   return String(n||'').replace(/^@/,'').replace(/\s*\([^)]*\)\s*/g,'').replace(/[\s^:]+$/,'').trim().toUpperCase();
 }
@@ -147,12 +149,12 @@ A.parse=function(text){
     if(dir!==null){ if(dir) beats.push({who:'',text:dir,action:true}); cur=null; more=null; continue; }
     if(STAGE.test(t)&&!cur){ beats.push({who:'',text:t.replace(/^[\(\[]|[\)\]]$/g,'').trim(),action:true}); continue; }
 
-    let m=t.match(NAMEC);
+    let m=MC(t).match(NAMEC);
     if(m && !SHOT.test(cleanName(m[1])) && !SLUG.test(m[2])){ beats.push({who:cleanName(m[1]),text:m[2].trim()}); cur=beats[beats.length-1]; more=null; continue; }
 
     // a bare capitalised line followed by dialogue is a speaker cue
     const forced=/^@/.test(t), tt=t.replace(/^@/,'');
-    m=tt.match(NAMEL);
+    m=MC(tt).match(NAMEL);
     let nx=i+1; while(nx<raw.length&&junk[nx]) nx++;
     if(m && (forced||isName(tt)) && raw[nx] && raw[nx].trim() && !isName(raw[nx].trim()) && DIRECTION(raw[nx].trim())===null){
       const who=cleanName(m[1]);

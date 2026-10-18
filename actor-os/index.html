@@ -110,6 +110,7 @@ body:has(#hotbar) #stage .sTop{top:calc(env(safe-area-inset-top) + 48px)}
 .sHear.on i{animation:hearPulse 1.15s ease-in-out infinite}
 @keyframes hearPulse{0%,100%{opacity:.28;transform:scale(.82)}50%{opacity:1;transform:scale(1)}}}
 
+.rvread{margin:8px 0 4px;font-size:14px;line-height:1.45;color:#cfd6df}.rvread small{display:block;color:#7d8794;font-size:12px;margin-top:4px}.rvread .rvclip{color:#e9a08f}
 .review{position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.94);display:flex;align-items:center;justify-content:center;padding:14px}
 .rv{width:100%;max-width:min(900px,94vw);display:flex;flex-direction:column;gap:12px}
 .rv video{width:100%;max-height:64vh;background:#000;border-radius:12px;display:block}
@@ -650,7 +651,7 @@ function renderCut(){
   return `${untriedFor(t,takes)}<div class="take ${t.status==='SURVIVOR'?'survivor':''}"><div style="flex:1;min-width:0">
    <b>${t.isSlate?'Slate':(t.imported?'Imported':'Take '+t.n)} &middot; ${esc2(String(t.scene||''))}</b>
    <small>${t.status} &middot; <span style="color:${over?'#d9694e':(lim?'#5cae7e':'inherit')}">${fmtLen(len)}${lim?(over?' &middot; '+fmtLen(len-lim)+' over':' &middot; under the limit'):''}</span>${mine?' &middot; '+mine+' line'+(mine===1?'':'s')+' marked':''}</small>
-   ${t.trying?`<div class="tried">Tried: ${esc2(tryingLine(t))}</div>`:''}
+   ${readLine(t)}${t.trying?`<div class="tried">Tried: ${esc2(tryingLine(t))}</div>`:''}
    <input class="whyin" value="${esc2(t.why||'')}" placeholder="Why? Only you see this." oninput="setWhy('${t.id}',this.value)"></div>
    <div><button class="mini" onclick="setTake('${t.id}','SURVIVOR')">USE</button></div></div>`;}).join(''):'No takes yet.';
  let surv=state.takes.filter(t=>t.status==='SURVIVOR');state.sequence=surv.map(t=>t.id);
@@ -696,6 +697,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 <script src="../shared/delivery.js"></script>
 <script src="../shared/inbox.js"></script>
 <script src="sides.js"></script>
+<script src="takeread.js"></script>
 <script src="pdf.js"></script>
 <script src="reader.js"></script>
 <script src="oneread.js"></script>
@@ -3473,6 +3475,7 @@ function showTakeReview(t, blob){
  const w=document.createElement('div'); w.id='takeReview'; w.className='review';
  w.innerHTML=`<div class="rv">
    <video src="${t.url}" controls playsinline autoplay></video>
+   <div class="rvread" id="rvread">Reading the take…</div>
    <input class="whyin" placeholder="Why keep it, or why not? Only you see this." oninput="setWhy('${t.id}',this.value)">
    <div class="choicerow" data-take="${t.id}"><span>Next time, change the</span>${CHOICES.map(c=>`<button class="chc" data-c="${c}" onclick="setNextChoice('${t.id}','${c}',this)">${c}</button>`).join('')}</div>
    <input class="whyin nextin" placeholder="Next time: what will you change? Shows before your next take." oninput="setNext('${t.id}',this.value)">
@@ -3487,7 +3490,21 @@ function showTakeReview(t, blob){
    </div></div>`;
  w.addEventListener('click',e=>{ if(e.target===w) reviewAgain(); });
  document.body.appendChild(w);
+ readTake(t,blob).then(()=>{ const el=$('rvread'); if(el) el.innerHTML=readHtml(t); }).catch(()=>{ const el=$('rvread'); if(el) el.textContent='This phone couldn\'t read the sound of this take, so no pace, pickups or clipping for it.'; });
 }
+/* READING A TAKE (takeread.js): your pace, your pickups, where it clipped. Read once, kept with the take. */
+async function readTake(t,blob){ if(!window.TakeRead) throw Error('none'); if(t.read) return t.read;
+ const a=await TakeRead.fromBlob(blob), run=(SIDES.run||SIDES.script||[]);
+ t.read=TakeRead.read(a.x,a.rate,t.marks||[],i=>run[i]?run[i].text:'',{partner:t.mode==='PARTNER'});
+ t.read.lines=t.read.lines.map(l=>({i:l.i,on:l.on,secs:l.secs,words:l.words,wpm:l.wpm,pickup:l.pickup}));
+ try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){} try{ renderCut(); }catch(e){} return t.read; }
+function prevRead(t){ return (state.takes||[]).filter(x=>x!==t&&x.scene===t.scene&&x.read&&x.read.wpm&&x.n<t.n).sort((a,b)=>b.n-a.n)[0]||null; }
+function readHtml(t){ const r=t.read; if(!r) return ''; const p=prevRead(t);
+ return TakeRead.words4(r,p?{wpm:p.read.wpm,n:p.n}:null).map(w=>'<div'+(/^Clipped/.test(w)?' class="rvclip"':'')+'>'+esc2(w)+'</div>').join('')
+  +'<small>Measured from the take\'s own sound. Pickups are good to about a tenth of a second; not checked against a stopwatch yet.</small>'; }
+function readLine(t){ const r=t.read; if(!r) return ''; const W=[];
+ if(r.wpm) W.push(r.wpm+' words a minute'); if(r.pickup!=null) W.push('pickups '+r.pickup.toFixed(1)+' s'); const cs=TakeRead.spans(r.clips).length; W.push(cs?'<span style="color:#d9694e">clipped in '+cs+' place'+(cs===1?'':'s')+'</span>':'no clipping');
+ return '<div class="tried">'+W.join(' &middot; ')+'</div>'; }
 function closeReview(){ const w=$('takeReview'); if(w&&w.remove) w.remove(); try{ showNext(); }catch(e){} }
 function reviewAgain(){ closeReview();
  if(MODE==='PARTNER'||MODE==='PROMPTER'){ SIDES.run=activeScript(); sIdx=0; drawStage(); return; }

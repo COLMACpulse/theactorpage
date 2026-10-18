@@ -78,6 +78,8 @@ function score(text){
   ok('WebVTT: header and notes gone; the voice tag is the speaker', W(vtt)==='ANNA VOSS|Where were you? / MR. DELL|Out.', W(vtt));
   ok('a news story with one "Location:" stays prose', S.parse('Mr. Dell said the plan works.\nLocation: Atlanta.').every(b=>b.action));
   ok('sides are read as before', W(S.parse('ANNA\nHand me the rope.\n\nMR. DELL\nNo.'))==='ANNA|Hand me the rope. / MR. DELL|No.');
+  ok('McCARTHY and MacLEOD are names, as Final Draft writes them', W(S.parse('INT. BAR - NIGHT\n\nMcCARTHY\nYou came.\n\nMacLEOD (CONT\'D)\nI did.\n\nMcCARTHY: Sit.'))==='MCCARTHY|You came. / MACLEOD|I did. / MCCARTHY|Sit.', W(S.parse('McCARTHY\nYou came.\n\nMacLEOD (CONT\'D)\nI did.')));
+  ok('a line that starts with Mac is still a line', S.parse('ANNA\nMac said no.').length===1&&S.parse('ANNA\nMac said no.')[0].text==='Mac said no.');
   ok('an email from a rep is not an interview', S.transcript('From: Pat Rep\nTo: Sam Actor\nSubject: LOW TIDE\nHi Sam: tape due Friday.').kind===''); }
  console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail?1:0);
 })();
