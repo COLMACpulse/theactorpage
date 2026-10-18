@@ -68,7 +68,7 @@ body{padding-bottom:env(safe-area-inset-bottom);padding-left:env(safe-area-inset
 #sPartner.on{display:block}
 .fbtn{display:inline-block;border:1px solid var(--line2);background:var(--p1);color:var(--ink);border-radius:10px;padding:6px 8px;font-weight:700;font-size:10px;letter-spacing:.08em;cursor:pointer;white-space:nowrap}
 .fbtn input{display:none}.vq{display:flex;gap:6px;flex-wrap:wrap}
-.bmsg{font-size:12px;color:var(--gold);padding:6px 0 2px}
+.bmsg{font-size:12px;color:var(--gold);padding:6px 0 2px}.orbox{border:1px solid var(--line2);background:var(--p2);border-radius:10px;padding:12px 13px;margin:0 0 11px}.orbox>b{display:block;font:10px var(--mono);letter-spacing:.14em;color:var(--gold);margin-bottom:5px}.orbox>span{display:block;font-size:13px;line-height:1.45}.orbox small{display:block;color:var(--faint);font-size:11.5px;margin-top:8px}.orbox .row{margin-top:10px;gap:8px}.orbox.on{border-color:#d9694e}.orbox.on>b{color:#d9694e}.orscript{max-height:46vh;overflow:auto;margin-top:6px}.orscript p{margin:0 0 8px;font-size:15px;line-height:1.45}.orscript p i{display:block;font:9px var(--mono);letter-spacing:.14em;font-style:normal;color:var(--gold)}.orscript p.me{color:var(--mut)}.orflag{font:9px var(--mono);letter-spacing:.12em;border:1px solid #e0a23c;color:#e0a23c;border-radius:999px;padding:2px 6px;margin-left:6px}
 .vmix{display:flex;flex-wrap:wrap;gap:6px;width:100%;margin-top:6px}
 /* the camera / mic bar (shared/hot.js) is always on top; the take's own top row sits under it, not behind it */
 body:has(#hotbar) #stage .sTop{top:calc(env(safe-area-inset-top) + 48px)}
@@ -692,6 +692,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 <script src="sides.js"></script>
 <script src="pdf.js"></script>
 <script src="reader.js"></script>
+<script src="oneread.js"></script>
 <script src="slatemove.js"></script>
 <script src="compress.js"></script>
 <script>
@@ -2401,6 +2402,43 @@ function setPitch(who,v){ setVfx(who,{pitch:+v||0}); }
 /* reader lines from files: someone reads the other part on their phone and sends the memos (a real reader, from anywhere),
    or your own memos. One file to one line, or a character's files at once in file-name order (memos are named by date). */
 let BOOTHMSG='';
+/* ===== ONE READ: read the scene once, straight through; it cuts the reading into the reader lines (oneread.js) ===== */
+let ONEREAD=null, OR_FLAGS={};
+function oneReadLines(mode){ const om=SIDES.omit||[]; return activeScript().filter(b=>om.indexOf(b.who)<0&&(mode==='all'||!b.mine)); }
+function oneReadBox(){
+ if(ONEREAD&&ONEREAD.busy==='rec') return `<div class="orbox on" id="orBox"><b>&#9679; READING</b><span>Read it straight through. A beat between lines. ${ONEREAD.mode==='all'?'Every part, yours too.':'Just the other parts.'}</span>
+   <div class="orscript">${ONEREAD.lines.map(b=>`<p class="${b.mine?'me':''}"><i>${esc2(b.who)}${b.mine?' (YOU)':''}</i>${esc2(b.text)}</p>`).join('')}</div>
+   <div class="row"><button id="orStop" onclick="oneReadStop()">&#9632; STOP, CUT IT</button><button class="ghost" onclick="oneReadCancel()">CANCEL</button></div></div>`;
+ if(ONEREAD&&ONEREAD.busy==='cut') return `<div class="orbox" id="orBox"><b>ONE READ</b><span>Cutting it into lines&hellip;</span></div>`;
+ return `<div class="orbox" id="orBox"><b>ONE READ</b><span>Read the scene out loud once, straight through, a beat between lines. It cuts the reading into the reader lines below, on this phone.</span>
+   <div class="row"><button id="orAll" onclick="oneReadStart('all')">&#9679; READ IT ALL</button><button class="ghost" id="orOthers" onclick="oneReadStart('others')">&#9679; JUST THE OTHER PARTS</button></div>
+   <small>Read it all: every part, yours too, and yours are left out. Just the other parts: skip your lines. Or record line by line below.</small></div>`;
+}
+async function oneReadStart(mode){
+ if(boothBusy){ try{ await ActorReader.stop(); }catch(e){} boothBusy=null; }
+ const lines=oneReadLines(mode); if(!lines.some(b=>!b.mine)) return;
+ try{ await ActorReader.start(); }catch(e){ alert((ActorReader.wantVideo()?'Camera and microphone':'Microphone')+' unavailable: '+e.message); return; }
+ ONEREAD={mode,lines,busy:'rec'}; BOOTHMSG=''; micFlag(true); await boothRefresh();
+ try{ const o=$('orBox'); if(o) o.scrollIntoView({block:'start'}); }catch(e){}
+}
+async function oneReadCancel(){ try{ await ActorReader.stop(); }catch(e){} ONEREAD=null; micFlag(false); boothRefresh(); }
+async function oneReadStop(){
+ const o=ONEREAD; if(!o||o.busy!=='rec') return; o.busy='cut';
+ const blob=await ActorReader.stop(); micFlag(false); await boothRefresh();
+ if(!blob||!blob.size){ ONEREAD=null; BOOTHMSG='Nothing was recorded.'; return boothRefresh(); }
+ let d; try{ d=await ActorReader.decode(blob); }catch(e){ ONEREAD=null; BOOTHMSG='This browser can\u2019t cut that reading. Record the lines one at a time below.'; return boothRefresh(); }
+ const res=OneRead.cut(d.pcm,d.sr,o.lines), mid=await ActorReader.putMaster(blob,{dur:d.dur,mode:o.mode});
+ let n=0, chk=0, miss=0;
+ for(const cu of res.cuts){ const b=o.lines[cu.i]; if(b.mine) continue; const k=boothKey(b);
+  if(cu.flag==='missing'){ OR_FLAGS[k]='missing'; miss++; continue; }
+  const w=new Blob([OneRead.wav(d.pcm,d.sr,cu.start,cu.end)],{type:'audio/wav'});
+  const id=await ActorReader.putTakeFor(k,w,{dur:Math.round((cu.end-cu.start)*10)/10,from:'oneread',master:mid,mstart:cu.start,mend:cu.end});
+  SIDES.pick=SIDES.pick||{}; SIDES.pick[k]=id; n++;
+  if(cu.flag==='check'){ OR_FLAGS[k]='check'; chk++; } else delete OR_FLAGS[k]; }
+ saveRange(); ONEREAD=null;
+ BOOTHMSG='One read: '+n+' line'+(n===1?'':'s')+' cut and in.'+(chk?' '+chk+' to check, much shorter or longer than the words: tap \u25B6 on the ones marked CHECK.':'')+(miss?' '+miss+' not found: record '+(miss===1?'it':'them')+' on '+(miss===1?'its':'their')+' own.':'')+(!chk&&!miss?' Tap \u25B6 on any line to hear it.':'');
+ boothRefresh();
+}
 const AUDIO_ACCEPT='audio/*,video/*,.m4a,.mp3,.wav,.aac,.caf,.mov,.mp4,.webm,.ogg';
 async function boothFileFor(k,file){ let dur=0; try{ dur=await ActorReader.duration(file); }catch(e){} if(!dur) return false; await ActorReader.putTakeFor(k,file,{dur,from:'file',name:file.name||'file'}); if(SIDES.pick) delete SIDES.pick[k]; return true; }
 async function boothFileLine(k,input){ const f=input.files&&input.files[0]; input.value=''; if(!f) return; BOOTHMSG=(await boothFileFor(k,f))?'In: '+f.name+'.':'Can\u2019t play '+f.name+' in this browser.'; saveRange(); await boothRefresh(); }
@@ -2418,7 +2456,7 @@ async function voicePreview(who){
  const k=boothKey(b), all=await ActorReader.all();
  const arr=all.filter(c=>c.line===k).sort((a,c2)=>a.at-c2.at);
  const c=(SIDES.pick&&SIDES.pick[k]?arr.find(x=>x.id===SIDES.pick[k]):null)||arr[arr.length-1];
- if(c) ActorReader.play(c.blob,null,vopts(who)); else stageToast('Record a line for '+who+' first.');
+ if(c) ActorReader.playClip(c,null,vopts(who)); else stageToast('Record a line for '+who+' first.');
 }
 function voiceRows(others){
  const sg=suggestSounds(window.SIDES_RAW), who=[];
@@ -2490,6 +2528,7 @@ async function boothRefresh(){
        oninput="ActorReader.setGain(parseFloat(this.value));document.getElementById('gainVal').textContent=parseFloat(this.value).toFixed(1)+'x'">
      <b id="gainVal">1.6x</b></span>
 </div>`;
+ h+=oneReadBox();
  h+=voiceRows(others);
 
  h+='<div style="display:grid;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:9px;overflow:hidden">';
@@ -2498,7 +2537,7 @@ async function boothRefresh(){
   h+=`<div style="background:var(--p1);padding:11px 13px">
     <div style="display:flex;gap:10px;align-items:flex-start">
       <div style="flex:1;min-width:0">
-        <b style="font-size:9.5px;letter-spacing:.14em;color:var(--gold)">${esc2(b.who)}</b>
+        <b style="font-size:9.5px;letter-spacing:.14em;color:var(--gold)">${esc2(b.who)}</b>${OR_FLAGS[k]?`<span class="orflag">${OR_FLAGS[k]==='missing'?'NOT FOUND':'CHECK'}</span>`:''}
         <div style="font-size:12.5px;margin-top:3px">${esc2(b.text)}</div>
       </div>
       <button class="mini ${busy?'':'ghost'}" style="${busy?'border-color:#d9694e;color:#d9694e':''}"
@@ -2511,7 +2550,7 @@ async function boothRefresh(){
     const on=sel&&sel.id===c.id;
     h+=`<span class="tpill${on?' on':''}">
       <button onclick="boothPlayId('${c.id}','${b.who.replace(/'/g,"\\'")}')" title="listen">&#9654;</button>
-      <button onclick="boothPick('${k}','${c.id}')">${c.from==='file'?esc2(String(c.name||'file').replace(/\.[a-z0-9]+$/i,'').slice(0,18)):'Take '+(n+1)}${ActorReader.isVideo(c.blob)?' &middot; video':''}${c.dur?' &middot; '+c.dur.toFixed(1)+'s':''}</button>
+      <button onclick="boothPick('${k}','${c.id}')">${c.from==='file'?esc2(String(c.name||'file').replace(/\.[a-z0-9]+$/i,'').slice(0,18)):c.from==='oneread'?'One read':'Take '+(n+1)}${ActorReader.isVideo(c.blob)||c.master?' &middot; video':''}${c.dur?' &middot; '+c.dur.toFixed(1)+'s':''}</button>
       <button onclick="boothDrop('${k}','${c.id}')" title="delete">&times;</button></span>`;
    });
    h+=`</div>`;
@@ -2540,10 +2579,12 @@ function boothUnready(){ SIDES.ready=false; saveRange(); boothRefresh(); }
 function boothPick(k,id){ SIDES.pick=SIDES.pick||{}; SIDES.pick[k]=id; saveRange(); boothRefresh(); }
 async function boothPlayId(id,who){
  const all=await ActorReader.all(); const c=all.find(x=>x.id===id);
- if(c)ActorReader.play(c.blob,null,vopts(who));
+ if(c)ActorReader.playClip(c,null,vopts(who));
 }
 async function boothDrop(k,id){
+ const gone=(await ActorReader.all()).find(x=>x.id===id);
  await ActorReader.del(id);
+ if(gone&&gone.master&&!(await ActorReader.all()).some(x=>x.master===gone.master)) await ActorReader.del(gone.master);
  if(SIDES.pick&&SIDES.pick[k]===id)delete SIDES.pick[k];
  saveRange(); boothRefresh();
 }
@@ -2560,7 +2601,7 @@ async function boothStitch(){
  });
  if(!seq.length)return;
  let i=0;
- const next=()=>{ if(i>=seq.length)return; const x=seq[i++]; ActorReader.play(x.c.blob,next,vopts(x.who)); };
+ const next=()=>{ if(i>=seq.length)return; const x=seq[i++]; ActorReader.playClip(x.c,next,vopts(x.who)); };
  next();
 }
 
@@ -2568,7 +2609,7 @@ async function boothToggle(k,i){
  if(boothBusy===k){
   const blob=await ActorReader.stop({keepMic:boothSeq});
   const dur=blob?await ActorReader.duration(blob):0;
-  if(blob&&blob.size) await ActorReader.putTakeFor(k,blob,{dur:dur});
+  if(blob&&blob.size){ await ActorReader.putTakeFor(k,blob,{dur:dur}); delete OR_FLAGS[k]; }
   boothBusy=null; micFlag(ActorReader.micOpen()); await boothRefresh();
   if(boothSeq) boothNext();
   return;
@@ -3100,7 +3141,7 @@ function speakPartner(){
     may start the next line and close the gate again. */
  partnerSpeaking=true;
  if(MODE==='PROMPTER') highlightRun();
- ActorReader.play(c.blob, ()=>{
+ ActorReader.playClip(c, ()=>{
   partnerSpeaking=false;
   if(MODE==='PROMPTER'){ highlightAt(1); highlightStop(); }
   listenGate(LISTEN_SETTLE);

@@ -231,7 +231,7 @@ A.TONES=[['','As you read it'],['darker','Darker'],['brighter','Brighter']];
 A.voiceId=function(v){ v=v||{}; const f=A.VOICES.find(x=>x.pitch===(+v.pitch||0)&&x.pace===(+v.pace||1)&&x.tone===(v.tone||'')); return f?f.id:'custom'; };
 /* The window by the lens. 'partner' plays the line's video there, 'mark' shows a still mark for your eyes, 'off' shows nothing.
    It is on the screen only. The take records the camera, never the screen. */
-let SCREEN=null, SCREENURL='';
+let SCREEN=null, SCREENURL='', SCREENAT=0;
 A.VIEWS=[['partner','You'],['mark','Mark'],['off','Off']];
 A.view=function(){ try{ const v=localStorage.getItem(PVKEY); return A.VIEWS.some(x=>x[0]===v)?v:'partner'; }catch(e){ return 'partner'; } };
 A.setView=function(v){ try{ localStorage.setItem(PVKEY,v); }catch(e){} };
@@ -245,11 +245,12 @@ function screenLoad(blob){
  return new Promise(res=>{ let done=false; const go=v=>{ if(!done){ done=true; res(v); } };
   SCREEN.oncanplay=()=>go(true); SCREEN.onerror=()=>go(false); setTimeout(()=>go(true),900); });
 }
-function screenGo(){ if(!SCREEN||!SCREENURL) return; SCREEN.classList.add('on'); try{ SCREEN.currentTime=0; }catch(e){} const p=SCREEN.play(); if(p&&p.catch) p.catch(()=>{}); }
+function screenGo(){ if(!SCREEN||!SCREENURL) return; SCREEN.classList.add('on'); try{ SCREEN.currentTime=SCREENAT||0; }catch(e){} const p=SCREEN.play(); if(p&&p.catch) p.catch(()=>{}); }
 A.screenOn=function(){ return !!(SCREEN&&SCREEN.classList.contains('on')); };
 A.play=async function(blob,onended,opts){
  A.stopPlay();
- const vidReady=screenLoad(blob);
+ SCREENAT=opts&&opts.screen?(+opts.screen.start||0):0;
+ const vidReady=screenLoad(opts&&opts.screen?opts.screen.blob:blob);
  // the mic holds the route to the earpiece on iOS - let it go before playing
  try{ if(mic && !A.recording()) A.disarm(); }catch(e){}
  A.getGain();
@@ -316,6 +317,20 @@ A.duration=function(blob){
   a.onloadedmetadata=()=>{const d=a.duration;URL.revokeObjectURL(a.src);res(isFinite(d)?d:0)};
   a.onerror=()=>res(0);
  });
+};
+/* --- ONE READ: the whole reading kept once; each line's sound cut from it; the picture by the lens is the
+   whole reading, played from where that line starts --- */
+A.playClip=async function(c,onended,opts){
+ if(!c) return null;
+ if(c.master){ const m=await A.get(c.master); if(m&&m.blob&&A.isVideo(m.blob)) opts=Object.assign({},opts||{},{screen:{blob:m.blob,start:+c.mstart||0}}); }
+ return A.play(c.blob,onended,opts);
+};
+A.putMaster=async function(blob,meta){ const id='master:'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); await A.put(id,blob,Object.assign({kind:'master'},meta||{})); return id; };
+/* the reading as one mono track */
+A.decode=async function(blob){
+ const buf=await ctx().decodeAudioData(await blob.arrayBuffer()), n=buf.length, pcm=new Float32Array(n);
+ for(let ch=0;ch<buf.numberOfChannels;ch++){ const d=buf.getChannelData(ch); for(let i=0;i<n;i++) pcm[i]+=d[i]/buf.numberOfChannels; }
+ return {pcm,sr:buf.sampleRate,dur:buf.duration};
 };
 /* --- takes: the video itself, so it survives a reload --- */
 A.putTake=async function(id,blob){
