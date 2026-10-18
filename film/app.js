@@ -528,8 +528,9 @@ const KTOOLS=[['level','LEVEL'],['sun','SUN'],['expo','EXPOSURE'],['focus','FOCU
 const opt=(list,v,f)=>list.map(x=>{ const [val,lab]=Array.isArray(x)?x:[x,f?f(x):x]; return '<option value="'+val+'"'+(String(val)===String(v)?' selected':'')+'>'+esc(lab)+'</option>'; }).join('');
 function vTools(){ const k=kitSet(), t=k.tool;
  let h='<div class="ktabs">'+KTOOLS.map(([id,l])=>'<button class="chip'+(id===t?' on':'')+'" data-ktool="'+id+'">'+l+'</button>').join('')+'</div>';
+ if(t==='check') return h+vCheck();
  if(t==='level') h+=vLevel(); else if(t==='sun') h+=vSun(); else if(t==='expo') h+=vExpo(); else if(t==='focus') h+=vFocus(); else if(t==='frame') h+=vFrame(); else if(t==='light') h+=vLight(); else if(t==='sound') h+=vSound(); else h+=vDelay();
- return h; }
+ return h+'<p class="chklink"><button class="lnk" id="tochk">Check these tools against real ones ›</button></p>'; }
 function vLevel(){ const ks=kitShot(), saved=ks&&kitOf().read[ks.key];
  return '<div class="card"><p class="kicker">Camera level</p>'
   +(LV.on?'<div class="sensor"><span class="dot"></span>TILT SENSOR ON<button class="lnk" id="lvstop">STOP</button></div>':'')
@@ -657,10 +658,63 @@ function rtDone(cut){ const r=MIC.run; if(!r) return; MIC.run=null; const secs=M
  const hz=r.hums.length>r.vals.length/30?r.hums.sort((a,b)=>a-b)[Math.floor(r.hums.length/2)]:null;
  const ks=kitShot(), S=kitOf(), prev=S.tones[S.tones.length-1], t={id:rid('r'),at:r.at,secs,avg,peak:Math.round(peak*10)/10,hum:hz,where:ks?ks.x.where||'':''};
  S.tones.push(t); save(); toast(K.toneWords(t,prev).join(' ')); render(); }
+/* CHECK THE TOOLS: this phone against real instruments. Kept on the phone (DB.check); CSV or CINEKNIFE JSON out and in. */
+function chkOf(){ const g=navigator.userAgent||'', m=g.match(/Android [\d.]+; ([^;)]+)/), guess=m?m[1].trim():/iPhone/.test(g)?'iPhone':/iPad/.test(g)?'iPad':'This phone';
+ DB.check=DB.check||{}; const C=DB.check; C.rows=C.rows||[]; C.targets=C.targets||{}; if(!C.device) C.device=guess; if(!C.inst) C.inst='level'; if(!C.axis) C.axis='roll'; return C; }
+const CHKHOW={level:'Put the phone and a real level on the same tilted surface. Type what the real one says, then take the phone\'s. Do it at different angles: 30 times.',
+ compass:'Hold the phone and a real compass pointing the same way, away from cars and metal. Type the real heading, then take the phone\'s. Face different ways: 30 times.',
+ light:'Meter two spots with your light meter (key side, fill side) and type the difference in stops. Then tap the same two spots in LIGHT, and take the phone\'s.',
+ sound:'Read two rooms on a sound meter and type the difference in dB. Run a ROOM TONE in each room in SOUND, then take the phone\'s: the difference between the last two.'};
+function chkPhone(C){ if(C.inst==='light') return CAM.last&&isFinite(CAM.last.stops)?Math.abs(CAM.last.stops):null;
+ if(C.inst==='sound'){ const T=kitOf().tones; return T.length>1?Math.round(Math.abs(T[T.length-1].avg-T[T.length-2].avg)*10)/10:null; }
+ if(C.inst==='compass') return CP.h!=null?Math.round(CP.h*10)/10:null;
+ if(!LV.u) return null; const r=K.zeroed(K.level(LV.u),kitSet().zero); return Math.abs(C.axis==='pitch'?r.pitch:r.roll); }
+function vCheck(){ const C=chkOf(), c=K.check(C.inst), mine=C.rows.filter(r=>r.instrument===C.inst&&r.device===C.device), res=K.evaluate(mine,C.targets)[0], t=C.targets[C.inst]||c[4];
+ let h='<div class="card"><p class="kicker">Check the tools against real ones</p><p class="dim" style="margin:0 0 10px">Readings from this phone next to a real instrument. '+K.MIN+' pairs, or it won\'t say either way. Kept on this phone.</p>'
+  +'<label class="lab">This phone<input class="field" id="chkdev" value="'+esc(C.device)+'" placeholder="iPhone 15, Pixel 8"></label>'
+  +'<div class="row">'+K.CHECKS.map(([id,n])=>'<button class="chip'+(id===C.inst?' on':'')+'" data-chk="'+id+'">'+esc(n.toUpperCase())+'</button>').join('')+'</div>'
+  +'<p class="sline">'+esc(CHKHOW[C.inst])+'</p>';
+ if(C.inst==='level') h+='<div class="row"><button class="chip'+(C.axis==='roll'?' on':'')+'" data-axis="roll">LEAN (IN THE FRAME)</button><button class="chip'+(C.axis==='pitch'?' on':'')+'" data-axis="pitch">UP AND DOWN</button></div>';
+ if((C.inst==='level'&&LV.on)||(C.inst==='compass'&&CP.on)) h+='<div class="sensor"><span class="dot"></span>'+(C.inst==='level'?'TILT SENSOR ON':'COMPASS ON')+'<button class="lnk" id="chkstop">STOP</button></div>';
+ h+='<div class="kgrid"><label class="lab">The real one ('+esc(c[2])+')<input class="field" id="chkref" type="number" step="0.1" inputmode="decimal"></label><label class="lab">This phone ('+esc(c[2])+')<input class="field" id="chkobs" type="number" step="0.1" inputmode="decimal"></label></div>'
+  +'<div class="row"><button class="btn" id="chkuse">TAKE THE PHONE\'S</button><button class="btn pri" id="chkadd" style="flex:1">ADD</button></div>'
+  +'<input class="field" id="chknote" placeholder="Note (optional): which level, where" style="margin-top:8px">';
+ if(res) h+='<div class="chkres chk-'+res.status.replace(' ','').toLowerCase()+'"><b>'+esc(res.status)+'</b><span>'+esc(res.name)+' · '+esc(C.device)+'</span></div>'+K.checkWords(res).map(w=>'<p class="sline">'+esc(w)+'</p>').join('');
+ else h+='<p class="sline" style="margin-top:10px">No readings for '+esc(c[1].toLowerCase())+' on this phone yet.</p>';
+ h+='<details style="margin-top:8px"><summary class="lab" style="cursor:pointer">Target</summary><div class="kgrid"><label class="lab">On average, within<input class="field" type="number" step="0.1" data-tgt="mae" value="'+t.mae+'"></label><label class="lab">95 in 100, within<input class="field" type="number" step="0.1" data-tgt="p95" value="'+t.p95+'"></label></div></details>';
+ if(mine.length) h+='<div class="tklist">'+mine.slice(-8).reverse().map(r=>'<div><b>'+r.reference+' / '+r.observed+'</b> off by '+Math.round(K.err(r.instrument,r.reference,r.observed)*100)/100+' '+esc(c[2])+(r.note?'<small>'+esc(r.note)+'</small>':'')+'<button class="lnk" data-chkdel="'+r.id+'">remove</button></div>').join('')+'</div>';
+ h+='<div class="row" style="margin-top:12px"><button class="btn sm" id="chkcsv"'+(C.rows.length?'':' disabled')+'>SAVE AS CSV</button><button class="btn sm" id="chkjson"'+(C.rows.length?'':' disabled')+'>SAVE AS JSON</button><button class="btn sm ghost" id="chkin">BRING READINGS IN</button></div><input type="file" id="chkfile" accept=".csv,.json,text/csv,application/json" class="hide">'
+  +'<p class="faint ksmall">PASS means inside your target on this phone, nothing more. Brings in this sheet\'s CSV or CINEKNIFE\'s JSON. Phone dBFS and a sound meter\'s dB SPL aren\'t the same thing, so sound is checked as the change between two rooms.</p>'
+  +'<button class="lnk" id="chkback">‹ Back to the tools</button></div>';
+ return h; }
+function wireCheck(){ const C=chkOf();
+ $('chkdev').onchange=()=>{ C.device=$('chkdev').value.trim()||C.device; save(); render(); };
+ document.querySelectorAll('[data-chk]').forEach(b=>b.onclick=()=>{ C.inst=b.dataset.chk; lvStop(); cpStop(); save(); render(); });
+ document.querySelectorAll('[data-axis]').forEach(b=>b.onclick=()=>{ C.axis=b.dataset.axis; save(); render(); });
+ if($('chkstop')) $('chkstop').onclick=()=>{ lvStop(); cpStop(); render(); };
+ $('chkuse').onclick=async()=>{ const fill=()=>{ const v=chkPhone(C); if(v==null){ toast(C.inst==='light'?'No LIGHT reading yet: tap two spots in LIGHT first.':C.inst==='sound'?'Run two room tones in SOUND first.':'No reading yet. Hold still a moment and tap again.'); return; } $('chkobs').value=v; };
+  if(C.inst==='level'&&!LV.on){ if(!(await askMotion())){ toast('The tilt sensor was not allowed.'); return; } LV.on=true; LV.raw=0; LV.fn=e=>{ if(e.beta==null&&e.gamma==null) return; LV.raw++; LV.u=K.smooth(LV.u,K.up(e.beta,e.gamma),0.3); }; window.addEventListener('deviceorientation',LV.fn); const ref=$('chkref').value; render(); $('chkref').value=ref; setTimeout(fill,700); return; }
+  if(C.inst==='compass'&&!CP.on){ if(!(await askMotion())){ toast('The compass was not allowed.'); return; } CP.on=true; CP.fn=e=>{ let h=null; if(typeof e.webkitCompassHeading==='number') h=e.webkitCompassHeading; else if(e.absolute&&e.alpha!=null) h=(360-e.alpha)%360; if(h!=null) CP.h=h; };
+   window.addEventListener('ondeviceorientationabsolute' in window?'deviceorientationabsolute':'deviceorientation',CP.fn); const ref=$('chkref').value; render(); $('chkref').value=ref; setTimeout(fill,900); return; }
+  fill(); };
+ $('chkadd').onclick=()=>{ try{ const r=K.checkRow({instrument:C.inst,device:C.device,reference:$('chkref').value,observed:$('chkobs').value,note:$('chknote').value.trim(),at:Date.now()}); r.id=rid('c'); C.rows.push(r); save();
+  const n=C.rows.filter(x=>x.instrument===C.inst&&x.device===C.device).length; toast('Reading '+n+(n<K.MIN?' of '+K.MIN:'')+' added.'); render(); }catch(e){ toast(e.message); } };
+ document.querySelectorAll('[data-tgt]').forEach(i=>i.onchange=()=>{ const c=K.check(C.inst), t=Object.assign({},C.targets[C.inst]||c[4]); const v=parseFloat(i.value); if(!(v>0)) return; t[i.dataset.tgt]=v; C.targets[C.inst]=t; save(); render(); });
+ document.querySelectorAll('[data-chkdel]').forEach(b=>b.onclick=()=>{ C.rows=C.rows.filter(r=>r.id!==b.dataset.chkdel); save(); render(); });
+ const stamp=ymd(new Date());
+ if($('chkcsv')) $('chkcsv').onclick=()=>dl('tool check '+stamp+'.csv',K.checkCsv(C.rows),'text/csv');
+ if($('chkjson')) $('chkjson').onclick=()=>dl('tool check '+stamp+'.json',K.checkJson(C.rows),'application/json');
+ $('chkin').onclick=()=>$('chkfile').click();
+ $('chkfile').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return; try{ const rows=K.checkImport(await f.text()); const key=r=>[r.instrument,r.device,r.reference,r.observed,r.at].join('|'), have=new Set(C.rows.filter(r=>r.at).map(key)); let n=0;
+  rows.forEach(r=>{ if(!(r.at&&have.has(key(r)))){ r.id=rid('c'); C.rows.push(r); if(r.at) have.add(key(r)); n++; } }); save(); toast(n+' reading'+(n===1?'':'s')+' brought in'+(rows.length>n?', '+(rows.length-n)+' already here':'')+'.'); render(); }catch(x){ toast(x.message); } };
+ $('chkback').onclick=()=>{ lvStop(); cpStop(); kitSet().tool=DB.lasttool||'level'; save(); render(); };
+}
 function wireTools(){ const k=kitSet();
  document.querySelectorAll('[data-ktool]').forEach(b=>b.onclick=()=>{ if(b.dataset.ktool!==k.tool){ const cams=['frame','light']; if(cams.includes(k.tool)&&cams.includes(b.dataset.ktool)){ lvStop(); cpStop(); CAM.spots=[]; } else kitStop(); } k.tool=b.dataset.ktool; save(); render(); });
  document.querySelectorAll('[data-kset]').forEach(el=>el.onchange=el.oninput=()=>{ const v=parseFloat(el.value); if(!isFinite(v)||v<=0) return; k[el.dataset.kset]=v; save(); if(el.tagName==='SELECT'){ render(); } else { const keep=el.dataset.kset; render(); const n=document.querySelector('[data-kset="'+keep+'"]'); if(n){ n.focus(); try{ n.setSelectionRange(n.value.length,n.value.length); }catch(e){} } } });
  document.querySelectorAll('[data-kunit]').forEach(b=>b.onclick=()=>{ const to=b.dataset.kunit; if(to!==k.unit){ k.dist=Math.round((to==='m'?k.dist*0.3048:k.dist/0.3048)*10)/10; k.unit=to; save(); render(); } });
+ if($('tochk')) $('tochk').onclick=()=>{ DB.lasttool=k.tool; kitStop(); k.tool='check'; save(); render(); };
+ if(k.tool==='check'){ wireCheck(); return; }
  if($('lvstart')) $('lvstart').onclick=async()=>{ if(!(await askMotion())){ toast('The tilt sensor was not allowed. Allow motion for this site, then START.'); return; }
   LV.on=true; LV.raw=0; LV.fn=e=>{ if(e.beta==null&&e.gamma==null) return; LV.raw++; LV.u=K.smooth(LV.u,K.up(e.beta,e.gamma),0.3); };
   window.addEventListener('deviceorientation',LV.fn); render(); setTimeout(()=>{ if(LV.on&&!LV.raw&&$('lvroll')) $('lvroll').textContent='No tilt sensor here. On a phone, it reads here.'; },2000); };

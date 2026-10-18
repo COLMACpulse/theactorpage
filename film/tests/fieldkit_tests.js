@@ -75,4 +75,21 @@ const spec2=new Float32Array(size/2).fill(-90); for(let i=0;i<spec2.length;i++) 
 want('an 85 Hz motor tone: found, not called the power', K.hum(spec2,rate,size)&&!/power/.test(K.humWords(K.hum(spec2,rate,size))), K.hum(spec2,rate,size));
 want('room tone compared with the last', K.toneWords({secs:30,avg:-48,peak:-30},{avg:-54,where:'INT. KITCHEN'}).join(' ')==='30 s of room tone, average -48 dBFS, loudest -30 dBFS. 6 dB louder than the last one (INT. KITCHEN).');
 want('room tone lines for the wrap', K.toneLines([{secs:30,avg:-52,where:'INT. KITCHEN',hum:60}]).join('|')==='ROOM TONE · 1|  INT. KITCHEN, 30 s, average -52 dBFS, hum at 60 Hz');
+
+// CHECK THE TOOLS
+const rows=(n,d,inst)=>Array.from({length:n},(_,i)=>K.checkRow({instrument:inst||'level',device:'Made-up phone',reference:i%20,observed:i%20+d}));
+want('29 readings: never PASS or FAIL', K.evaluate(rows(29,0.2))[0].status==='NOT ENOUGH');
+want('30 close readings: PASS', K.evaluate(rows(30,0.2))[0].status==='PASS');
+want('30 readings off by 3°: FAIL', K.evaluate(rows(30,3))[0].status==='FAIL');
+const v=K.evaluate(rows(30,0.8))[0]; want('a steady lean: says it reads high, and that zero takes it out', /reads 0\.8° high on average: ZERO ON THE RIG takes that out/.test(K.checkWords(v).join(' ')), K.checkWords(v));
+want('your own target is used', K.evaluate(rows(30,0.8),{level:{mae:0.5,p95:1}})[0].status==='FAIL');
+want('compass error goes the short way round', K.err('compass',359,2)===3&&K.signed('compass',2,359)===-3);
+want('a reading with no phone: refused', (()=>{ try{ K.checkRow({instrument:'level',device:'',reference:1,observed:1}); return false; }catch(e){ return /phone/.test(e.message); } })());
+want('a missing number: refused', (()=>{ try{ K.checkRow({instrument:'level',device:'x',reference:'',observed:1}); return false; }catch(e){ return /two numbers/.test(e.message); } })());
+want('sound in dBFS against SPL: refused with why', (()=>{ try{ K.checkRow({instrument:'sound',device:'x',unit:'dBFS',reference:60,observed:-40}); return false; }catch(e){ return /can't be compared directly/.test(e.message); } })());
+const cj='[{"instrument":"incline","device":"Pixel","unit":"deg","reference":10,"observed":10.4},{"instrument":"light","device":"Pixel","unit":"EV","reference":2,"observed":1.7}]';
+const im=K.checkImport(cj); want('CINEKNIFE JSON comes in: incline is level, EV is stops', im.length===2&&im[0].instrument==='level'&&im[0].unit==='°'&&im[1].instrument==='light'&&im[1].unit==='stops', im);
+const csv=K.checkCsv(rows(3,0.5)); const back=K.checkImport(csv); want('its own CSV goes out and back the same', back.length===3&&back[2].observed===2.5&&back[0].device==='Made-up phone', back);
+want('a bad line in an import: says which', (()=>{ try{ K.checkImport('instrument,device,reference,observed\nlevel,x,1,1\nlevel,,1,1'); return false; }catch(e){ return /^Reading 2: /.test(e.message); } })());
+want('JSON out in CINEKNIFE\'s units', /"unit": "deg"/.test(K.checkJson(rows(1,0))));
 console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1);

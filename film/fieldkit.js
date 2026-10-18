@@ -152,6 +152,48 @@ K.toneWords=function(t,prev){ const W=[t.secs+' s of room tone, average '+K.dbWo
 K.toneLines=function(T,clock){ T=T||[]; if(!T.length) return []; const L=['ROOM TONE · '+T.length];
  T.forEach(t=>L.push('  '+(clock?clock(t.at)+' ':'')+(t.where?t.where+', ':'')+t.secs+' s, average '+K.dbWord(t.avg)+(t.hum?', hum at '+t.hum+' Hz':''))); return L; };
 
+
+/* ---------- CHECK THE TOOLS (from CINEKNIFE's gauntlet): readings from this phone next to readings from a real
+   instrument. 30 pairs or it won't say either way. Targets are yours to set; these start where CINEKNIFE set them.
+   Light and sound are checked as differences (two spots, two rooms), because that's what they measure. */
+K.CHECKS=[['level','Level','°','A real level or inclinometer',{mae:1,p95:2}],['compass','Compass','°','A real compass',{mae:5,p95:10}],
+ ['light','Light ratio','stops','A light meter, the same two spots',{mae:0.5,p95:1}],['sound','Room change','dB','A sound meter, the same two rooms',{mae:3,p95:5}]];
+K.check=id=>K.CHECKS.find(c=>c[0]===id)||null;
+K.MIN=30;
+K.err=function(inst,ref,obs){ if(inst==='compass'){ return Math.abs(((obs-ref)%360+540)%360-180); } return Math.abs(obs-ref); };
+K.signed=function(inst,ref,obs){ if(inst==='compass') return ((obs-ref)%360+540)%360-180; return obs-ref; };
+/* fails closed: a bad row is refused with the reason, nothing half-read */
+K.checkRow=function(r){ if(!r||typeof r!=='object') throw Error('A row isn\'t a reading.');
+ const c=K.check(r.instrument); if(!c) throw Error('Unknown tool: '+r.instrument+'. Use level, compass, light or sound.');
+ if(typeof r.device!=='string'||!r.device.trim()) throw Error('Every reading needs the phone it came from.');
+ const ref=+r.reference, obs=+r.observed; if(r.reference===''||r.observed===''||!isFinite(ref)||!isFinite(obs)) throw Error('Every reading needs two numbers: the real one and the phone\'s.');
+ const u=r.unit==null?c[2]:String(r.unit), want={'°':['°','deg'],stops:['stops','EV','ev'],dB:['dB','db']}[c[2]];
+ if(want.indexOf(u)<0) throw Error(c[1]+' is in '+c[2]+', not '+u+'.'+(c[0]==='sound'?' Phone dBFS and a sound meter\'s dB SPL can\'t be compared directly: compare the change between two rooms.':''));
+ return {instrument:c[0],device:r.device.trim(),unit:c[2],reference:ref,observed:obs,note:r.note||'',at:r.at||0}; };
+K.evaluate=function(rows,targets){ const G={};
+ (rows||[]).forEach(r=>{ const k=r.device+'|'+r.instrument; (G[k]=G[k]||{device:r.device,instrument:r.instrument,rows:[]}).rows.push(r); });
+ return Object.values(G).map(g=>{ const c=K.check(g.instrument), t=(targets&&targets[g.instrument])||c[4], e=g.rows.map(r=>K.err(g.instrument,r.reference,r.observed)).sort((a,b)=>a-b);
+  const n=e.length, mae=e.reduce((a,b)=>a+b,0)/n, p95=e[Math.ceil(0.95*n)-1], bias=g.rows.reduce((a,r)=>a+K.signed(g.instrument,r.reference,r.observed),0)/n;
+  const status=n<K.MIN?'NOT ENOUGH':(mae<=t.mae&&p95<=t.p95?'PASS':'FAIL');
+  return {device:g.device,instrument:g.instrument,name:c[1],unit:c[2],count:n,mae:Math.round(mae*100)/100,p95:Math.round(p95*100)/100,max:Math.round(e[n-1]*100)/100,bias:Math.round(bias*100)/100,target:t,status}; }); };
+K.checkWords=function(v){ const u=v.unit==='°'?'°':' '+v.unit, f=x=>x+(v.unit==='°'?'°':' '+v.unit);
+ const W=[v.count+' reading'+(v.count===1?'':'s')+(v.count<K.MIN?' of the '+K.MIN+' it needs':'')+'.'];
+ if(v.count) W.push('Off by '+f(v.mae)+' on average; 95 in 100 within '+f(v.p95)+'; worst '+f(v.max)+'.');
+ if(v.count>=5&&Math.abs(v.bias)>=Math.max(0.2,v.target.mae/2)) W.push('It reads '+f(Math.abs(v.bias))+' '+(v.bias>0?'high':'low')+' on average'+(v.instrument==='level'?': ZERO ON THE RIG takes that out.':'.'));
+ W.push('Target: '+f(v.target.mae)+' on average, '+f(v.target.p95)+' for 95 in 100.'); return W; };
+K.checkCsv=function(rows){ const q=x=>/[",\n]/.test(String(x))?'"'+String(x).replace(/"/g,'""')+'"':String(x);
+ return 'instrument,device,unit,reference,observed,note,when\n'+(rows||[]).map(r=>[r.instrument,r.device,r.unit,r.reference,r.observed,r.note||'',r.at?new Date(r.at).toISOString():''].map(q).join(',')).join('\n')+'\n'; };
+K.checkJson=rows=>JSON.stringify((rows||[]).map(r=>({instrument:r.instrument,device:r.device,unit:r.unit==='°'?'deg':r.unit==='stops'?'EV':r.unit,reference:r.reference,observed:r.observed})),null,1);
+/* bring readings in: this app's CSV, or CINEKNIFE's JSON (incline -> level, light EV -> stops; audio refused: dBFS vs SPL) */
+K.checkImport=function(text){ text=String(text||'').trim(); let rows;
+ if(/^\[/.test(text)){ let a; try{ a=JSON.parse(text); }catch(e){ throw Error('That JSON couldn\'t be read.'); } if(!Array.isArray(a)) throw Error('Expected a list of readings.');
+  rows=a.map(r=>Object.assign({},r,{instrument:r&&r.instrument==='incline'?'level':r&&r.instrument==='audio'?'sound':r&&r.instrument,unit:r&&(r.unit==='deg'?'°':r.unit)})); }
+ else { const L=text.split(/\r?\n/).filter(Boolean), h=(L.shift()||'').toLowerCase().split(',').map(x=>x.trim()); const ix=n=>h.indexOf(n);
+  if(ix('instrument')<0||ix('reference')<0||ix('observed')<0) throw Error('The first line needs instrument, device, reference and observed.');
+  rows=L.map(l=>{ const c=[]; let cur='',q=false; for(let i=0;i<l.length;i++){ const ch=l[i]; if(q){ if(ch==='"'&&l[i+1]==='"'){ cur+='"'; i++; } else if(ch==='"') q=false; else cur+=ch; } else if(ch==='"') q=true; else if(ch===','){ c.push(cur); cur=''; } else cur+=ch; } c.push(cur);
+   const g=n=>ix(n)>=0?c[ix(n)]:undefined; return {instrument:g('instrument'),device:g('device'),unit:g('unit')||undefined,reference:g('reference'),observed:g('observed'),note:g('note')||'',at:g('when')?Date.parse(g('when'))||0:0}; }); }
+ return rows.map((r,i)=>{ try{ if(r&&r.instrument==='sound'&&r.unit==='dB'&&r.kind==='spl') throw Error(''); return K.checkRow(r); }catch(e){ throw Error('Reading '+(i+1)+': '+e.message); } }); };
+
 if(typeof module!=='undefined') module.exports=K;
 g.FieldKit=K;
 })(typeof window!=='undefined'?window:globalThis);
