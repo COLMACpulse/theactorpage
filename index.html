@@ -72,23 +72,51 @@ h1,h2,h3{font-weight:400;margin:0}
 .scrollcue{
   position:absolute;bottom:26px;left:50%;transform:translateX(-50%);
   font-family:var(--script);font-size:.7rem;color:var(--faint);letter-spacing:.2em;
+  background:none;border:0;padding:8px 12px;cursor:pointer;
 }
+.scrollcue:hover,.scrollcue:focus-visible{color:var(--tungsten)}
 
 
 /* ───────── the sigil: COLMACPULSE, film edition ─────────
-   One image (img/sigil-film.png, gold cut out on transparency) with a soft shadow and a faint glow.
+   Five layers cut from the one image (triangle top, left, right; the head; the film strip), shadow and a faint glow.
    It settles in once when the page opens, with the title, and then holds still. */
-.sigil{position:relative;width:min(58vmin,360px);aspect-ratio:1/1;margin:0 auto 30px}
+.sigil{position:relative;display:block;width:min(58vmin,360px);aspect-ratio:1/1;margin:0 auto 30px;padding:0;border:0;background:none;cursor:pointer;color:inherit;-webkit-tap-highlight-color:transparent}
+.sigil:focus-visible{outline:1px solid var(--tungsten);outline-offset:8px}
+.sigil .sp{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.sigil .sp-strip{clip-path:inset(0 0 3.8% 0)}
 .sigil>*{position:absolute;inset:0}
 .sigil img{width:100%;height:100%;object-fit:contain}
 .sigil .sg-main{z-index:2;filter:drop-shadow(0 2px 1px rgba(255,236,170,.28)) drop-shadow(0 14px 22px rgba(0,0,0,.75)) drop-shadow(0 0 22px rgba(224,162,60,.16))}
-.sigil .sg-glow{inset:-10%;z-index:0;background:url(img/sigil-film.png) center/contain no-repeat;filter:blur(22px) brightness(1.1) saturate(1.3);opacity:.12}
+.sigil .sg-glow{inset:-10%;z-index:0;background:url(img/sigil-glow.webp) center/contain no-repeat;filter:blur(22px) brightness(1.1) saturate(1.3);opacity:.12}
 body.has .sigil{width:110px;margin-bottom:16px}
 @media(prefers-reduced-motion:no-preference){
   .sigil .sg-main{animation:sgIn 1.6s cubic-bezier(.2,.7,.2,1) both}
   .sigil .sg-glow{animation:sgGlow 2.4s ease-out both}
   @keyframes sgIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
   @keyframes sgGlow{from{opacity:0}60%{opacity:.22}to{opacity:.12}}
+}
+/* the opening (shared/sigil.js adds .sgplay): ACT the sticks slam shut at .6s, WRITE the head strikes at 1.25s,
+   FILM the strip feeds up 1.5s to 2.4s, then the glow. Once a visit; tap the sigil or ROLL for it again, with sound. */
+@media(prefers-reduced-motion:no-preference){
+  .sgplay .sigil .sg-main{animation:none}
+  .sgplay .sp-apex{transform-origin:36.9% 25.8%;animation:sgApex .78s both,sgFlash .4s .6s}
+  .sgplay .sp-left{transform-origin:2.9% 81.1%;animation:sgLeft .78s both,sgFlash .4s .6s}
+  .sgplay .sp-right{transform-origin:97.4% 81.1%;animation:sgRight .78s both,sgFlash .4s .6s}
+  .sgplay .sp-head{transform-origin:50% 46%;animation:sgHead 1.45s both}
+  .sgplay .sp-strip{animation:sgStrip 2.4s both,sgFlick .9s 1.5s}
+  .sgplay .sg-glow{animation:sgGlow2 3.3s ease-out both}
+  .sgplay .disciplines{animation:none;opacity:1}
+  .sgplay .disciplines span{animation:sgWord .5s both}
+  .sgplay .disciplines .d-act{animation-delay:.6s}.sgplay .disciplines .d-write{animation-delay:1.25s}.sgplay .disciplines .d-film{animation-delay:1.6s}
+  @keyframes sgApex{0%{opacity:0;transform:rotate(-32deg)}18%{opacity:1;transform:rotate(-32deg);animation-timing-function:cubic-bezier(.6,0,1,.55)}77%{transform:rotate(0)}87%{transform:rotate(-2.5deg)}100%{opacity:1;transform:none}}
+  @keyframes sgLeft{0%{opacity:0;transform:rotate(-14deg)}18%{opacity:1;transform:rotate(-14deg);animation-timing-function:cubic-bezier(.6,0,1,.55)}77%{transform:rotate(0)}87%{transform:rotate(1deg)}100%{opacity:1;transform:none}}
+  @keyframes sgRight{0%{opacity:0;transform:rotate(14deg)}18%{opacity:1;transform:rotate(14deg);animation-timing-function:cubic-bezier(.6,0,1,.55)}77%{transform:rotate(0)}87%{transform:rotate(-1deg)}100%{opacity:1;transform:none}}
+  @keyframes sgFlash{0%{filter:brightness(2.2)}100%{filter:none}}
+  @keyframes sgHead{0%,65.5%{opacity:0;transform:translateY(-4%) scale(1.22)}65.6%{opacity:.6;transform:translateY(-4%) scale(1.22);animation-timing-function:cubic-bezier(.7,0,1,.7)}86%{opacity:1;transform:none}91.5%{transform:scale(.975)}100%{opacity:1;transform:none}}
+  @keyframes sgStrip{0%,62.4%{opacity:0;transform:translateY(26%)}62.5%{opacity:1;transform:translateY(26%);animation-timing-function:steps(9,end)}100%{opacity:1;transform:none}}
+  @keyframes sgFlick{0%{filter:brightness(.55)}15%{filter:brightness(1.35)}30%{filter:brightness(.8)}45%{filter:brightness(1.2)}60%{filter:brightness(.9)}100%{filter:none}}
+  @keyframes sgGlow2{0%,72%{opacity:0}85%{opacity:.26}100%{opacity:.12}}
+  @keyframes sgWord{0%{opacity:.12;text-shadow:none}50%{opacity:1;text-shadow:0 0 14px currentColor}100%{opacity:1;text-shadow:none}}
 }
 /* the one orchestrated moment: a main title settling */
 @media(prefers-reduced-motion:no-preference){
@@ -391,10 +419,10 @@ body.stopen{overflow:hidden}
 
 
 <header class="titlecard">
-  <div class="sigil" aria-hidden="true">
-    <div class="sg-glow"></div>
-    <img class="sg-main" src="img/sigil-film.png" alt="">
-  </div>
+  <button class="sigil" type="button" aria-label="The THEACTORPAGE sigil. Tap to run the opening again, with sound.">
+    <span class="sg-glow"></span>
+    <span class="sg-main"><img class="sp sp-left" src="img/sigil-left.webp" alt=""><img class="sp sp-right" src="img/sigil-right.webp" alt=""><img class="sp sp-apex" src="img/sigil-apex.webp" alt=""><img class="sp sp-head" src="img/sigil-head.webp" alt=""><img class="sp sp-strip" src="img/sigil-strip.webp" alt=""></span>
+  </button>
   <h1 class="filmtitle">THEACTORPAGE</h1>
 
   <div class="disciplines">
@@ -404,7 +432,7 @@ body.stopen{overflow:hidden}
   </div>
 
   <p class="verbs">keep. showcase. send it.</p>
-  <div class="scrollcue">ROLL</div>
+  <button class="scrollcue" type="button" aria-label="Roll the opening again, with sound">ROLL</button>
 </header>
 
 <hr class="hair">
@@ -940,6 +968,7 @@ body.stopen{overflow:hidden}
   </div>
 </footer>
 
+<script src="shared/sigil.js"></script>
 <script src="shared/shelf.js"></script>
 <script src="shared/scenes.js"></script>
 <script src="shared/inbox.js"></script>
