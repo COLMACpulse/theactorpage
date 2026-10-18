@@ -104,6 +104,54 @@ K.delayLines=function(D,clock){ D=(D||[]).filter(d=>d.end); if(!D.length) return
  D.forEach(d=>L.push('  '+(clock?clock(d.at)+' ':'')+K.whyWord(d.why)+', '+K.mins(d)+' min'+(d.note?': '+d.note:'')));
  return L; };
 
+
+/* ---------- LEVEL ZERO (from CINEKNIFE): the phone is never perfectly square on a rig. Zero it on a known-level
+   camera, and readings are from there. Kept apart for upright and flat. */
+K.zeroed=function(r,z){ if(!z||!!z.flat!==!!r.flat) return r; return Object.assign({},r,{roll:r1(r.roll-z.roll),pitch:r1(r.pitch-z.pitch),zeroed:true}); };
+
+/* ---------- FRAME ---------- */
+K.ASPECTS=[['2.39','2.39'],['2','2:1'],['1.85','1.85'],['1.778','16:9'],['1.333','4:3'],['1','1:1'],['0.5625','9:16']];
+/* the frame inside a picture w x h: letterbox or pillarbox */
+K.frameIn=function(w,h,a){ if(!(w>0&&h>0&&a>0)) return null; if(w/h>a){ const fw=h*a; return {x:(w-fw)/2,y:0,w:fw,h}; } const fh=w/a; return {x:0,y:(h-fh)/2,w,h:fh}; };
+
+/* ---------- LIGHT: two spots in the same picture ----------
+   The phone keeps changing its own exposure, so it can't give an f-stop. Inside one frame, both spots got the same
+   exposure, so the difference between them is real: that's the lighting ratio. Pixel values are undone from sRGB first. */
+K.lin=v=>{ v/=255; return v<=0.04045?v/12.92:Math.pow((v+0.055)/1.055,2.4); };
+K.luma=(r,g,b)=>0.2126*K.lin(r)+0.7152*K.lin(g)+0.0722*K.lin(b);
+K.spot=function(px,w,h,cx,cy,rad){ rad=rad||4; let n=0,Y=0,mx=0,mn=255; const x0=Math.max(0,Math.round(cx)-rad), x1=Math.min(w-1,Math.round(cx)+rad), y0=Math.max(0,Math.round(cy)-rad), y1=Math.min(h-1,Math.round(cy)+rad);
+ for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++){ const i=(y*w+x)*4, r=px[i],gg=px[i+1],b=px[i+2]; Y+=K.luma(r,gg,b); n++; mx=Math.max(mx,r,gg,b); mn=Math.min(mn,Math.max(r,gg,b)); }
+ return n?{Y:Y/n,max:mx,min:mn,clip:mx>=250,dark:Y/n<0.0015}:null; };
+K.ratio=function(a,b){ if(!a||!b) return null; const W=[]; const out={};
+ if(a.dark||b.dark){ out.words='Too dark to read '+(a.dark&&b.dark?'either spot':a.dark?'spot A':'spot B')+'. Give it more light, or it\'s just black.'; return out; }
+ const st=Math.log2(a.Y/b.Y); out.stops=r1(st); out.ratio=Math.round(Math.pow(2,Math.abs(st))*10)/10;
+ const hi=st>=0?'A':'B'; out.words=Math.abs(st)<0.2?'A and B are the same.':hi+' is '+Math.abs(out.stops).toFixed(1)+' stop'+(Math.abs(out.stops)===1?'':'s')+' brighter. About '+out.ratio+':1.';
+ if(a.clip||b.clip) W.push((a.clip&&b.clip?'Both spots are':(a.clip?'A is':'B is'))+' blown out, so the real difference is bigger than this.');
+ out.warn=W; return out; };
+K.clipped=function(px){ let n=0,c=0; for(let i=0;i<px.length;i+=16){ n++; if(px[i]>=250&&px[i+1]>=250&&px[i+2]>=250) c++; } return n?Math.round(c/n*100):0; };
+
+/* ---------- SOUND: dBFS (how loud against the phone's own top), not SPL. From CINEKNIFE: the phone's own cleanup
+   (echo cancel, noise suppression, auto gain) is switched off, or room tone would be measured after it was "fixed". */
+K.rms=function(buf){ let s=0; for(let i=0;i<buf.length;i++) s+=buf[i]*buf[i]; return Math.sqrt(s/(buf.length||1)); };
+K.dbfs=rms=>rms>0?r1(20*Math.log10(rms)):-Infinity;
+K.dbWord=d=>d===-Infinity||d<-120?'silent':d.toFixed(0)+' dBFS';
+/* a steady hum: the strongest low tone that stands well clear of everything around it */
+K.hum=function(db,rate,size){ const bin=rate/size, lo=Math.max(1,Math.floor(40/bin)), hi=Math.min(db.length-2,Math.ceil(500/bin)), ref=[];
+ for(let i=lo;i<Math.min(db.length,Math.ceil(2000/bin));i++) if(isFinite(db[i])) ref.push(db[i]);
+ if(!ref.length) return null; ref.sort((a,b)=>a-b); const med=ref[Math.floor(ref.length/2)];
+ let k=-1; for(let i=lo;i<=hi;i++) if(isFinite(db[i])&&(k<0||db[i]>db[k])) k=i;
+ if(k<0||db[k]-med<20||db[k]<db[k-1]||db[k]<db[k+1]) return null;
+ const a=db[k-1],b=db[k],c=db[k+1], d=(a-2*b+c)?0.5*(a-c)/(a-2*b+c):0, hz=Math.round((k+d)*bin);
+ return {hz,over:Math.round(db[k]-med)}; };
+K.humWords=function(h){ if(!h) return 'No steady hum.';
+ const mains=[50,60].find(m=>[1,2,3].some(n=>Math.abs(h.hz-m*n)<=2));
+ return 'A steady hum at '+h.hz+' Hz, '+h.over+' dB over the rest.'+(mains?' That\'s the '+mains+' Hz power frequency'+(h.hz>mains+2?' (a multiple of it)':'')+': lights, a fridge, a cable, a dimmer.':''); };
+K.toneWords=function(t,prev){ const W=[t.secs+' s of room tone, average '+K.dbWord(t.avg)+', loudest '+K.dbWord(t.peak)+'.'];
+ if(prev&&isFinite(prev.avg)&&isFinite(t.avg)){ const d=Math.round(t.avg-prev.avg); W.push(Math.abs(d)<2?'About the same as the last one'+(prev.where?' ('+prev.where+')':'')+'.':Math.abs(d)+' dB '+(d>0?'louder':'quieter')+' than the last one'+(prev.where?' ('+prev.where+')':'')+'.'); }
+ if(t.hum) W.push('Hum at '+t.hum+' Hz.'); return W; };
+K.toneLines=function(T,clock){ T=T||[]; if(!T.length) return []; const L=['ROOM TONE · '+T.length];
+ T.forEach(t=>L.push('  '+(clock?clock(t.at)+' ':'')+(t.where?t.where+', ':'')+t.secs+' s, average '+K.dbWord(t.avg)+(t.hum?', hum at '+t.hum+' Hz':''))); return L; };
+
 if(typeof module!=='undefined') module.exports=K;
 g.FieldKit=K;
 })(typeof window!=='undefined'?window:globalThis);

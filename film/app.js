@@ -487,7 +487,7 @@ function vSet(){
  h+='<p class="kicker" style="margin-top:18px">This phone</p>'+front();
  return h;
 }
-function vWrap(){ const c=cur(), S=setOf(), t=F.wrapText({title:String(c.file||'Script').replace(/\.(pdf|txt|fountain|fdx)$/i,'').replace(/_/g,' '),date:c.dayDate||ymd(new Date()),shots:dayList(),log:S.log,delays:kitOf().delays,reads:kitOf().read});
+function vWrap(){ const c=cur(), S=setOf(), t=F.wrapText({title:String(c.file||'Script').replace(/\.(pdf|txt|fountain|fdx)$/i,'').replace(/_/g,' '),date:c.dayDate||ymd(new Date()),shots:dayList(),log:S.log,delays:kitOf().delays,tones:kitOf().tones,reads:kitOf().read});
  return '<div class="row" style="margin-bottom:10px"><button class="lnk" id="wrapback">‹ Back to the day</button></div><div class="card"><p class="kicker">Wrap report</p><pre class="wrap">'+esc(t)+'</pre>'
   +'<div class="row"><button class="btn" id="wrapcopy">COPY</button><a class="btn" id="wrapmail" href="mailto:?subject='+encodeURIComponent('Wrap: '+t.split('\n')[0])+'&body='+encodeURIComponent(t)+'">EMAIL IT</a><button class="btn" id="wrapsave">SAVE AS TEXT</button></div>'
   +'<p class="faint" style="font-size:13px;margin:10px 0 0">For the editor and the crew. The circled takes and every note, scene by scene, and what\'s still to shoot.</p></div>'; }
@@ -516,19 +516,19 @@ function wireWrap(){ const c=cur(), t=$('main').querySelector('pre.wrap').textCo
 /* ---------- ON SET · TOOLS: a level for the camera, the sun and shadows, exposure and ND, depth of field, and what held
    the day up. The math is in fieldkit.js. Sensors only when you tap START, and it says while they're on. ---------- */
 const K=window.FieldKit;
-function kitSet(){ DB.kitset=Object.assign({tool:'level',N:2.8,iso:800,fps:24,angle:180,ev:15,f:50,c:0.025,dist:3,unit:/^en-US/i.test(navigator.language||'')?'ft':'m'},DB.kitset||{}); return DB.kitset; }
-function kitOf(){ if(cur()){ const S=setOf(); S.delays=S.delays||[]; S.read=S.read||{}; if(DB.kit&&DB.kit.delays&&DB.kit.delays.length){ S.delays=DB.kit.delays.concat(S.delays).sort((a,b)=>a.at-b.at); DB.kit.delays=[]; save(); } return S; } DB.kit=DB.kit||{delays:[],read:{}}; return DB.kit; }
+function kitSet(){ const d={tool:'level',N:2.8,iso:800,fps:24,angle:180,ev:15,f:50,c:0.025,dist:3,unit:/^en-US/i.test(navigator.language||'')?'ft':'m',aspect:'2.39'}; DB.kitset=DB.kitset||{}; Object.keys(d).forEach(x=>{ if(DB.kitset[x]==null) DB.kitset[x]=d[x]; }); return DB.kitset; }
+function kitOf(){ if(cur()){ const S=setOf(); S.delays=S.delays||[]; S.read=S.read||{}; S.tones=S.tones||[]; if(DB.kit&&DB.kit.tones&&DB.kit.tones.length){ S.tones=DB.kit.tones.concat(S.tones).sort((a,b)=>a.at-b.at); DB.kit.tones=[]; save(); } if(DB.kit&&DB.kit.delays&&DB.kit.delays.length){ S.delays=DB.kit.delays.concat(S.delays).sort((a,b)=>a.at-b.at); DB.kit.delays=[]; save(); } return S; } DB.kit=DB.kit||{delays:[],read:{}}; DB.kit.tones=DB.kit.tones||[]; return DB.kit; }
 function kitShot(){ if(!cur()) return null; const D=dayList(); if(!D.length) return null; const x=D[nowIdx(D)]; return x?{x,key:x.n+'|'+x.shot.id}:null; }
 const LV={on:false,u:null,raw:0,raf:0,fn:null}, CP={on:false,h:null,fn:null}; let KLOC=null, KTIME='';
 function lvStop(){ if(LV.fn){ window.removeEventListener('deviceorientation',LV.fn); } LV.on=false; LV.fn=null; LV.u=null; cancelAnimationFrame(LV.raf); }
 function cpStop(){ if(CP.fn){ window.removeEventListener('deviceorientationabsolute',CP.fn); window.removeEventListener('deviceorientation',CP.fn); } CP.on=false; CP.fn=null; CP.h=null; }
-function kitStop(){ lvStop(); cpStop(); }
+function kitStop(){ lvStop(); cpStop(); if(typeof camStop==='function'){ camStop(); micStop(); } }
 async function askMotion(){ const E=window.DeviceOrientationEvent; if(E&&typeof E.requestPermission==='function'){ try{ return (await E.requestPermission())==='granted'; }catch(e){ return false; } } return !!E; }
-const KTOOLS=[['level','LEVEL'],['sun','SUN'],['expo','EXPOSURE'],['focus','FOCUS'],['delay','DELAYS']];
+const KTOOLS=[['level','LEVEL'],['sun','SUN'],['expo','EXPOSURE'],['focus','FOCUS'],['frame','FRAME'],['light','LIGHT'],['sound','SOUND'],['delay','DELAYS']];
 const opt=(list,v,f)=>list.map(x=>{ const [val,lab]=Array.isArray(x)?x:[x,f?f(x):x]; return '<option value="'+val+'"'+(String(val)===String(v)?' selected':'')+'>'+esc(lab)+'</option>'; }).join('');
 function vTools(){ const k=kitSet(), t=k.tool;
  let h='<div class="ktabs">'+KTOOLS.map(([id,l])=>'<button class="chip'+(id===t?' on':'')+'" data-ktool="'+id+'">'+l+'</button>').join('')+'</div>';
- if(t==='level') h+=vLevel(); else if(t==='sun') h+=vSun(); else if(t==='expo') h+=vExpo(); else if(t==='focus') h+=vFocus(); else h+=vDelay();
+ if(t==='level') h+=vLevel(); else if(t==='sun') h+=vSun(); else if(t==='expo') h+=vExpo(); else if(t==='focus') h+=vFocus(); else if(t==='frame') h+=vFrame(); else if(t==='light') h+=vLight(); else if(t==='sound') h+=vSound(); else h+=vDelay();
  return h; }
 function vLevel(){ const ks=kitShot(), saved=ks&&kitOf().read[ks.key];
  return '<div class="card"><p class="kicker">Camera level</p>'
@@ -540,7 +540,8 @@ function vLevel(){ const ks=kitShot(), saved=ks&&kitOf().read[ks.key];
   +'<div class="row" style="margin-top:10px">'+(LV.on?'':'<button class="btn pri" id="lvstart" style="flex:1">START</button>')
   +(ks?'<button class="btn" id="lvsave"'+(LV.on?'':' disabled')+'>SAVE FOR THIS SHOT</button>'+(saved?'<button class="btn ghost sm" id="lvclear">CLEAR SAVED</button>':''):'')+'</div>'
   +(ks?'<p class="faint ksmall">This shot: scene '+ks.x.n+', shot '+ks.x.idx+'. Save the angle and you can match it later for a pickup.</p>':'<p class="faint ksmall">With a shot list running in TODAY, you can save the angle to the shot and match it later.</p>')
-  +'<p class="faint ksmall">The phone\'s tilt sensor. Good to about half a degree; set the phone square on the camera.</p></div>'; }
+  +(LV.on?'<div class="row" style="margin-top:8px"><button class="btn sm" id="lvzero">ZERO ON THE RIG</button>'+(kitSet().zero?'<button class="btn sm ghost" id="lvunzero">CLEAR ZERO</button>':'')+'</div>':'')
+  +'<p class="faint ksmall">The phone\'s tilt sensor, not checked against a real level yet. The phone is never quite square on a rig: level the camera with its own bubble, then ZERO ON THE RIG, and readings start from there'+(kitSet().zero?' (zeroed '+(kitSet().zero.flat?'flat':'upright')+')':'')+'.</p></div>'; }
 function sunPlace(){ const ks=kitShot(), o=ks&&locOf(ks.x.n), g=o&&F.coords(o.where); if(g) return {lat:g.lat,lng:g.lng,name:o.name}; return KLOC; }
 function kitWhen(){ if(!KTIME) return new Date(); const [h,m]=KTIME.split(':').map(Number), d=new Date(shootDate()); d.setHours(h,m,0,0); return d; }
 function vSun(){ const P=sunPlace(), when=kitWhen();
@@ -590,15 +591,74 @@ function vDelay(){ const S=kitOf(), run=S.delays.find(d=>!d.end), done=S.delays.
 function lvDraw(){ if(!LV.on) return; const u=LV.u, el=$('lvroll');
  if(!el){ return; }
  if(!u){ el.textContent=LV.raw?'…':'Waiting for the sensor'; LV.raf=requestAnimationFrame(lvDraw); return; }
- const r=K.level(u), lvl=Math.abs(r.roll)<0.5, g=$('lvg'), dot=$('lvdot');
+ const r=K.zeroed(K.level(u),kitSet().zero), lvl=Math.abs(r.roll)<0.5, g=$('lvg'), dot=$('lvdot');
  if(g) g.setAttribute('transform','rotate('+(-r.roll).toFixed(2)+' 120 120)');
  if(dot) dot.setAttribute('cy',String(120-Math.max(-90,Math.min(90,r.pitch*3))));
  document.querySelector('svg.lv').classList.toggle('ok',lvl);
- el.textContent=K.rollWord(r.roll).replace(/^level$/,'LEVEL').replace(/^t/,'T'); $('lvpitch').textContent=r.hold.replace(/^./,c=>c.toUpperCase())+' · '+K.pitchWord(r.pitch,0.5,r.flat);
+ el.textContent=K.rollWord(r.roll).replace(/^level$/,'LEVEL').replace(/^t/,'T'); $('lvpitch').textContent=r.hold.replace(/^./,c=>c.toUpperCase())+(r.zeroed?' · zeroed':'')+' · '+K.pitchWord(r.pitch,0.5,r.flat); LV.raw0=K.level(u);
  const ks=kitShot(), sv=ks&&kitOf().read[ks.key]; if(sv) $('lvmatch').textContent=K.match(r,sv);
  LV.last=r; LV.raf=requestAnimationFrame(lvDraw); }
+/* camera and mic: only on START, one at a time, a light on the screen while they're on, off when you leave */
+const CAM={stream:null,loop:0,spots:[]}, MIC={stream:null,ctx:null,an:null,src:null,raf:0,peak:-Infinity,peakAt:0,hum:null,humAt:0,run:null};
+function camStop(){ if(CAM.stream) CAM.stream.getTracks().forEach(t=>t.stop()); CAM.stream=null; clearInterval(CAM.loop); }
+function micStop(){ if(MIC.stream) MIC.stream.getTracks().forEach(t=>t.stop()); try{ MIC.src&&MIC.src.disconnect(); }catch(e){} MIC.stream=MIC.src=MIC.an=null; cancelAnimationFrame(MIC.raf); MIC.run=null; }
+async function camStart(){ micStop(); try{ CAM.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false}); return true; }
+ catch(e){ if(e&&e.hot==='notnow') return false; if(!(e&&e.hot)) toast(e&&e.name==='NotAllowedError'?'The camera wasn\'t allowed. Allow it for this site, then START.':'No camera here.'); return false; } }
+async function micStart(){ camStop(); try{ MIC.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+ const C=window.AudioContext||window.webkitAudioContext; MIC.ctx=MIC.ctx||new C(); if(MIC.ctx.state==='suspended') await MIC.ctx.resume();
+ MIC.src=MIC.ctx.createMediaStreamSource(MIC.stream); MIC.an=MIC.ctx.createAnalyser(); MIC.an.fftSize=8192; MIC.an.smoothingTimeConstant=0.6; MIC.src.connect(MIC.an); MIC.peak=-Infinity; return true; }
+ catch(e){ if(e&&e.hot==='notnow') return false; if(!(e&&e.hot)) toast(e&&e.name==='NotAllowedError'?'The mic wasn\'t allowed. Allow it for this site, then START.':'No mic here.'); return false; } }
+const camBox=()=>'<div class="cam"><video id="camv" playsinline muted autoplay></video><svg id="camo" preserveAspectRatio="xMidYMid meet"></svg></div>';
+function vFrame(){ const k=kitSet(); k.aspect=k.aspect||'2.39';
+ return '<div class="card"><p class="kicker">Frame lines</p>'
+  +(CAM.stream?'<div class="sensor"><span class="dot"></span>CAMERA ON<button class="lnk" id="camstop">STOP</button></div>'+camBox():'<p class="dim" style="margin:0 0 10px">The phone\'s camera with your frame on it. Walk the space and find the shot.</p><button class="btn pri block" id="camstart">START CAMERA</button>')
+  +'<div class="row" style="margin-top:10px">'+K.ASPECTS.map(([v,l])=>'<button class="chip'+(v===k.aspect?' on':'')+'" data-aspect="'+v+'">'+l+'</button>').join('')+'</div>'
+  +'<div class="row"><button class="chip'+(k.grid!==false?' on':'')+'" id="fgrid">THIRDS</button><button class="chip'+(k.cross?' on':'')+'" id="fcross">CENTER</button></div>'
+  +'<p class="faint ksmall">The phone\'s lens is wider than most cinema lenses, so this is the shape of the frame, not what a 50mm sees. Nothing is recorded.</p></div>'; }
+function vLight(){
+ return '<div class="card"><p class="kicker">Light: two spots</p>'
+  +(CAM.stream?'<div class="sensor"><span class="dot"></span>CAMERA ON<button class="lnk" id="camstop">STOP</button></div>'+camBox()+'<p class="lvbig" style="font-size:20px" id="ltword">Tap the bright side, then the dark side.</p><p class="sline" id="ltwarn"></p><p class="sline" id="ltclip"></p>'
+   +'<div class="row"><button class="btn sm ghost" id="ltclear">CLEAR SPOTS</button></div>'
+   :'<p class="dim" style="margin:0 0 10px">Point the camera at your subject and tap two places: the key side and the fill side. It tells you how many stops apart they are.</p><button class="btn pri block" id="camstart">START CAMERA</button>')
+  +'<p class="faint ksmall">Inside one picture only. The phone keeps changing its own exposure, so it can\'t give you an f-stop, but two spots in the same frame got the same exposure. Phones also flatten contrast, so the real ratio may be a bit bigger. Not checked against a meter yet. Nothing is recorded.</p></div>'; }
+function vSound(){ const S=kitOf(), T=S.tones||[], last=T[T.length-1];
+ let h='<div class="card"><p class="kicker">Sound: room tone and hum</p>';
+ if(!MIC.stream) return h+'<p class="dim" style="margin:0 0 10px">How loud the room is, any steady hum, and a timer for room tone. The phone\'s own noise cleanup is switched off so you hear the room as it is.</p><button class="btn pri block" id="micstart">START MIC</button>'
+  +(last?'<p class="sline" style="margin-top:10px">Last room tone: '+esc(K.toneWords(last).join(' '))+'</p>':'')+'<p class="faint ksmall">Nothing is recorded; it only measures. Levels are dBFS (against the phone\'s own top), not a sound meter\'s dB SPL.</p></div>';
+ h+='<div class="sensor"><span class="dot"></span>MIC ON<button class="lnk" id="micstop">STOP</button></div>'
+  +'<div class="meter"><div id="sndbar"></div></div><p class="lvbig" id="snddb">…</p><p class="sline" id="sndpeak"></p><p class="sline" id="sndhum">Listening for hum…</p>';
+ if(MIC.run) h+='<div class="nowcard"><span class="nk">ROOM TONE · QUIET, EVERYONE</span><h2 id="rtleft">'+Math.max(0,Math.ceil((MIC.run.end-Date.now())/1000))+' s</h2></div><button class="btn block" id="rtcancel">STOP EARLY</button>';
+ else h+='<div class="row" style="margin-top:10px"><button class="btn pri" data-rt="30" style="flex:1">ROOM TONE 30 S</button><button class="btn" data-rt="60">60 S</button></div>';
+ if(T.length) h+='<p class="lab" style="margin-top:14px">Today · '+T.length+'</p><div class="tklist">'+T.slice().reverse().map((t,i)=>'<div><b>'+esc(F.clockWord(t.at))+'</b> '+esc((t.where?t.where+' · ':'')+t.secs+' s, average '+K.dbWord(t.avg))+(t.hum?'<small>hum at '+t.hum+' Hz</small>':'')+'</div>').join('')+'</div>';
+ return h+'<p class="faint ksmall">Roll your recorder for the same 30 seconds; this logs it and checks it. Nothing is recorded here. Levels are dBFS, not dB SPL.</p></div>'; }
+function camWire(){ const v=$('camv'); if(!v||!CAM.stream) return; v.srcObject=CAM.stream; const draw=()=>{ if(TAB==='tools') camOverlay(); }; v.onloadedmetadata=draw; v.onresize=draw; draw(); }
+function camOverlay(){ const v=$('camv'), o=$('camo'), k=kitSet(); if(!v||!o||!v.videoWidth) return; const w=v.videoWidth, h=v.videoHeight; o.setAttribute('viewBox','0 0 '+w+' '+h);
+ let s='';
+ if(k.tool==='frame'){ const f=K.frameIn(w,h,+k.aspect); s+='<path class="mask" fill-rule="evenodd" d="M0 0H'+w+'V'+h+'H0Z M'+f.x+' '+f.y+'h'+f.w+'v'+f.h+'h'+(-f.w)+'Z"/><rect class="fline" x="'+f.x+'" y="'+f.y+'" width="'+f.w+'" height="'+f.h+'"/>';
+  if(k.grid!==false) [1,2].forEach(i=>{ s+='<line class="grid" x1="'+(f.x+f.w*i/3)+'" y1="'+f.y+'" x2="'+(f.x+f.w*i/3)+'" y2="'+(f.y+f.h)+'"/><line class="grid" x1="'+f.x+'" y1="'+(f.y+f.h*i/3)+'" x2="'+(f.x+f.w)+'" y2="'+(f.y+f.h*i/3)+'"/>'; });
+  if(k.cross){ const cx=f.x+f.w/2, cy=f.y+f.h/2, d=Math.min(f.w,f.h)*0.04; s+='<path class="grid" d="M'+(cx-d)+' '+cy+'h'+2*d+'M'+cx+' '+(cy-d)+'v'+2*d+'"/>'; }
+  s+='<text class="flab" x="'+(f.x+12)+'" y="'+(f.y+Math.max(28,h*0.05))+'" font-size="'+Math.max(18,h*0.035)+'">'+esc((K.ASPECTS.find(a=>a[0]===k.aspect)||[0,''])[1])+'</text>'; }
+ else CAM.spots.forEach((p,i)=>{ const r=Math.max(14,w*0.025); s+='<circle class="spt" cx="'+p.x*w+'" cy="'+p.y*h+'" r="'+r+'"/><text class="flab" x="'+(p.x*w+r+6)+'" y="'+(p.y*h+r*0.4)+'" font-size="'+r*1.4+'">'+(i?'B':'A')+'</text>'; });
+ o.innerHTML=s; }
+function lightRead(){ const v=$('camv'); if(!v||!v.videoWidth||CAM.spots.length<1) return; const W=160, H=Math.round(160*v.videoHeight/v.videoWidth);
+ const c=lightRead.c||(lightRead.c=document.createElement('canvas')); c.width=W; c.height=H; const g=c.getContext('2d',{willReadFrequently:true}); g.drawImage(v,0,0,W,H); const px=g.getImageData(0,0,W,H).data;
+ const sp=CAM.spots.map(p=>K.spot(px,W,H,p.x*W,p.y*H,3)); $('ltclip').textContent=K.clipped(px)>2?K.clipped(px)+'% of the picture is blown out.':'';
+ if(sp.length<2){ $('ltword').textContent='Now tap the dark side.'; return; }
+ const R=K.ratio(sp[0],sp[1]); $('ltword').textContent=R.words; $('ltwarn').textContent=(R.warn||[]).join(' '); CAM.last=R; }
+function micLoop(){ if(!MIC.an) return; if(MIC.stream&&MIC.stream.getTracks().every(t=>t.readyState==='ended')){ micStop(); render(); return; } const an=MIC.an, buf=new Float32Array(an.fftSize); an.getFloatTimeDomainData(buf); const d=K.dbfs(K.rms(buf)), now=Date.now();
+ if(d>MIC.peak||now-MIC.peakAt>3000){ MIC.peak=d; MIC.peakAt=now; }
+ const db=$('snddb'); if(db){ db.textContent=K.dbWord(d); $('sndpeak').textContent='Loudest in the last 3 s: '+K.dbWord(MIC.peak); const pct=isFinite(d)?Math.max(0,Math.min(100,(d+90)/90*100)):0; $('sndbar').style.width=pct+'%'; }
+ if(now-MIC.humAt>700){ MIC.humAt=now; const f=new Float32Array(an.frequencyBinCount); an.getFloatFrequencyData(f); MIC.hum=K.hum(f,MIC.ctx.sampleRate,an.fftSize); const hh=$('sndhum'); if(hh) hh.textContent=K.humWords(MIC.hum); }
+ if(MIC.run){ if(isFinite(d)) MIC.run.vals.push(d); if(MIC.hum) MIC.run.hums.push(MIC.hum.hz); const left=Math.ceil((MIC.run.end-now)/1000), el=$('rtleft'); if(el) el.textContent=Math.max(0,left)+' s'; if(now>=MIC.run.end) rtDone(); }
+ MIC.raf=requestAnimationFrame(micLoop); }
+function rtDone(cut){ const r=MIC.run; if(!r) return; MIC.run=null; const secs=Math.round((Math.min(Date.now(),r.end)-r.at)/1000);
+ if(!r.vals.length||secs<3){ toast('Too short to count.'); render(); return; }
+ const lin=r.vals.map(x=>Math.pow(10,x/10)), avg=Math.round(10*Math.log10(lin.reduce((a,b)=>a+b,0)/lin.length)*10)/10, peak=Math.max(...r.vals);
+ const hz=r.hums.length>r.vals.length/30?r.hums.sort((a,b)=>a-b)[Math.floor(r.hums.length/2)]:null;
+ const ks=kitShot(), S=kitOf(), prev=S.tones[S.tones.length-1], t={id:rid('r'),at:r.at,secs,avg,peak:Math.round(peak*10)/10,hum:hz,where:ks?ks.x.where||'':''};
+ S.tones.push(t); save(); toast(K.toneWords(t,prev).join(' ')); render(); }
 function wireTools(){ const k=kitSet();
- document.querySelectorAll('[data-ktool]').forEach(b=>b.onclick=()=>{ if(b.dataset.ktool!==k.tool) kitStop(); k.tool=b.dataset.ktool; save(); render(); });
+ document.querySelectorAll('[data-ktool]').forEach(b=>b.onclick=()=>{ if(b.dataset.ktool!==k.tool){ const cams=['frame','light']; if(cams.includes(k.tool)&&cams.includes(b.dataset.ktool)){ lvStop(); cpStop(); CAM.spots=[]; } else kitStop(); } k.tool=b.dataset.ktool; save(); render(); });
  document.querySelectorAll('[data-kset]').forEach(el=>el.onchange=el.oninput=()=>{ const v=parseFloat(el.value); if(!isFinite(v)||v<=0) return; k[el.dataset.kset]=v; save(); if(el.tagName==='SELECT'){ render(); } else { const keep=el.dataset.kset; render(); const n=document.querySelector('[data-kset="'+keep+'"]'); if(n){ n.focus(); try{ n.setSelectionRange(n.value.length,n.value.length); }catch(e){} } } });
  document.querySelectorAll('[data-kunit]').forEach(b=>b.onclick=()=>{ const to=b.dataset.kunit; if(to!==k.unit){ k.dist=Math.round((to==='m'?k.dist*0.3048:k.dist/0.3048)*10)/10; k.unit=to; save(); render(); } });
  if($('lvstart')) $('lvstart').onclick=async()=>{ if(!(await askMotion())){ toast('The tilt sensor was not allowed. Allow motion for this site, then START.'); return; }
@@ -607,6 +667,8 @@ function wireTools(){ const k=kitSet();
  if($('lvstop')) $('lvstop').onclick=()=>{ lvStop(); render(); };
  if(LV.on){ cancelAnimationFrame(LV.raf); LV.raf=requestAnimationFrame(lvDraw); }
  if($('lvsave')) $('lvsave').onclick=()=>{ const ks=kitShot(), r=LV.last; if(!ks||!r){ toast('Nothing read yet.'); return; } kitOf().read[ks.key]={roll:r.roll,pitch:r.pitch,flat:r.flat,at:Date.now()}; save(); toast('Saved for scene '+ks.x.n+', shot '+ks.x.idx+'.'); render(); };
+ if($('lvzero')) $('lvzero').onclick=()=>{ const r=LV.raw0; if(!r){ toast('Nothing read yet.'); return; } kitSet().zero={roll:r.roll,pitch:r.pitch,flat:r.flat}; save(); toast('Zeroed. Readings start from here.'); render(); };
+ if($('lvunzero')) $('lvunzero').onclick=()=>{ delete kitSet().zero; save(); render(); };
  if($('lvclear')) $('lvclear').onclick=()=>{ const ks=kitShot(); if(ks){ delete kitOf().read[ks.key]; save(); render(); } };
  if($('sunhere')) $('sunhere').onclick=()=>{ if(!navigator.geolocation){ toast('This browser can\'t find where you are. Type it in.'); return; }
   toast('Asking where you are…'); navigator.geolocation.getCurrentPosition(p=>{ KLOC={lat:p.coords.latitude,lng:p.coords.longitude,name:'Where you are'}; render(); },()=>toast('Location wasn\'t allowed. Type it in, or pin the place in OWNED.'),{timeout:15000,maximumAge:600000}); };
@@ -620,6 +682,21 @@ function wireTools(){ const k=kitSet();
   window.addEventListener('ondeviceorientationabsolute' in window?'deviceorientationabsolute':'deviceorientation',CP.fn); render();
   setTimeout(()=>{ if(CP.on&&CP.h==null&&$('cpword')) $('cpword').textContent='No compass reading here. Use the table above.'; },2500); };
  if($('cpstop')) $('cpstop').onclick=()=>{ cpStop(); render(); };
+ if($('camstart')) $('camstart').onclick=async()=>{ if(await camStart()) render(); };
+ if($('camstop')) $('camstop').onclick=()=>{ camStop(); render(); };
+ camWire(); clearInterval(CAM.loop); if(CAM.stream) CAM.loop=setInterval(()=>{ if(CAM.stream.getTracks().every(t=>t.readyState==='ended')){ camStop(); render(); return; } if(k.tool==='light') lightRead(); },250);
+ document.querySelectorAll('[data-aspect]').forEach(b=>b.onclick=()=>{ k.aspect=b.dataset.aspect; save(); document.querySelectorAll('[data-aspect]').forEach(x=>x.classList.toggle('on',x===b)); camOverlay(); });
+ if($('fgrid')) $('fgrid').onclick=()=>{ k.grid=k.grid===false; save(); $('fgrid').classList.toggle('on',k.grid!==false); camOverlay(); };
+ if($('fcross')) $('fcross').onclick=()=>{ k.cross=!k.cross; save(); $('fcross').classList.toggle('on',!!k.cross); camOverlay(); };
+ const cv=$('camv'); if(cv&&k.tool==='light') cv.parentNode.onclick=e=>{ const v=$('camv'), b=v.getBoundingClientRect(), vw=v.videoWidth, vh=v.videoHeight; if(!vw) return;
+  const sc=Math.min(b.width/vw,b.height/vh), ox=(b.width-vw*sc)/2, oy=(b.height-vh*sc)/2, x=(e.clientX-b.left-ox)/(vw*sc), y=(e.clientY-b.top-oy)/(vh*sc); if(x<0||x>1||y<0||y>1) return;
+  if(CAM.spots.length>=2) CAM.spots=[]; CAM.spots.push({x,y}); camOverlay(); lightRead(); };
+ if($('ltclear')) $('ltclear').onclick=()=>{ CAM.spots=[]; camOverlay(); $('ltword').textContent='Tap the bright side, then the dark side.'; $('ltwarn').textContent=''; };
+ if($('micstart')) $('micstart').onclick=async()=>{ if(await micStart()) render(); };
+ if($('micstop')) $('micstop').onclick=()=>{ micStop(); render(); };
+ if(MIC.an){ cancelAnimationFrame(MIC.raf); MIC.raf=requestAnimationFrame(micLoop); }
+ document.querySelectorAll('[data-rt]').forEach(b=>b.onclick=()=>{ MIC.run={at:Date.now(),end:Date.now()+(+b.dataset.rt)*1000,vals:[],hums:[]}; render(); });
+ if($('rtcancel')) $('rtcancel').onclick=()=>rtDone(true);
  document.querySelectorAll('[data-dl]').forEach(b=>b.onclick=()=>{ kitOf().delays.push({id:rid('w'),why:b.dataset.dl,note:'',at:Date.now()}); save(); render(); });
  if($('dlnote')) $('dlnote').oninput=()=>{ const r=kitOf().delays.find(d=>!d.end); if(r){ r.note=$('dlnote').value; save(); } };
  if($('dlend')) $('dlend').onclick=()=>{ const r=kitOf().delays.find(d=>!d.end); if(r){ r.end=Date.now(); save(); toast(K.whyWord(r.why)+': '+K.mins(r)+' min. Logged.'); render(); } };
@@ -711,7 +788,7 @@ function packFiles(){ const k=cutOf(), t=filmName(), slug=F.slug(t), cv=coverNow
  const brief=F.brief(t,SCENES.map(sc=>({n:sc.n,heading:sc.heading,brief:(k.brief||{})[sc.n]||{},takes:k.takes[sc.n]||[],shots:doneOf(sc)})),k.fps);
  return [{name:slug+' READ ME.txt',data:F.packReadme({wrap:setOf().log.length>0,title:t,slug,by,date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),link:k.link||'',cover:F.coverWords(cv),note:k.packNote||''})},
   {name:slug+' editor brief.txt',data:brief},{name:slug+' plan.csv',data:F.planCsv(R)},{name:slug+' plan vs got.csv',data:F.gotCsv(cv,k.fps,t)},
-  {name:slug+' cut.edl',data:F.edl(t,pieces(),k.fps)},{name:slug+' cut.csv',data:F.cutCsv(pieces())}].concat(setOf().log.length||kitOf().delays.some(d=>d.end)?[{name:slug+' wrap report.txt',data:F.wrapText({title:t,date:cur().dayDate||ymd(new Date()),shots:dayList(),log:setOf().log,delays:kitOf().delays,reads:kitOf().read})}]:[]); }
+  {name:slug+' cut.edl',data:F.edl(t,pieces(),k.fps)},{name:slug+' cut.csv',data:F.cutCsv(pieces())}].concat(setOf().log.length||kitOf().delays.some(d=>d.end)||kitOf().tones.length?[{name:slug+' wrap report.txt',data:F.wrapText({title:t,date:cur().dayDate||ymd(new Date()),shots:dayList(),log:setOf().log,delays:kitOf().delays,tones:kitOf().tones,reads:kitOf().read})}]:[]); }
 /* LOG THE DAY: the day's clips one at a time, in the order you shot them */
 let DAY=null;
 async function dayOpen(files){
@@ -985,7 +1062,7 @@ function wireCut(){
  const pzp=$('packzip'); if(pzp) pzp.onclick=async()=>{ const z=window.Zip.make(packFiles()), fn=F.slug(filmName())+' editor pack.zip', file=new File([z],fn,{type:'application/zip'});
   try{ if(/Android|iPhone|iPad/i.test(navigator.userAgent)&&navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:fn}); return; } }catch(e){ if(e&&e.name==='AbortError') return; }
   dl(fn,z,'application/zip'); };
- const swd=$('setwrapdl'); if(swd) swd.onclick=()=>{ const c=cur(), t=F.wrapText({title:filmName(),date:c.dayDate||ymd(new Date()),shots:dayList(),log:setOf().log,delays:kitOf().delays,reads:kitOf().read}); dl(F.slug(filmName())+' wrap report.txt',t,'text/plain'); };
+ const swd=$('setwrapdl'); if(swd) swd.onclick=()=>{ const c=cur(), t=F.wrapText({title:filmName(),date:c.dayDate||ymd(new Date()),shots:dayList(),log:setOf().log,delays:kitOf().delays,tones:kitOf().tones,reads:kitOf().read}); dl(F.slug(filmName())+' wrap report.txt',t,'text/plain'); };
  const ppl=$('packplan'); if(ppl) ppl.onclick=()=>{ const f=packFiles()[2]; dl(f.name,f.data,'text/csv'); };
  const pgt=$('packgot'); if(pgt) pgt.onclick=()=>{ const f=packFiles()[3]; dl(f.name,f.data,'text/csv'); };
  document.querySelectorAll('[data-tdel]').forEach(b=>b.onclick=()=>{ const [n,id]=b.dataset.tdel.split('|'); k.takes[n]=(k.takes[n]||[]).filter(x=>x.id!==id); delete FILES[id]; save(); render(); });
@@ -1126,5 +1203,5 @@ async function fromTakes(){
  if(n||TAB==='cut') render();
 }
 fromTakes();
-window.__film={DB:()=>DB,SCENES:()=>SCENES,dayOpen:f=>dayOpen(f),packFiles:()=>packFiles()};
+window.__film={DB:()=>DB,SCENES:()=>SCENES,dayOpen:f=>dayOpen(f),packFiles:()=>packFiles(),CAM,MIC};
 })();

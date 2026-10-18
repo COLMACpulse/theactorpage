@@ -723,6 +723,7 @@ F.wrapText=function(o){ const L=[], shots=o.shots||[], log=o.log||[];
    const a=o.reads&&o.reads[x.n+'|'+x.shot.id], KK=g.FieldKit; if(a&&KK) L.push('      angle: '+KK.rollWord(a.roll)+', '+KK.pitchWord(a.pitch,0.5,a.flat)); });
   L.push(''); });
  const KK=g.FieldKit, dl=KK?KK.delayLines(o.delays,F.clockWord):[]; if(dl.length){ dl.forEach(l=>L.push(l)); L.push(''); }
+ const tl=KK?KK.toneLines(o.tones,F.clockWord):[]; if(tl.length){ tl.forEach(l=>L.push(l)); L.push(''); }
  const left=shots.filter(x=>!x.done); if(left.length){ L.push('STILL TO SHOOT'); left.forEach(x=>L.push('  Scene '+x.n+', shot '+x.idx+': '+x.shot.what)); L.push(''); }
  return L.join('\n').replace(/\n+$/,'\n'); };
 /* ---------- from the set to the cut: the takes you logged on set, matched to the day's clips ----------

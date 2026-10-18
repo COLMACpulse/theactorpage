@@ -10,7 +10,7 @@ await p.goto('http://localhost:8811/film/'); await p.evaluate(()=>localStorage.c
 await p.click('#tabs [data-r="set"]'); await p.waitForTimeout(200);
 want('ON SET has TODAY and TOOLS', (await p.$$eval('#sub [data-t]',x=>x.map(y=>y.textContent))).join()==='TODAY,TOOLS');
 await p.click('#sub [data-t="tools"]'); await p.waitForTimeout(200);
-want('TOOLS work with no script in', /Camera level/i.test(await p.innerText('#main'))&&(await p.$$eval('[data-ktool]',x=>x.map(y=>y.textContent))).join()==='LEVEL,SUN,EXPOSURE,FOCUS,DELAYS');
+want('TOOLS work with no script in', /Camera level/i.test(await p.innerText('#main'))&&(await p.$$eval('[data-ktool]',x=>x.map(y=>y.textContent))).join()==='LEVEL,SUN,EXPOSURE,FOCUS,FRAME,LIGHT,SOUND,DELAYS');
 want('level is off until START, nothing on', /Off/.test(await p.innerText('#lvroll'))&&!(await p.$('.sensor')));
 await p.click('#lvstart'); await p.waitForTimeout(150);
 want('START: says the tilt sensor is on', /TILT SENSOR ON/.test(await p.innerText('.sensor')));
