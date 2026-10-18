@@ -11,6 +11,9 @@ const OP=await p.$$eval('.tool',x=>x.map(t=>({n:t.querySelector('.tool-name').te
 const nm=s=>s.toLowerCase().replace(/[^a-z]/g,'');
 want('every tool: its own Open button (one), an icon, nothing loose outside More', OP.every(t=>t.a.length===1&&nm(t.a[0]).includes(nm(t.n).slice(0,6))&&!t.loose&&t.icon), OP.filter(t=>!(t.a.length===1&&nm(t.a[0]).includes(nm(t.n).slice(0,6))&&!t.loose&&t.icon)));
 want('the rooms keep their tools in the right column (on a wide screen)', await p.evaluate(()=>innerWidth<900||[...document.querySelectorAll('.tool')].every(t=>t.getBoundingClientRect().left>innerWidth*0.3)));
+const SC=await p.$$eval('.tool',x=>x.map(t=>{ const sec=t.closest('section').className.match(/\b(act|write|film)\b/); return [sec?sec[1]:'',getComputedStyle(t.querySelector('.tool-name svg')).stroke]; }));
+const want_={act:'rgb(224, 162, 60)',write:'rgb(247, 245, 240)',film:'rgb(111, 168, 214)'};
+want('each icon is drawn in its section color: ACT gold, WRITE white, FILM blue', SC.every(([k,c])=>!want_[k]||c===want_[k]), SC.filter(([k,c])=>want_[k]&&c!==want_[k]));
 { const w=await (await b.newContext({viewport:{width:1386,height:900}})).newPage(); await w.goto('http://localhost:8811/'); await w.waitForTimeout(600); want('wide screen: every tool in the right column', await w.evaluate(()=>[...document.querySelectorAll('.tool')].every(t=>t.getBoundingClientRect().left>innerWidth*0.3))); await w.close(); }
 await p.click('.tool details.more summary'); await p.waitForTimeout(150);
 want('More: the full description', await p.evaluate(()=>{ const d=document.querySelector('.tool details.more'); return d.open&&d.querySelector('p').textContent.length>150; }));
