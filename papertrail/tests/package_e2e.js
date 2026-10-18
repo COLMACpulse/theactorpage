@@ -2,15 +2,16 @@
    said; the package saved as a PDF; the query copied; SCRIPT PDF opens the draft in Writer's Blockage. Made-up script.
    Server on :8811.  NODE_PATH=... node papertrail/tests/package_e2e.js */
 const {chromium}=require('playwright'); const fs=require('fs');
+const tabGo=async(pg,t)=>{ const sel='#tabs [data-tab="'+t+'"]'; if(!(await pg.$(sel))){ const g=await pg.$('#tabs [data-tabs~="'+t+'"]'); if(g){ await g.click(); await pg.waitForTimeout(150); } } await pg.click(sel); };
 (async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,500))); if(!x) ok=false; };
 const c=await b.newContext({viewport:{width:390,height:844},acceptDownloads:true}); await c.grantPermissions(['clipboard-read','clipboard-write'],{origin:'http://localhost:8811'});
 const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
 await p.goto('http://localhost:8811/papertrail/'); await p.evaluate(()=>{ localStorage.removeItem('paper_trail_v1'); localStorage.setItem('theactorpage_you_v1',JSON.stringify({name:'Sam Actor',email:'sam@example.com',phone:'555-0100',credits:[],photos:[],edited:{},from:{}})); indexedDB.deleteDatabase('paper_trail'); }); await p.reload(); await p.waitForTimeout(700);
-await p.click('#tabs [data-tab="add"]'); await p.fill('#ptitle','Ridge Line');
+await tabGo(p,'add'); await p.fill('#ptitle','Ridge Line');
 await p.fill('#paste','Title: Ridge Line\nAuthor: Sam Actor\n\nEXT. RIDGE - DAY\n\nVALE (40s), a wiry guide with a bad knee, climbs the ridge alone. Wind.\n\nVALE\nHand me the rope.\n\nHALE\nYou sure about this?\n\nINT. CABIN - NIGHT\n\nHale sits by the cold stove. He has not eaten in days.\n\nHALE\nShe isn\'t coming back.\n\nEXT. RIVER - DAWN\n\nThe bridge is gone. Vale stares at the water and starts to wade in.\n\nVALE\nStay close.\n\nVALE\nNow.\n');
 await p.click('#readit'); await p.waitForTimeout(500); await p.click('[data-open]'); await p.waitForTimeout(300);
-await p.click('#tabs [data-tab="package"]'); await p.waitForTimeout(300);
+await tabGo(p,'package'); await p.waitForTimeout(300);
 let m=await p.innerText('#main');
 want('PACKAGE: what it is, write it or draft it, nothing sent', /What this script needs to go out, in one place/.test(m)&&/DRAFT FROM MY PAGES/.test(m)&&/Nothing is sent from here/.test(m));
 want('the facts from the pages, said plainly', /3 scenes · 2 speaking parts · the most lines: VALE/.test(m)&&/About 1 page\. Features usually run 90 to 120\. This one is shorter\./.test(m)&&/Title page: there\./.test(m), m.slice(0,600));
@@ -31,7 +32,7 @@ await p.fill('[data-pk="logline"]','A guide with a bad knee crosses a flooded ri
 await p.click('[data-pkdraft="query"]'); await p.waitForTimeout(250);
 const q=await p.inputValue('[data-pk="query"]');
 want('query drafted: the title, pages, your logline and short synopsis, your name, blanks for the rest', /read Ridge Line, a 1-page short\./.test(q)&&/crosses a flooded river/.test(q)&&/climbs the ridge alone/.test(q)&&/\[A line or two about you\.\]/.test(q)&&/Sam Actor\nsam@example\.com · 555-0100/.test(q), q);
-await p.reload(); await p.waitForTimeout(800); await p.click('[data-open]'); await p.waitForTimeout(200); await p.click('#tabs [data-tab="package"]'); await p.waitForTimeout(300);
+await p.reload(); await p.waitForTimeout(800); await p.click('[data-open]'); await p.waitForTimeout(200); await tabGo(p,'package'); await p.waitForTimeout(300);
 want('kept after a reload', /crosses a flooded river/.test(await p.inputValue('[data-pk="logline"]'))&&await p.inputValue('#pkkind')==='short');
 const [dl]=await Promise.all([p.waitForEvent('download'),p.click('#pkpdf')]);
 const pdf=fs.readFileSync(await dl.path(),'latin1');

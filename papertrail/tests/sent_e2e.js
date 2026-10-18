@@ -2,16 +2,17 @@
    a deadline coming up said; all projects together, filtered; where a script can go; saved as text. Made-up entries.
    Server on :8811.  NODE_PATH=... node papertrail/tests/sent_e2e.js */
 const {chromium}=require('playwright'); const fs=require('fs');
+const tabGo=async(pg,t)=>{ const sel='#tabs [data-tab="'+t+'"]'; if(!(await pg.$(sel))){ const g=await pg.$('#tabs [data-tabs~="'+t+'"]'); if(g){ await g.click(); await pg.waitForTimeout(150); } } await pg.click(sel); };
 (async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,500))); if(!x) ok=false; };
 const c=await b.newContext({viewport:{width:390,height:844},acceptDownloads:true}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
 await p.goto('http://localhost:8811/papertrail/'); await p.evaluate(()=>{ localStorage.removeItem('paper_trail_v1'); indexedDB.deleteDatabase('paper_trail'); }); await p.reload(); await p.waitForTimeout(700);
-const add=async(t,x)=>{ await p.click('#tabs [data-tab="add"]'); await p.fill('#ptitle',t); await p.fill('#paste',x); await p.click('#readit'); await p.waitForTimeout(500); };
+const add=async(t,x)=>{ await tabGo(p,'add'); await p.fill('#ptitle',t); await p.fill('#paste',x); await p.click('#readit'); await p.waitForTimeout(500); };
 await add('Ridge Line','Title: Ridge Line\n\nEXT. RIDGE - DAY\n\nVale climbs.\n\nVALE\nRope.\n');
 await add('Dry Gulch','Title: Dry Gulch\n\nINT. SALOON - NIGHT\n\nVALE\nWhiskey.\n');
 const pid=await p.evaluate(()=>Object.values(window.__trail.DB().projects).find(x=>x.title==='Ridge Line').id);
-await p.click('#tabs [data-tab="projects"]'); await p.click('[data-open="'+pid+'"]'); await p.waitForTimeout(200);
-await p.click('#tabs [data-tab="sent"]'); await p.waitForTimeout(200);
+await tabGo(p,'projects'); await p.click('[data-open="'+pid+'"]'); await p.waitForTimeout(200);
+await tabGo(p,'sent'); await p.waitForTimeout(200);
 let m=await p.innerText('#main');
 want('SENT OUT: what it is, nothing yet, the add form open', /Where Ridge Line has gone/.test(m)&&/Nothing sent yet\./.test(m)&&await p.evaluate(()=>document.getElementById('saddbox').open));
 await p.fill('#sw','Salt Flats Screenplay Contest'); await p.selectOption('#sk','contest'); await p.fill('#sf','65'); await p.fill('#sn','Second round in March.'); await p.click('#sadd'); await p.waitForTimeout(300);
@@ -28,10 +29,10 @@ want('going to send: the deadline coming up, said in days', /Deadline in [45] da
 want('where a script can go: there, dated, with sources', /Where a script can go, without an agent/i.test(await p.innerText('#where'))&&await p.evaluate(()=>{ const d=document.getElementById('where'); d.open=true; return /Checked October 2026/.test(d.innerText)&&/Nicholl/.test(d.innerText)&&/release form/.test(d.innerText)&&d.querySelectorAll('a[href^="https://"]').length===3; }));
 // another project
 const pid2=await p.evaluate(()=>Object.values(window.__trail.DB().projects).find(x=>x.title==='Dry Gulch').id);
-await p.click('#tabs [data-tab="projects"]'); await p.click('[data-open="'+pid2+'"]'); await p.waitForTimeout(200); await p.click('#tabs [data-tab="sent"]'); await p.waitForTimeout(200);
+await tabGo(p,'projects'); await p.click('[data-open="'+pid2+'"]'); await p.waitForTimeout(200); await tabGo(p,'sent'); await p.waitForTimeout(200);
 await p.fill('#sw','Northgate Pictures'); await p.selectOption('#sk','company'); await p.click('#sadd'); await p.waitForTimeout(200);
 await p.click('[data-sst$="|passed"]'); await p.waitForTimeout(200);
-await p.click('#tabs [data-tab="allsent"]'); await p.waitForTimeout(300);
+await tabGo(p,'allsent'); await p.waitForTimeout(300);
 m=await p.innerText('#main');
 want('ALL SENT OUT: every project, together', /Ridge Line · Salt Flats Screenplay Contest/.test(m)&&/Dry Gulch · Northgate Pictures/.test(m)&&/2 sent · 1 moved on · 1 passed · 1 going to send · \$65 in fees/i.test(m), m.slice(0,600));
 want('the deadline, with its project', /Deadline in [45] days: Dry Creek Fellowship \(Ridge Line\)/.test(m));
@@ -44,7 +45,7 @@ await p.click('[data-sopen="'+pid+'"]'); await p.waitForTimeout(200);
 want('tap a title: that project\'s list', /Where Ridge Line has gone/.test(await p.innerText('#main')));
 await p.click('[data-sdel$="|'+(await p.evaluate(id=>window.__trail.DB().projects[id].sends[0].id,pid))+'"]'); await p.waitForTimeout(200);
 want('delete one', await p.evaluate(id=>window.__trail.DB().projects[id].sends.length,pid)===1);
-await p.click('#tabs [data-tab="package"]'); await p.waitForTimeout(200);
+await tabGo(p,'package'); await p.waitForTimeout(200);
 want('Package has a way to SENT OUT', !!(await p.$('#main [data-tab="sent"]')));
 want('no em dashes', !/—/.test(await p.innerText('body')));
 want('no page errors', !errs.length, errs);

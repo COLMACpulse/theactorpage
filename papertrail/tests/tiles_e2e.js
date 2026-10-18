@@ -3,6 +3,7 @@
    Fake mic, fake speech. Made-up scripts. Server on :8811 at the repo root.
    NODE_PATH=... node papertrail/tests/tiles_e2e.js */
 const {chromium}=require('playwright');
+const tabGo=async(pg,t)=>{ const sel='#tabs [data-tab="'+t+'"]'; if(!(await pg.$(sel))){ const g=await pg.$('#tabs [data-tabs~="'+t+'"]'); if(g){ await g.click(); await pg.waitForTimeout(150); } } await pg.click(sel); };
 (async()=>{
 const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome',args:['--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream']});
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,400))); if(!x) ok=false; };
@@ -16,7 +17,7 @@ await p.goto('http://localhost:8811/papertrail/'); await p.evaluate(()=>{ localS
 const tiles=()=>p.evaluate(()=>[...document.querySelectorAll('.kit .kt')].map(t=>t.dataset.kit+':'+(t.querySelector('[data-kst]')?t.querySelector('[data-kst]').textContent:'-')+(t.classList.contains('off')?':off':'')));
 const until=async(id,w)=>{ try{ await p.waitForFunction(([id,w])=>{ const t=document.querySelector('[data-kit="'+id+'"] [data-kst]'); return t&&t.textContent===w; },[id,w],{timeout:5000}); return true; }catch(e){ return false; } };
 const onTab=t=>p.evaluate(t=>{ const x=document.querySelector('#tabs [data-tab="'+t+'"]'); return !!(x&&x.classList.contains('on')); },t);
-const home=async()=>{ await p.click('#tabs [data-tab="projects"]'); await p.waitForTimeout(200); };
+const home=async()=>{ await tabGo(p,'projects'); await p.waitForTimeout(200); };
 const noDash=async()=>!/[—–]/.test(await p.evaluate(()=>document.body.innerText));
 
 // no project yet
@@ -31,7 +32,7 @@ await p.click('[data-kit="rec"]'); await p.waitForTimeout(300);
 want('an off tile sends you to add a draft, the mic stays off', await onTab('add')&&await p.evaluate(()=>Hot.status().state)==='off');
 
 // two made-up projects; the second is the latest
-const add=async(t,s)=>{ await p.click('#tabs [data-tab="add"]'); await p.fill('#ptitle',t); await p.fill('#paste',s); await p.click('#readit'); await p.waitForTimeout(500); };
+const add=async(t,s)=>{ await tabGo(p,'add'); await p.fill('#ptitle',t); await p.fill('#paste',s); await p.click('#readit'); await p.waitForTimeout(500); };
 await add('Gravel Road','EXT. GRAVEL ROAD - DAY\n\nJUNE\nYou missed the turn.\n\nPETE\nThere was no turn.\n');
 await p.waitForTimeout(30);
 await add('Night Ferry','INT. FERRY DECK - NIGHT\n\nIDA\nIs this the last one?\n\nMARCO\nIt is tonight.\n');

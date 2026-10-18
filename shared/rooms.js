@@ -80,6 +80,7 @@ async function camera(){
  // no poster yet: the title in the viewfinder, two short lines
  const ws=String(d.title||'').toUpperCase().split(/\s+/).filter(Boolean); let a='', z='';
  ws.forEach(w=>{ if(!z&&(a+' '+w).trim().length<=9) a=(a+' '+w).trim(); else z=(z+' '+w).trim(); });
+ if(!d.title){ a='YOUR FILM'; z='--'; }   // nothing yet: the screen still reads, like the slate and the page
  put('cam_vf1',cut(a,9)); put('cam_vf2',cut(z,9));
  const b=d.id?await poster('s:'+d.id):null;
  if(img){ if(PURL){ try{ URL.revokeObjectURL(PURL); }catch(e){} PURL=''; } if(b){ PURL=URL.createObjectURL(b); img.setAttribute('href',PURL); img.style.display=''; } else { img.removeAttribute('href'); img.style.display='none'; } const vf=$('cam_vf'); if(vf) vf.style.display=b?'none':''; }

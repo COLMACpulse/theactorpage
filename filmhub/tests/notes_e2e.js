@@ -2,6 +2,7 @@
    them on) and Paper Trail Research (SHOOT A NOTE, pinned to a scene, its words searchable). Fake camera and mic,
    a stand-in speech service. Made-up films. Server on :8811.  NODE_PATH=... node filmhub/tests/notes_e2e.js */
 const {chromium}=require('playwright');
+const tabGo=async(pg,t)=>{ const sel='#tabs [data-tab="'+t+'"]'; if(!(await pg.$(sel))){ const g=await pg.$('#tabs [data-tabs~="'+t+'"]'); if(g){ await g.click(); await pg.waitForTimeout(150); } } await pg.click(sel); };
 (async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome',args:['--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream']});
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,400))); if(!x) ok=false; };
 const c=await b.newContext({viewport:{width:390,height:844},acceptDownloads:true}); await c.grantPermissions(['camera','microphone'],{origin:'http://localhost:8811'});
@@ -42,8 +43,8 @@ want('delete one', await p.$$eval('[data-note]',x=>x.length)===1);
 // Paper Trail
 const q=await c.newPage(); q.on('pageerror',e=>errs.push(e.message)); q.on('dialog',d=>d.accept());
 await q.goto('http://localhost:8811/papertrail/'); await q.evaluate(()=>{ localStorage.removeItem('paper_trail_v1'); indexedDB.deleteDatabase('paper_trail'); }); await q.reload(); await q.waitForTimeout(700);
-await q.click('#tabs [data-tab="add"]'); await q.fill('#ptitle','Ridge Line'); await q.fill('#paste','Title: Ridge Line\n\nEXT. RIDGE - DAY\n\nVale climbs.\n\nVALE\nRope.\n\nINT. CABIN - NIGHT\n\nHale sits.\n'); await q.click('#readit'); await q.waitForTimeout(500);
-await q.click('[data-open]'); await q.waitForTimeout(300); await q.click('#tabs [data-tab="research"]'); await q.waitForTimeout(300);
+await tabGo(q,'add'); await q.fill('#ptitle','Ridge Line'); await q.fill('#paste','Title: Ridge Line\n\nEXT. RIDGE - DAY\n\nVale climbs.\n\nVALE\nRope.\n\nINT. CABIN - NIGHT\n\nHale sits.\n'); await q.click('#readit'); await q.waitForTimeout(500);
+await q.click('[data-open]'); await q.waitForTimeout(300); await tabGo(q,'research'); await q.waitForTimeout(300);
 await q.click('#rnote'); await q.waitForTimeout(1500);
 want('Paper Trail: SHOOT A NOTE, with the scenes to pin it to', await q.evaluate(()=>[...document.querySelectorAll('#ncsc option')].map(o=>o.text).join('|'))==='No scene|SC 1 EXT. RIDGE - DAY|SC 2 INT. CABIN - NIGHT');
 await q.selectOption('#ncsc','1'); await q.click('#ncgo'); await q.waitForTimeout(900); await q.evaluate(()=>window.__say('the cabin needs a stove'));

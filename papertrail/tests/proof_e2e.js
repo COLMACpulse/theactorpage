@@ -2,6 +2,7 @@
    or the nearest draft and how far off), proof of everything from Projects. Made-up drafts. Server on :8811.
    NODE_PATH=... node papertrail/tests/proof_e2e.js */
 const {chromium}=require('playwright'); const fs=require('fs'), os=require('os'), path=require('path'), crypto=require('crypto');
+const tabGo=async(pg,t)=>{ const sel='#tabs [data-tab="'+t+'"]'; if(!(await pg.$(sel))){ const g=await pg.$('#tabs [data-tabs~="'+t+'"]'); if(g){ await g.click(); await pg.waitForTimeout(150); } } await pg.click(sel); };
 (async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,500))); if(!x) ok=false; };
 const T=fs.mkdtempSync(path.join(os.tmpdir(),'pf-'));
@@ -15,7 +16,7 @@ const c=await b.newContext({viewport:{width:390,height:844},acceptDownloads:true
 await p.goto('http://localhost:8811/papertrail/'); await p.evaluate(()=>{ localStorage.removeItem('paper_trail_v1'); indexedDB.deleteDatabase('paper_trail'); }); await p.reload(); await p.waitForTimeout(700);
 await p.setInputFiles('#file',[path.join(T,'Ridge Line - draft 1.fountain')]); await p.waitForTimeout(500);
 await p.setInputFiles('#file',[path.join(T,'Ridge Line - draft 2.fountain')]); await p.waitForTimeout(500);
-await p.click('[data-open]'); await p.waitForTimeout(200); await p.click('#tabs [data-tab="drafts"]'); await p.waitForTimeout(200);
+await p.click('[data-open]'); await p.waitForTimeout(200); await tabGo(p,'drafts'); await p.waitForTimeout(200);
 let m=await p.innerText('#main');
 want('each draft shows its fingerprint, short', m.includes('fingerprint '+fp(D1).slice(0,8)+'…'+fp(D1).slice(-4))&&m.includes('fingerprint '+fp(D2).slice(0,8)), m.slice(0,600));
 want('PROOF OF DRAFT says what it proves and what it does not', /It proves the words, not the date\. For the date, email the receipt to yourself or register the script\./.test(m));

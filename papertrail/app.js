@@ -127,11 +127,23 @@ async function docxText(buf){
 }
 
 /* ---------- views ---------- */
+/* the tabs, in three rooms: never more than a handful in sight */
+const GROUPS=[['all','Across projects',[['allchars','All characters'],['voice','Sounds like you'],['allsent','All sent out']]],
+ ['script','The script',[['scenes','Scenes'],['read','Table read'],['characters','Characters'],['threads','Setups']]],
+ ['work','The work',[['bones','Boneyard'],['research','Research'],['drafts','Drafts']]],
+ ['send','Send it',[['package','Package'],['sent','Sent out']]]];
+let LASTIN={};
+const groupOf=t=>(GROUPS.find(g=>g[2].some(x=>x[0]===t))||[])[0]||'';
 function tabs(){
- const p=VIEW.p&&DB.projects[VIEW.p];
- const t=[['projects','Projects'],['add','Add drafts'],['allchars','All characters'],['voice','Sounds like you'],['allsent','All sent out']];
- if(p) t.push(['scenes','Scenes'],['read','Table read'],['bones','Boneyard'],['research','Research'],['threads','Setups'],['drafts','Drafts'],['characters','Characters'],['package','Package'],['sent','Sent out']);
- $('tabs').innerHTML=t.map(([k,l])=>'<button data-tab="'+k+'" class="'+(VIEW.tab===k?'on':'')+'">'+l+'</button>').join('');
+ const p=VIEW.p&&DB.projects[VIEW.p], gNow=groupOf(VIEW.tab); if(gNow) LASTIN[gNow]=VIEW.tab;
+ const btn=(k,l)=>'<button data-tab="'+k+'" class="'+(VIEW.tab===k?'on':'')+'">'+l+'</button>';
+ const grp=g=>'<button class="grp'+(gNow===g[0]?' on':'')+'" data-grp="'+g[0]+'" data-tabs="'+g[2].map(x=>x[0]).join(' ')+'">'+g[1]+'</button>';
+ let h='<div class="trow">'+btn('projects','Projects')+btn('add','Add drafts')+grp(GROUPS[0])+'</div>';
+ if(p) h+='<div class="trow tproj"><span class="tname">'+esc(p.title)+'</span>'+GROUPS.slice(1).map(grp).join('')+'</div>';
+ const G=GROUPS.find(g=>g[0]===gNow);
+ if(G&&(G[0]==='all'||p)) h+='<div class="trow tsub">'+G[2].map(([k,l])=>btn(k,l)).join('')+'</div>';
+ $('tabs').innerHTML=h;
+ $('tabs').querySelectorAll('[data-grp]').forEach(b=>b.onclick=()=>{ const G=GROUPS.find(g=>g[0]===b.dataset.grp); VIEW.char=null; go(LASTIN[G[0]]||G[2][0][0]); });
  $('crumb').innerHTML='<a data-go="projects">Paper Trail</a>'+(p?' &nbsp;/&nbsp; <a data-go="scenes">'+esc(p.title)+'</a>':'')+(VIEW.scene!=null&&p?' &nbsp;/&nbsp; scene':'');
 }
 function render(){
