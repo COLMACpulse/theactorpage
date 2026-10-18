@@ -136,6 +136,8 @@
     if (bd) { const w = R.parseWhen(bd[1], yHint); if (w && (!out.due || w.y !== out.due.y || w.mo !== out.due.mo || w.d !== out.due.d)) out.otherDates.push({ text: 'DEADLINE: ' + bd[1].trim(), what: "On the breakdown: the reps' submission deadline. Not your tape." }); }
     if (out.shootDates) out.otherDates.push({ text: 'Shoot: ' + out.shootDates, what: 'When they film. Hold it in case you book.' });
     Object.keys(out).forEach(k => { const v = out[k]; if (v && (typeof v !== 'object' || (Array.isArray(v) ? v.length : true)) && !['sent', 'passed', 'found', 'dueFrom', 'confirmOnEcoCast', 'conflicts'].includes(k)) out.found.push(k); });
+    // how they want it sent (shared/delivery.js), from the instructions' own words
+    try { const DL = g.Delivery || (typeof require === 'function' ? require('../shared/delivery.js') : null); out.delivery = DL ? DL.read(instr) : null; } catch (e) { out.delivery = null; }
     return out;
   };
 

@@ -68,7 +68,7 @@ body{padding-bottom:env(safe-area-inset-bottom);padding-left:env(safe-area-inset
 #sPartner.on{display:block}
 .fbtn{display:inline-block;border:1px solid var(--line2);background:var(--p1);color:var(--ink);border-radius:10px;padding:6px 8px;font-weight:700;font-size:10px;letter-spacing:.08em;cursor:pointer;white-space:nowrap}
 .fbtn input{display:none}.vq{display:flex;gap:6px;flex-wrap:wrap}
-.bmsg{font-size:12px;color:var(--gold);padding:6px 0 2px}.orbox{border:1px solid var(--line2);background:var(--p2);border-radius:10px;padding:12px 13px;margin:0 0 11px}.orbox>b{display:block;font:10px var(--mono);letter-spacing:.14em;color:var(--gold);margin-bottom:5px}.orbox>span{display:block;font-size:13px;line-height:1.45}.orbox small{display:block;color:var(--faint);font-size:11.5px;margin-top:8px}.orbox .row{margin-top:10px;gap:8px}.orbox.on{border-color:#d9694e}.orbox.on>b{color:#d9694e}.orscript{max-height:46vh;overflow:auto;margin-top:6px}.orscript p{margin:0 0 8px;font-size:15px;line-height:1.45}.orscript p i{display:block;font:9px var(--mono);letter-spacing:.14em;font-style:normal;color:var(--gold)}.orscript p.me{color:var(--mut)}.orflag{font:9px var(--mono);letter-spacing:.12em;border:1px solid #e0a23c;color:#e0a23c;border-radius:999px;padding:2px 6px;margin-left:6px}
+.bmsg{font-size:12px;color:var(--gold);padding:6px 0 2px}.offbox{border:1px solid var(--line2);background:var(--p2);border-radius:10px;padding:12px 13px;margin:0 0 11px}.offbox>b{display:block;font:10px var(--mono);letter-spacing:.14em;color:var(--gold);margin-bottom:5px}.offbox>span{display:block;font-size:13px;line-height:1.45}.offres{margin-top:10px;font-size:13px}.offres>b{display:block;color:var(--go);margin-bottom:4px}.offwhy{font-size:12px;color:var(--mut);margin-top:4px;line-height:1.4}.offwhy i{font-style:normal;color:var(--ink);margin-right:4px}.orbox{border:1px solid var(--line2);background:var(--p2);border-radius:10px;padding:12px 13px;margin:0 0 11px}.orbox>b{display:block;font:10px var(--mono);letter-spacing:.14em;color:var(--gold);margin-bottom:5px}.orbox>span{display:block;font-size:13px;line-height:1.45}.orbox small{display:block;color:var(--faint);font-size:11.5px;margin-top:8px}.orbox .row{margin-top:10px;gap:8px}.orbox.on{border-color:#d9694e}.orbox.on>b{color:#d9694e}.orscript{max-height:46vh;overflow:auto;margin-top:6px}.orscript p{margin:0 0 8px;font-size:15px;line-height:1.45}.orscript p i{display:block;font:9px var(--mono);letter-spacing:.14em;font-style:normal;color:var(--gold)}.orscript p.me{color:var(--mut)}.orflag{font:9px var(--mono);letter-spacing:.12em;border:1px solid #e0a23c;color:#e0a23c;border-radius:999px;padding:2px 6px;margin-left:6px}
 .vmix{display:flex;flex-wrap:wrap;gap:6px;width:100%;margin-top:6px}
 /* the camera / mic bar (shared/hot.js) is always on top; the take's own top row sits under it, not behind it */
 body:has(#hotbar) #stage .sTop{top:calc(env(safe-area-inset-top) + 48px)}
@@ -537,6 +537,7 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
 <div class="am">Nothing gets uploaded from here. These are your files, named the way casting expects, sitting on your <span class="dvn">phone</span>. Open Actors Access, pick them, upload, press send.</div>
 
 <div class="section"><h3>How does this office want it?</h3><div class="inside">
+ <div id="offBox"></div>
  <div class="modes" id="sendModes"></div>
  <div class="am" style="margin-top:11px">If the breakdown says nothing, one file with the slate on the front is the usual choice.</div>
 </div></div>
@@ -555,7 +556,7 @@ const KEY='actor_os_wired_v06';
 const state=Object.assign({job:{project:'Untitled Performance',role:'',due:'',instructions:'',research:''},takes:[],scene:1,destination:'REPRESENTATION',sequence:[],package:null},JSON.parse(localStorage.getItem(KEY)||'{}'));
 const _NULLEL={textContent:'',innerHTML:'',value:'',style:{},classList:{add(){},remove(){},contains(){return false}},
  addEventListener(){},setAttribute(){},getBoundingClientRect(){return{width:0,height:0}}};
-const $=id=>document.getElementById(id)||_NULLEL; const save=()=>{state.job={project:$('project').value,role:$('role').value,due:(document.getElementById('due')?$('due').value:((state.job&&state.job.due)||'')),instructions:$('instructions').value,research:$('research').value};localStorage.setItem(KEY,JSON.stringify(state));$('saveState').textContent='LOCAL STATE · SAVED';renderJob();};
+const $=id=>document.getElementById(id)||_NULLEL; const save=()=>{state.job=Object.assign(state.job||{},{project:$('project').value,role:$('role').value,due:(document.getElementById('due')?$('due').value:((state.job&&state.job.due)||'')),instructions:$('instructions').value,research:$('research').value});localStorage.setItem(KEY,JSON.stringify(state));$('saveState').textContent='LOCAL STATE · SAVED';renderJob();};
 ['project','role','due','instructions','research','cue','actorLine','displayMode','advanceMode','anchor','action','forbidden','posture','reader'].forEach(id=>$(id)?.addEventListener('input',()=>{save();renderPrompt()}));
 function renderJob(){$('jobTitle').textContent=$('project').value||'Untitled Performance';$('jobMeta').textContent=((state.job.role||'PERFORMANCE').toUpperCase())+' · Scene '+state.scene;$('project').focus()}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button,.panel').forEach(x=>x.classList.remove('on'));b.classList.add('on');$(b.dataset.tab).classList.add('on');navState();if(b.dataset.tab!=='shoot'&&!(typeof MODE!=='undefined'&&MODE)){try{releaseAll();const o=$('prevOff');if(o&&o.style)o.style.display='';}catch(e){}}if(b.dataset.tab==='cut'){renderCut();renderCutWork();}if(b.dataset.tab==='save')renderSave();if(b.dataset.tab==='send')renderSend();});
@@ -689,6 +690,8 @@ window.addEventListener('DOMContentLoaded',()=>{
 <script src="../shared/takes.js"></script>
 <script src="../shared/scenes.js"></script>
 <script src="../shared/practice.js"></script>
+<script src="../shared/delivery.js"></script>
+<script src="../shared/inbox.js"></script>
 <script src="sides.js"></script>
 <script src="pdf.js"></script>
 <script src="reader.js"></script>
@@ -1484,7 +1487,7 @@ function cleanToggleHtml(){
  return `<label class="cleanbox"><input type="checkbox" ${cleanOn()?'checked':''} onchange="setClean(this.checked)">
   <span><b>Clean up the sound</b><small>Cuts the low rumble (air conditioning, traffic) and brings the take to a normal level. One fixed amount for the whole take, so your quiet moments stay quiet.</small></span></label>`;
 }
-function fitCap(){ try{ return localStorage.getItem('actor_os_fitmb')||''; }catch(e){ return ''; } }
+function fitCap(){ if(state.job&&state.job.fitMB) return String(state.job.fitMB); try{ return localStorage.getItem('actor_os_fitmb')||''; }catch(e){ return ''; } }
 function setFitCap(v){ try{ localStorage.setItem('actor_os_fitmb',String(v||'').trim()); }catch(e){} }
 function capLine(bytes,cap){
  if(!cap) return '';
@@ -1938,8 +1941,8 @@ const SEND_MODES=[
  {id:'SLATE_LAST', label:'One file, slate last',  note:'Everything joined, slate at the end.'}
 ];
 function sendMode(){ return (state.job&&state.job.sendMode)||'SEPARATE'; }
-function setSendMode(m){
- state.job=state.job||{}; state.job.sendMode=m;
+function setSendMode(m,from){
+ state.job=state.job||{}; state.job.sendMode=m; state.job.sendFrom=from||'you';
  try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){}
  renderSend();
 }
@@ -1952,7 +1955,41 @@ function orderedForSend(){
  if(m==='SLATE_LAST') return rest.concat(slates);
  return slates.concat(rest);
 }
+/* THEIR WORDS: paste the office's instructions (or use a request you dropped on home) and the send is set from them.
+   shared/delivery.js reads them; each thing set shows the sentence it came from. You can still change it. */
+function offRequests(){ try{ return (window.Inbox?Inbox.all('request'):[]).filter(x=>x.data&&x.data.raw).sort((a,b)=>b.at-a.at).slice(0,3); }catch(e){ return []; } }
+function offUse(id){ try{ const it=Inbox.get(id); if(it&&it.data&&it.data.raw){ const t=$('offText'); if(t&&t.value!==undefined) t.value=it.data.raw; offRead(it.data.raw); } }catch(e){} }
+function offRead(text){
+ text=String(text==null?(($('offText')||{}).value||''):text);
+ state.job=state.job||{}; state.job.instructions=text; try{ const f=document.getElementById('instructions'); if(f) f.value=text; }catch(e){}
+ if(!window.Delivery){ return; }
+ const d=Delivery.read(text); state.job.delivery=d;
+ if(d.mode){ state.job.sendMode=d.mode; state.job.sendFrom='office'; }
+ if(d.maxMB) state.job.fitMB=d.maxMB;
+ if(d.maxSecs&&!limitSecs()) state.job.limit=fmtLen(d.maxSecs);
+ try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){}
+ renderSend(); try{ renderCut(); }catch(e){}
+}
+function offBoxHtml(){
+ const j=state.job||{}, d=j.delivery, R=offRequests();
+ let h=`<div class="offbox"><b>THEIR WORDS</b><span>Paste the office's instructions, the notice or the email, and this sets how it goes out. Each thing it sets shows the line it came from.</span>`;
+ if(R.length) h+=`<div class="row" style="gap:6px;margin-top:9px">${R.map(it=>`<button class="mini ghost" data-offreq="${it.id}" onclick="offUse('${it.id}')">USE: ${esc2(String(it.data.title||it.data.raw).replace(/\s+/g,' ').slice(0,34))}${it.data.role?' &middot; '+esc2(it.data.role):''}</button>`).join('')}</div>`;
+ h+=`<textarea id="offText" rows="3" placeholder="e.g. Both scenes in one file, slate at the end, under 100 MB." style="margin-top:9px">${esc2(j.instructions||'')}</textarea>
+  <div class="row" style="margin-top:7px"><button class="mini" id="offGo" onclick="offRead()">READ IT</button></div>`;
+ if(d){
+  const w=Delivery.words(d);
+  if(!w) h+=`<div class="offres">Nothing in there about how to send it. Pick below.</div>`;
+  else { h+=`<div class="offres"><b>From their words: ${esc2(w)}</b>${d.why.map(x=>`<div class="offwhy"><i>${esc2(x.what)}</i> &ldquo;${esc2(x.quote)}&rdquo;</div>`).join('')}`;
+   if(d.mode&&j.sendFrom==='you'&&j.sendMode!==d.mode) h+=`<div class="offwhy" style="color:var(--hold)">You picked ${esc2(Delivery.MODEWORDS[j.sendMode]||j.sendMode)}. Their words say ${esc2(Delivery.MODEWORDS[d.mode])}.</div>`;
+   if(d.slate==='none') h+=`<div class="offwhy">They don't want a slate: don't keep one for this.</div>`;
+   if(d.maxMB) h+=`<div class="offwhy">Fit under ${esc2(String(d.maxMB))} MB is set in CUT.</div>`;
+   if(d.maxSecs) h+=`<div class="offwhy">The length limit is ${esc2(j.limit||fmtLen(d.maxSecs))} in CUT.</div>`;
+   h+=`</div>`; }
+ }
+ return h+`</div>`;
+}
 function renderSend(){
+ try{ const ob=$('offBox'); if(ob&&ob.innerHTML!==undefined&&document.activeElement!==$('offText')) ob.innerHTML=offBoxHtml(); }catch(e){}
  const modes=$('sendModes');
  if(modes&&modes.innerHTML!==undefined){
   modes.innerHTML=SEND_MODES.map(m=>`<button class="mode${sendMode()===m.id?' picked':''}" onclick="setSendMode('${m.id}')">

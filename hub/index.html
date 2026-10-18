@@ -161,6 +161,7 @@ small.note{display:block;padding:0 15px 13px;color:var(--faint);font-size:10.5px
 <input id="artin" type="file" multiple class="hide">
 <input id="bkin" type="file" accept=".zip,application/zip" class="hide"><input id="jsonin" type="file" accept=".json,application/json" class="hide"><input id="sidesin" type="file" accept=".txt,.fountain,.fdx,.fdr,.xml,text/plain" class="hide">
 <div class="toast" id="toast"></div>
+<script src="../shared/delivery.js"></script>
 <script src="request.js"></script>
 <script src="../shared/inbox.js"></script>
 <script src="../shared/you.js"></script>
@@ -1364,6 +1365,7 @@ function reqCardBlock(a){if(!a.request)return '';const r=a.request,items=reqChec
  return `<details class="reqcard" ${audIsLive(a)?'open':''}><summary>The request · due ${esc(HubReq.dueWords(r.due,myTZ()))}${items.length?` · ${n} of ${items.length} done`:''}</summary>
   ${r.otherDates.map(x=>`<div class="reqother">${esc(x.text)}: ${esc(x.what)}</div>`).join('')}
   ${items.length?`<div class="reqdir"><b>Their directions</b>${items.map((d,i)=>`<label class="reqchk"><input type="checkbox" ${done[i]?'checked':''} onchange="toggleDir('${a.id}',${i})"> ${esc(d)}</label>`).join('')}</div>`:''}
+  ${r.delivery&&window.Delivery&&Delivery.words(r.delivery)?`<div class="reqother"><b>How they want it sent:</b> ${esc(Delivery.words(r.delivery))} Actor OS sets this in SEND when you paste or pick this request there.</div>`:''}
   <div class="brieftbl">${reqRows(r).filter(x=>x[0]!=='Sides').map(([k,v])=>`<div class="briefrow"><div class="bk">${k}</div><div class="bv">${k==='Contact'?`<a href="mailto:${esc(v)}">${esc(v)}</a>`:esc(v)}</div></div>`).join('')}</div>
   ${r.sides.length?`<div class="reqother">Sides: ${r.sides.map(esc).join(', ')}. Download them from Eco Cast, then drop them in <a href="../breakdown/">BREAKDOWN</a> or <a href="../actor-os/">ACTOR OS</a>; every ACT tool gets them from there.</div>`:''}
  </details>`;}

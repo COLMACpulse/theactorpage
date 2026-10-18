@@ -1,0 +1,52 @@
+/* THEACTORPAGE DELIVERY: how the office wants the tape, read from their own words.
+   One file or separate files, the slate first, last, on its own or not at all, a size cap, a length cap.
+   Each thing it reads comes with the sentence it read it from, so you can see why. Words it doesn't
+   find are left alone: nothing is guessed.
+   Delivery.read(text) -> {files:'one'|'separate'|null, slate:'first'|'last'|'separate'|'none'|null,
+     mode:'SEPARATE'|'SLATE_FIRST'|'SLATE_LAST'|null, maxMB, maxSecs, why:[{what, quote}]}
+   Delivery.words(d) -> one plain line, or '' */
+(function(g){
+const D={};
+const sentences=t=>String(t||'').replace(/\r/g,'').split(/\n+|(?<=[.!?])\s+(?=[A-Z0-9"(])/).map(s=>s.trim()).filter(Boolean);
+const find=(S,re)=>{ for(const s of S){ const m=s.match(re); if(m) return {s,m}; } return null; };
+const ONE=/\b(?:(?:one|single|1)\s+(?:continuous\s+)?(?:video\s+)?(?:file|clip|video|upload)\b(?!\s+(?:per|for each|each))|(?:combine|join|put|edit)\s+(?:all\s+)?(?:(?:of\s+)?(?:your|the)\s+)?(?:scenes?|takes?|clips?)\s+(?:together|into\s+(?:one|a single))|all\s+(?:scenes|takes|clips)\s+(?:in|into|as)\s+(?:one|a single))/i;
+const SEP=/\b(?:separate(?:ly)?|individual(?:ly)?)\s+(?:files?|clips?|videos?|uploads?|takes?)|(?:one|a)\s+(?:file|clip|video)\s+(?:per|for each)\s+(?:scene|take)|each\s+(?:scene|take|clip)\s+(?:as|in|on)\s+(?:its own|a separate|separate)|(?:do\s+not|don.t|please\s+don.t)\s+(?:combine|join|edit\s+(?:the\s+)?(?:scenes|takes)\s+together)|upload\s+each\s+(?:scene|take)/i;
+const S_SEP=/\bslate\s+(?:as\s+)?(?:a\s+)?(?:separate|its own)\s+(?:file|clip|video|upload)|\bseparate\s+slate\b|\bslate\s+separately\b/i;
+const S_NONE=/\b(?:no\s+slate|(?:do\s+not|don.t|please\s+don.t)\s+(?:include\s+a\s+)?slate|slate\s+(?:is\s+)?not\s+(?:needed|required))\b/i;
+const S_LAST=/\bslate\s+(?:at|on)\s+the\s+(?:end|tail)\b|\b(?:end|finish|close)\s+(?:with|on)\s+(?:a|your|the)\s+slate\b|\bslate\s+(?:last|after)\b|\bslate\s+at\s+the\s+end\b/i;
+const S_FIRST=/\bslate\s+(?:at|on)\s+the\s+(?:beginning|start|front|top|head)\b|\b(?:begin|start|open)\s+(?:with|on)\s+(?:a|your|the)\s+slate\b|\bslate\s+first\b|\bslate\s+before\b/i;
+const SIZE=/(?:under|below|less\s+than|no\s+(?:larger|bigger|more)\s+than|not\s+(?:to\s+)?exceed(?:ing)?|max(?:imum)?(?:\s+(?:file\s+)?size)?(?:\s+(?:of|is))?|limit(?:ed)?\s+(?:of|to)|up\s+to|smaller\s+than)\s*:?\s*(\d+(?:\.\d+)?)\s*(MB|GB|megabytes?|gigabytes?|M\b|G\b)|(\d+(?:\.\d+)?)\s*(MB|GB)\s+(?:max(?:imum)?|limit|or\s+(?:less|smaller|under))/i;
+const LEN=/(?:no\s+(?:longer|more)\s+than|under|less\s+than|not\s+(?:to\s+)?exceed(?:ing)?|max(?:imum)?(?:\s+(?:length|of|runtime|running time))?|limit(?:ed)?\s+(?:of|to)|up\s+to|keep\s+(?:it|them|each|your\s+\w+)\s+(?:to|under))\s*:?\s*(\d+(?::\d\d)?|one|two|three|four|five|ten)\s*(seconds?|secs?|minutes?|mins?|min\b)?|(\d+|one|two|three|four|five|ten)[\s-]+(minute|second)s?\s+(?:max(?:imum)?|limit)/i;
+const NUM={one:1,two:2,three:3,four:4,five:5,ten:10};
+const n=v=>NUM[String(v).toLowerCase()]!=null?NUM[String(v).toLowerCase()]:parseFloat(v);
+D.read=function(text){
+ const S=sentences(text), out={files:null,slate:null,mode:null,maxMB:null,maxSecs:null,why:[]}, add=(what,hit)=>out.why.push({what,quote:hit.s.length>220?hit.s.slice(0,219)+'…':hit.s});
+ let h;
+ if((h=find(S,SEP))){ out.files='separate'; add('Separate files',h); }
+ else if((h=find(S,ONE))){ out.files='one'; add('One file',h); }
+ if((h=find(S,S_NONE))){ out.slate='none'; add('No slate',h); }
+ else if((h=find(S,S_SEP))){ out.slate='separate'; add('The slate as its own file',h); }
+ else if((h=find(S,S_LAST))){ out.slate='last'; add('Slate at the end',h); }
+ else if((h=find(S,S_FIRST))){ out.slate='first'; add('Slate at the start',h); }
+ if((h=find(S,SIZE))){ const v=h.m[1]||h.m[3], u=(h.m[2]||h.m[4]||'').toUpperCase(); const mb=n(v)*(/^G/.test(u)?1024:1); if(mb>0){ out.maxMB=Math.round(mb*10)/10; add('Under '+(/^G/.test(u)?n(v)+' GB':out.maxMB+' MB'),h); } }
+ for(const st of S){ const m=st.match(LEN); if(!m) continue; const raw=m[1]||m[3], unit=(m[2]||m[4]||'').toLowerCase();
+  let secs=0; if(/:/.test(raw)){ const [x,y]=raw.split(':'); secs=(+x)*60+(+y); } else if(unit){ secs=n(raw)*(/^m/.test(unit)?60:1); }
+  if(secs>=5&&secs<=3600){ out.maxSecs=secs; add('No longer than '+Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0'),{s:st}); break; } }
+ if(out.files==='separate'||out.slate==='separate') out.mode='SEPARATE';
+ else if(out.files==='one') out.mode=out.slate==='last'?'SLATE_LAST':'SLATE_FIRST';
+ else if(out.slate==='last') out.mode='SLATE_LAST';
+ return out;
+};
+D.MODEWORDS={SEPARATE:'Separate files',SLATE_FIRST:'One file, slate first',SLATE_LAST:'One file, slate last'};
+D.words=function(d){
+ if(!d) return ''; const L=[];
+ if(d.mode) L.push(D.MODEWORDS[d.mode]); else if(d.files) L.push(d.files==='one'?'One file':'Separate files');
+ if(d.slate==='none') L.push('no slate'); else if(d.slate==='first'&&d.mode!=='SLATE_FIRST') L.push('slate at the start');
+ if(d.maxMB) L.push('under '+(d.maxMB>=1024&&d.maxMB%1024===0?d.maxMB/1024+' GB':d.maxMB+' MB'));
+ if(d.maxSecs) L.push('no longer than '+Math.floor(d.maxSecs/60)+':'+String(d.maxSecs%60).padStart(2,'0'));
+ if(!L.length) return '';
+ const s=L.join(', '); return s.charAt(0).toUpperCase()+s.slice(1)+'.';
+};
+if(typeof module!=='undefined') module.exports=D;
+g.Delivery=D;
+})(typeof window!=='undefined'?window:globalThis);
