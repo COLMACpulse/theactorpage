@@ -9,7 +9,7 @@ await p.goto('http://localhost:8811/papertrail/'); await p.evaluate(()=>{ localS
 const bar=()=>p.$$eval('#tabs button',x=>x.map(b=>b.textContent));
 want('no project: three in sight', (await bar()).join('|')==='Projects|Add drafts|Across projects', await bar());
 await p.click('#tabs [data-grp="all"]'); await p.waitForTimeout(150);
-want('Across projects: its three tabs under it', (await bar()).join('|')==='Projects|Add drafts|Across projects|All characters|Sounds like you|All sent out', await bar());
+want('Across projects: its four tabs under it', (await bar()).join('|')==='Projects|Add drafts|Across projects|Your universe|All characters|Sounds like you|All sent out', await bar());
 await p.click('#tabs [data-tab="add"]'); await p.fill('#ptitle','Ridge Line'); await p.fill('#paste','Title: Ridge Line\n\nEXT. RIDGE - DAY\n\nVale climbs.\n\nVALE\nRope.\n'); await p.click('#readit'); await p.waitForTimeout(500);
 await p.click('[data-open]'); await p.waitForTimeout(300);
 let B=await bar();

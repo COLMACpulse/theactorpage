@@ -547,6 +547,41 @@ T.sendSummary=function(list){ const c={}; (list||[]).forEach(e=>{ c[e.status]=(c
 T.sendDue=function(list,now){ const d0=new Date(now||Date.now()); d0.setHours(0,0,0,0);
  return (list||[]).filter(e=>e.status==='planned'&&e.deadline).map(e=>({e,days:Math.round((new Date(e.deadline+'T00:00:00')-d0)/86400000)})).filter(x=>x.days>=0&&x.days<=30).sort((a,b)=>a.days-b.days); };
 T.sendText=function(rows){ return rows.map(r=>[r.title,r.e.where,T.sendLabel(T.SEND_STATUS,r.e.status),T.sendWords(r.e),r.e.notes||''].filter(Boolean).join(' | ')).join('\n'); };
+
+/* ---------- YOUR UNIVERSE: every project, its people, its places, its storylines, as one map. From your pages.
+   Same name in two projects: two people, a dashed line between them, never merged. Facts, no labels. ---------- */
+T.universe=function(projects,opts){ opts=opts||{}; const N=[], E=[], idx={}, add=(id,type,label,size,data)=>{ if(idx[id]!=null) return N[idx[id]]; idx[id]=N.length; const n={id,type,label,size,data:data||{}}; N.push(n); return n; };
+ const placeCount={}, todCount={}, nameIn={};
+ (projects||[]).forEach(p=>{ const sc=p.scenes||[], words=sc.reduce((n,s)=>n+(s.words||0),0); add('p:'+p.id,'project',p.title,Math.min(34,14+Math.sqrt(words)/6),{pid:p.id,scenes:sc.length,words});
+  const C=T.characters([{id:'d',scenes:sc}]).filter(c=>(c.by.d||0)>0).slice(0,opts.maxChars||12);
+  C.forEach(c=>{ const id='c:'+p.id+':'+T.norm(c.name); add(id,'character',c.name,Math.min(18,5+Math.sqrt(c.by.d)*1.6),{pid:p.id,title:p.title,lines:c.by.d}); E.push({a:'p:'+p.id,b:id,kind:'in'}); (nameIn[T.norm(c.name)]=nameIn[T.norm(c.name)]||[]).push(id); });
+  // who shares scenes: two or more together
+  const pair={}; sc.forEach(s=>{ const who=[...new Set((s.lines||[]).map(x=>T.norm(x.name)))].filter(n=>C.some(c=>T.norm(c.name)===n)); for(let i=0;i<who.length;i++) for(let j=i+1;j<who.length;j++){ const k=[who[i],who[j]].sort().join('|'); pair[k]=(pair[k]||0)+1; } });
+  Object.keys(pair).forEach(k=>{ if(pair[k]<2) return; const [x,y]=k.split('|'); E.push({a:'c:'+p.id+':'+x,b:'c:'+p.id+':'+y,kind:'scenes',w:pair[k]}); });
+  const places={}; sc.forEach(s=>{ const pl=String(s.place||'').split(/\s+-\s+/)[0].trim(); if(pl) places[pl]=(places[pl]||0)+1; const t=String(s.tod||'').trim(); if(t) todCount[t]=(todCount[t]||0)+1; });
+  Object.keys(places).sort((a,b)=>places[b]-places[a]).slice(0,opts.maxPlaces||6).forEach(pl=>{ const id='l:'+T.norm(pl); const n=add(id,'place',pl,5,{scenes:0,projects:[]}); n.data.scenes+=places[pl]; if(!n.data.projects.includes(p.title)) n.data.projects.push(p.title); n.size=Math.min(14,4+Math.sqrt(n.data.scenes)*2); E.push({a:'p:'+p.id,b:id,kind:'at',w:places[pl]}); placeCount[pl]=(placeCount[pl]||0)+places[pl]; });
+  (p.threads||[]).slice(0,opts.maxThreads||6).forEach((th,i)=>{ const id='t:'+p.id+':'+i; add(id,'thread',String(th.text||'').slice(0,40)||'(a storyline)',5,{pid:p.id,kind:th.kind,text:th.text}); E.push({a:'p:'+p.id,b:id,kind:'thread'});
+   C.forEach(c=>{ const re=T.nameRe(c.name); if(re&&re.test(String(th.text||''))) E.push({a:id,b:'c:'+p.id+':'+T.norm(c.name),kind:'about'}); }); });
+ });
+ Object.values(nameIn).forEach(L=>{ for(let i=1;i<L.length;i++) E.push({a:L[0],b:L[i],kind:'samename'}); });
+ const top=(o,k)=>Object.keys(o).sort((a,b)=>o[b]-o[a]).slice(0,k);
+ const chars=N.filter(n=>n.type==='character'), facts=[];
+ facts.push((projects||[]).length+' project'+((projects||[]).length===1?'':'s')+', '+chars.length+' speaking character'+(chars.length===1?'':'s')+' on the map.');
+ const again=Object.keys(nameIn).filter(k=>nameIn[k].length>1); if(again.length) facts.push('Names in more than one project: '+again.slice(0,6).join(', ')+(again.length>6?' and '+(again.length-6)+' more':'')+'. Same name, not the same person unless you say so.');
+ const pl=top(placeCount,5).filter(x=>placeCount[x]>1); if(pl.length) facts.push('The places you go back to: '+pl.map(x=>x+' ('+placeCount[x]+' scenes)').join(', ')+'.');
+ const tt=Object.values(todCount).reduce((a,b)=>a+b,0); if(tt) facts.push('Time of day across your scenes: '+top(todCount,4).map(x=>x+' '+Math.round(todCount[x]/tt*100)+'%').join(', ')+'.');
+ const most=chars.slice().sort((a,b)=>b.data.lines-a.data.lines)[0]; if(most) facts.push('The most lines anywhere: '+most.label+' in '+most.data.title+' ('+most.data.lines+').');
+ return {nodes:N,edges:E.filter(e=>idx[e.a]!=null&&idx[e.b]!=null),facts};
+};
+/* where each one sits: pulled by its links, pushed off the others. Same input, same picture. */
+T.uLayout=function(U,w,h,iters){ const N=U.nodes, n=N.length, P=N.map((x,i)=>{ const a=i*2.399963, r=Math.sqrt(i+1)*Math.min(w,h)/(2.2*Math.sqrt(n+1)); return {x:w/2+r*Math.cos(a),y:h/2+r*Math.sin(a)}; }), ix={}; N.forEach((x,i)=>ix[x.id]=i);
+ const E=U.edges.map(e=>[ix[e.a],ix[e.b],e.kind]), k=Math.sqrt(w*h/Math.max(1,n))*0.55; let t=Math.min(w,h)/8;
+ for(let it=0;it<(iters||260);it++){ const D=P.map(()=>({x:0,y:0}));
+  for(let i=0;i<n;i++) for(let j=i+1;j<n;j++){ let dx=P[i].x-P[j].x, dy=P[i].y-P[j].y, d=Math.sqrt(dx*dx+dy*dy)||0.01; const f=k*k/d; dx/=d; dy/=d; D[i].x+=dx*f; D[i].y+=dy*f; D[j].x-=dx*f; D[j].y-=dy*f; }
+  E.forEach(([a,b,kind])=>{ let dx=P[a].x-P[b].x, dy=P[a].y-P[b].y, d=Math.sqrt(dx*dx+dy*dy)||0.01; const f=d*d/k*(kind==='samename'?0.15:kind==='scenes'?0.6:1); dx/=d; dy/=d; D[a].x-=dx*f; D[a].y-=dy*f; D[b].x+=dx*f; D[b].y+=dy*f; });
+  for(let i=0;i<n;i++){ D[i].x+=(w/2-P[i].x)*0.02*k; D[i].y+=(h/2-P[i].y)*0.02*k; const d=Math.sqrt(D[i].x*D[i].x+D[i].y*D[i].y)||1, m=Math.min(d,t); P[i].x=Math.max(60,Math.min(w-60,P[i].x+D[i].x/d*m)); P[i].y=Math.max(40,Math.min(h-50,P[i].y+D[i].y/d*m)); }
+  t*=0.985; }
+ return P.map(p=>({x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10})); };
 if(typeof module!=='undefined') module.exports=T;
 g.PaperTrail=T;
 })(typeof window!=='undefined'?window:globalThis);

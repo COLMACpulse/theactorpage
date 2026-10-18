@@ -128,7 +128,7 @@ async function docxText(buf){
 
 /* ---------- views ---------- */
 /* the tabs, in three rooms: never more than a handful in sight */
-const GROUPS=[['all','Across projects',[['allchars','All characters'],['voice','Sounds like you'],['allsent','All sent out']]],
+const GROUPS=[['all','Across projects',[['universe','Your universe'],['allchars','All characters'],['voice','Sounds like you'],['allsent','All sent out']]],
  ['script','The script',[['scenes','Scenes'],['read','Table read'],['characters','Characters'],['threads','Setups']]],
  ['work','The work',[['bones','Boneyard'],['research','Research'],['drafts','Drafts']]],
  ['send','Send it',[['package','Package'],['sent','Sent out']]]];
@@ -153,6 +153,7 @@ function render(){
  else if(VIEW.tab==='allchars') m.innerHTML=vAllChars();
  else if(VIEW.tab==='voice') m.innerHTML=vVoice();
  else if(VIEW.tab==='allsent') m.innerHTML=vAllSent();
+ else if(VIEW.tab==='universe') m.innerHTML=vUniverse();
  else if(!p||VIEW.tab==='projects') m.innerHTML=vProjects();
  else if(VIEW.tab==='scenes') m.innerHTML=VIEW.scene!=null?vScene(p,VIEW.scene):vScenes(p);
  else if(VIEW.tab==='drafts') m.innerHTML=vDrafts(p);
@@ -719,6 +720,43 @@ function vAllSent(){
  if(R.length) h+='<div class="row" style="margin-top:10px"><button class="btn ghost" id="stxt">SAVE AS TEXT</button></div>';
  return h+WHERE;
 }
+/* ---------- YOUR UNIVERSE: the map ---------- */
+let UF={c:1,l:1,t:1}, USEL=null, UCACHE={k:'',U:null,P:null};
+function uData(){ const P=projects().map(p=>({p,c:current(p)})).filter(x=>x.c), many=P.length>8||(P.length>3&&(typeof innerWidth!=='undefined'?innerWidth:1000)<640);
+ const U=T.universe(P.map(x=>({id:x.p.id,title:x.p.title,scenes:scenesOf(x.c),threads:x.p.threads||[]})),{maxChars:many?7:12,maxPlaces:many?4:6,maxThreads:many?3:6});
+ const keep=n=>n.type==='project'||(n.type==='character'&&UF.c)||(n.type==='place'&&UF.l)||(n.type==='thread'&&UF.t), nodes=U.nodes.filter(keep), ids=new Set(nodes.map(n=>n.id));
+ const V={nodes,edges:U.edges.filter(e=>ids.has(e.a)&&ids.has(e.b)),facts:U.facts}, key=JSON.stringify([nodes.map(n=>n.id),V.edges.length]);
+ const narrow=(typeof innerWidth!=='undefined'?innerWidth:1000)<640, W=narrow?600:1000, H=narrow?860:640;
+ if(UCACHE.k!==key+W){ const L=T.uLayout(V,W,H,nodes.length>200?160:260);
+  /* fill the frame: stretch what the layout found to the edges, keeping room for labels */
+  if(L.length>1){ const xs=L.map(q=>q.x), ys=L.map(q=>q.y), x0=Math.min(...xs), x1=Math.max(...xs), y0=Math.min(...ys), y1=Math.max(...ys);
+   L.forEach(q=>{ q.x=Math.round(70+(x1>x0?(q.x-x0)/(x1-x0):.5)*(W-140)); q.y=Math.round(40+(y1>y0?(q.y-y0)/(y1-y0):.5)*(H-90)); }); }
+  UCACHE={k:key+W,U:V,P:L,W,H}; } return UCACHE; }
+function vUniverse(){
+ const P=projects().filter(p=>current(p));
+ let h='<p class="note">Every project, its people, its places and its storylines, from your own pages. Lines join who shares scenes; a dashed line joins the same name in two projects (not the same person unless you say so). Tap anything.</p>';
+ if(!P.length) return h+'<div class="panel">Nothing on the map yet. Bring in your drafts. <button class="btn sm" data-tab="add">ADD DRAFTS</button></div>';
+ const D=uData(), U=D.U, L=D.P, ix={}, k=D.W/Math.max(300,Math.min(D.W,(typeof innerWidth!=='undefined'?innerWidth:1000)-34)); U.nodes.forEach((n,i)=>ix[n.id]=i);
+ h+='<div class="row" style="gap:6px;margin-bottom:8px">'+[['c','People'],['l','Places'],['t','Storylines']].map(([k,l])=>'<button class="btn sm'+(UF[k]?' pri':' ghost')+'" data-uf="'+k+'">'+l+'</button>').join('')+'</div>';
+ let g=''; const near=new Set(); if(USEL) U.edges.forEach(e=>{ if(e.a===USEL) near.add(e.b); if(e.b===USEL) near.add(e.a); });
+ U.edges.forEach(e=>{ const a=L[ix[e.a]], b=L[ix[e.b]]; g+='<line class="ue ue-'+e.kind+(USEL&&(e.a===USEL||e.b===USEL)?' uon':'')+'" x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'"'+(e.w?' stroke-width="'+Math.min(4,0.8+e.w/3)+'"':'')+'/>'; });
+ U.nodes.forEach((n,i)=>{ const q=L[i], r=Math.round(n.size*Math.max(1,k*.75)), fs=Math.round((n.type==='project'?13:11)*k), sel=USEL===n.id?' usel':near.has(n.id)?' uon':'';
+  const shape=n.type==='project'?'<circle r="'+r+'"/>':n.type==='character'?'<circle r="'+r+'"/>':n.type==='place'?'<rect x="'+(-r)+'" y="'+(-r)+'" width="'+(2*r)+'" height="'+(2*r)+'" rx="2"/>':'<path d="M0 '+(-r-2)+'L'+(r+2)+' 0L0 '+(r+2)+'L'+(-r-2)+' 0Z"/>';
+  const lab=n.label.length>22?n.label.slice(0,21)+'…':n.label, hw=Math.max(r+6,(n.type!=='thread'||USEL===n.id?lab.length*fs*.33:0),14*k);
+  g+='<g class="un un-'+n.type+sel+'" data-un="'+esc(n.id)+'" transform="translate('+q.x+' '+q.y+')" tabindex="0"><rect class="uhit" x="'+(-hw)+'" y="'+(-r-6)+'" width="'+(2*hw)+'" height="'+(2*r+fs+12)+'"/>'+shape+(n.type!=='thread'||USEL===n.id?'<text y="'+(r+fs+2)+'" font-size="'+fs+'">'+esc(lab)+'</text>':'')+'</g>'; });
+ h+='<div class="umap"><svg'+(USEL?' class="ufocus"':'')+' viewBox="0 0 '+D.W+' '+D.H+'" role="img" aria-label="Your universe">'+g+'</svg></div>';
+ h+='<div class="ulegend note"><span><i class="lp"></i>project</span><span><i class="lc"></i>person</span><span><i class="ll"></i>place</span><span><i class="lt"></i>storyline</span></div>';
+ h+='<div class="panel" id="uinfo">'+uInfo(U)+'</div>';
+ h+='<div class="eyebrow">What the map shows</div><div class="panel">'+U.facts.map(f=>'<p style="margin:4px 0">'+esc(f)+'</p>').join('')+'</div>';
+ return h;
+}
+function uInfo(U){ const n=USEL&&U.nodes.find(x=>x.id===USEL); if(!n) return '<span class="note">Tap a project, a person, a place or a storyline.</span>';
+ const near=U.edges.filter(e=>(e.a===n.id||e.b===n.id)&&e.kind!=='samename').map(e=>U.nodes.find(x=>x.id===(e.a===n.id?e.b:e.a))).filter(Boolean);
+ if(n.type==='project') return '<b>'+esc(n.label)+'</b><p class="note" style="margin:4px 0">'+n.data.scenes+' scenes · '+n.data.words.toLocaleString('en-US')+' words · '+near.filter(x=>x.type==='character').length+' people on the map</p><button class="btn sm" data-uopen="'+esc(n.data.pid)+'">OPEN IT</button>';
+ if(n.type==='character'){ const same=U.edges.filter(e=>e.kind==='samename'&&(e.a===n.id||e.b===n.id)).map(e=>U.nodes.find(x=>x.id===(e.a===n.id?e.b:e.a))).filter(Boolean);
+  return '<b>'+esc(n.label)+'</b><p class="note" style="margin:4px 0">'+esc(n.data.title)+' · '+n.data.lines+' lines'+(near.filter(x=>x.type==='character').length?' · shares scenes with '+near.filter(x=>x.type==='character').map(x=>esc(x.label)).join(', '):'')+(same.length?'<br>Same name in '+same.map(x=>esc(x.data.title)).join(', ')+'.':'')+'</p><button class="btn sm" data-uchar="'+esc(n.data.pid)+'|'+esc(n.label)+'">EVERYTHING ON '+esc(n.label)+'</button>'; }
+ if(n.type==='place') return '<b>'+esc(n.label)+'</b><p class="note" style="margin:4px 0">'+n.data.scenes+' scene'+(n.data.scenes===1?'':'s')+' · in '+n.data.projects.map(esc).join(', ')+'</p>';
+ return '<b>'+(n.data.kind==='secret'?'A secret':'A setup')+'</b><p style="margin:4px 0">'+esc(n.data.text||'')+'</p><button class="btn sm" data-uthread="'+esc(n.data.pid)+'">SEE SETUPS</button>'; }
 function vChars(p){
  const ds=draftsOf(p.id).filter(d=>d.kind==='script'&&!d.retired);
  if(!ds.length) return '<div class="panel">No script drafts yet.</div>';
@@ -750,6 +788,12 @@ function wire(){
  document.querySelectorAll('[data-scene]').forEach(b=>b.onclick=()=>{ VIEW.scene=Number(b.dataset.scene); render(); window.scrollTo(0,0); });
  document.querySelectorAll('[data-goscene]').forEach(b=>b.onclick=()=>{ VIEW.tab='scenes'; VIEW.scene=Number(b.dataset.goscene); render(); window.scrollTo(0,0); });
  document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>{ VIEW.scene=null; render(); });
+ /* YOUR UNIVERSE */
+ document.querySelectorAll('[data-uf]').forEach(b=>b.onclick=()=>{ UF[b.dataset.uf]=UF[b.dataset.uf]?0:1; render(); });
+ document.querySelectorAll('[data-un]').forEach(g=>{ const f=()=>{ USEL=USEL===g.dataset.un?null:g.dataset.un; render(); }; g.onclick=f; g.onkeydown=e=>{ if(e.key==='Enter') f(); }; });
+ document.querySelectorAll('[data-uopen]').forEach(b=>b.onclick=()=>{ VIEW.p=b.dataset.uopen; go('scenes'); });
+ document.querySelectorAll('[data-uchar]').forEach(b=>b.onclick=()=>{ const i=b.dataset.uchar.indexOf('|'); VIEW.p=b.dataset.uchar.slice(0,i); VIEW.char=b.dataset.uchar.slice(i+1); VIEW.tab='characters'; render(); window.scrollTo(0,0); });
+ document.querySelectorAll('[data-uthread]').forEach(b=>b.onclick=()=>{ VIEW.p=b.dataset.uthread; go('threads'); });
  /* SENT OUT */
  { const p=VIEW.p&&DB.projects[VIEW.p];
   const sa=$('sadd'); if(sa&&p) sa.onclick=()=>{ const w=$('sw').value.trim(); if(!w){ toast('Where did it go?'); return; } const d=DB.drafts[$('sdr').value];
@@ -949,6 +993,6 @@ async function fromInbox(){ if(!window.Inbox) return; const L=Inbox.pending(TOOL
  for(const it of L){ try{ const r=await addDraft(it.data.text||'',it.data.file||'Untitled.fountain',it.data.source||'Home',{title:it.data.title||undefined,label:it.data.label||undefined}); if(r&&r.ok) got.push(r); }catch(e){} Inbox.take(TOOL,it.id); }
  if(got.length){ ADDED=got; VIEW.tab='add'; toast(got.length===1?'From home: '+got[0].p.title+', '+got[0].d.label+'.':'From home: '+got.length+' drafts.'); } }
 /* a link can open a tab: ?tab=allchars (the home page's Characters) */
-(async()=>{ await loadTexts(); await handoff(); await fromInbox(); try{ const t=new URLSearchParams(location.search).get('tab'); if(t&&['allchars','voice','allsent','add','projects'].includes(t)&&VIEW.tab==='projects') VIEW.tab=t; }catch(e){} render(); })();
+(async()=>{ await loadTexts(); await handoff(); await fromInbox(); try{ const t=new URLSearchParams(location.search).get('tab'); if(t&&['universe','allchars','voice','allsent','add','projects'].includes(t)&&VIEW.tab==='projects') VIEW.tab=t; }catch(e){} render(); })();
 window.__trail={DB:()=>DB,TEXT:()=>TEXT,addDraft:addDraft,docxText:docxText};
 })();
