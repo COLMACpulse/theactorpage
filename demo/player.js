@@ -7,15 +7,16 @@
   'use strict';
   const T = window.TourStops, D = window.TapDemo, $ = id => document.getElementById(id);
   const ROOT = D.root, fr = $('fr'), vo = $('vo');
-  const DEPTS = ['act', 'write', 'film'];
-  /* your SHOW ME choice, from your real settings */
+  const CHS = ['act', 'own'];
+  /* from your real SHOW ME: ACT if you show ACT; Make your own if you show WRITE or FILM */
   function shown() { let o = null; try { o = JSON.parse(D.realGet('theactorpage_view') || 'null'); } catch (e) { }
-    const s = DEPTS.filter(d => !(o && o[d] === false)); return s.length ? s : DEPTS.slice(); }
+    const has = d => !(o && o[d] === false), s = [];
+    if (has('act')) s.push('act'); if (has('write') || has('film')) s.push('own'); return s.length ? s : CHS.slice(); }
   let pickD = shown(), LIST = [], I = 0, PAUSED = false, RUN = 0, timer = 0, utter = null;
   const chips = [...document.querySelectorAll('#chips [data-d]')];
   function paintChips() { chips.forEach(b => b.setAttribute('aria-pressed', String(pickD.includes(b.dataset.d))));
-    const s = T.pick(pickD).reduce((a, x) => a + T.secs(x) + 1.5, 0); $('mins').textContent = Math.max(1, Math.round(s / 60)); }
-  chips.forEach(b => b.onclick = () => { const d = b.dataset.d, on = pickD.includes(d); if (on && pickD.length === 1) return; pickD = on ? pickD.filter(x => x !== d) : DEPTS.filter(x => x === d || pickD.includes(x)); paintChips(); });
+    const s = T.pick(pickD).reduce((a, x) => a + T.secs(x), 0); $('mins').textContent = Math.max(1, Math.round(s / 60)); }
+  chips.forEach(b => b.onclick = () => { const d = b.dataset.d, on = pickD.includes(d); if (on && pickD.length === 1) return; pickD = on ? pickD.filter(x => x !== d) : CHS.filter(x => x === d || pickD.includes(x)); paintChips(); });
   paintChips();
 
   /* ---------- the frame ---------- */
@@ -80,18 +81,18 @@
   /* ---------- running it ---------- */
   function paint(s) {
     const c = T.CH[s.ch], inCh = LIST.filter(x => x.ch === s.ch), k = inCh.indexOf(s) + 1;
-    document.documentElement.style.setProperty('--c', c.color);
+    document.documentElement.style.setProperty('--c', T.tint(s));
     $('where').textContent = c.name; $('count').textContent = k + ' OF ' + inCh.length; $('cap').textContent = s.line;
     $('pp').textContent = PAUSED ? 'PLAY' : 'PAUSE'; $('bk').disabled = I === 0;
   }
-  async function wash(s) { const w = $('wash'), c = T.CH[s.ch]; w.style.setProperty('--c', c.color); w.style.background = c.color; w.textContent = c.name; w.classList.add('on'); await sleep(1300); w.classList.remove('on'); await sleep(250); }
+  async function wash(s) { const w = $('wash'), c = T.CH[s.ch]; w.style.setProperty('--c', c.color); w.style.background = c.wash || c.color; w.textContent = c.name; w.style.fontSize = c.name.length > 6 ? 'clamp(34px,11vw,84px)' : ''; w.style.textAlign = 'center'; w.classList.add('on'); await sleep(1300); w.classList.remove('on'); await sleep(250); }
   async function play(i) {
     const run = ++RUN; hush(); unring(); I = Math.max(0, Math.min(i, LIST.length - 1)); const s = LIST[I]; paint(s);
     if (!samePage(s.path)) { await load(s.path); if (run !== RUN) return; await sleep(500); }
     if (s.wash) await wash(s); if (run !== RUN) return;
     if (s.ready) await waitFor(s.ready, 8000);
     for (const a of (s.act || [])) { await step(a, run); if (run !== RUN) return; }
-    await sleep(250); ring(s.hi, T.CH[s.ch].color); window.__tour.at = s.id; window.__tour.log.push({ id: s.id, lit: !!ringFor, path: here(), t: Date.now() });
+    await sleep(250); ring(s.hi, T.tint(s)); window.__tour.at = s.id; window.__tour.log.push({ id: s.id, lit: !!ringFor, path: here(), t: Date.now() });
     if (PAUSED) return;
     await say(s, run); if (run !== RUN || PAUSED) return;
     await sleep(700); if (run !== RUN || PAUSED) return;

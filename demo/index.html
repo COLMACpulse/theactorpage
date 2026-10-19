@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#0c0b0a">
 <title>THEACTORPAGE Tour</title>
 <style>
-:root{--bg:#0c0b0a;--panel:#161412;--line:#2c2823;--ink:#f1ece2;--dim:#b8ae9e;--faint:#7d7466;--act:#e0a23c;--write:#ece7dc;--film:#6fa8d6;--c:var(--write);--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;--bar:156px}
+:root{--bg:#0c0b0a;--panel:#161412;--line:#2c2823;--ink:#f1ece2;--dim:#b8ae9e;--faint:#7d7466;--act:#e0a23c;--write:#ece7dc;--film:#6fa8d6;--c:var(--write);--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;--bar:176px}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 button{font:inherit;color:inherit;cursor:pointer}
@@ -18,7 +18,7 @@ p{margin:0 0 12px}.dim{color:var(--dim)}.faint{color:var(--faint);font-size:14px
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 6px}
 .chip{min-height:42px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:transparent;font:800 13px var(--mono);letter-spacing:.1em;color:var(--faint)}
 .chip[aria-pressed="true"]{color:#111;border-color:transparent}
-.chip.act[aria-pressed="true"]{background:var(--act)}.chip.write[aria-pressed="true"]{background:var(--write)}.chip.film[aria-pressed="true"]{background:var(--film)}
+.chip.act[aria-pressed="true"]{background:var(--act)}.chip.own[aria-pressed="true"]{background:linear-gradient(90deg,var(--write) 0 50%,var(--film) 50% 100%)}
 .go{display:block;width:100%;min-height:56px;margin:20px 0 12px;border:0;border-radius:12px;background:var(--act);color:#111;font:800 16px var(--mono);letter-spacing:.14em}
 .back{color:var(--dim);font-size:14px;text-decoration:none}
 .run{position:fixed;inset:0;display:none;flex-direction:column}
@@ -47,13 +47,12 @@ p{margin:0 0 12px}.dim{color:var(--dim)}.faint{color:var(--faint);font-size:14px
 <main class="start" id="start">
 <p class="kick">THEACTORPAGE · THE TOUR</p>
 <h1>See it work, on a made-up script.</h1>
-<p class="dim">A narrated walk through the site, about <b id="mins">4</b> minutes. It runs on <b>LOW TIDE</b>, a short script we made up, through every tool you pick.</p>
+<p class="dim">A narrated walk through the site for actors, about <b id="mins">5</b> minutes. It runs on <b>LOW TIDE</b>, a short script we made up.</p>
 <p class="dim">Your own work is put away while you watch. Nothing of yours is shown or changed, and it's all there when you leave.</p>
-<p class="faint" style="margin-top:16px">Which parts?</p>
+<p class="faint" style="margin-top:16px">ACT is the tour. MAKE YOUR OWN is for when there's no audition this week: write a scene, shoot it, hand it off.</p>
 <div class="chips" id="chips">
 <button class="chip act" data-d="act" aria-pressed="true">ACT</button>
-<button class="chip write" data-d="write" aria-pressed="true">WRITE</button>
-<button class="chip film" data-d="film" aria-pressed="true">FILM</button>
+<button class="chip own" data-d="own" aria-pressed="true">MAKE YOUR OWN</button>
 </div>
 <button class="go" id="go">START THE TOUR</button>
 <p class="faint">It talks, with captions on. Pause, go back or skip anytime. It never turns on your camera or mic.</p>
