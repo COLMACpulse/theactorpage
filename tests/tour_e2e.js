@@ -1,0 +1,54 @@
+/* THE TOUR, start to end: every stop goes to its page, does its steps and lights up its part while its line plays.
+   The voice is a stand-in that finishes fast. A made-up "real" script is on the shelf the whole time: the tour never
+   shows it, and END DEMO leaves it exactly as it was. Server on :8811.  NODE_PATH=... node tests/tour_e2e.js */
+const {chromium}=require('playwright'); const SHOTS=process.env.SHOTS||'';
+(async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,700))); if(!x) ok=false; };
+const c=await b.newContext({viewport:{width:390,height:844}});
+await c.addInitScript(()=>{ if(!/\/demo\//.test(location.pathname)) return; window.__said=[]; const S={ speaking:false, getVoices:()=>[{name:'Ann',lang:'en-US'}], cancel(){}, speak(u){ window.__said.push(u.text); setTimeout(()=>{ u.onend&&u.onend(); },/take number/.test(u.text)?6500:60); } };
+ Object.defineProperty(window,'speechSynthesis',{value:S,configurable:true}); window.SpeechSynthesisUtterance=function(t){ this.text=t; }; });
+const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
+p.on('frameattached',f=>{}); c.on('page',x=>{});
+const H='http://localhost:8811/';
+await p.goto(H); await p.evaluate(()=>{ localStorage.clear(); Shelf.put({text:'RIVA\nThe gate is locked.\n\nMOSS\nThen climb it.\n',file:'real_gate.fountain',me:'RIVA'}); });
+const realBefore=await p.evaluate(()=>localStorage.getItem('theactorpage_shelf_v1'));
+want('home has DEMO, up top', /DEMO/.test(await p.innerText('#demogo'))&&/demo\/$/.test(await p.getAttribute('#demogo','href')));
+await p.click('#demogo'); await p.waitForURL(/\/demo\/$/); await p.waitForTimeout(300);
+want('the start: about 4 minutes, all three parts on', /about \d minutes/.test(await p.innerText('#start'))&&(await p.$$eval('#chips [aria-pressed="true"]',x=>x.length))===3, await p.innerText('#mins'));
+await p.click('#go');
+const t0=Date.now(); const fe=[]; 
+await p.waitForFunction(()=>window.__tour.done,null,{timeout:240000,polling:500}).catch(()=>{});
+const log=await p.evaluate(()=>window.__tour.log), list=await p.evaluate(()=>window.__tour.list());
+console.log(log.map((x,i)=>x.id+':'+(i?Math.round((x.t-log[i-1].t)/100)/10:0)).join(' ')); console.log('ran '+log.length+' stops in '+Math.round((Date.now()-t0)/1000)+' s');
+want('every stop played, in order ('+list.length+')', log.map(x=>x.id).join()===list.join()&&list.length===32, log.map(x=>x.id).join());
+const dark=log.filter(x=>!x.lit); want('every stop lit up its part', !dark.length, dark);
+const said=await p.evaluate(()=>window.__said.filter(s=>s.trim()));
+want('the voice said each line once (no clips yet, so the stand-in)', said.length===32&&/the actor page/.test(said[0]), said.length);
+const pages=[...new Set(log.map(x=>x.path))]; want('it went through the tools ('+pages.length+' pages)', ['/actor-os/','/breakdown/','/memorizer/','/cps/','/write/writers-blockage.html','/papertrail/','/film/'].every(x=>pages.includes(x)), pages);
+const fr=p.frame({url:/\/(index\.html)?$/})||p.frames()[1];
+want('the end: keep playing, again, or end', await p.isVisible('#done')&&/KEEP PLAYING/.test(await p.innerText('#done')));
+await p.click('#keep'); await p.waitForTimeout(300);
+const inner=p.frames().find(f=>f!==p.mainFrame());
+want('keep playing: LOW TIDE still on the shelf in the demo, the real one nowhere', await inner.evaluate(()=>Shelf.all().map(x=>x.file).join())==='low_tide.fountain'&&!/\bRIVA\b/.test(await inner.evaluate(()=>document.body.innerText)));
+want('the takes logged on the tour are in the demo', await inner.evaluate(()=>{ const d=JSON.parse(localStorage.getItem('film_os_v1')||'{}'), c=d.scripts&&d.scripts[d.cur]; return !!(c&&c.set&&c.set.log&&c.set.log.length>=2); }));
+await p.click('#end'); await p.waitForURL(/index\.html$/); await p.waitForTimeout(400);
+want('END DEMO: home, real shelf exactly as it was', (await p.evaluate(()=>localStorage.getItem('theactorpage_shelf_v1')))===realBefore&&!(await p.evaluate(()=>TapDemo.on)));
+want('no demo databases left', !(await p.evaluate(async()=>(await indexedDB.databases()).some(d=>/__tapdemo$/.test(d.name)))));
+// only the parts you show: your real SHOW ME picks the chapters; the chips change it
+await p.evaluate(()=>{ localStorage.setItem('theactorpage_view',JSON.stringify({act:true,write:false,film:true})); });
+await p.goto(H+'demo/'); await p.waitForTimeout(300);
+want('SHOW ME without WRITE: the tour starts on ACT and FILM', (await p.$$eval('#chips [aria-pressed="true"]',x=>x.map(y=>y.dataset.d).join()))==='act,film');
+await p.click('#chips [data-d="film"]'); await p.click('#chips [data-d="act"]');
+want('one always stays on', (await p.$$eval('#chips [aria-pressed="true"]',x=>x.map(y=>y.dataset.d).join()))==='act');
+await p.evaluate(()=>{ window.__said=[]; }); await p.click('#go'); await p.waitForFunction(()=>window.__tour.at==='O02',null,{timeout:20000});
+want('ACT only: open, ACT, close (16 stops)', (await p.evaluate(()=>window.__tour.list())).every(id=>/^[OAC]/.test(id))&&(await p.evaluate(()=>window.__tour.list().length))===16);
+await p.click('#pp'); const atP=await p.evaluate(()=>window.__tour.at); await p.waitForTimeout(1500);
+want('PAUSE holds the stop', (await p.evaluate(()=>window.__tour.at))===atP&&/PLAY/.test(await p.innerText('#pp')));
+await p.click('#sk'); await p.waitForFunction(()=>window.__tour.at==='A00',null,{timeout:20000}).catch(()=>{});
+want('SKIP PART: on to ACT, opening on gold', (await p.evaluate(()=>window.__tour.at))==='A00'&&/ACT/.test(await p.innerText('#where'))&&(await p.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--c').trim()))==='#e0a23c');
+await p.click('#bk'); await p.waitForFunction(()=>window.__tour.at==='O03',null,{timeout:20000}).catch(()=>{});
+want('BACK: the stop before', (await p.evaluate(()=>window.__tour.at))==='O03');
+await p.click('#end'); await p.waitForURL(/index\.html$/); await p.waitForTimeout(300);
+want('END DEMO mid-tour: real shelf as it was', (await p.evaluate(()=>localStorage.getItem('theactorpage_shelf_v1')))===realBefore);
+want('no page errors', !errs.length, errs);
+await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();

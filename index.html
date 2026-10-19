@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script src="shared/tour.js"></script>
 <script src="shared/hot.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>THEACTORPAGE</title>
@@ -75,6 +76,10 @@ h1,h2,h3{font-weight:400;margin:0}
   background:none;border:0;padding:8px 12px;cursor:pointer;
 }
 .scrollcue:hover,.scrollcue:focus-visible{color:var(--tungsten)}
+.demogo{display:inline-flex;align-items:center;gap:.6em;margin-top:26px;min-height:44px;padding:0 20px;border:1px solid var(--tungsten);border-radius:999px;
+  font-family:var(--script);font-size:.82rem;letter-spacing:.24em;color:var(--tungsten);text-decoration:none}
+.demogo span{letter-spacing:.04em;color:var(--grey);font-size:.78rem}
+.demogo:hover,.demogo:focus-visible{background:var(--tungsten);color:#111}.demogo:hover span,.demogo:focus-visible span{color:#111}
 
 
 /* ───────── the sigil: COLMACPULSE, film edition ─────────
@@ -440,6 +445,7 @@ body.stopen{overflow:hidden}
   </div>
 
   <p class="verbs">keep. showcase. send it.</p>
+  <a class="demogo" href="demo/" id="demogo">DEMO <span>a narrated tour, about 4 min</span></a>
   <button class="scrollcue" type="button" aria-label="Roll the opening again, with sound">ROLL</button>
 </header>
 

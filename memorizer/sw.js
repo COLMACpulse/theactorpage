@@ -1,6 +1,6 @@
 /* MEMORIZER offline shell. Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='memorizer-0.4.19';
-const FILES=['../shared/view.js','./','index.html','../shared/hot.js','../shared/kit.js','app.js','engine.js','manifest.webmanifest',
+const CACHE='memorizer-0.4.20';
+const FILES=['../shared/tour.js','../shared/view.js','./','index.html','../shared/hot.js','../shared/kit.js','app.js','engine.js','manifest.webmanifest',
  '../shared/shelf.js','../shared/scenes.js','../actor-os/sides.js','../actor-os/pdf.js',
  'fonts/jost-latin-400-normal.woff2','fonts/jost-latin-500-normal.woff2','fonts/jost-latin-600-normal.woff2',
  'fonts/courier-prime-latin-400-normal.woff2','fonts/courier-prime-latin-700-normal.woff2',

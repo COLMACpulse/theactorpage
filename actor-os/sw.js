@@ -1,7 +1,7 @@
 /* Offline shell. Bump CACHE on every deploy or installed users stay frozen
    on the old build - the failure mode I flagged in v0.2. */
-const CACHE='actor-os-pwa-v5_33_24';
-const SHELL=['../shared/view.js','./','./index.html','../shared/hot.js','../shared/kit.js','../shared/shelf.js','../shared/takes.js','../shared/scenes.js','../shared/yourscenes.js','./takeread.js','../shared/practice.js','../shared/delivery.js','../shared/inbox.js','./performer_camera_v08.js','./sides.js','./pdf.js','./reader.js','./oneread.js','./slatemove.js','./compress.js','./vendor/pdf.min.js','./vendor/pdf.worker.min.js',
+const CACHE='actor-os-pwa-v5_33_25';
+const SHELL=['../shared/tour.js','../shared/view.js','./','./index.html','../shared/hot.js','../shared/kit.js','../shared/shelf.js','../shared/takes.js','../shared/scenes.js','../shared/yourscenes.js','./takeread.js','../shared/practice.js','../shared/delivery.js','../shared/inbox.js','./performer_camera_v08.js','./sides.js','./pdf.js','./reader.js','./oneread.js','./slatemove.js','./compress.js','./vendor/pdf.min.js','./vendor/pdf.worker.min.js',
              './manifest.webmanifest','./icon-192.png','./icon-512.png',
              './gauntlet/PHYSICAL_DEVICE_GAUNTLET.html','./gauntlet/gauntlet_core.js','./gauntlet/WEB_CAPABILITY_PROBE.html'];
 self.addEventListener('install',e=>{
