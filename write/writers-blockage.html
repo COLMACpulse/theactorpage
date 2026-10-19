@@ -157,6 +157,16 @@ table.rep td.num{text-align:right;font-variant-numeric:tabular-nums;color:#dfe6e
   .pagerule{margin-left:-1.2rem;margin-right:-1.2rem;padding-left:1.2rem;padding-right:1.2rem}}
 
 #btnGo{color:#1b1206;background:#e0a23c;border-color:#e0a23c;font-weight:700;letter-spacing:.12em}
+.wt-tabs{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 10px}.wt-tabs button,.wt-row button{font:inherit;font-size:12px;padding:5px 9px;border:1px solid #39434f;background:none;color:#cfd6df;border-radius:999px;cursor:pointer}
+.wt-tabs button.on,.wt-row button.on{border-color:#f7f5f0;color:#fff}.wt-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px}
+.wt-h{margin:12px 0 6px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#8a96a3}.wt-note{font-size:12px;color:#8a96a3;margin:8px 0}
+.wt-bar{display:grid;grid-template-columns:minmax(70px,34%) 1fr;gap:2px 8px;align-items:center;margin:6px 0;font-size:13px}.wt-bar i{height:6px;background:#2a323c;border-radius:3px;overflow:hidden}.wt-bar i b{display:block;height:100%;background:#f7f5f0}.wt-bar small{grid-column:1 / -1;color:#8a96a3;font-size:11px}
+.wt-li{display:grid;grid-template-columns:1fr auto;gap:2px 8px;padding:7px 0;border-bottom:1px solid #2a323c;font-size:13px}.wt-li small{grid-column:1;color:#8a96a3;font-size:11px}.wt-go{grid-row:1 / span 2;grid-column:2;align-self:center;font:inherit;font-size:11px;padding:4px 8px;border:1px solid #39434f;background:none;color:#cfd6df;border-radius:6px;cursor:pointer}
+.wt-big{font-size:18px;color:#fff;margin:6px 0}.wt-chk{font-size:12px;color:#8a96a3}
+.narrowonly{display:none}
+@media (max-width:900px){.narrowonly{display:inline-flex} body.railopen #rail{display:flex;position:fixed;top:0;bottom:0;left:0;z-index:900;width:min(92vw,380px);box-shadow:0 0 0 100vmax rgba(0,0,0,.55);overflow:auto}
+ #railclose{display:none} body.railopen #railclose{display:block;align-self:flex-end;margin:6px 8px 0;font:inherit;font-size:12px;background:none;border:1px solid #39434f;color:#cfd6df;border-radius:6px;padding:4px 10px;cursor:pointer}}
+@media (min-width:901px){#railclose{display:none}}
 </style>
 </head>
 <body>
@@ -183,6 +193,7 @@ table.rep td.num{text-align:right;font-variant-numeric:tabular-nums;color:#dfe6e
   <button id="btnSave">Save</button>
   <button id="btnCards">Cards</button>
   <button id="btnBook">Dialogue</button>
+  <button id="btnRail" class="narrowonly" title="Outline, Cast, Stats, Tools">Tools</button>
   <button id="btnReports">Reports</button>
   <button id="btnDiff">Compare</button>
   <button id="btnExport">Export</button>
@@ -416,6 +427,22 @@ table.rep td.num{text-align:right;font-variant-numeric:tabular-nums;color:#dfe6e
 <script src="panel-signalscript.js" defer></script>
 <script src="panel-character-capsule.js" defer></script>
 <script src="panel-storyforge.js" defer></script>
+<script src="../papertrail/trail.js" defer></script>
+<script src="panel-tools.js" defer></script>
+<script>
+/* on a phone the side rail is out of the way; TOOLS brings it in over the page (Outline, Cast, Stats, Tools), CLOSE or a tap outside puts it away */
+(function(){ const btn=document.getElementById('btnRail'), rail=document.getElementById('rail'); if(!btn||!rail) return;
+ const x=document.createElement('button'); x.id='railclose'; x.type='button'; x.textContent='CLOSE'; rail.insertBefore(x,rail.firstChild);
+ const close=()=>document.body.classList.remove('railopen');
+ btn.onclick=()=>{ document.body.classList.add('railopen'); const t=document.querySelector('#railtabs [data-pane="panel:tools"]'); if(t) t.click(); };
+ x.onclick=close; let inRail=false; rail.addEventListener('pointerdown',()=>{ inRail=true; },true);
+ document.addEventListener('pointerdown',e=>{ if(!rail.contains(e.target)) inRail=false; },true);
+ document.addEventListener('click',e=>{ if(!document.body.classList.contains('railopen')||e.target===btn) return; const inside=e.target.isConnected?rail.contains(e.target):inRail; if(!inside) close(); });  // a tap inside that redraws the panel still counts as inside
+ document.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
+ /* GO from a tool on a phone: close the rail so you see the spot */
+ rail.addEventListener('click',e=>{ if(e.target.closest('[data-go]')&&window.matchMedia('(max-width:900px)').matches) setTimeout(close,50); });
+})();
+</script>
 <script>
 "use strict";
 
