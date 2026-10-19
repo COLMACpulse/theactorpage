@@ -222,6 +222,21 @@ svg.cg [data-tip]:focus .hit{stroke:var(--ink);stroke-width:1}
 #cgtip{position:absolute;z-index:50;display:none;pointer-events:none;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px;color:var(--dim);max-width:260px;box-shadow:0 4px 16px rgba(0,0,0,.3)}
 #cgtip .h{color:var(--ink);font-weight:600}
 .key{display:inline-block;width:14px;height:2px;vertical-align:middle;margin:0 4px 0 2px;border-radius:1px}.key.then{background:var(--c-then)}.key.now{background:var(--c-now)}
+
+/* ---------- find the pitch ---------- */
+.tunelive .sensor{display:flex;align-items:center;gap:8px;font:700 12px var(--mono);letter-spacing:.12em;color:var(--tung-text);margin:0 0 10px}
+.tunelive .sensor .dot{width:9px;height:9px;border-radius:50%;background:var(--tung);animation:tpulse 1.2s infinite}
+@keyframes tpulse{50%{opacity:.35}} @media (prefers-reduced-motion:reduce){.tunelive .sensor .dot{animation:none}}
+.tmeter{position:relative;height:34px;border-radius:8px;background:var(--panel2);overflow:hidden;margin:4px 0}
+.tmeter .tband{position:absolute;top:0;bottom:0;background:var(--c-then);opacity:.14}
+.tmeter .tzone{position:absolute;top:0;bottom:0;left:calc(50% - 4.17%);width:8.33%;background:var(--c-then);opacity:.22}
+.tmeter .tmid{position:absolute;top:0;bottom:0;left:50%;width:2px;margin-left:-1px;background:var(--c-then)}
+.tmeter .tneedle{position:absolute;top:4px;bottom:4px;width:6px;margin-left:-3px;border-radius:3px;background:var(--c-now);transition:left .08s linear}
+.tmeter .tneedle.on{box-shadow:0 0 0 2px var(--panel),0 0 0 4px var(--c-now)}
+.tscale{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);margin:0 0 8px}
+.tunelive .big{margin:4px 0 2px}
+svg#ttrace{height:90px;margin-top:8px;background:var(--panel2);border-radius:8px}
+svg#ttrace .tbandr{fill:var(--c-then);opacity:.14}
 </style>
 </head>
 <body>

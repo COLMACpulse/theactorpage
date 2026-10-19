@@ -1,0 +1,32 @@
+/* CHARACTER BANK · FIND THE PITCH: hold a note, see how far it is from the reference take's middle. A made-up 100 Hz
+   voice is the mic. Listens, never records. Server on :8811.  NODE_PATH=... node cps/tests/tune_e2e.js */
+const {chromium}=require('playwright'); const path=require('path');
+(async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome',args:['--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream','--use-file-for-fake-audio-capture='+path.join(__dirname,'hum100.wav'),'--autoplay-policy=no-user-gesture-required']});
+let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,300))); if(!x) ok=false; };
+const c=await b.newContext({viewport:{width:390,height:844}}); await c.grantPermissions(['microphone'],{origin:'http://localhost:8811'}); await c.addInitScript(()=>{ try{ sessionStorage.setItem('theactorpage_hot_ok','1'); localStorage.setItem('cps_cold','0'); }catch(e){} });
+const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
+await p.goto('http://localhost:8811/cps/'); await p.evaluate(()=>new Promise(r=>{ const q=indexedDB.deleteDatabase('cps_v02'); q.onsuccess=q.onerror=q.onblocked=()=>r(); })); await p.reload();
+await p.waitForFunction(()=>window.CPS&&window.CPS.S&&window.CPS.S.lib,null,{timeout:8000});
+const setRef=hz=>p.evaluate(hz=>{ const {S}=window.CPS; const ch={id:'sam',name:'Old Sam',project:'',created:'2026-09-01T10:00:00Z',updated:'2026-10-15T10:00:00Z',state:null,anchorLine:'Get off my land.',notes:'',refId:'vs',takes:[{id:'vs',kind:'voice',at:'2026-09-01T10:00:00Z',an:{pitchHz:hz,pitchLoHz:hz*0.85,pitchHiHz:hz*1.2,rangeSt:5.9,spanSec:5,silencePct:10}}],looks:[],bd:null,me:false};
+ S.lib.chars=[ch]; S.lib.cur='sam'; S.cold=false; window.CPS.act('tab',{t:'back'}); },hz);
+await setRef(96); await p.waitForTimeout(300);
+let m=await p.innerText('#tune');
+want('COME BACK has FIND THE PITCH: the middle, the range, listens not records', /Find the pitch/i.test(m)&&/96 Hz \(G2\)/.test(m)&&/82 to 115 Hz/.test(m)&&/doesn.t record/.test(m), m);
+await p.click('[data-a="tune"]'); await p.waitForTimeout(2500);
+m=await p.innerText('#tune');
+want('listening: says the mic is on and not recording', /MIC ON, NOT RECORDING/.test(m));
+want('a 100 Hz note against 96: about 71 cents high, 100 Hz shown', /^(6[5-9]|7[0-7]) cents high\.$/.test(await p.innerText('#tword'))&&/^(99|100|101) Hz/.test(await p.innerText('#thz')), [await p.innerText('#tword'),await p.innerText('#thz')]);
+want('the needle sits right of the middle; the trace draws', await p.$eval('#tneedle',e=>parseFloat(e.style.left)>50&&parseFloat(e.style.left)<70)&&(await p.$eval('#tpath',e=>e.getAttribute('d').length))>20);
+want('more than 50 cents off: no "held"', !/Held/.test(await p.innerText('#thold')));
+want('nothing recorded', await p.evaluate(()=>window.CPS.S.lib.chars[0].takes.length===1));
+await p.click('[data-a="tunestop"]'); await p.waitForTimeout(200);
+want('STOP: the mic is off', await p.evaluate(()=>!window.CPS.S.tune)&&!!(await p.$('[data-a="tune"]')));
+await setRef(100); await p.waitForTimeout(300); await p.click('[data-a="tune"]'); await p.waitForTimeout(2800);
+want('on the reference pitch: On it, held, counted', (await p.innerText('#tword'))==='On it.'&&/Held within 50 cents for \d\.\d s/.test(await p.innerText('#thold'))&&await p.$eval('#tneedle',e=>e.classList.contains('on')), [await p.innerText('#tword'),await p.innerText('#thold')]);
+await p.evaluate(()=>window.CPS.act('tab',{t:'voices'})); await p.waitForTimeout(300);
+want('leave COME BACK: the mic stops', await p.evaluate(()=>!window.CPS.S.tune));
+await p.evaluate(()=>{ window.CPS.S.cold=true; window.CPS.act('tab',{t:'back'}); }); await p.waitForTimeout(300);
+want('cold come-back: no pitch to copy (hidden, like the notes)', !(await p.$('#tune')));
+want('no em dashes', !/—/.test(m));
+want('no page errors', !errs.length, errs);
+await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();

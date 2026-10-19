@@ -262,7 +262,13 @@
     return out.sort((x, y) => (x.st - y.st) || (x.time - y.time));
   }
 
-  const api = { frameTimbre, voiceColour, contour, DEFAULT_LINES, linesKey, linesTake, vsMe, closePairs, analyse, compare, noteName, STATES, have, autoState, missing, reference, daysSince, BODY, body, clock, backWords, makeZip, readZip, crc32, enc, dec, yin, toMono16k };
+    /* ---------- FIND THE PITCH (from VOCA's Tone Return): how far a held note is from the character's middle pitch ---------- */
+  const cents = (hz, ref) => hz > 0 && ref > 0 ? 1200 * Math.log2(hz / ref) : null;
+  function tuneWords(c) { if (c == null) return 'Not hearing a voice.'; const a = Math.abs(c);
+    if (a < 25) return 'On it.'; return Math.round(a) + ' cents ' + (c > 0 ? 'high' : 'low') + (a >= 100 ? ' (' + (a / 100).toFixed(1) + ' semitones)' : '') + '.'; }
+  /* held: how long you've stayed within 50 cents, without a break longer than a breath (0.3 s) */
+  function hold(h, c, dt) { h = h || { on: 0, gap: 0, best: 0 }; if (c != null && Math.abs(c) <= 50) { h.on += dt; h.gap = 0; } else { h.gap += dt; if (h.gap > 0.3) h.on = 0; } if (h.on > h.best) h.best = h.on; return h; }
+  const api = { cents, tuneWords, hold, frameTimbre, voiceColour, contour, DEFAULT_LINES, linesKey, linesTake, vsMe, closePairs, analyse, compare, noteName, STATES, have, autoState, missing, reference, daysSince, BODY, body, clock, backWords, makeZip, readZip, crc32, enc, dec, yin, toMono16k };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CPSEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);

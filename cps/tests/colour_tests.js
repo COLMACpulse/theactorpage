@@ -21,5 +21,11 @@ want('against you: darker, breathier, shakier said plainly', E.vsMe(base,dark).i
 const P=E.closePairs([{id:'a',name:'A',an:base},{id:'b',name:'B',an:closer},{id:'c',name:'C',an:bright}]);
 want('measure close: same pitch and time but much brighter is not close', P.length===1&&P[0].a.id==='a'&&P[0].b.id==='b', P.map(p=>p.a.id+p.b.id));
 want('takes from before (no brightness) still pair on pitch and time', E.closePairs([{id:'a',an:Object.assign({},base,{brightHz:null})},{id:'c',an:bright}]).length===1);
+// FIND THE PITCH (VOCA's Tone Return)
+want('cents: 100 Hz against 96 is about 71 high; an octave is 1200', Math.round(E.cents(100,96))===71&&Math.round(E.cents(192,96))===1200&&E.cents(0,96)===null);
+want('in words: on it inside 25 cents; semitones past 100', E.tuneWords(10)==='On it.'&&E.tuneWords(-40)==='40 cents low.'&&E.tuneWords(250)==='250 cents high (2.5 semitones).'&&E.tuneWords(null)==='Not hearing a voice.');
+let H; for(let i=0;i<20;i++) H=E.hold(H,20,0.1); want('held: two seconds inside 50 cents', Math.abs(H.on-2)<1e-9&&Math.abs(H.best-2)<1e-9);
+H=E.hold(H,null,0.2); want('a breath (0.2 s) does not break the hold', H.on>1.9);
+H=E.hold(H,200,0.2); want('off the note past 0.3 s: the hold starts again, the longest is kept', H.on===0&&Math.abs(H.best-2)<1e-9);
 want('no em dashes', !/—/.test(JSON.stringify([E.compare(base,breathy),E.compare(base,shaky),E.vsMe(base,dark)])));
 console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1);

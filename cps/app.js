@@ -66,6 +66,7 @@
   function pickMime() { if (!window.MediaRecorder || !MediaRecorder.isTypeSupported) return ''; return ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm', 'audio/ogg;codecs=opus'].find(m => MediaRecorder.isTypeSupported(m)) || ''; }
   async function startRec(kind) {
     if (S.rec) return;
+    if (S.tune) stopTune();
     if (!navigator.mediaDevices || !window.MediaRecorder) { toast('This browser can\'t record. Use "Use a voice memo" instead.'); render(); return; }
     let stream;
     try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }); }
@@ -138,6 +139,7 @@
   const TABS = [['chars', 'CHARACTERS'], ['capture', 'CAPTURE'], ['back', 'COME BACK'], ['voices', 'VOICES'], ['pack', 'PACK']];
   function render() {
     closeSheet(true);
+    if (S.tune && S.tab !== 'back') stopTune();
     const c = cur();
     $('#app').innerHTML = `<div class="shell">
       <header class="top"><div class="title"><b>CHARACTER BANK</b><span>${esc(S.tab === 'voices' ? 'Your voices, same lines' : c && S.tab !== 'chars' && S.tab !== 'pack' ? (c.name || 'Unnamed character') + (c.project ? ' · ' + c.project : '') : 'You find it. This keeps it.')}</span></div><button class="iconbtn" data-a="theme" aria-label="Light or dark">${ICON.theme}</button></header>
@@ -323,6 +325,7 @@
         ${c.notes ? `<p style="margin:10px 0 0;font-size:15px">${esc(c.notes)}</p>` : ''}
         ${c.takes.filter(t => t.kind === 'note').slice(-1).map(t => `<div style="margin-top:8px"><span class="faint" style="font-size:13px">Your note</span><audio src="${url(t.id)}" controls preload="metadata" style="width:100%;height:40px"></audio></div>`).join('')}
       </section>
+      ${tuneBlock(ref)}
       ${bd.length ? `<section class="step"><h3>The body and the choices</h3>${bd.map(b => `<div style="margin:4px 0"><span class="faint" style="font-size:13px">${esc(b.label)}</span><div>${esc(b.text)}</div></div>`).join('')}</section>` : ''}
       ${c.anchorLine ? `<section class="step"><h3><span class="n">${look ? 3 : 2}</span>Say the line</h3><div class="big">${esc(c.anchorLine)}</div></section>` : ''}
       <section class="step"><h3><span class="n">${(look ? 3 : 2) + (c.anchorLine ? 1 : 0)}</span>Record now</h3>
@@ -353,6 +356,55 @@
     const day = (t, short) => { const d = new Date(t.at); return short ? d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }); };
     const svg = G.history(ref, rets.slice().reverse(), day);
     return svg ? `<div class="kicker" style="margin-top:16px">Every time you came back</div><div class="cgwrap">${svg}</div><p class="faint" style="font-size:13px;margin:4px 0 0">The band is the reference take's range${ref.an && ref.an.pitchLoHz ? ' (' + Math.round(ref.an.pitchLoHz) + '–' + Math.round(ref.an.pitchHiHz) + ' Hz)' : ''}, the line its middle${ref.an && ref.an.pitchHz ? ' (' + Math.round(ref.an.pitchHz) + ' Hz)' : ''}. Each bar is a come-back: its range, the dot its middle. Tap one for its numbers.</p>` : '';
+  }
+  /* FIND THE PITCH: hold a note in the voice; see how far it is from the reference take's middle. Listens, never records. */
+  function tuneBlock(ref) {
+    const a = ref && ref.an; if (!a || !a.pitchHz) return '';
+    const on = !!S.tune;
+    return `<section class="step" id="tune"><h3>Find the pitch</h3>
+      <p class="dim" style="font-size:14px;margin:0 0 10px">Hold a note in the voice. The middle of the reference take is <b>${Math.round(a.pitchHz)} Hz (${E.noteName(a.pitchHz)})</b>${a.pitchLoHz ? `, its range ${Math.round(a.pitchLoHz)} to ${Math.round(a.pitchHiHz)} Hz` : ''}. This shows how far you are. It listens; it doesn't record.</p>
+      ${on ? `<div class="tunelive"><div class="sensor"><span class="dot"></span>MIC ON, NOT RECORDING<button class="btn ghost" data-a="tunestop" style="margin-left:auto">STOP</button></div>
+        <div class="tmeter" aria-hidden="true"><span class="tband" id="tband"></span><span class="tzone"></span><span class="tmid"></span><span class="tneedle" id="tneedle"></span></div>
+        <div class="tscale"><span>3 semitones low</span><span>on it</span><span>3 high</span></div>
+        <div class="big" id="tword" role="status" aria-live="polite">Listening…</div><div class="rd mono faint" id="thz">&nbsp;</div><div class="rd faint" id="thold">&nbsp;</div>
+        <svg class="cg" id="ttrace" viewBox="0 0 320 90" preserveAspectRatio="none" aria-hidden="true"><line class="grid" x1="0" y1="45" x2="320" y2="45"/><rect class="tbandr" x="0" y="37.5" width="320" height="15"/><path class="line now" id="tpath" d=""/></svg>
+        <p class="faint" style="font-size:13px;margin:4px 0 0">The last six seconds. The middle line is the reference take's middle; the band is 50 cents either side.</p></div>`
+      : `<button class="btn pri" data-a="tune">Start listening</button>`}
+    </section>`;
+  }
+  document.addEventListener('visibilitychange', () => { if (document.hidden && S.tune) { stopTune(); render(); } });
+  function stopTune() { const T = S.tune; if (!T) return; S.tune = null; cancelAnimationFrame(T.raf); try { T.src && T.src.disconnect(); } catch (e) { } T.stream.getTracks().forEach(t => t.stop()); }
+  async function startTune() {
+    const c = cur(), ref = c && E.reference(c), a = ref && ref.an; if (!a || !a.pitchHz) return;
+    if (S.rec) await stopRec();
+    let stream; try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }); }
+    catch (e) { toast('No microphone. Allow it in your browser settings.'); return; }
+    const ctx = ac(); if (ctx.state === 'suspended') await ctx.resume();
+    const src = ctx.createMediaStreamSource(stream), an = ctx.createAnalyser(); an.fftSize = 4096; src.connect(an);
+    S.tune = { stream, src, an, ref: a.pitchHz, lo: a.pitchLoHz, hi: a.pitchHiHz, trace: [], h: null, last: performance.now(), raf: 0, recent: [] };
+    render();
+    const buf = new Float32Array(an.fftSize), sr = ctx.sampleRate;
+    const X = t => 320 - (performance.now() - t) / 6000 * 320, Yc = cc => 45 - Math.max(-300, Math.min(300, cc)) / 300 * 45;
+    const band = () => { const b = $('#tband'); if (!b || !S.tune) return; const lo = S.tune.lo ? E.cents(S.tune.lo, S.tune.ref) : null, hi = S.tune.hi ? E.cents(S.tune.hi, S.tune.ref) : null; if (lo == null) { b.style.display = 'none'; return; } const L = v => (Math.max(-300, Math.min(300, v)) + 300) / 6; b.style.left = L(lo) + '%'; b.style.width = (L(hi) - L(lo)) + '%'; };
+    band();
+    const tick = () => {
+      const T = S.tune; if (!T) return; const now = performance.now(), dt = (now - T.last) / 1000; T.last = now; band();
+      if (T.stream.getTracks().every(t => t.readyState === 'ended')) { stopTune(); render(); return; }
+      an.getFloatTimeDomainData(buf); let e = 0; for (let i = 0; i < buf.length; i++) e += buf[i] * buf[i];
+      let hz = 0; if (Math.sqrt(e / buf.length) > 0.006) hz = E.yin(buf, sr, 60, 500);
+      T.recent.push(hz > 60 && hz < 500 ? hz : 0); if (T.recent.length > 5) T.recent.shift();
+      const ok = T.recent.filter(Boolean).sort((p, q) => p - q), med = ok.length >= 3 ? ok[Math.floor(ok.length / 2)] : 0, cc = med ? E.cents(med, T.ref) : null;
+      T.h = E.hold(T.h, cc, dt);
+      if (cc != null) T.trace.push([now, cc]); else if (T.trace.length && T.trace[T.trace.length - 1]) T.trace.push(null);
+      while (T.trace.length && (T.trace[0] === null || now - T.trace[0][0] > 6000)) T.trace.shift();
+      const nd = $('#tneedle'); if (nd) { nd.style.display = cc == null ? 'none' : ''; if (cc != null) nd.style.left = ((Math.max(-300, Math.min(300, cc)) + 300) / 6) + '%'; nd.classList.toggle('on', cc != null && Math.abs(cc) < 25); }
+      const w = $('#tword'); if (w) w.textContent = E.tuneWords(cc);
+      const hzEl = $('#thz'); if (hzEl) hzEl.textContent = med ? Math.round(med) + ' Hz (' + E.noteName(med) + ')' : ' ';
+      const hd = $('#thold'); if (hd) hd.textContent = T.h.best >= 1 ? 'Held within 50 cents for ' + T.h.on.toFixed(1) + ' s (longest ' + T.h.best.toFixed(1) + ' s).' : ' ';
+      const pth = $('#tpath'); if (pth) { let d = '', pen = false; T.trace.forEach(pt => { if (!pt) { pen = false; return; } d += (pen ? 'L' : 'M') + X(pt[0]).toFixed(1) + ' ' + Yc(pt[1]).toFixed(1); pen = true; }); pth.setAttribute('d', d); }
+      T.raf = requestAnimationFrame(tick);
+    };
+    tick();
   }
   function resultBlock(c, t) {
     const r0 = take(c, t.refId) || E.reference(c);
@@ -449,6 +501,8 @@
   async function act(a, ds, el) {
     ds = ds || {}; const L = S.lib, c = cur();
     switch (a) {
+      case 'tune': await startTune(); break;
+      case 'tunestop': stopTune(); render(); break;
       case 'cold': S.cold = ds.v === '1'; try { localStorage.setItem('cps_cold', S.cold ? '1' : '0'); } catch (e) { } render(); break;
       case 'itsback': if (c && S.visit && S.visit.id === c.id && S.visit.done == null) { const secs = Math.round((Date.now() - S.visit.t0) / 1000); S.visit.done = secs; c.backs = c.backs || []; c.backs.push({ at: now(), secs, cold: !!S.visit.coldDone }); c.state = 'inuse'; c.lastVisit = now(); touch(c); toast('Back in ' + E.clock(secs) + '.'); render(); } break;
       case 'tab': if (S.rec) await stopRec(); if (ds.t !== 'back') S.visit = null; S.tab = ds.t; render(); window.scrollTo(0, 0); break;
