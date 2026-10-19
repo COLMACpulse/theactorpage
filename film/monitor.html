@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0f15">
+<meta name="referrer" content="no-referrer">
+<title>Story Studio Monitor</title>
+<style>
+:root{--bg:#0a0f15;--panel:#111923;--panel2:#18222e;--ink:#e7eef6;--dim:#9fb2c6;--faint:#62778d;--line:#223142;--tung:#6fa8d6;--tung-ink:#04101b;--tung-text:#8cc3ee;--hot:#e0785f;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;--tap:46px}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding:16px 16px calc(24px + env(safe-area-inset-bottom))}
+h1{font:800 14px var(--mono);letter-spacing:.16em;color:var(--tung-text);margin:6px 0 14px}
+p{margin:0 0 10px}.dim{color:var(--dim)}.faint{color:var(--faint);font-size:13px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin:0 0 12px}
+.btn{min-height:var(--tap);padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font:500 15px system-ui,sans-serif;cursor:pointer}
+.btn.pri{background:var(--tung);color:var(--tung-ink);border-color:var(--tung);font-weight:700}
+.chip{min-height:38px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--dim);font:700 12px var(--mono);letter-spacing:.06em;cursor:pointer}
+.chip.on{background:var(--tung);color:var(--tung-ink);border-color:var(--tung)}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.qr{display:block;width:min(100%,380px);height:auto;margin:8px auto;border-radius:8px}
+textarea{width:100%;min-height:80px;background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;font:12px var(--mono)}
+.sensor{display:flex;align-items:center;gap:8px;font:700 12px var(--mono);letter-spacing:.12em;color:var(--tung-text);margin:0 0 10px}
+.sensor .dot{width:9px;height:9px;border-radius:50%;background:var(--tung-text)}
+.screen{position:relative;background:#000;border-radius:10px;overflow:hidden;aspect-ratio:16/9}
+.screen video,.screen canvas,.screen svg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.screen canvas{display:none}.screen.frozen canvas{display:block}.screen.frozen video{visibility:hidden}
+.screen.mirror video,.screen.mirror canvas{transform:scaleX(-1)}
+.screen .mask{fill:rgba(0,0,0,.62)}.screen .fline{fill:none;stroke:var(--tung);stroke-width:3}.screen .grid{stroke:rgba(255,255,255,.45);stroke-width:2;fill:none}
+.screen .flab{fill:var(--tung-text);font-family:var(--mono);font-weight:700}
+.screen .frz{fill:var(--hot);font-family:var(--mono);font-weight:800}
+.screen:fullscreen{border-radius:0;aspect-ratio:auto}
+</style>
+</head>
+<body>
+<main>
+<h1>STORY STUDIO · MONITOR</h1>
+<div id="app"><div class="card"><p class="dim">Getting ready…</p></div></div>
+<p class="faint">A second screen for the camera phone, over your own Wi-Fi. The picture goes straight between the two phones. Nothing goes through a server and nothing is recorded.</p>
+</main>
+<script src="vendor/qrcode.min.js"></script>
+<script src="monitor-link.js"></script>
+<script>
+(function(){
+'use strict';
+const L=window.MonitorLink, $=id=>document.getElementById(id), app=$('app');
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ASPECTS=[['1.78','16:9'],['1.85','1.85'],['2.39','2.39'],['1.33','4:3'],['1','1:1'],['0.5625','9:16']];
+let M={pc:null,stream:null,aspect:'2.39',grid:true,mirror:false,frozen:false,answer:''};
+/* the offer rides in the part of the link after #, which the browser never sends to any server */
+const hash=new URLSearchParams(location.hash.slice(1)), offer=hash.get('o');
+if(offer){ try{ history.replaceState(null,'',location.pathname); }catch(e){} }
+function ask(msg){
+ app.innerHTML='<div class="card">'+(msg?'<p>'+esc(msg)+'</p>':'')+'<p class="dim">Open this page from the code on the camera phone: in Story Studio, ON SET, TOOLS, FRAME, START CAMERA, then WATCH ON ANOTHER PHONE. Point this phone\'s camera at that code.</p>'
+  +'<p class="faint">Or paste the link or code it gives you:</p><textarea id="paste" placeholder="Paste here"></textarea><div class="row"><button class="btn pri" id="go">CONNECT</button></div></div>';
+ $('go').onclick=()=>{ const t=$('paste').value.trim(), m=t.match(/[#&]o=([A-Za-z0-9_-]+)/); start(m?m[1]:t); };
+}
+async function start(code){
+ if(!code) return ask('');
+ app.innerHTML='<div class="card"><p class="dim">Making the code for the camera phone…</p></div>';
+ try{
+  const r=await L.answer(code,s=>{ M.stream=s; if(M.up) live(); });
+  M.pc=r.pc; M.answer=r.code; if(r.meta&&r.meta.aspect) M.aspect=String(r.meta.aspect); if(r.meta&&r.meta.grid===false) M.grid=false;
+  const st=()=>{ const s=M.pc.connectionState||M.pc.iceConnectionState; if((s==='connected'||s==='completed')&&!M.up){ M.up=true; if(M.stream) live(); } if(M.up&&(s==='failed'||s==='closed')) lost(s); else if(M.up&&s==='disconnected'){ const e=$('state'); if(e) e.textContent='The picture dropped. Waiting for it…'; clearTimeout(M.dt); M.dt=setTimeout(()=>{ const n=M.pc.connectionState||M.pc.iceConnectionState; if(n!=='connected'&&n!=='completed') lost(n); },5000); } else if(!M.up&&s==='failed'){ const e=$('state'); if(e) e.textContent='The phones couldn\'t reach each other. Both on the same Wi-Fi? Make a new code and try again.'; } };
+  M.pc.addEventListener('connectionstatechange',st); M.pc.addEventListener('iceconnectionstatechange',st);
+  showAnswer();
+ }catch(e){ ask(e&&e.message&&/Story Studio/.test(e.message)?e.message:'That code didn\'t work. Make a new one on the camera phone.'); }
+}
+function showAnswer(){
+ app.innerHTML='<div class="card"><p><b>Now show this to the camera phone.</b> Hold this screen up to its lens until it says SENDING.</p><div id="qrbox">'+L.qrSvg(M.answer)+'</div>'
+  +'<p class="faint">Can\'t read it? Copy the code and send it to the camera phone, then paste it there.</p><div class="row"><button class="btn" id="copy">COPY CODE</button></div><p class="faint" id="state">Waiting for the camera phone…</p></div>';
+ $('copy').onclick=async()=>{ try{ await navigator.clipboard.writeText(M.answer); $('copy').textContent='COPIED'; }catch(e){ prompt('Copy this code:',M.answer); } };
+}
+function live(){
+ M.live=true;
+ app.innerHTML='<div class="card"><div class="sensor"><span class="dot"></span>CAMERA FROM THE OTHER PHONE · NOT RECORDING</div>'
+  +'<div class="screen'+(M.mirror?' mirror':'')+'" id="scr"><video id="v" playsinline muted autoplay></video><canvas id="fz"></canvas><svg id="ov" preserveAspectRatio="xMidYMid meet"></svg></div>'
+  +'<div class="row">'+ASPECTS.map(([v,l])=>'<button class="chip'+(v===M.aspect?' on':'')+'" data-a="'+v+'">'+l+'</button>').join('')+'</div>'
+  +'<div class="row"><button class="chip'+(M.grid?' on':'')+'" id="grid">THIRDS</button><button class="chip'+(M.mirror?' on':'')+'" id="mir">MIRROR</button><button class="chip" id="frz">FREEZE</button><button class="chip" id="full">FULL SCREEN</button></div>'
+  +'<p class="faint" id="state">The camera phone controls the picture. Stop it there, or close this page.</p></div>';
+ const v=$('v'); v.srcObject=M.stream; v.onloadedmetadata=v.onresize=draw; v.play&&v.play().catch(()=>{});
+ document.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{ M.aspect=b.dataset.a; document.querySelectorAll('[data-a]').forEach(x=>x.classList.toggle('on',x===b)); draw(); });
+ $('grid').onclick=()=>{ M.grid=!M.grid; $('grid').classList.toggle('on',M.grid); draw(); };
+ $('mir').onclick=()=>{ M.mirror=!M.mirror; $('mir').classList.toggle('on',M.mirror); $('scr').classList.toggle('mirror',M.mirror); };
+ $('frz').onclick=()=>{ const s=$('scr'), c=$('fz'); M.frozen=!M.frozen;
+  if(M.frozen&&v.videoWidth){ c.width=v.videoWidth; c.height=v.videoHeight; c.getContext('2d').drawImage(v,0,0); }
+  s.classList.toggle('frozen',M.frozen); $('frz').classList.toggle('on',M.frozen); $('frz').textContent=M.frozen?'LIVE AGAIN':'FREEZE'; draw(); };
+ $('full').onclick=()=>{ const s=$('scr'); if(document.fullscreenElement) document.exitFullscreen(); else if(s.requestFullscreen) s.requestFullscreen().catch(()=>{}); else if(v.webkitEnterFullscreen) v.webkitEnterFullscreen(); };
+}
+function frameIn(w,h,a){ if(w/h>a){ const fw=h*a; return {x:(w-fw)/2,y:0,w:fw,h}; } const fh=w/a; return {x:0,y:(h-fh)/2,w,h:fh}; }
+function draw(){ const v=$('v'), o=$('ov'); if(!v||!o||!v.videoWidth) return; const w=v.videoWidth, h=v.videoHeight, f=frameIn(w,h,+M.aspect); o.setAttribute('viewBox','0 0 '+w+' '+h);
+ let s='<path class="mask" fill-rule="evenodd" d="M0 0H'+w+'V'+h+'H0Z M'+f.x+' '+f.y+'h'+f.w+'v'+f.h+'h'+(-f.w)+'Z"/><rect class="fline" x="'+f.x+'" y="'+f.y+'" width="'+f.w+'" height="'+f.h+'"/>';
+ if(M.grid) [1,2].forEach(i=>{ s+='<line class="grid" x1="'+(f.x+f.w*i/3)+'" y1="'+f.y+'" x2="'+(f.x+f.w*i/3)+'" y2="'+(f.y+f.h)+'"/><line class="grid" x1="'+f.x+'" y1="'+(f.y+f.h*i/3)+'" x2="'+(f.x+f.w)+'" y2="'+(f.y+f.h*i/3)+'"/>'; });
+ const fs=Math.max(18,h*0.035); s+='<text class="flab" x="'+(f.x+12)+'" y="'+(f.y+Math.max(28,h*0.05))+'" font-size="'+fs+'">'+esc((ASPECTS.find(a=>a[0]===M.aspect)||[0,''])[1])+'</text>';
+ if(M.frozen) s+='<text class="frz" x="'+(f.x+f.w-12)+'" y="'+(f.y+Math.max(28,h*0.05))+'" font-size="'+fs+'" text-anchor="end">FROZEN</text>';
+ o.innerHTML=s; }
+function lost(why){ M.live=false; M.stream=null; try{ M.pc&&M.pc.close(); }catch(e){}
+ app.innerHTML='<div class="card"><p><b>The picture stopped.</b> The camera phone stopped sending, or the two phones lost the Wi-Fi.</p><p class="dim">To watch again, make a new code on the camera phone and scan it.</p></div>'; }
+window.__mon=M;
+if(!window.RTCPeerConnection||!window.CompressionStream) app.innerHTML='<div class="card"><p>This browser can\'t be a monitor. Try Safari or Chrome, up to date.</p></div>';
+else if(offer) start(offer); else ask('');
+})();
+</script>
+</body>
+</html>

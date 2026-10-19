@@ -480,6 +480,7 @@ function vSet(){
  h+='<div class="noterow"><input class="field" id="setnote" placeholder="Note for this take: boom in frame, use the end" value="'+esc(S.draft||'')+'"><button class="btn" id="setsay" aria-label="Say the note">SAY IT</button></div>';
  h+='<div class="marks">'+F.MARKS.map(([k,l])=>'<button class="btn mk mk-'+k+'" data-mk="'+k+'">'+l+'</button>').join('')+'</div><button class="btn block" data-mk="" style="margin-top:8px">LOG TAKE, NO MARK</button>';
  h+='<div class="row" style="margin-top:12px"><button class="btn pri" id="shotdone" style="flex:1">'+(x.done?'SHOT DONE ✓ · NEXT':'SHOT DONE · NEXT')+'</button>'+(tk.length?'<button class="btn ghost sm" id="undotake">UNDO TAKE '+tk.length+'</button>':'')+'</div>';
+ h+=clickBox();
  if(tk.length) h+='<div class="tklist">'+tk.slice().reverse().map(t=>'<div><b>TAKE '+t.take+'</b>'+(t.mark?'<span class="tm tm-'+t.mark+'">'+F.markWord(t.mark)+'</span>':'')+(t.note?'<small>'+esc(t.note)+'</small>':'')+'<small class="faint">'+F.clockWord(t.at)+'</small></div>').join('')+'</div>';
  h+='<p class="sline" style="margin-top:12px">'+(nx?'Next: scene '+nx.n+', shot '+nx.idx+', '+esc(nx.shot.what)+(nx.block!==x.block?'. Then you move to '+esc(nx.where)+'.':'.'):'That\'s the last shot on the list.')+'</p>';
  h+='<details class="card"><summary class="kicker" style="cursor:pointer;margin:0">The day · '+D.filter(y=>y.done).length+' of '+D.length+' done</summary>'+D.map((y,k)=>(k===0||D[k-1].block!==y.block?'<p class="lab">'+esc(y.where)+'</p>':'')+'<button class="dl'+(k===i?' on':'')+(y.done?' done':'')+'" data-jump="'+k+'"><span>'+(y.done?'✓':'')+'</span><b>'+y.n+'.'+y.idx+'</b> '+esc(y.shot.what)+(takesOf(y).length?' <i>'+takesOf(y).length+' tk</i>':'')+'</button>').join('')+'</details>';
@@ -487,6 +488,16 @@ function vSet(){
  h+='<p class="kicker" style="margin-top:18px">This phone</p>'+front();
  return h;
 }
+/* a Bluetooth clicker on set: 1 press logs the take, 2 circles it, 3 marks the shot done */
+const CLICK=window.Clicker?Clicker.make({title:'Story Studio: on set',
+ onPress:n=>{ const e=$('clickn'); if(e) e.textContent='•'.repeat(n); },
+ onPresses:n=>{ const e=$('clickn'); if(e) e.textContent=''; if(TAB!=='set'||WRAPVIEW||!cur()){ toast('The clicker works on TODAY.'); return; }
+  const b=document.querySelector(n===1?'[data-mk=""]':n===2?'[data-mk="gold"]':'#shotdone'); if(!b) return; b.click();
+  if(n===3) toast('Shot done. Next one up.'); const fl=$('clickflash'); if(fl){ fl.textContent=['','LOGGED','CIRCLED','SHOT DONE'][n]; fl.classList.remove('on'); void fl.offsetWidth; fl.classList.add('on'); } }}):null;
+function clickBox(){ if(!CLICK) return '';
+ return '<div class="clickrow"><button class="btn sm'+(CLICK.isOn?'':' ghost')+'" id="clickon" aria-pressed="'+CLICK.isOn+'">'+(CLICK.isOn?'REMOTE ON':'USE A REMOTE')+'</button><span id="clickn" class="clickn" aria-hidden="true"></span></div>'
+  +(CLICK.isOn?'<p class="sline clicklegend">Listening for your clicker. <b>1 press</b> logs the take. <b>2</b> circles it. <b>3</b> marks the shot done. Volume, play and page-turn buttons all count.</p>'
+   :'<p class="faint ksmall" style="margin-top:4px">A Bluetooth clicker or selfie remote, so you can log takes without looking down.</p>'); }
 function vWrap(){ const c=cur(), S=setOf(), t=F.wrapText({title:String(c.file||'Script').replace(/\.(pdf|txt|fountain|fdx)$/i,'').replace(/_/g,' '),date:c.dayDate||ymd(new Date()),shots:dayList(),log:S.log,delays:kitOf().delays,tones:kitOf().tones,reads:kitOf().read});
  return '<div class="row" style="margin-bottom:10px"><button class="lnk" id="wrapback">‹ Back to the day</button></div><div class="card"><p class="kicker">Wrap report</p><pre class="wrap">'+esc(t)+'</pre>'
   +'<div class="row"><button class="btn" id="wrapcopy">COPY</button><a class="btn" id="wrapmail" href="mailto:?subject='+encodeURIComponent('Wrap: '+t.split('\n')[0])+'&body='+encodeURIComponent(t)+'">EMAIL IT</a><button class="btn" id="wrapsave">SAVE AS TEXT</button></div>'
@@ -496,6 +507,7 @@ function wireSet(){
  document.querySelectorAll('[data-allway]').forEach(b=>b.onclick=()=>{ SCENES.forEach(sc=>{ if(!wayOf(sc.n)) st(sc.n).way=b.dataset.allway; }); save(); render(); });
  const D=dayList(); if(!D.length) return; const i=nowIdx(D), x=D[i];
  const note=$('setnote'); if(note) note.oninput=()=>{ S.draft=note.value; save(); };
+ if($('clickon')) $('clickon').onclick=async()=>{ if(CLICK.isOn) CLICK.off(); else await CLICK.on(); render(); };
  document.querySelectorAll('[data-mk]').forEach(b=>b.onclick=()=>{ const tk=takesOf(x); S.log.push({id:rid('k'),n:x.n,shot:x.shot.id,take:tk.length+1,mark:b.dataset.mk,note:(note&&note.value.trim())||'',at:Date.now()}); S.draft=''; S.cur={n:x.n,shot:x.shot.id}; save(); render();
   toast('Take '+(tk.length+1)+(b.dataset.mk?' '+F.markWord(b.dataset.mk):'')+' logged.'); });
  if($('undotake')) $('undotake').onclick=()=>{ const tk=takesOf(x), last=tk[tk.length-1]; if(!last) return; S.log=S.log.filter(t=>t!==last); save(); render(); };
@@ -601,7 +613,46 @@ function lvDraw(){ if(!LV.on) return; const u=LV.u, el=$('lvroll');
  LV.last=r; LV.raf=requestAnimationFrame(lvDraw); }
 /* camera and mic: only on START, one at a time, a light on the screen while they're on, off when you leave */
 const CAM={stream:null,loop:0,spots:[]}, MIC={stream:null,ctx:null,an:null,src:null,raf:0,peak:-Infinity,peakAt:0,hum:null,humAt:0,run:null};
-function camStop(){ if(CAM.stream) CAM.stream.getTracks().forEach(t=>t.stop()); CAM.stream=null; clearInterval(CAM.loop); }
+function camStop(){ monStop(); if(CAM.stream) CAM.stream.getTracks().forEach(t=>t.stop()); CAM.stream=null; clearInterval(CAM.loop); }
+/* watch on another phone: this phone's camera on a second screen, phone to phone over the Wi-Fi, by two codes */
+const ML=window.MonitorLink, MON={pc:null,url:'',stage:'',scan:0,busy:false};
+function monStop(){ clearInterval(MON.scan); MON.scan=0; try{ MON.pc&&MON.pc.close(); }catch(e){} MON.pc=null; MON.url=''; MON.stage=''; MON.busy=false; }
+async function monStart(){ if(!ML||!CAM.stream) return; monStop(); MON.stage='making'; render();
+ try{ const k=kitSet(), base=new URL('monitor.html',location.href).href.replace(/#.*$/,'');
+  const r=await ML.offer(CAM.stream,{aspect:k.aspect,grid:k.grid!==false},base); if(MON.stage!=='making'||!CAM.stream){ try{ r.pc.close(); }catch(e){} return; }
+  MON.pc=r.pc; MON.url=r.url; MON.stage='code';
+  const st=()=>{ if(MON.pc!==r.pc) return; const s=r.pc.connectionState||r.pc.iceConnectionState;
+   if((s==='connected'||s==='completed')&&MON.stage!=='live'){ MON.stage='live'; clearInterval(MON.scan); MON.scan=0; toast('Sending to the other phone.'); if(TAB==='tools') render(); }
+   else if(s==='failed'&&MON.stage!=='lost'){ MON.stage='lost'; clearInterval(MON.scan); if(TAB==='tools') render(); } };
+  r.pc.addEventListener('connectionstatechange',st); r.pc.addEventListener('iceconnectionstatechange',st);
+  render(); monScan();
+ }catch(e){ MON.stage=''; toast('This phone can\'t send its picture. Try Safari or Chrome, up to date.'); render(); } }
+async function monTake(text){ if(!MON.pc||MON.busy||MON.stage!=='code') return false; MON.busy=true;
+ try{ await ML.accept(MON.pc,text); MON.stage='joining'; clearInterval(MON.scan); MON.scan=0; render(); return true; }
+ catch(e){ MON.busy=false; return false; } }
+async function monScan(){ clearInterval(MON.scan); let read=null; try{ read=await ML.reader(''); }catch(e){ const el=$('monscan'); if(el) el.textContent='This phone can\'t read codes. Copy the code on the other phone and paste it below.'; return; }
+ let going=false; MON.scan=setInterval(async()=>{ if(going||MON.stage!=='code') return; const v=$('camv'); if(!v||!v.videoWidth) return; going=true;
+  try{ const t=await read(v); if(t&&t.indexOf(ML.ANSWER)>=0){ if(!(await monTake(t))){ const el=$('monscan'); if(el) el.textContent='That code didn\'t fit. Make a new one on both phones.'; } } }catch(e){} going=false; },350); }
+function monBox(){ if(!ML||!window.RTCPeerConnection||!window.CompressionStream) return '';
+ let h='<div class="mon"><p class="lab" style="margin-top:0">Watch on another phone</p>';
+ if(!MON.stage) return h+'<p class="dim" style="margin:0 0 10px">Put this picture on a second phone for the director or the client, over your own Wi-Fi. Two codes, no app, no account. Nothing goes through a server.</p><button class="btn block" id="monstart">WATCH ON ANOTHER PHONE</button></div>';
+ if(MON.stage==='making') return h+'<p class="dim">Making the code…</p></div>';
+ if(MON.stage==='code') return h+'<p><b>1.</b> On the other phone, point its camera at this code and open the link.</p>'+ML.qrSvg(MON.url)
+  +'<div class="row" style="justify-content:center">'+(navigator.share?'<button class="btn sm" id="monshare">SEND THE LINK</button>':'')+'<button class="btn sm" id="moncopy">COPY THE LINK</button></div>'
+  +'<p style="margin-top:10px"><b>2.</b> It shows a code back. Hold it up to this phone\'s lens.</p><p class="sline" id="monscan">Looking for the other phone\'s code…</p>'
+  +'<details><summary class="faint" style="cursor:pointer">Or paste its code</summary><textarea class="field" id="monpaste" placeholder="Paste the code from the other phone"></textarea><button class="btn sm" id="monuse" style="margin-top:6px">USE IT</button></details>'
+  +'<div class="row"><button class="btn sm ghost" id="moncancel">CANCEL</button></div><p class="faint ksmall">Both phones on the same Wi-Fi. Picture only, no sound.</p></div>';
+ if(MON.stage==='joining') return h+'<p class="dim">Got it. Joining up…</p><div class="row"><button class="btn sm ghost" id="moncancel">CANCEL</button></div></div>';
+ if(MON.stage==='lost') return h+'<p><b>The phones couldn\'t reach each other.</b> Are both on the same Wi-Fi? Some public and hotel Wi-Fi keeps phones apart; a phone\'s hotspot works.</p><button class="btn block" id="monstart">TRY AGAIN</button></div>';
+ return h+'<p class="dim" style="margin:0">The other phone has the picture. Leaving this screen or stopping the camera stops it.</p></div>'; }
+function wireMon(){
+ if($('monstart')) $('monstart').onclick=()=>monStart();
+ if($('moncancel')) $('moncancel').onclick=()=>{ monStop(); render(); };
+ if($('monstop')) $('monstop').onclick=()=>{ monStop(); toast('Stopped sending.'); render(); };
+ if($('moncopy')) $('moncopy').onclick=async()=>{ try{ await navigator.clipboard.writeText(MON.url); toast('Link copied. Send it to the other phone.'); }catch(e){ prompt('Copy this link:',MON.url); } };
+ if($('monshare')) $('monshare').onclick=()=>navigator.share({title:'Story Studio monitor',url:MON.url}).catch(()=>{});
+ if($('monuse')) $('monuse').onclick=async()=>{ if(!(await monTake($('monpaste').value))) toast('That isn\'t the code from the other phone.'); };
+}
 function micStop(){ if(MIC.stream) MIC.stream.getTracks().forEach(t=>t.stop()); try{ MIC.src&&MIC.src.disconnect(); }catch(e){} MIC.stream=MIC.src=MIC.an=null; cancelAnimationFrame(MIC.raf); MIC.run=null; }
 async function camStart(){ micStop(); try{ CAM.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false}); return true; }
  catch(e){ if(e&&e.hot==='notnow') return false; if(!(e&&e.hot)) toast(e&&e.name==='NotAllowedError'?'The camera wasn\'t allowed. Allow it for this site, then START.':'No camera here.'); return false; } }
@@ -612,10 +663,10 @@ async function micStart(){ camStop(); try{ MIC.stream=await navigator.mediaDevic
 const camBox=()=>'<div class="cam"><video id="camv" playsinline muted autoplay></video><svg id="camo" preserveAspectRatio="xMidYMid meet"></svg></div>';
 function vFrame(){ const k=kitSet(); k.aspect=k.aspect||'2.39';
  return '<div class="card"><p class="kicker">Frame lines</p>'
-  +(CAM.stream?'<div class="sensor"><span class="dot"></span>CAMERA ON<button class="lnk" id="camstop">STOP</button></div>'+camBox():'<p class="dim" style="margin:0 0 10px">The phone\'s camera with your frame on it. Walk the space and find the shot.</p><button class="btn pri block" id="camstart">START CAMERA</button>')
+  +(CAM.stream?'<div class="sensor"><span class="dot"></span>CAMERA ON<button class="lnk" id="camstop">STOP</button></div>'+(MON.stage==='live'?'<div class="sensor" id="monlive"><span class="dot"></span>SENDING TO 1 SCREEN<button class="lnk" id="monstop">STOP SENDING</button></div>':'')+camBox():'<p class="dim" style="margin:0 0 10px">The phone\'s camera with your frame on it. Walk the space and find the shot.</p><button class="btn pri block" id="camstart">START CAMERA</button>')
   +'<div class="row" style="margin-top:10px">'+K.ASPECTS.map(([v,l])=>'<button class="chip'+(v===k.aspect?' on':'')+'" data-aspect="'+v+'">'+l+'</button>').join('')+'</div>'
   +'<div class="row"><button class="chip'+(k.grid!==false?' on':'')+'" id="fgrid">THIRDS</button><button class="chip'+(k.cross?' on':'')+'" id="fcross">CENTER</button></div>'
-  +'<p class="faint ksmall">The phone\'s lens is wider than most cinema lenses, so this is the shape of the frame, not what a 50mm sees. Nothing is recorded.</p></div>'; }
+  +'<p class="faint ksmall">The phone\'s lens is wider than most cinema lenses, so this is the shape of the frame, not what a 50mm sees. Nothing is recorded.</p>'+(CAM.stream?monBox():'')+'</div>'; }
 function vLight(){
  return '<div class="card"><p class="kicker">Light: two spots</p>'
   +(CAM.stream?'<div class="sensor"><span class="dot"></span>CAMERA ON<button class="lnk" id="camstop">STOP</button></div>'+camBox()+'<p class="lvbig" style="font-size:20px" id="ltword">Tap the bright side, then the dark side.</p><p class="sline" id="ltwarn"></p><p class="sline" id="ltclip"></p>'
@@ -710,7 +761,7 @@ function wireCheck(){ const C=chkOf();
  $('chkback').onclick=()=>{ lvStop(); cpStop(); kitSet().tool=DB.lasttool||'level'; save(); render(); };
 }
 function wireTools(){ const k=kitSet();
- document.querySelectorAll('[data-ktool]').forEach(b=>b.onclick=()=>{ if(b.dataset.ktool!==k.tool){ const cams=['frame','light']; if(cams.includes(k.tool)&&cams.includes(b.dataset.ktool)){ lvStop(); cpStop(); CAM.spots=[]; } else kitStop(); } k.tool=b.dataset.ktool; save(); render(); });
+ document.querySelectorAll('[data-ktool]').forEach(b=>b.onclick=()=>{ if(b.dataset.ktool!==k.tool){ const cams=['frame','light']; if(cams.includes(k.tool)&&cams.includes(b.dataset.ktool)){ lvStop(); cpStop(); CAM.spots=[]; monStop(); } else kitStop(); } k.tool=b.dataset.ktool; save(); render(); });
  document.querySelectorAll('[data-kset]').forEach(el=>el.onchange=el.oninput=()=>{ const v=parseFloat(el.value); if(!isFinite(v)||v<=0) return; k[el.dataset.kset]=v; save(); if(el.tagName==='SELECT'){ render(); } else { const keep=el.dataset.kset; render(); const n=document.querySelector('[data-kset="'+keep+'"]'); if(n){ n.focus(); try{ n.setSelectionRange(n.value.length,n.value.length); }catch(e){} } } });
  document.querySelectorAll('[data-kunit]').forEach(b=>b.onclick=()=>{ const to=b.dataset.kunit; if(to!==k.unit){ k.dist=Math.round((to==='m'?k.dist*0.3048:k.dist/0.3048)*10)/10; k.unit=to; save(); render(); } });
  if($('tochk')) $('tochk').onclick=()=>{ DB.lasttool=k.tool; kitStop(); k.tool='check'; save(); render(); };
@@ -738,6 +789,7 @@ function wireTools(){ const k=kitSet();
  if($('cpstop')) $('cpstop').onclick=()=>{ cpStop(); render(); };
  if($('camstart')) $('camstart').onclick=async()=>{ if(await camStart()) render(); };
  if($('camstop')) $('camstop').onclick=()=>{ camStop(); render(); };
+ wireMon();
  camWire(); clearInterval(CAM.loop); if(CAM.stream) CAM.loop=setInterval(()=>{ if(CAM.stream.getTracks().every(t=>t.readyState==='ended')){ camStop(); render(); return; } if(k.tool==='light') lightRead(); },250);
  document.querySelectorAll('[data-aspect]').forEach(b=>b.onclick=()=>{ k.aspect=b.dataset.aspect; save(); document.querySelectorAll('[data-aspect]').forEach(x=>x.classList.toggle('on',x===b)); camOverlay(); });
  if($('fgrid')) $('fgrid').onclick=()=>{ k.grid=k.grid===false; save(); $('fgrid').classList.toggle('on',k.grid!==false); camOverlay(); };
@@ -1257,5 +1309,5 @@ async function fromTakes(){
  if(n||TAB==='cut') render();
 }
 fromTakes();
-window.__film={DB:()=>DB,SCENES:()=>SCENES,dayOpen:f=>dayOpen(f),packFiles:()=>packFiles(),CAM,MIC};
+window.__film={DB:()=>DB,SCENES:()=>SCENES,dayOpen:f=>dayOpen(f),packFiles:()=>packFiles(),CAM,MIC,MON,CLICK};
 })();
