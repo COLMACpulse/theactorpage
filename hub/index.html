@@ -170,6 +170,7 @@ small.note{display:block;padding:0 15px 13px;color:var(--faint);font-size:10.5px
 <script src="../shared/notes.js"></script>
 <script src="../shared/spotted.js"></script>
 <script src="../shared/takes.js"></script>
+<script src="../shared/madeby.js"></script>
 <script>
 var restoreReport=null;
 var CREDIT_TOMBS=[];   // titles the user has deleted; never re-seed these
@@ -272,7 +273,7 @@ function addCredit(medium){credits.unshift({medium,title:'',billing:'',character
 function delCredit(i){if(confirm('Remove this credit?')){const cid=credits[i]&&credits[i].cid;const k=tombKey(credits[i]&&credits[i].title);if(k&&CREDIT_TOMBS.indexOf(k)<0){CREDIT_TOMBS.push(k);saveTombs();}credits.splice(i,1);saveCredits();if(cid){ARTS.filter(a=>String(a.scope)==='credit:'+cid).forEach(a=>{try{DB.del(a.id);}catch(e){}});ARTS=ARTS.filter(a=>String(a.scope)!=='credit:'+cid);}render();}}
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
-let projects=[]; let tab='profile'; let openId=null;
+let projects=[]; let tab=(()=>{ try{ const t=new URLSearchParams(location.search).get('tab'); return ['profile','road','offices','keyart','reels','package','intake'].includes(t)?t:'profile'; }catch(e){ return 'profile'; } })(); let openId=null;
 
 // seed credits as archived projects
 function seed(){ projects=[]; }
@@ -2674,6 +2675,42 @@ function pkgInit(){
   pkgSel.credits=credits.filter(c=>c.kind==='credit').map(c=>c.cid);
  }
 }
+/* MADE BY ME (films from Film Hub, writing from Paper Trail) and video links: kept with your profile, so they stay put */
+var MADE=null;
+async function loadMade(){ if(!window.MadeBy) return; try{ MADE=await MadeBy.gather(); }catch(e){ MADE={films:[],writing:[]}; } if(tab==='package') render(); }
+function pageOff(){ profile.pageOff=profile.pageOff||[]; return profile.pageOff; }
+function madeToggle(id){ const L=pageOff(), i=L.indexOf(id); if(i<0) L.push(id); else L.splice(i,1); saveProfile(); render(); }
+function pageLinks(){ profile.pageLinks=profile.pageLinks||[]; return profile.pageLinks; }
+function linkAdd(){ const u=$('vlurl'), l=$('vllabel'), a=$('vlas'); const v=window.MadeBy&&MadeBy.video(u&&u.value);
+ if(!v) return toast('Paste the whole link, starting with https://');
+ pageLinks().push({url:v.url,label:(l&&l.value.trim())||'',as:(a&&a.value)||'clip'}); saveProfile(); render(); toast(v.kind==='link'?'Added. It shows as a link, not a player: only YouTube and Vimeo play on the page.':'Added. It plays right on the page.'); }
+function linkDel(i){ pageLinks().splice(i,1); saveProfile(); render(); }
+/* what the page gets from them; posters as data, small */
+async function pkgExtras(){
+ const off=new Set(pageOff()), M=MADE||{films:[],writing:[]};
+ const films=[]; for(const f of M.films){ if(off.has(f.id)) continue; films.push(Object.assign({},f,{poster:f.poster?{u:await blobToDataURL(f.poster),t:f.poster.type||'image/jpeg'}:null})); }
+ const writing=M.writing.filter(w=>!off.has(w.id));
+ const vlinks=pageLinks().map(x=>Object.assign({},window.MadeBy?MadeBy.video(x.url):{kind:'link',url:x.url},{label:x.label,as:x.as})).filter(x=>x&&x.url);
+ return {made:{films,writing},vlinks};
+}
+function madePanel(){
+ if(!MADE){ loadMade(); return `<div class="panel"><h2>Made by me</h2><small class="note">Looking for your films and scripts&hellip;</small></div>`; }
+ const off=new Set(pageOff()), F=MADE.films, W=MADE.writing;
+ const row=(x,sub)=>{ const on=!off.has(x.id); return `<div class="reelrow" style="cursor:pointer;align-items:center" onclick="madeToggle('${esc(x.id)}')"><span class="num" style="${on?'color:var(--tung);border-color:var(--tung)':''}">${on?'&#10003;':''}</span><span class="rl">${esc(x.title)}</span><span class="tag">${esc(sub)}</span></div>`; };
+ let h=`<div class="panel"><h2>Made by me &middot; ${F.length+W.length}</h2><small class="note">The work you made yourself goes on your page under your acting. Films come from Film Hub: the ones you added there, and Story Studio films you marked done. Scripts come from Paper Trail once you've written a logline. Tap one to leave it off.</small>`;
+ if(!F.length&&!W.length) return h+`<small class="note" style="display:block;margin-top:8px">Nothing yet. Finish a film in Story Studio or add one in Film Hub, or write a logline for a script in Paper Trail, and it shows up here.</small></div>`;
+ h+=`<div style="display:grid;gap:6px;padding:11px 13px">`+F.map(f=>row(f,[f.kind||'Film',f.year].filter(Boolean).join(' · '))).join('')+W.map(w=>row(w,[w.kind||'Script',w.genre].filter(Boolean).join(' · '))).join('')+`</div></div>`;
+ return h;
+}
+function linksPanel(){
+ const L=pageLinks();
+ return `<div class="panel"><h2>Video links &middot; ${L.length}</h2><small class="note">For video that lives on YouTube or Vimeo: a long scene at full quality, a reel you already posted. It plays on your page from there, so the file never has to fit anywhere. Other links show as a plain link.</small>
+  <div style="display:grid;gap:8px;padding:11px 13px;max-width:640px">
+   ${L.map((x,i)=>{ const v=window.MadeBy?MadeBy.video(x.url):null; return `<div class="reelrow" style="align-items:center"><span class="rl">${esc(x.label||x.url)}</span><span class="tag">${x.as==='reel'?'reel':'clip'}</span><span class="tag">${v?v.kind:'link'}</span><button class="ghost act sm" onclick="linkDel(${i})">remove</button></div>`; }).join('')}
+   <input id="vlurl" placeholder="https://youtu.be/... or https://vimeo.com/...">
+   <div class="row" style="padding:0;gap:8px;flex-wrap:wrap"><input id="vllabel" placeholder="What it is: Cold Creek, the barn scene" style="flex:1 1 220px"><select id="vlas"><option value="clip">a clip</option><option value="reel">my reel</option></select><button class="act sm" onclick="linkAdd()">Add</button></div>
+  </div></div>`;
+}
 function pkgToggleCredit(cid){const i=pkgSel.credits.indexOf(cid);if(i<0)pkgSel.credits.push(cid);else pkgSel.credits.splice(i,1);render();}
 function pkgToggleClip(id){const i=pkgSel.clips.indexOf(id);if(i<0)pkgSel.clips.push(id);else pkgSel.clips.splice(i,1);render();}
 function pkgToggleIn(list,id){const L=pkgSel[list];const i=L.indexOf(id);if(i<0)L.push(id);else L.splice(i,1);render();}
@@ -2809,9 +2846,9 @@ async function publishSite(){
    const po=ARTS.find(a=>String(a.scope)==='credit:'+cid&&a.category==='poster');
    cr.push({title:c.title,role:c.role,net:c.net,character:c.character||'',director:c.director||'',
             charNote:c.charNote||'',poster:po?await grab(po.id):null});}
-  const doc=packageHTML({profile,note:pkgSel.note,contact:pkgSel.contact,head,res,reel,about,
+  const doc=packageHTML(Object.assign(await pkgExtras(),{profile,note:pkgSel.note,contact:pkgSel.contact,head,res,reel,about,
     clips,auds,monos,credits:cr,site:site,ogfile:'share.jpg',noindex:false,
-    showLane:!!pkgSel.showLane,showSkills:!!pkgSel.showSkills});
+    showLane:!!pkgSel.showLane,showSkills:!!pkgSel.showSkills}));
   downloadBlob(new Blob([doc],{type:'text/html'}),'index.html');
   const hs=ARTS.find(a=>a.id===pkgSel.headshot);
   const card=await makeShareCard(hs&&hs.blob,profile.name,profile.lane);
@@ -2855,9 +2892,9 @@ async function buildSiteZip(){
    cr.push({title:c.title,role:c.role,net:c.net,character:c.character||'',director:c.director||'',
             charNote:c.charNote||'',poster:po?await asData(po.id):null});}
 
-  const doc=packageHTML({profile,note:pkgSel.note,contact:pkgSel.contact,head,res,reel,about,
+  const doc=packageHTML(Object.assign(await pkgExtras(),{profile,note:pkgSel.note,contact:pkgSel.contact,head,res,reel,about,
     clips,auds,monos,credits:cr,site:site,ogfile:'share.jpg',
-    showLane:!!pkgSel.showLane,showSkills:!!pkgSel.showSkills});
+    showLane:!!pkgSel.showLane,showSkills:!!pkgSel.showSkills}));
   entries.unshift({name:'index.html',data:enc.encode(doc)});
 
   const hs=ARTS.find(a=>a.id===pkgSel.headshot);
@@ -2877,7 +2914,7 @@ async function buildSiteZip(){
 function publishPanel(){
  const site=(pkgSel.site||'').trim();
  const vids=[pkgSel.reel,pkgSel.about].filter(Boolean).length+pkgSel.clips.length+pkgSel.auditions.length+pkgSel.monologues.length;
- return `<div class="panel" style="border-color:var(--good)">
+ return `<div class="panel" id="publish" style="border-color:var(--good)">
   <h2 style="color:var(--good)">Publish it as a website</h2>
   <small class="note">Everything on this page, hosted. Video goes out as separate files the browser streams, so the page loads fast no matter how much you include - none of the 20 MB email ceiling. You get a zip: unzip it, upload the folder.</small>
   <div style="padding:11px 13px;display:grid;gap:10px;max-width:640px">
@@ -2946,6 +2983,8 @@ function packageView(){
  h+=pkgVideoPicker('Auditions','audition_vid','auditions',false);
  h+=pkgVideoPicker('Monologues & stand-up',['monologue','standup_vid'],'monologues',false);
 
+ h+=linksPanel();
+ h+=madePanel();
  h+=`<div class="panel"><h2>Resume</h2><div style="padding:11px 13px">`;
  h+=rs.length?`<select onchange="pkgSet('resume',this.value)" style="max-width:420px"><option value="">none</option>`+rs.map(a=>`<option value="${a.id}"${pkgSel.resume===a.id?' selected':''}>${esc(a.label||a.filename)}</option>`).join('')+`</select>`:`<span class="note">No resume on file.</span>`;
  h+=`</div></div>`;
@@ -2994,7 +3033,7 @@ async function buildPackage(){
   const cr=[];for(const cid of pkgSel.credits){const c=credits.find(x=>x.cid===cid);if(!c)continue;
    const po=c.posterId?await grab(c.posterId):null;
    cr.push({title:c.title,role:c.role,net:c.net,medium:c.medium,character:c.character||'',charNote:c.charNote||'',director:c.director||'',poster:po});}
-  const doc=packageHTML({profile,note:pkgSel.note,contact:pkgSel.contact,head,res,reel,about,clips,auds,monos,credits:cr});
+  const doc=packageHTML(Object.assign({profile,note:pkgSel.note,contact:pkgSel.contact,head,res,reel,about,clips,auds,monos,credits:cr},await pkgExtras()));
   const blob=new Blob([doc],{type:'text/html'});
   const nm=(profile.name||'actor').replace(/[^\w]+/g,'_')+'_package.html';
   downloadBlob(blob,nm);
@@ -3013,7 +3052,11 @@ function packageHTML(d){
              nCred?nCred+' credits':''].filter(Boolean).join(' \u2014 ').slice(0,300);
  const vid=(m,cls)=>!m?'':`<figure class="well ${cls||''}"><video src="${m.u}" controls preload="${m.u.startsWith('data:')?'metadata':'none'}" playsinline${m.poster?` poster="${m.poster}"`:''}></video><figcaption>${E(m.n||'')}${m.who?` <span class="as">as ${E(m.who)}</span>`:''}${m.kind?` <span class="as">${E(m.kind)}</span>`:''}</figcaption></figure>`;
  const rule=(label,count)=>`<div class="rule"><span class="lbl">${E(label)}</span>${count?`<span class="ct">${count}</span>`:''}<i></i></div>`;
- const grid=(items,cls)=>`<div class="grid ${cls||''}">${items.map(m=>vid(m)).join('')}</div>`;
+ const emb=v=>v.embed?`<figure class="well"><iframe src="${E(v.embed)}" title="${E(v.label||'Video')}" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>${v.label?`<figcaption>${E(v.label)}</figcaption>`:''}</figure>`
+   :`<figure class="well vl"><a href="${E(v.url)}" target="_blank" rel="noopener">${E(v.label||'Watch')} &rarr;</a></figure>`;
+ const grid=(items,cls,links)=>`<div class="grid ${cls||''}">${items.map(m=>vid(m)).join('')}${(links||[]).map(emb).join('')}</div>`;
+ const VL=(d.vlinks||[]).filter(v=>v&&v.url), reelL=VL.filter(v=>v.as==='reel'), clipL=VL.filter(v=>v.as!=='reel');
+ const made=d.made||{}, mFilms=(made.films||[]), mWrite=(made.writing||[]);
 
  const credits=d.credits||[];
  const posters=credits.filter(c=>c.poster&&c.poster.u).slice(0,8);
@@ -3088,6 +3131,12 @@ section:last-of-type{border-bottom:0}
  padding:9px 12px;background:var(--black);border-top:1px solid #23232a}
 .well .as{color:var(--salmon)}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.well iframe{width:100%;display:block;aspect-ratio:16/9;border:0;background:var(--black)}
+.well.vl{display:flex;align-items:center;justify-content:center;aspect-ratio:16/9;min-height:120px}
+.well.vl a,.mlinks a{font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:#F2F0EA;text-decoration:none;border-bottom:1px solid var(--salmon)}
+.mlinks{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px}.mlinks a{color:var(--blue)}
+.wlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px 26px;margin-top:22px}
+.wrow b{display:block;font-size:15px;line-height:1.25;color:var(--ink)}.wrow .cbits{font-family:var(--mono);font-size:11px;color:var(--grey);margin-top:5px;line-height:1.6}
 .solo{max-width:100%}
 
 /* ---- credits: read like a resume, because that is what it is ---- */
@@ -3126,7 +3175,7 @@ footer .sp{flex:1}
  .sheet>*:nth-child(3){animation-delay:.1s}
  @keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
 }
-.offlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1px;background:var(--line);border-top:1px solid var(--line);margin-top:11px}.offrow{display:flex;align-items:center;gap:12px;text-align:left;background:var(--p1);border:0;color:var(--ink);font-family:inherit;font-size:13px;letter-spacing:.02em;padding:13px 15px;cursor:pointer;transition:background .12s,color .12s}.ofn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ofc{flex:0 0 auto;font-size:11px;color:var(--mut);border:1px solid var(--line2);border-radius:20px;padding:1px 9px;min-width:30px;text-align:center}.offrow:hover .ofc{border-color:var(--tung);color:var(--tung)}.offrow:hover{background:rgba(224,162,60,.08);color:var(--tung)}.offreads{display:grid;gap:1px;background:var(--line);border-top:1px solid var(--line);max-height:440px;overflow:auto}.offread{display:grid;grid-template-columns:1fr 150px 108px auto;gap:12px;align-items:center;background:var(--p1);padding:10px 12px;font-size:12.5px}.orT{color:var(--ink);overflow:hidden;text-overflow:ellipsis}.orR{color:var(--tung);font-size:11.5px;overflow:hidden;text-overflow:ellipsis}.orW{color:var(--mut);font-size:11px;letter-spacing:.03em;white-space:nowrap}@media(max-width:640px){.offread{grid-template-columns:1fr auto}.orR,.orW{display:none}}.allocbar{display:flex;height:9px;border-radius:5px;overflow:hidden;background:var(--line);margin:2px 0 9px}.allocbar i{display:block;height:100%}.allocrow{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--dim)}.allocrow b{color:var(--ink);font-weight:600}.gaterow{display:flex;gap:6px;flex-wrap:wrap}.gatebtn{font-family:inherit;font-size:11px;letter-spacing:.03em;background:transparent;border:1px solid var(--line2);border-radius:20px;padding:4px 11px;color:var(--mut);cursor:pointer}.gatebtn.on{border-color:currentColor}.ogap{display:grid;grid-template-columns:1fr 1fr;gap:14px}.ogap h4{margin:0 0 7px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);font-weight:400}.ogap ul{margin:0;padding-left:16px;font-size:12.5px;line-height:1.7;color:var(--bone)}@media(max-width:640px){.ogap{grid-template-columns:1fr}}.gdot{flex:0 0 7px;width:7px;height:7px;border-radius:50%;opacity:.85}.audlist{display:grid;gap:12px;padding:13px}.audcard{border:1px solid var(--line2);border-radius:9px;padding:14px;background:var(--p1)}.audhead{display:flex;align-items:flex-start;gap:12px;justify-content:space-between}.audhead b{font-size:14px;color:var(--ink)}.audrole{display:block;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--tung);margin-top:3px}.audstate{flex:0 0 auto;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;border:1px solid;border-radius:20px;padding:2px 10px}.audmeta{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:10px}.wsgrp.inaud{border:0;padding:12px 0 0;background:none}.audhist{display:grid;gap:1px;background:var(--line);border-top:1px solid var(--line);margin-top:11px;max-height:520px;overflow:auto}.hrow{display:grid;grid-template-columns:8px 1fr 130px 180px 110px;gap:11px;align-items:center;background:var(--p1);padding:9px 13px;font-size:12px;cursor:pointer}.hrow:hover{background:rgba(224,162,60,.06)}.hs{width:8px;height:8px;border-radius:50%}.ht{color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hr{color:var(--tung);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hc{color:var(--dim);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hw{color:var(--mut);font-size:11px;white-space:nowrap}@media(max-width:760px){.hrow{grid-template-columns:8px 1fr auto}.hr,.hc{display:none}}</style></head><body>
+.reachrow{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}.repline{font-family:var(--mono);font-size:12px;color:var(--grey);letter-spacing:.04em}</style></head><body>
 <main class="sheet">
 <div class="stripe"></div>
 
@@ -3149,8 +3198,8 @@ footer .sp{flex:1}
 ${d.note?`<p class="note">${E(d.note)}</p>`:''}
 
 ${has(d.about)?`<section>${rule('About me')}${vid(d.about,'solo')}</section>`:''}
-${has(d.reel)?`<section>${rule('Reel')}${vid(d.reel,'solo')}</section>`:''}
-${clips.length?`<section>${rule('Selected work',clips.length)}${grid(clips)}</section>`:''}
+${(has(d.reel)||reelL.length)?`<section>${rule('Reel')}${has(d.reel)?vid(d.reel,'solo'):''}${reelL.map(emb).join('')}</section>`:''}
+${(clips.length||clipL.length)?`<section>${rule('Selected work',clips.length+clipL.length)}${grid(clips,'',clipL)}</section>`:''}
 ${auds.length?`<section>${rule('Auditions',auds.length)}${grid(auds)}</section>`:''}
 ${monos.length?`<section>${rule('Monologues & stand-up',monos.length)}${grid(monos)}</section>`:''}
 
@@ -3166,6 +3215,18 @@ ${credits.length?`<section>${rule('Credits',credits.length)}
    </div>
   </article>`).join('')}
  </div>
+</section>`:''}
+
+${(mFilms.length||mWrite.length)?`<section class="made">${rule('Made by me',mFilms.length+mWrite.length)}
+ ${mFilms.length?`<div class="credlist">${mFilms.map(f=>`<article class="crow">
+   <div class="cart">${f.poster&&f.poster.u?`<img src="${f.poster.u}" alt="${E(f.title)}" loading="lazy">`:`<span class="noart">${E((f.title||'').slice(0,2).toUpperCase())}</span>`}</div>
+   <div class="cmeta"><b>${E(f.title)}</b>
+     <div class="cbits">${[f.kind||'Film',f.year,f.runtime].filter(Boolean).map(E).join(' &middot; ')}</div>
+     ${f.credit?`<div class="cn">${E(f.credit)}</div>`:''}
+     ${f.logline?`<p class="cbrk">${E(f.logline)}</p>`:''}
+     ${(f.links||[]).length?`<div class="mlinks">${f.links.map(l=>`<a href="${E(l.url)}" target="_blank" rel="noopener">${E(l.label||'Watch')} &rarr;</a>`).join('')}</div>`:''}
+   </div></article>`).join('')}</div>`:''}
+ ${mWrite.length?`<div class="wlist">${mWrite.map(w=>`<article class="wrow"><b>${E(w.title)}</b><div class="cbits">${[w.kind||'Script',w.genre].filter(Boolean).map(E).join(' &middot; ')}</div>${w.logline?`<p class="cbrk">${E(w.logline)}</p>`:''}</article>`).join('')}</div>`:''}
 </section>`:''}
 
 ${has(d.res)?`<section>${rule('Resume')}
@@ -3281,6 +3342,7 @@ function profileView(){
 }
 
 function render(){setTimeout(sweepThumbs,60);
+ if(location.hash==='#publish'&&!render.jumped&&tab==='package'){ render.jumped=true; setTimeout(()=>{ const e=document.getElementById('publish'); if(e) e.scrollIntoView({block:'start'}); },300); }
  /* 'intake' used to be in this list, which meant the Setup checklist, Backup,
     the auditions CSV import, the paste-an-email intake and the Vault panel were
     all unreachable - several hundred lines of working code behind a door that

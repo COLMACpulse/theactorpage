@@ -156,6 +156,15 @@ body.has .sigil{width:110px;margin-bottom:16px}
 .act .disc-name{color:var(--tungsten)}
 .write .disc-name{color:var(--paper)}
 .film .disc-name{color:var(--daylight)}
+.yourpage .disc-name{color:var(--tungsten)}
+.yp-lede{color:var(--ink);line-height:1.65;margin:0 0 16px;max-width:640px}
+.yp-from{list-style:none;padding:0;margin:0 0 18px;display:grid;gap:8px;font-size:.95rem;color:var(--grey)}
+.yp-from li{display:grid;grid-template-columns:11em 1fr;gap:4px 12px;align-items:baseline}
+.yp-from b{font:700 .7rem var(--script);letter-spacing:.2em;color:var(--tungsten)}
+@media(max-width:560px){.yp-from li{grid-template-columns:1fr}}
+.yp-go{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 10px}
+.yp-note{font-family:var(--script);font-size:.78rem;color:var(--faint);margin:0 0 22px}
+.yp-tool{border-top:1px solid var(--rule);padding-top:20px}
 /* MAKE YOUR OWN: WRITE and FILM sit under it, for the actor making their own work */
 .own-head{padding-bottom:0}
 .own-head .wrap{max-width:1060px}
@@ -672,7 +681,29 @@ body.stopen{overflow:hidden}
         <div class="toolfoot"><div class="actions"><a class="btn ghost" href="resume/">Open Virtual Resume</a></div>
         <details class="more"><summary>More</summary><p>Shoot your own work and turn it into honest credits, a one-page résumé and a page casting can click. It shows what each piece still needs to count.</p></details></div>
       </div>
-      <div class="tool">
+    </div>
+  </div>
+</section>
+
+<hr class="hair">
+
+<section class="band yourpage" id="yourpage" data-dept="act" aria-labelledby="ypname">
+  <div class="wrap disc">
+    <div>
+      <span class="sub-kick">WHERE IT ALL LANDS</span>
+      <h2 class="disc-name" id="ypname">YOUR PAGE</h2>
+      <p class="disc-what">The page casting<br>clicks on.</p>
+    </div>
+    <div>
+      <p class="yp-lede">Everything you keep ends up in the Project Hub: your headshots, your reel, the takes you kept, your credits, every audition and every casting office. So does the work you made yourself, the films and the scripts. From there it builds the page casting clicks on, and the package your rep sends out.</p>
+      <ul class="yp-from">
+        <li><b>ACT</b> headshots, takes you keep, credits from your résumé</li>
+        <li><b>MAKE YOUR OWN</b> films from Film Hub, scripts from Paper Trail</li>
+        <li><b>LINKS</b> long scenes on YouTube or Vimeo, full quality</li>
+      </ul>
+      <div class="yp-go"><a class="btn" href="hub/?tab=package#publish">Build your page</a></div>
+      <p class="yp-note">Today it hands you a folder to put on your own site. Nothing is uploaded for you.</p>
+      <div class="tool yp-tool">
         <div class="tool-head">
           <span class="tool-name"><svg class="ticon st r-act" viewBox="0 0 96 96" aria-hidden="true"><circle class="ring" cx="48" cy="48" r="44"/><use href="#s-hub" x="18" y="16" width="60" height="60"/></svg>PROJECT HUB</span>
           <span class="lead"></span>

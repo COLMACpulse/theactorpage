@@ -6,9 +6,13 @@ let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===und
 const p=await (await b.newContext({viewport:{width:390,height:844}})).newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
 await p.goto('http://localhost:8811/'); await p.evaluate(()=>localStorage.clear()); await p.reload(); await p.waitForTimeout(500);
 const order=await p.$$eval('section.band',x=>x.map(s=>s.id||s.dataset.dept||'').filter(Boolean));
-want('ACT first, then MAKE YOUR OWN, with WRITE and FILM under it', order.indexOf('act')<order.indexOf('own')&&order.indexOf('own')+1===order.indexOf('write')&&order.indexOf('write')+1===order.indexOf('film'), order);
+want('ACT first, then YOUR PAGE, then MAKE YOUR OWN, with WRITE and FILM under it', order.indexOf('act')<order.indexOf('yourpage')&&order.indexOf('yourpage')<order.indexOf('own')&&order.indexOf('own')+1===order.indexOf('write')&&order.indexOf('write')+1===order.indexOf('film'), order);
 want('the heading says what it is for', /NO AUDITION THIS WEEK\?/.test(await p.innerText('#own'))&&/MAKE YOUR OWN/.test(await p.innerText('#ownname'))&&/already your sides in ACT/.test(await p.innerText('#own')));
 want('WRITE and FILM are steps 1 and 2 of it', /MAKE YOUR OWN · 1/.test(await p.innerText('#write'))&&/MAKE YOUR OWN · 2/.test(await p.innerText('#film')));
+want('YOUR PAGE: the Hub is where it all lands, mine and made-by-me', /WHERE IT ALL LANDS/.test(await p.innerText('#yourpage'))&&/films from Film Hub, scripts from Paper Trail/.test(await p.innerText('#yourpage'))&&!!(await p.$('#yourpage .tool:has-text("PROJECT HUB")'))&&!(await p.$('.band.act .tool:has-text("PROJECT HUB")')));
+await p.click('#yourpage .yp-go a'); await p.waitForURL(/hub\/\?tab=package#publish$/); await p.waitForTimeout(1500);
+want('Build your page: the Hub opens on the page builder, at Publish', await p.evaluate(()=>tab==='package'&&!!document.getElementById('publish')&&Math.abs(document.getElementById('publish').getBoundingClientRect().top)<200));
+await p.goto('http://localhost:8811/'); await p.waitForTimeout(400);
 await p.click('#own .own-path .f a'); await p.waitForTimeout(400);
 want('2 · SHOOT IT jumps to FILM', /#film$/.test(p.url()));
 await p.click('[data-view="write"]'); await p.waitForTimeout(150);
