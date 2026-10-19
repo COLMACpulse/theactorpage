@@ -1,6 +1,6 @@
-/* CPS service worker: opens with no signal. Your recordings never touch the network. */
-const CACHE = 'cps-0.4.9';
-const FILES = ['../shared/view.js','./', 'index.html', '../shared/hot.js', '../shared/kit.js', 'app.js', 'engine.js', '../shared/shelf.js', 'manifest.webmanifest',
+/* CHARACTER BANK service worker: opens with no signal. Your recordings never touch the network. */
+const CACHE = 'cps-0.4.10';
+const FILES = ['../shared/view.js','./', 'index.html', '../shared/hot.js', '../shared/kit.js', 'app.js', 'engine.js', 'charts.js', '../shared/shelf.js', 'manifest.webmanifest',
   'fonts/jost-latin-400-normal.woff2', 'fonts/jost-latin-500-normal.woff2', 'fonts/jost-latin-600-normal.woff2',
   'fonts/courier-prime-latin-400-normal.woff2', 'fonts/courier-prime-latin-700-normal.woff2',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];

@@ -178,7 +178,7 @@ X.unlocks=function(kind,o){
   ['Actor OS','read it with a scene partner'+me+', tape it, slate it','actor-os/'],
   ['Memorizer','learn the lines'+me,'memorizer/'],
   ['Breakdown','the scene broken down, the real pages','breakdown/'],
-  ['CPS','the voices in it','cps/']];
+  ['Character Bank','the voices in it','cps/']];
  if(kind==='script') return [
   ['Story Studio','scenes, shot list, shoot day, call sheet, credits','film/'],
   ['Paper Trail','this draft kept, compared with the others','papertrail/'],

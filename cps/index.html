@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <script src="../shared/hot.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>CPS · Character Preservation</title>
+<title>Character Bank</title>
 <meta name="description" content="You find the character. This keeps it. Your voice, your look, the line that drops you back in.">
 <meta name="theme-color" content="#121110">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="CPS">
+<meta name="apple-mobile-web-app-title" content="Character Bank">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -25,16 +25,17 @@
   --bg:#121110; --panel:#1b1916; --panel2:#24211d; --ink:#ece7dc; --dim:#a39c8e; --faint:#6e675c; --line:#2f2b26;
   --tung:#e0a23c; --tung-ink:#1a1206; --tung-soft:rgba(224,162,60,.14); --tung-text:#e9b25a;
   --bad:#e0785f; --good:#8fbf8a;
+  --c-then:#3987e5; --c-now:#c98500;   /* graphs: checked for colour blindness on this surface */
   --sans:Jost,system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"Courier Prime","Courier New",Courier,monospace;
   --r:12px; --tap:44px; --nav:64px; color-scheme:dark;
 }
 @media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){
   --bg:#ece7dc; --panel:#f6f2ea; --panel2:#e3dccd; --ink:#1d1a15; --dim:#5f584b; --faint:#8a8273; --line:#d3cab8;
-  --tung-soft:rgba(224,162,60,.22); --tung-text:#8a5a08; --bad:#a8432c; --good:#3d7a3a; color-scheme:light;
+  --tung-soft:rgba(224,162,60,.22); --tung-text:#8a5a08; --bad:#a8432c; --good:#3d7a3a; --c-then:#2a78d6; --c-now:#c98500; color-scheme:light;
 }}
 :root[data-theme="light"]{
   --bg:#ece7dc; --panel:#f6f2ea; --panel2:#e3dccd; --ink:#1d1a15; --dim:#5f584b; --faint:#8a8273; --line:#d3cab8;
-  --tung-soft:rgba(224,162,60,.22); --tung-text:#8a5a08; --bad:#a8432c; --good:#3d7a3a; color-scheme:light;
+  --tung-soft:rgba(224,162,60,.22); --tung-text:#8a5a08; --bad:#a8432c; --good:#3d7a3a; --c-then:#2a78d6; --c-now:#c98500; color-scheme:light;
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
@@ -160,7 +161,7 @@ nav.tabs .badge{position:absolute;top:10px;right:calc(50% - 18px);width:8px;heig
 .toast{position:fixed;left:50%;bottom:calc(var(--nav) + 16px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:80;max-width:calc(100% - 32px)}
 table.mini{width:100%;border-collapse:collapse;font-size:14px}table.mini td{padding:8px 4px;border-bottom:1px solid var(--line);vertical-align:top}
 
-/* ---------- CPS ---------- */
+/* ---------- CHARACTER BANK ---------- */
 .state.strained{background:var(--bad);color:#fff;margin-left:6px}
 .lines{white-space:pre-wrap;font-size:14px;background:var(--panel2);border-radius:10px;padding:10px;margin-bottom:10px}
 .vcard{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:10px;margin-bottom:8px}
@@ -194,6 +195,33 @@ table.mini{width:100%;border-collapse:collapse;font-size:14px}table.mini td{padd
 .said{font-size:16px;line-height:1.5;margin:10px 0 0;padding-left:16px}
 .pad{display:block;width:100%;aspect-ratio:3/4;max-height:62vh;margin:0 auto;background:#f4f1ea;border-radius:10px;touch-action:none;cursor:crosshair}
 .hero-look{width:100%;max-height:52vh;object-fit:contain;border-radius:10px;background:#000;display:block}
+
+/* ---------- graphs ---------- */
+.cgwrap{margin:4px 0 0;overflow:hidden}
+svg.cg{display:block;width:100%;height:auto;font-family:var(--sans)}
+svg.cg .grid{stroke:var(--line);stroke-width:1}
+svg.cg .axis0{stroke:var(--faint);stroke-width:1}
+svg.cg .tick{fill:var(--dim);font-size:12px}
+svg.cg .lab{fill:var(--ink);font-size:13px;font-weight:500}
+svg.cg .line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+svg.cg .line.then{stroke:var(--c-then)} svg.cg .line.now{stroke:var(--c-now)}
+svg.cg .range{stroke-width:2;stroke-linecap:round;opacity:.55} svg.cg .range.now{stroke:var(--c-now)}
+svg.cg .dot.now{fill:var(--c-now);stroke:var(--panel);stroke-width:2}
+svg.cg .dot.mid{fill:var(--ink);stroke:var(--panel);stroke-width:2}
+svg.cg .me{fill:var(--ink);stroke:var(--panel);stroke-width:2}
+svg.cg .pairline{stroke:var(--dim);stroke-width:1}
+svg.cg .leader{stroke:var(--faint);stroke-width:1}
+svg.cg .bar.now{fill:var(--c-now)}
+svg.cg .band.then{fill:var(--c-then);opacity:.12}
+svg.cg .refline.then{stroke:var(--c-then);stroke-width:2}
+svg.cg .xhair{stroke:var(--dim);stroke-width:1}
+svg.cg .hit,svg.cg .hitarea{fill:transparent}
+svg.cg [data-tip]{cursor:pointer;outline:none}
+svg.cg [data-tip].on .dot,svg.cg [data-tip]:focus .dot,svg.cg [data-tip].on .bar,svg.cg [data-tip]:focus .bar{filter:brightness(1.18)}
+svg.cg [data-tip]:focus .hit{stroke:var(--ink);stroke-width:1}
+#cgtip{position:absolute;z-index:50;display:none;pointer-events:none;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px;color:var(--dim);max-width:260px;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+#cgtip .h{color:var(--ink);font-weight:600}
+.key{display:inline-block;width:14px;height:2px;vertical-align:middle;margin:0 4px 0 2px;border-radius:1px}.key.then{background:var(--c-then)}.key.now{background:var(--c-now)}
 </style>
 </head>
 <body>
@@ -205,6 +233,7 @@ table.mini{width:100%;border-collapse:collapse;font-size:14px}table.mini td{padd
 <script src="../shared/kit.js"></script>
 <script src="../shared/shelf.js"></script>
 <script src="engine.js"></script>
+<script src="charts.js"></script>
 <script src="app.js"></script>
 <script src="../shared/view.js"></script>
 </body>

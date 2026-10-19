@@ -1,14 +1,14 @@
 /*
-  CPS v0.4 · Character Preservation
+  CHARACTER BANK v0.5 (was CPS) · Character Preservation
   You find the character. This keeps it: your voice, your look, the line that drops you back in.
   Come back weeks later, hear yourself, record again, see what moved.
   No computer voice. The actor is the machine. Vanilla JS, offline, no account.
 */
 (function () {
   'use strict';
-  const VERSION = '0.4.0';
+  const VERSION = '0.5.0';
   const SCHEMA = 'ACT.CPS/0.2';
-  const E = window.CPSEngine;
+  const E = window.CPSEngine, G = window.CPSCharts;
   const MAX_REC = 180; // seconds
 
   // ---------------------------------------------------------------- utils
@@ -37,7 +37,7 @@
   }
   async function peekAll(db, store) { if (!db || !db.objectStoreNames.contains(store)) return []; return new Promise(res => { try { const r = db.transaction(store, 'readonly').objectStore(store).getAll(); r.onsuccess = () => res(r.result || []); r.onerror = () => res([]); } catch (e) { res([]); } }); }
 
-  const emptyLib = () => ({ schema: SCHEMA, app: 'CPS ' + VERSION, created: now(), chars: [], cur: null, lastSaved: null, lines: E.DEFAULT_LINES });
+  const emptyLib = () => ({ schema: SCHEMA, app: 'Character Bank ' + VERSION, created: now(), chars: [], cur: null, lastSaved: null, lines: E.DEFAULT_LINES });
   const newChar = (name, project) => ({ id: rid(), name: name || '', project: project || '', created: now(), updated: now(), state: null, anchorLine: '', notes: '', refId: null, takes: [], looks: [], bd: null, never: '', vary: '', strain: '', strained: false, me: false, posture: '', weight: '', eyes: '', hands: '', trigger: '', plays: '', neverDo: '', backs: [] });
   const S = { visit: null, cold: (function () { try { return localStorage.getItem('cps_cold') === '1'; } catch (e) { return false; } })(), lib: null, tab: 'chars', urls: {}, rec: null, lastReturn: null, bd: [], busy: '' };
   let saveT = null;
@@ -140,10 +140,11 @@
     closeSheet(true);
     const c = cur();
     $('#app').innerHTML = `<div class="shell">
-      <header class="top"><div class="title"><b>CPS</b><span>${esc(S.tab === 'voices' ? 'Your voices, same lines' : c && S.tab !== 'chars' && S.tab !== 'pack' ? (c.name || 'Unnamed character') + (c.project ? ' · ' + c.project : '') : 'You find it. This keeps it.')}</span></div><button class="iconbtn" data-a="theme" aria-label="Light or dark">${ICON.theme}</button></header>
+      <header class="top"><div class="title"><b>CHARACTER BANK</b><span>${esc(S.tab === 'voices' ? 'Your voices, same lines' : c && S.tab !== 'chars' && S.tab !== 'pack' ? (c.name || 'Unnamed character') + (c.project ? ' · ' + c.project : '') : 'You find it. This keeps it.')}</span></div><button class="iconbtn" data-a="theme" aria-label="Light or dark">${ICON.theme}</button></header>
       <main id="main">${S.busy ? `<div class="msg" role="status">${esc(S.busy)}</div>` : ''}${({ chars: vChars, capture: vCapture, back: vBack, voices: vVoices, pack: vPack }[S.tab])()}</main>
       <nav class="tabs">${TABS.map(([k, l]) => `<button class="${S.tab === k ? 'on' : ''}" data-a="tab" data-t="${k}">${ICON[k]}<span>${l}</span></button>`).join('')}</nav></div>`;
     if (S.tab === 'chars' && window.Kit) Kit.wire($('#main'), KIT);
+    if (G) G.wire($('#main'));
     if (S.tab === 'back') { const r = $('#refaudio'); if (r) r.addEventListener('play', () => { const c2 = cur(); if (c2) { c2.lastVisit = now(); touch(c2); } }, { once: true }); }
   }
   const stateChip = c => { const s = E.autoState(c); return `<span class="state ${s}">${E.STATES[s]}</span>`; };
@@ -161,7 +162,7 @@
   function vChars() {
     const L = S.lib;
     const bdNew = S.bd.filter(r => !L.chars.some(c => c.bd && c.bd.pid === r.pid && c.bd.role === r.role));
-    return `${L.chars.length ? '' : `<div style="padding:12px 0 4px"><div class="kicker">THEACTORPAGE · ACT</div><h1 style="font-size:30px;letter-spacing:.1em">CPS</h1>
+    return `${L.chars.length ? '' : `<div style="padding:12px 0 4px"><div class="kicker">THEACTORPAGE · ACT</div><h1 style="font-size:30px;letter-spacing:.1em">CHARACTER BANK</h1>
         <div style="color:var(--tung-text);letter-spacing:.04em;margin-top:2px">Character Preservation. You find it. This keeps it.</div>
         <p class="dim" style="margin:8px 0 0;max-width:36em">You found the voice in rehearsal. Weeks later, the callback. Record it now, as you, in your own voice. Add the look and the line that drops you back in. When you come back, hear yourself and see what moved.</p></div>`}
       ${front()}
@@ -277,6 +278,7 @@
         ${old ? '<p class="faint" style="font-size:13px;margin:6px 0 0">Some takes were read on other lines. They stay kept; only takes on these lines are lined up here.</p>' : ''}
         ${L.lines !== E.DEFAULT_LINES ? '<button class="btn ghost" data-a="linesreset" style="margin-top:6px">Use the starter lines</button>' : ''}
       </section>
+      ${mapBlock(meT, rows, pairs)}
       <div class="kicker" style="margin-top:14px">You, as yourself</div>
       ${me ? card(me, meT, 'You, as yourself') : `<div class="vcard"><p class="dim" style="margin:0 0 8px;font-size:14px">Read the lines as yourself first. Every voice is measured against you.</p><button class="btn pri" data-a="makeme">Read them as yourself</button></div>`}
       <div class="kicker" style="margin-top:14px">${others.length ? others.length + (others.length === 1 ? ' voice' : ' voices') : 'Your voices'}</div>
@@ -285,6 +287,14 @@
         ${pairs.map(p => `<div class="pair"><b>${esc(p.a.name)} and ${esc(p.b.name)}</b>: ${p.st} semitones apart, ${p.time}% apart in time.<div class="vs"><audio src="${url(p.a.tid)}" controls preload="metadata"></audio><audio src="${url(p.b.tid)}" controls preload="metadata"></audio></div></div>`).join('')}</section>` : ''}`;
   }
 
+ function mapBlock(meT, rows, pairs) {
+    if (!G) return '';
+    const R = rows.filter(r => r.t && r.t.an).map(r => ({ id: r.c.id, name: r.c.name || 'Unnamed character', an: r.t.an }));
+    if (!R.length) return '';
+    if (!meT || !meT.an || !meT.an.pitchHz) return '<section class="step"><h3>On one map</h3><p class="faint" style="font-size:13px;margin:0">Read the lines as yourself and your voices go on one map, measured from you.</p></section>';
+    const svg = G.map(meT.an, R, pairs);
+    return svg ? `<section class="step"><h3>On one map</h3><div class="cgwrap">${svg}</div><p class="faint" style="font-size:13px;margin:6px 0 0">You in the middle. Across: pitch against yours. Up: faster on the same lines; down: slower. The line through a voice is its range. A thin line joins two voices that measure close. Tap a dot for its numbers.</p></section>` : '';
+  }
   // ---------------------------------------------------------------- COME BACK
   function vBack() {
     const c = cur(); if (!c) return needChar();
@@ -321,7 +331,27 @@
       </section>
       ${last ? resultBlock(c, last) : ''}
       ${rets.filter(t => t !== last).length ? `<div class="kicker" style="margin-top:16px">Earlier come-backs</div>${rets.filter(t => t !== last).map(t => { const r0 = take(c, t.refId) || ref; return `<div class="take"><audio src="${url(t.id)}" controls preload="metadata"></audio><div class="rd">${esc(ago(t.at))}${t.cold ? ' · cold' : ''} · ${esc(E.compare(r0.an, t.an).say.join(' '))}</div><div class="row" style="justify-content:flex-end;gap:4px">${ref.id === t.id ? '<span class="state inuse">Reference</span>' : `<button class="btn ghost" data-a="setref" data-id="${t.id}" style="min-height:36px">Make reference</button>`}<button class="btn ghost bad" data-a="deltake" data-id="${t.id}" style="min-height:36px">Delete</button></div></div>`; }).join('')}` : ''}
+      ${histBlock(ref, rets)}
       ${backs.length ? `<div class="kicker" style="margin-top:16px">How long it took to get back</div><ul class="said">${backs.slice(0, 8).map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}`;
+  }
+  /* takes from before the graphs have no pitch line: read it once from the saved sound */
+  const LINING = new Set();
+  function lineFor(c, t) {
+    if (!t || !t.an || t.an.contour || !t.an.pitchHz || LINING.has(t.id)) return;
+    LINING.add(t.id);
+    DB.getMedia(t.id).then(b => b ? analyseBlob(b) : null).then(a => { if (a && a.contour) { t.an.contour = a.contour; touch(c); render(); } }).catch(() => {});
+  }
+  function contourBlock(c, r0, t) {
+    if (!G) return '';
+    lineFor(c, r0); lineFor(c, t);
+    const svg = G.contour(r0.an, t.an);
+    return svg ? `<div class="cgwrap" style="margin-top:10px">${svg}</div><p class="faint" style="font-size:13px;margin:4px 0 0"><span class="key then"></span>then <span class="key now"></span>now. Pitch through the take, on the same clock from the first sound. Move along it to read both.</p>` : (r0.an.pitchHz && t.an.pitchHz ? '<p class="faint" style="font-size:13px">Reading the pitch line…</p>' : '');
+  }
+  function histBlock(ref, rets) {
+    if (!G || rets.length < 2) return '';
+    const day = (t, short) => { const d = new Date(t.at); return short ? d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }); };
+    const svg = G.history(ref, rets.slice().reverse(), day);
+    return svg ? `<div class="kicker" style="margin-top:16px">Every time you came back</div><div class="cgwrap">${svg}</div><p class="faint" style="font-size:13px;margin:4px 0 0">The band is the reference take's range${ref.an && ref.an.pitchLoHz ? ' (' + Math.round(ref.an.pitchLoHz) + '–' + Math.round(ref.an.pitchHiHz) + ' Hz)' : ''}, the line its middle${ref.an && ref.an.pitchHz ? ' (' + Math.round(ref.an.pitchHz) + ' Hz)' : ''}. Each bar is a come-back: its range, the dot its middle. Tap one for its numbers.</p>` : '';
   }
   function resultBlock(c, t) {
     const r0 = take(c, t.refId) || E.reference(c);
@@ -329,6 +359,7 @@
     const cmp = E.compare(r0.an, t.an), ref = E.reference(c);
     return `<section class="step" id="result" style="border-color:var(--tung)"><h3>Then and now</h3>
       <div class="vs"><div><b>THEN · ${esc(ago(r0.at))}</b><audio src="${url(r0.id)}" controls preload="metadata"></audio></div><div><b>NOW${t.cold ? ' · COLD' : ''}</b><audio id="nowaudio" src="${url(t.id)}" controls preload="metadata"></audio></div></div>
+      ${contourBlock(c, r0, t)}
       <ul class="said" id="said">${cmp.say.map(s => `<li>${esc(s)}</li>`).join('')}</ul>
       <p class="faint" style="font-size:13px;margin:10px 0 0">This only measures sound. Whether now is better is yours to hear.</p>
       <div class="row" style="margin-top:12px">${E.autoState(c) === 'inuse' ? '' : (S.visit && S.visit.done == null ? `<button class="btn pri" data-a="itsback">It's back. Mark Back in use</button>` : `<button class="btn pri" data-a="setstate" data-v="inuse">Mark Back in use</button>`)}${ref && ref.id === t.id ? '' : `<button class="btn" data-a="setref" data-id="${t.id}">Keep this as the new reference</button>`}</div>
@@ -345,7 +376,7 @@
       ${L.chars.length > 1 ? `<button class="btn block" data-a="packall" style="margin-bottom:8px">Save all ${L.chars.length} characters</button>` : ''}
       <button class="btn ghost block" data-a="openpack">Open a pack</button>
       ${c ? `<div class="kicker" style="margin-top:24px">${esc(c.name || 'This character')}</div><button class="btn ghost bad block" data-a="delchar">Delete this character from this device</button>` : ''}
-      <p class="faint" style="font-size:12px;margin-top:24px">CPS ${VERSION}. No account, no upload, no computer voice. Measurements are pitch, range, time and pauses from your own recordings. VOICES lines your characters up on the same lines.</p>`;
+      <p class="faint" style="font-size:12px;margin-top:24px">Character Bank ${VERSION}. No account, no upload, no computer voice. Measurements are pitch, range, time and pauses from your own recordings. VOICES lines your characters up on the same lines.</p>`;
   }
   async function packFor(chars) {
     const entries = [], used = {};
@@ -353,7 +384,7 @@
       let base = slug(c.name); while (used[base]) base += '_'; used[base] = 1;
       const files = {};
       for (const m of [...c.takes, ...c.looks]) { const b = await DB.getMedia(m.id).catch(() => null); if (!b) continue; const fn = 'media/' + m.id + '.' + extOf(m.type || b.type); files[m.id] = fn; entries.push({ name: base + '/' + fn, bytes: new Uint8Array(await b.arrayBuffer()) }); }
-      entries.unshift({ name: base + '/capsule.json', bytes: E.enc(JSON.stringify({ schema: SCHEMA, app: 'CPS ' + VERSION, saved: now(), character: c, lines: S.lib.lines, files }, null, 1)) });
+      entries.unshift({ name: base + '/capsule.json', bytes: E.enc(JSON.stringify({ schema: SCHEMA, app: 'Character Bank ' + VERSION, saved: now(), character: c, lines: S.lib.lines, files }, null, 1)) });
     }
     return new Blob([E.makeZip(entries)], { type: 'application/zip' });
   }

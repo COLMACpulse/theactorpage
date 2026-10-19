@@ -11,7 +11,7 @@ D.TOOLS=[
  {id:'hub', name:'Hub', href:'../hub/', ls:[], db:[/^colmac_hub$/]},
  {id:'memorizer', name:'Memorizer', href:'../memorizer/', ls:[/^memorizer/], db:[]},
  {id:'breakdown', name:'Breakdown', href:'../breakdown/', ls:[/^bd_/], db:[/^breakdown_/]},
- {id:'cps', name:'CPS', href:'../cps/', ls:[/^cps_/,/^colmac_voxbootprint/,/^colmac_os_outbox$/,/^colmac_aos_integrator$/], db:[/^cps_/]},
+ {id:'cps', name:'Character Bank', href:'../cps/', ls:[/^cps_/,/^colmac_voxbootprint/,/^colmac_os_outbox$/,/^colmac_aos_integrator$/], db:[/^cps_/]},
  {id:'slate', name:'Slate Maker', href:'../slate/', ls:[/^slate_/], db:[/^slate_/]},
  {id:'resume', name:'Virtual Resume', href:'../resume/', ls:[/^resume_/], db:[/^vresume_/]},
  {id:'gsd', name:'GSD', href:'../gsd/', ls:[/^gsd_/], db:[]},

@@ -56,11 +56,11 @@
     const spanSec = first < 0 ? 0 : (last - first + 1) * hop / sr;
     const levels = []; for (let f = 0; f < nF; f++) if (speech[f]) levels.push(db[f]);
     // pitch on speech frames (every 2nd frame is plenty)
-    const hz = [];
+    const hz = [], at = [];
     for (let f = 0; f < nF; f += 2) {
       if (!speech[f] || db[f] < thr + 3) continue;
       const fr = x.subarray(f * hop, f * hop + win), p = yin(fr, sr, 60, 500);
-      if (p > 60 && p < 500) hz.push(p);
+      if (p > 60 && p < 500) { hz.push(p); at.push(f); }
     }
     const med = pct(hz, 0.5), lo = pct(hz, 0.1), hi = pct(hz, 0.9);
     return {
@@ -69,10 +69,24 @@
       pitchHz: hz.length >= 5 ? +med.toFixed(1) : null, pitchLoHz: hz.length >= 5 ? +lo.toFixed(1) : null, pitchHiHz: hz.length >= 5 ? +hi.toFixed(1) : null,
       rangeSt: hz.length >= 5 ? +(12 * Math.log2(hi / lo)).toFixed(1) : null,
       spanSec: +spanSec.toFixed(2),
-      voicedPct: +(100 * hz.length / Math.max(1, Math.ceil(sp / 2))).toFixed(0)
+      voicedPct: +(100 * hz.length / Math.max(1, Math.ceil(sp / 2))).toFixed(0),
+      contour: hz.length >= 5 ? contour(at.map(f => (f - first) * hop / sr), hz) : null
     };
   }
 
+  /* the pitch line through the take, for the graph: [seconds from the first sound, Hz], at most 240 points.
+     A run of 0.15 s or more with no pitch is a break (null), so the line doesn't bridge a pause. Medians per step, so one bad frame doesn't spike it. */
+  function contour(t, hz, max) {
+    max = max || 240; if (!t.length) return [];
+    const end = t[t.length - 1], step = Math.max(0.04, end / max), out = []; let i = 0, last = -1;
+    for (let s0 = 0; s0 <= end + 1e-9; s0 += step) {
+      const v = []; while (i < t.length && t[i] < s0 + step) { v.push(hz[i]); i++; }
+      if (!v.length) continue;
+      const tm = s0 + step / 2; if (last >= 0 && tm - last > 0.15 + step) out.push(null);
+      v.sort((a, b) => a - b); out.push([+tm.toFixed(2), +v[Math.floor(v.length / 2)].toFixed(1)]); last = tm;
+    }
+    return out;
+  }
   const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
   function noteName(hz) { if (!hz) return '-'; const m = Math.round(69 + 12 * Math.log2(hz / 440)); return NOTES[(m % 12 + 12) % 12] + (Math.floor(m / 12) - 1); }
   const st = (a, b) => 12 * Math.log2(b / a);
@@ -197,7 +211,7 @@
     return out.sort((x, y) => (x.st - y.st) || (x.time - y.time));
   }
 
-  const api = { DEFAULT_LINES, linesKey, linesTake, vsMe, closePairs, analyse, compare, noteName, STATES, have, autoState, missing, reference, daysSince, BODY, body, clock, backWords, makeZip, readZip, crc32, enc, dec, yin, toMono16k };
+  const api = { contour, DEFAULT_LINES, linesKey, linesTake, vsMe, closePairs, analyse, compare, noteName, STATES, have, autoState, missing, reference, daysSince, BODY, body, clock, backWords, makeZip, readZip, crc32, enc, dec, yin, toMono16k };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CPSEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);

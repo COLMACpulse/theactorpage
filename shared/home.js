@@ -1,5 +1,5 @@
 /* THEACTORPAGE HOME: the YOU room. Drop anything once; it goes where it belongs.
-   - sides and scripts go on the sides shelf (shared/shelf.js): Actor OS, Memorizer, Breakdown, CPS and
+   - sides and scripts go on the sides shelf (shared/shelf.js): Actor OS, Memorizer, Breakdown, Character Bank and
      Story Studio open them next time, with your part when a request named it
    - a script or draft also goes in the inbox for Paper Trail (shared/inbox.js)
    - a self-tape request goes in the inbox for the Hub; your name off it goes on the Actor OS slate

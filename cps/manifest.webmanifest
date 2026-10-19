@@ -1,6 +1,6 @@
 {
-  "name": "CPS · Character Preservation",
-  "short_name": "CPS",
+  "name": "Character Bank",
+  "short_name": "Character Bank",
   "description": "You find the character. This keeps it. Your voice, your look, the line that drops you back in.",
   "start_url": "./", "scope": "./", "display": "standalone",
   "background_color": "#121110", "theme_color": "#121110",
