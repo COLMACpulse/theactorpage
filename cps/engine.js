@@ -21,6 +21,40 @@
   }
   const pct = (arr, p) => { if (!arr.length) return NaN; const a = Float64Array.from(arr).sort(); const k = (a.length - 1) * p, lo = Math.floor(k), hi = Math.ceil(k); return a[lo] + (a[hi] - a[lo]) * (k - lo); };
 
+
+  /* ---------- from VOCA: brightness, clarity, steadiness ----------
+     brightness  spectral centroid, the middle of the sound's energy in Hz (bright vs dark; mic and room move it too)
+     clarity     CPP, cepstral peak prominence in dB: how clearly the voice repeats (clear vs breathy). A ratio against
+                 your own takes, not a clinical number.
+     steadiness  how much the loudness wobbles from one 10 ms step to the next, in dB, while you're talking. VOCA used raw
+                 amplitude, which grows when you lean into the mic; dB doesn't. */
+  function fftPow(x) { const N = x.length, re = Float64Array.from(x), im = new Float64Array(N);
+    for (let i = 1, j = 0; i < N; i++) { let bit = N >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (i < j) { const t = re[i]; re[i] = re[j]; re[j] = t; } }
+    for (let len = 2; len <= N; len <<= 1) { const a = -2 * Math.PI / len, wr = Math.cos(a), wi = Math.sin(a), h = len >> 1;
+      for (let i = 0; i < N; i += len) { let cr = 1, ci = 0; for (let k = 0; k < h; k++) { const p = i + k, q = p + h, vr = re[q] * cr - im[q] * ci, vi = re[q] * ci + im[q] * cr; re[q] = re[p] - vr; im[q] = im[p] - vi; re[p] += vr; im[p] += vi; const n = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = n; } } }
+    return { re, im }; }
+  const HANN = {}; function hann(n) { if (!HANN[n]) { const w = new Float64Array(n); for (let i = 0; i < n; i++) w[i] = 0.5 * (1 - Math.cos(2 * Math.PI * i / (n - 1))); HANN[n] = w; } return HANN[n]; }
+  function frameTimbre(fr, sr) {
+    const N = fr.length, w = hann(N), x = new Float64Array(N); for (let i = 0; i < N; i++) x[i] = fr[i] * w[i];
+    const { re, im } = fftPow(x), half = N >> 1, pw = new Float64Array(half); let tot = 0, wsum = 0;
+    for (let k = 0; k < half; k++) { pw[k] = re[k] * re[k] + im[k] * im[k]; const m = Math.sqrt(pw[k]), f = k * sr / N; if (f >= 60) { tot += m; wsum += m * f; } }
+    const centroid = tot > 0 ? wsum / tot : 0;
+    let mx = 0; for (let k = 0; k < half; k++) if (pw[k] > mx) mx = pw[k];
+    const lg = new Float64Array(N); for (let k = 0; k < half; k++) lg[k] = Math.log(Math.max(pw[k], mx * 1e-10 + 1e-20)); lg[half] = lg[half - 1]; for (let k = 1; k < half; k++) lg[N - k] = lg[k];
+    const c = fftPow(lg).re; const qMin = Math.ceil(sr / 500), qMax = Math.min(Math.floor(sr / 60), half - 1);
+    let pk = -Infinity, pi = qMin; for (let q = qMin; q <= qMax; q++) if (c[q] / N > pk) { pk = c[q] / N; pi = q; }
+    let n = 0, sx = 0, sy = 0, sxy = 0, sx2 = 0; for (let q = qMin; q <= qMax; q++) { const y = c[q] / N, xx = q - qMin; n++; sx += xx; sy += y; sxy += xx * y; sx2 += xx * xx; }
+    const d = n * sx2 - sx * sx, sl = d ? (n * sxy - sx * sy) / d : 0, ic = (sy - sl * sx) / n;
+    return { centroid, cpp: (pk - (sl * (pi - qMin) + ic)) * 10 / Math.LN10 };
+  }
+  function voiceColour(x, sr, db, speech, hop) {
+    const N = 1024, B = [], C = [], D = []; let prev = null;
+    for (let f = 0; f < speech.length; f++) { if (!speech[f]) { prev = null; continue; } if (prev != null) D.push(db[f] - prev); prev = db[f]; }
+    for (let f = 0; f < speech.length; f += 4) { if (!speech[f]) continue; const o = f * hop; if (o + N > x.length) break; const t = frameTimbre(x.subarray(o, o + N), sr); if (t.centroid > 0) B.push(t.centroid); if (Number.isFinite(t.cpp)) C.push(t.cpp); }
+    const sd = a => { if (a.length < 2) return null; const m = a.reduce((p, q) => p + q, 0) / a.length; return Math.sqrt(a.reduce((p, q) => p + (q - m) * (q - m), 0) / (a.length - 1)); };
+    return { brightHz: B.length >= 5 ? Math.round(pct(B, 0.5)) : null, clarityDb: C.length >= 5 ? +pct(C, 0.5).toFixed(1) : null, wobbleDb: D.length >= 20 ? +sd(D).toFixed(2) : null };
+  }
+
   // YIN-style pitch for one frame (16 kHz). Returns Hz or 0.
   function yin(frame, sr, fmin, fmax) {
     const tmin = Math.floor(sr / fmax), tmax = Math.min(Math.floor(sr / fmin), frame.length - 2);
@@ -62,7 +96,7 @@
       const fr = x.subarray(f * hop, f * hop + win), p = yin(fr, sr, 60, 500);
       if (p > 60 && p < 500) { hz.push(p); at.push(f); }
     }
-    const med = pct(hz, 0.5), lo = pct(hz, 0.1), hi = pct(hz, 0.9);
+    const med = pct(hz, 0.5), lo = pct(hz, 0.1), hi = pct(hz, 0.9), col = voiceColour(x, sr, db, speech, hop);
     return {
       dur: +dur.toFixed(2), speechSec: +speechSec.toFixed(2), silencePct: +(100 * (1 - sp / Math.max(1, last - first + 1))).toFixed(1),
       levelDb: levels.length ? +(levels.reduce((a, b) => a + b, 0) / levels.length).toFixed(1) : null,
@@ -70,7 +104,8 @@
       rangeSt: hz.length >= 5 ? +(12 * Math.log2(hi / lo)).toFixed(1) : null,
       spanSec: +spanSec.toFixed(2),
       voicedPct: +(100 * hz.length / Math.max(1, Math.ceil(sp / 2))).toFixed(0),
-      contour: hz.length >= 5 ? contour(at.map(f => (f - first) * hop / sr), hz) : null
+      contour: hz.length >= 5 ? contour(at.map(f => (f - first) * hop / sr), hz) : null,
+      brightHz: col.brightHz, clarityDb: col.clarityDb, wobbleDb: col.wobbleDb
     };
   }
 
@@ -111,6 +146,18 @@
     {
       const d = b.silencePct - a.silencePct;
       row('silence', 'Pauses (share of the take)', a.silencePct + '%', b.silencePct + '%', +d.toFixed(0), Math.abs(d) < 5 ? 'Pauses: about the same.' : `Pauses: ${d > 0 ? 'more' : 'fewer'} now (${a.silencePct}% → ${b.silencePct}% of the take).`);
+    }
+    if (a.brightHz && b.brightHz) {
+      const r = b.brightHz / a.brightHz;
+      row('bright', 'Brightness', a.brightHz + ' Hz', b.brightHz + ' Hz', +((r - 1) * 100).toFixed(0), Math.abs(r - 1) < 0.08 ? 'Brightness: about the same.' : `Brightness: ${r > 1 ? 'brighter' : 'darker'} now (${a.brightHz} → ${b.brightHz} Hz; the mic and the room move this too).`);
+    }
+    if (a.clarityDb != null && b.clarityDb != null) {
+      const d = b.clarityDb - a.clarityDb;
+      row('clarity', 'Clarity', a.clarityDb + ' dB', b.clarityDb + ' dB', +d.toFixed(1), Math.abs(d) < 1 ? 'Clarity: about the same.' : `Clarity: ${d > 0 ? 'clearer' : 'breathier'} now (${a.clarityDb} → ${b.clarityDb} dB).`);
+    }
+    if (a.wobbleDb && b.wobbleDb) {
+      const r = b.wobbleDb / a.wobbleDb;
+      row('steady', 'Steadiness', a.wobbleDb + ' dB', b.wobbleDb + ' dB', +((r - 1) * 100).toFixed(0), Math.abs(r - 1) < 0.2 ? 'Steadiness: about the same.' : `Steadiness: ${r > 1 ? 'shakier' : 'steadier'} now (the loudness wobbles ${r.toFixed(1)}× as much as then).`);
     }
     if (a.levelDb != null && b.levelDb != null) {
       const d = b.levelDb - a.levelDb;
@@ -196,6 +243,9 @@
     if (me.rangeSt != null && a.rangeSt != null) { const d = a.rangeSt - me.rangeSt; if (Math.abs(d) >= 1.5) out.push(d > 0 ? 'wider range' : 'flatter'); }
     if (me.spanSec > 0.5 && a.spanSec > 0.5) { const r = a.spanSec / me.spanSec; out.push(Math.abs(r - 1) < 0.08 ? 'your pace' : `${Math.round(Math.abs(r - 1) * 100)}% ${r > 1 ? 'slower' : 'faster'}`); }
     { const d = a.silencePct - me.silencePct; if (Math.abs(d) >= 5) out.push(`${d > 0 ? 'more' : 'fewer'} pauses (${a.silencePct}% vs ${me.silencePct}%)`); }
+    if (me.brightHz && a.brightHz) { const r = a.brightHz / me.brightHz; if (Math.abs(r - 1) >= 0.08) out.push(r > 1 ? 'brighter' : 'darker'); }
+    if (me.clarityDb != null && a.clarityDb != null) { const d = a.clarityDb - me.clarityDb; if (Math.abs(d) >= 1) out.push(d > 0 ? 'clearer' : 'breathier'); }
+    if (me.wobbleDb && a.wobbleDb) { const r = a.wobbleDb / me.wobbleDb; if (Math.abs(r - 1) >= 0.2) out.push(r > 1 ? 'shakier' : 'steadier'); }
     return out;
   }
   // pairs of voices that measure close on the same lines: pitch within stMax semitones AND time within timeMax.
@@ -206,12 +256,13 @@
     for (let i = 0; i < rows.length; i++) for (let j = i + 1; j < rows.length; j++) {
       const A = rows[i].an, B = rows[j].an; if (!A || !B || !A.pitchHz || !B.pitchHz || !(A.spanSec > 0.5) || !(B.spanSec > 0.5)) continue;
       const d = Math.abs(st(A.pitchHz, B.pitchHz)), t = Math.abs(B.spanSec / A.spanSec - 1);
-      if (d <= stMax && t <= timeMax) out.push({ a: rows[i], b: rows[j], st: +d.toFixed(1), time: Math.round(t * 100) });
+      const br = A.brightHz && B.brightHz ? Math.abs(B.brightHz / A.brightHz - 1) : null;
+      if (d <= stMax && t <= timeMax && (br == null || br <= 0.15)) out.push({ a: rows[i], b: rows[j], st: +d.toFixed(1), time: Math.round(t * 100), bright: br == null ? null : Math.round(br * 100) });
     }
     return out.sort((x, y) => (x.st - y.st) || (x.time - y.time));
   }
 
-  const api = { contour, DEFAULT_LINES, linesKey, linesTake, vsMe, closePairs, analyse, compare, noteName, STATES, have, autoState, missing, reference, daysSince, BODY, body, clock, backWords, makeZip, readZip, crc32, enc, dec, yin, toMono16k };
+  const api = { frameTimbre, voiceColour, contour, DEFAULT_LINES, linesKey, linesTake, vsMe, closePairs, analyse, compare, noteName, STATES, have, autoState, missing, reference, daysSince, BODY, body, clock, backWords, makeZip, readZip, crc32, enc, dec, yin, toMono16k };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CPSEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);

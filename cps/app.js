@@ -59,7 +59,7 @@
   function readout(a) {
     if (!a) return 'Not measured.';
     const p = a.pitchHz ? `Pitch ${E.noteName(a.pitchHz)} (${Math.round(a.pitchHz)} Hz)` : 'Pitch: not enough voice';
-    return `${p} · range ${a.rangeSt != null ? a.rangeSt + ' st' : '-'} · ${a.spanSec} s to say it · ${Math.round(a.silencePct)}% pauses`;
+    return `${p} · range ${a.rangeSt != null ? a.rangeSt + ' st' : '-'} · ${a.spanSec} s to say it · ${Math.round(a.silencePct)}% pauses${a.brightHz ? ' · brightness ' + a.brightHz + ' Hz' : ''}`;
   }
 
   // ---------------------------------------------------------------- recording (mic, raw: no auto gain, no noise removal)
@@ -283,12 +283,13 @@
       ${me ? card(me, meT, 'You, as yourself') : `<div class="vcard"><p class="dim" style="margin:0 0 8px;font-size:14px">Read the lines as yourself first. Every voice is measured against you.</p><button class="btn pri" data-a="makeme">Read them as yourself</button></div>`}
       <div class="kicker" style="margin-top:14px">${others.length ? others.length + (others.length === 1 ? ' voice' : ' voices') : 'Your voices'}</div>
       ${others.length ? rows.map(r => card(r.c, r.t, r.c.name || 'Unnamed character')).join('') : '<div class="msg">No characters yet. Make one in CHARACTERS, then read the lines here.</div>'}
-      ${pairs.length ? `<section class="step" style="margin-top:14px"><h3>Measure close</h3><p class="faint" style="font-size:13px;margin:0 0 8px">Within 1.5 semitones and 10% in time on the same lines. Close numbers don't mean they sound alike. Listen to both.</p>
+      ${pairs.length ? `<section class="step" style="margin-top:14px"><h3>Measure close</h3><p class="faint" style="font-size:13px;margin:0 0 8px">Within 1.5 semitones, 10% in time and 15% in brightness on the same lines. Close numbers don't mean they sound alike. Listen to both.</p>
         ${pairs.map(p => `<div class="pair"><b>${esc(p.a.name)} and ${esc(p.b.name)}</b>: ${p.st} semitones apart, ${p.time}% apart in time.<div class="vs"><audio src="${url(p.a.tid)}" controls preload="metadata"></audio><audio src="${url(p.b.tid)}" controls preload="metadata"></audio></div></div>`).join('')}</section>` : ''}`;
   }
 
  function mapBlock(meT, rows, pairs) {
     if (!G) return '';
+    rows.forEach(r => lineFor(r.c, r.t)); if (meT) lineFor(S.lib.chars.find(x => x.me), meT);
     const R = rows.filter(r => r.t && r.t.an).map(r => ({ id: r.c.id, name: r.c.name || 'Unnamed character', an: r.t.an }));
     if (!R.length) return '';
     if (!meT || !meT.an || !meT.an.pitchHz) return '<section class="step"><h3>On one map</h3><p class="faint" style="font-size:13px;margin:0">Read the lines as yourself and your voices go on one map, measured from you.</p></section>';
@@ -337,9 +338,9 @@
   /* takes from before the graphs have no pitch line: read it once from the saved sound */
   const LINING = new Set();
   function lineFor(c, t) {
-    if (!t || !t.an || t.an.contour || !t.an.pitchHz || LINING.has(t.id)) return;
+    if (!t || !t.an || (t.an.contour && t.an.brightHz !== undefined) || LINING.has(t.id)) return;   // before the graphs: no pitch line; before VOCA's measures: no brightness, clarity, steadiness
     LINING.add(t.id);
-    DB.getMedia(t.id).then(b => b ? analyseBlob(b) : null).then(a => { if (a && a.contour) { t.an.contour = a.contour; touch(c); render(); } }).catch(() => {});
+    DB.getMedia(t.id).then(b => b ? analyseBlob(b) : null).then(a => { if (!a) return; t.an.contour = a.contour; t.an.brightHz = a.brightHz; t.an.clarityDb = a.clarityDb; t.an.wobbleDb = a.wobbleDb; touch(c); render(); }).catch(() => {});
   }
   function contourBlock(c, r0, t) {
     if (!G) return '';

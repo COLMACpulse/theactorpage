@@ -24,6 +24,12 @@
   /* labels that would sit on each other: the later one moves down a line */
   const unclash = labs => { const placed = []; labs.sort((a, b) => a.y - b.y).forEach(l => { let y = l.y; for (let k = 0; k < 6; k++) { const hit = placed.find(q => Math.abs(q.y - y) < 15 && Math.abs(q.x - l.x) < Math.max(q.w, l.w)); if (!hit) break; y = hit.y + 15; } l.y = y; placed.push(l); }); return labs; };
 
+  /* brightness, clarity, steadiness against a reference, for a tooltip line */
+  C.colour = function (a, ref) { if (!a) return ''; const W2 = [];
+    if (a.brightHz) W2.push(ref && ref.brightHz ? (Math.abs(a.brightHz / ref.brightHz - 1) < 0.08 ? 'brightness about the same' : (a.brightHz > ref.brightHz ? 'brighter' : 'darker') + ' (' + a.brightHz + ' Hz)') : 'brightness ' + a.brightHz + ' Hz');
+    if (a.clarityDb != null && ref && ref.clarityDb != null && Math.abs(a.clarityDb - ref.clarityDb) >= 1) W2.push(a.clarityDb > ref.clarityDb ? 'clearer' : 'breathier');
+    if (a.wobbleDb && ref && ref.wobbleDb && Math.abs(a.wobbleDb / ref.wobbleDb - 1) >= 0.2) W2.push(a.wobbleDb > ref.wobbleDb ? 'shakier' : 'steadier');
+    return W2.length ? '\n' + W2.join(', ') : ''; };
   /* ---------- MAP ---------- me: analysis of you as yourself; rows: [{id,name,an}]; pairs: from closePairs */
   C.mapData = function (me, rows) {
     if (!me || !me.pitchHz || !(me.spanSec > 0.5)) return null;
@@ -47,7 +53,7 @@
     g += '<g' + tip('You, as yourself\n' + Math.round(me.pitchHz) + ' Hz (' + note(me.pitchHz) + '), ' + me.spanSec + ' s for the lines') + '><circle class="hit" cx="' + X(0) + '" cy="' + Y(0) + '" r="14"/><circle class="me" cx="' + X(0) + '" cy="' + Y(0) + '" r="6"/></g>';
     P.forEach(p => {
       const words = p.name + '\n' + Math.abs(r1(p.x)) + ' st ' + (p.x >= 0 ? 'higher' : 'lower') + ' than you, ' + Math.abs(Math.round(p.y)) + '% ' + (p.y >= 0 ? 'faster' : 'slower')
-        + (p.lo != null ? '\nrange ' + Math.round(p.an.pitchLoHz) + '–' + Math.round(p.an.pitchHiHz) + ' Hz (' + p.an.rangeSt + ' st)' : '') + '\npauses ' + p.an.silencePct + '% of the take';
+        + (p.lo != null ? '\nrange ' + Math.round(p.an.pitchLoHz) + '–' + Math.round(p.an.pitchHiHz) + ' Hz (' + p.an.rangeSt + ' st)' : '') + '\npauses ' + p.an.silencePct + '% of the take' + C.colour(p.an, me);
       g += '<g' + tip(words) + '><circle class="hit" cx="' + X(p.x) + '" cy="' + Y(p.y) + '" r="14"/><circle class="dot now" cx="' + X(p.x) + '" cy="' + Y(p.y) + '" r="5"/></g>';
     });
     unclash(P.map(p => { const right = X(p.x) < L + iw * 0.7, w = String(p.name).length * 7.2; return { p, right, w, x: right ? X(p.x) : X(p.x) - w, y: Y(p.y) - 9 }; }))
@@ -91,7 +97,7 @@
     g += '<line class="refline then" x1="' + L + '" y1="' + Y(0) + '" x2="' + (L + iw) + '" y2="' + Y(0) + '"/>';
     const bw = Math.min(12, slot * 0.35);
     P.forEach((t, i) => { const a = t.an, x = X(i), y1 = Y(v(a.pitchHiHz)), y2 = Y(v(a.pitchLoHz)), d = v(a.pitchHz);
-      const words = (when ? when(t) : t.at) + (t.cold ? ' (cold)' : '') + '\nmiddle ' + Math.round(a.pitchHz) + ' Hz, ' + (Math.abs(d) < 0.75 ? 'about the same as then' : Math.abs(r1(d)) + ' st ' + (d > 0 ? 'higher' : 'lower') + ' than then') + '\nrange ' + Math.round(a.pitchLoHz) + '–' + Math.round(a.pitchHiHz) + ' Hz';
+      const words = (when ? when(t) : t.at) + (t.cold ? ' (cold)' : '') + '\nmiddle ' + Math.round(a.pitchHz) + ' Hz, ' + (Math.abs(d) < 0.75 ? 'about the same as then' : Math.abs(r1(d)) + ' st ' + (d > 0 ? 'higher' : 'lower') + ' than then') + '\nrange ' + Math.round(a.pitchLoHz) + '–' + Math.round(a.pitchHiHz) + ' Hz' + C.colour(a, R0);
       g += '<g' + tip(words) + '><rect class="hit" x="' + (x - 14) + '" y="' + (y1 - 8) + '" width="28" height="' + (y2 - y1 + 16) + '"/><rect class="bar now" x="' + (x - bw / 2) + '" y="' + y1 + '" width="' + bw + '" height="' + Math.max(2, y2 - y1) + '" rx="' + Math.min(4, bw / 2) + '"/><circle class="dot mid" cx="' + x + '" cy="' + Y(d) + '" r="4.5"/></g>';
       if (n <= (W < 420 ? 5 : 8) || i === 0 || i === n - 1) g += '<text class="tick" x="' + x + '" y="' + (T + ih + 18) + '" text-anchor="middle">' + esc(when ? when(t, true) : '') + '</text>'; });
     return g + '</svg>';
