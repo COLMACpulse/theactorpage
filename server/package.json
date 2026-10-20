@@ -1,0 +1,7 @@
+{
+  "name": "theactorpage-host",
+  "private": true,
+  "description": "Actors' pages at name.theactorpage.com: a Cloudflare Worker and one R2 bucket.",
+  "scripts": { "test": "node tests/host_tests.js" },
+  "devDependencies": { "miniflare": "^3.20240909.0" }
+}

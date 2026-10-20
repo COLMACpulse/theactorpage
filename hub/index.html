@@ -2880,21 +2880,18 @@ async function publishSite(){
    the browser streams video from separate files, so the page stays a few hundred
    KB and loads instantly. Same HTML generator, different media handling. */
 function safeName(x){return String(x||'file').replace(/[^\w.-]+/g,'_').slice(0,60);}
-async function buildSiteZip(){
- const site=(pkgSel.site||'').trim();
- if(!site)return toast('Add your site address first');
- pkgBaking=true;render();
- try{
+/* the website's files: index.html, share.jpg, media/. Used by the zip and by PUT IT ONLINE */
+async function siteEntries(site){
   const entries=[]; const enc=new TextEncoder();
+  const uniq=nm=>{ if(!entries.some(e=>e.name===nm)) return nm; const m=nm.match(/^(.*?)(\.[^.\/]+)?$/); for(let i=2;;i++){ const t=m[1]+'_'+i+(m[2]||''); if(!entries.some(e=>e.name===t)) return t; } };
   const asData=async id=>{const a=ARTS.find(x=>x.id===id);if(!a||!a.blob)return null;
     return {u:await blobToDataURL(a.blob),t:a.type||'',n:a.label||a.filename||''};};
   // video goes out as its own file and is referenced by path
   const asFile=async (id,dir)=>{const a=ARTS.find(x=>x.id===id);if(!a||!a.blob)return null;
-    const nm=(dir||'media')+'/'+safeName(a.label||a.filename||a.id)+'.'+((a.filename||'x').split('.').pop()||'mp4');
-    entries.push({name:nm,data:new Uint8Array(await a.blob.arrayBuffer())});
+    const nm=uniq((dir||'media')+'/'+safeName(a.label||a.filename||a.id)+'.'+(((a.filename||'x').split('.').pop()||'mp4').toLowerCase()));
+    entries.push({name:nm,data:new Uint8Array(await a.blob.arrayBuffer()),type:a.type||''});
     return {u:nm,t:a.type||'',n:a.label||a.filename||'',
             poster:(THUMBS[a.id]||a.thumb||'')||undefined};};
-
   const head=await asData(pkgSel.headshot);
   const res =await asData(pkgSel.resume);
   const reel=pkgSel.reel?await asFile(pkgSel.reel,'media'):null;
@@ -2907,31 +2904,110 @@ async function buildSiteZip(){
    const po=ARTS.find(a=>String(a.scope)==='credit:'+cid&&a.category==='poster');
    cr.push({title:c.title,role:c.role,net:c.net,character:c.character||'',director:c.director||'',
             charNote:c.charNote||'',poster:po?await asData(po.id):null});}
-
   const doc=packageHTML(Object.assign(await pkgExtras('file',entries),{profile,note:pkgSel.note,contact:pkgSel.contact,head,res,reel,about,
     clips,auds,monos,credits:cr,site:site,ogfile:'share.jpg',
     showLane:!!pkgSel.showLane,showSkills:!!pkgSel.showSkills}));
   entries.unshift({name:'index.html',data:enc.encode(doc)});
-
   const hs=ARTS.find(a=>a.id===pkgSel.headshot);
   const card=await makeShareCard(hs&&hs.blob,profile.name,profile.lane);
   if(card)entries.push({name:'share.jpg',data:new Uint8Array(await card.arrayBuffer())});
+  return entries;
+}
+async function buildSiteZip(){
+ const site=(pkgSel.site||'').trim();
+ if(!site)return toast('Add your site address first');
+ pkgBaking=true;render();
+ try{
+  const entries=await siteEntries(site), enc=new TextEncoder();
   entries.push({name:'README.txt',data:enc.encode(
     'Upload everything in this folder to the root of '+site+'\n\n'
    +'  index.html   the page\n  share.jpg    the preview image for links\n  media/       video\n\n'
    +'Keep the folder structure. index.html points at media/ by relative path.\n')});
-
   const zip=await zipStore(entries);
   downloadBlob(zip,safeName(profile.name||'site')+'_website.zip');
   const vids=entries.filter(e=>e.name.startsWith('media/')).length;
   toast('Site zip: index.html + share.jpg + '+vids+' video file'+(vids===1?'':'s')+' ('+mb(zip.size)+'). Unzip, upload the whole folder.');
  }catch(e){toast('Build failed: '+e.message);}
  pkgBaking=false;render();}
+
+/* ===== PUT IT ONLINE =====
+   Your page at <name>.theactorpage.com, hosted for you (server/worker.js). Only this page goes up, only when you tap.
+   The key that can change it stays on this phone (localStorage hub_online_v1) with a backup code for a new phone. */
+const ONLINE_KEY='hub_online_v1';
+function apiBase(){ try{ return (window.TAP_API||localStorage.getItem('tap_api')||'https://api.theactorpage.com').replace(/\/$/,''); }catch(e){ return 'https://api.theactorpage.com'; } }
+function online(){ try{ return JSON.parse(localStorage.getItem(ONLINE_KEY)||'null')||{}; }catch(e){ return {}; } }
+function setOnline(o){ try{ localStorage.setItem(ONLINE_KEY,JSON.stringify(o)); }catch(e){} }
+let ON={busy:false,step:'',name:'',check:null,checkT:0,err:'',showBackup:false,recover:false};
+function nameSlug(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').replace(/-{2,}/g,'-').slice(0,40); }
+async function call(path,o){ const r=await fetch(apiBase()+path,o).catch(()=>null); if(!r) throw Error('Hosting can\'t be reached right now. Check your connection and try again. If it keeps happening, download it below instead.'); let b=null; try{ b=await r.json(); }catch(e){} if(!r.ok) throw Error((b&&b.why)||('The host said no ('+r.status+').')); return b||{}; }
+function onName(v){ ON.name=nameSlug(v); ON.check=null; ON.err=''; clearTimeout(ON.checkT); const el=$('onwhy'); if(el) el.textContent='';
+ if(!ON.name) return; ON.checkT=setTimeout(async()=>{ ON.checking=false; try{ const b=await call('/api/names/'+encodeURIComponent(ON.name)); ON.check=b; }catch(e){ ON.check={free:false,why:e.message}; } const el=$('onwhy'); if(el){ el.textContent=ON.check.free?ON.name+'.theactorpage.com is free.':ON.check.why; el.style.color=ON.check.free?'var(--good)':'var(--bad)'; } const pb=$('onpub'); if(pb) pb.disabled=!ON.check.free; },350); }
+async function goOnline(){
+ if(ON.busy) return; const o=online(); ON.busy=true; ON.err=''; ON.step='Building your page…'; render();
+ try{
+  let name=o.name, key=o.key;
+  if(!key){ const c=await call('/api/claim',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:ON.name})});
+   name=c.name; key=c.key; setOnline({name,key,backup:c.backup,url:c.url,claimed:new Date().toISOString()}); ON.showBackup=true; }
+  const cur=online(), url=cur.url||('https://'+name+'.theactorpage.com/');
+  const entries=await siteEntries(url), auth={authorization:'Bearer '+key};
+  const v=(await call('/api/sites/'+name+'/begin',{method:'POST',headers:auth})).ver;
+  const total=entries.reduce((a,e)=>a+e.data.length,0); let sent=0;
+  for(let i=0;i<entries.length;i++){ const e=entries[i]; ON.step='Sending '+(i+1)+' of '+entries.length+' ('+mb(sent)+' of '+mb(total)+')'; const st=$('onstep'); if(st) st.textContent=ON.step;
+   await call('/api/sites/'+name+'/files/'+e.name.split('/').map(encodeURIComponent).join('/')+'?v='+v,{method:'PUT',headers:auth,body:e.data}); sent+=e.data.length; }
+  const done=await call('/api/sites/'+name+'/commit',{method:'POST',headers:Object.assign({'content-type':'application/json'},auth),body:JSON.stringify({ver:v,files:entries.map(e=>e.name)})});
+  setOnline(Object.assign(online(),{url:done.url,updated:done.updated,bytes:done.bytes,live:true}));
+  toast('Live at '+done.url.replace(/^https?:\/\//,'').replace(/\/$/,''));
+ }catch(e){ ON.err=e.message; }
+ ON.busy=false; ON.step=''; render();
+}
+async function takeDown(){
+ const o=online(); if(!o.key) return; if(!confirm('Take your page down? The address stays yours, and you can put it back up any time.')) return;
+ ON.busy=true; render(); try{ await call('/api/sites/'+o.name,{method:'DELETE',headers:{authorization:'Bearer '+o.key}}); setOnline(Object.assign(o,{live:false,updated:new Date().toISOString()})); toast('Your page is down.'); }catch(e){ ON.err=e.message; }
+ ON.busy=false; render();
+}
+async function recoverOnline(){
+ const n=nameSlug(($('recname')||{}).value), c=(($('reccode')||{}).value||'').trim(); if(!n||!c) return toast('Your page name and your backup code, both.');
+ ON.busy=true; render(); try{ const b=await call('/api/recover',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:n,backup:c})}); setOnline({name:b.name,key:b.key,backup:c,url:b.url,live:true}); ON.recover=false; toast('This phone can update '+b.name+' now. Publish to make sure it\'s current.'); }catch(e){ ON.err=e.message; }
+ ON.busy=false; render();
+}
+function onlinePanel(){
+ const o=online(), host=o.url?o.url.replace(/^https?:\/\//,'').replace(/\/$/,''):'';
+ const err=ON.err?`<small class="note" style="display:block;color:var(--bad);margin:8px 0 0">${esc(ON.err)}</small>`:'';
+ const step=ON.busy?`<small class="note" id="onstep" style="display:block;margin:8px 0 0">${esc(ON.step||'Working…')}</small>`:'';
+ let h=`<div class="panel" id="online" style="border-color:var(--tung)"><h2 style="color:var(--tung)">Put it online</h2>`;
+ if(!o.key){
+  if(ON.recover) return h+`<small class="note">On a new phone? Your page name and the backup code you saved when you first published.</small>
+   <div style="padding:11px 13px;display:grid;gap:8px;max-width:520px"><input id="recname" placeholder="your-name" value="${esc(ON.name||'')}"><input id="reccode" placeholder="Backup code"><div class="row" style="padding:0;gap:9px"><button class="act" onclick="recoverOnline()" ${ON.busy?'disabled':''}>Use it</button><button class="ghost act sm" onclick="ON.recover=false;render()">Back</button></div>${err}</div></div>`;
+  if(!ON.name) ON.name=nameSlug(profile.name||'');
+  return h+`<small class="note">Your page, live on the internet at its own address, hosted for you. Anyone with the link can see it. Only what's on this page goes up, and only when you tap. Everything else stays on this phone.</small>
+   <div style="padding:11px 13px;display:grid;gap:8px;max-width:520px">
+    <label style="margin:0">Your address</label>
+    <div class="row" style="padding:0;gap:6px;align-items:center;flex-wrap:nowrap"><input id="onname" value="${esc(ON.name)}" oninput="onName(this.value)" style="flex:1;min-width:0" autocapitalize="off" spellcheck="false"><span class="note" style="white-space:nowrap">.theactorpage.com</span></div>
+    <small class="note" id="onwhy" style="margin:0"></small>
+    <div class="row" style="padding:0;gap:9px;flex-wrap:wrap"><button class="act" id="onpub" onclick="goOnline()" ${ON.busy?'disabled':''}>${ON.busy?'Publishing…':'Publish'}</button><button class="ghost act sm" onclick="ON.recover=true;render()">I already have a page</button></div>
+    ${step}${err}
+    <small class="note" style="margin:0">Long video? Add it as a YouTube or Vimeo link above. A page can hold about 100 MB here.</small>
+   </div></div>`;
+ }
+ const when=o.updated?new Date(o.updated).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'';
+ h+=o.live?`<div class="sensor-live" style="padding:11px 13px 0"><b style="color:var(--good)">LIVE</b> at <a href="${esc(o.url)}" target="_blank" rel="noopener">${esc(host)}</a>${when?` <small class="note">· updated ${esc(when)}</small>`:''}</div>`
+   :`<div style="padding:11px 13px 0"><b>Not up right now.</b> ${esc(host)} is still yours.</div>`;
+ h+=`<div style="padding:11px 13px;display:grid;gap:9px;max-width:560px">
+   <small class="note" style="margin:0">Changed something here? Tap ${o.live?'UPDATE':'PUBLISH'} and the live page matches this one.</small>
+   <div class="row" style="padding:0;gap:9px;flex-wrap:wrap">
+    <button class="act" onclick="goOnline()" ${ON.busy?'disabled':''}>${ON.busy?'Sending…':o.live?'Update':'Publish'}</button>
+    ${o.live?`<button class="ghost act sm" onclick="navigator.clipboard&&navigator.clipboard.writeText('${esc(o.url)}').then(()=>toast('Link copied'))">Copy link</button><button class="ghost act sm" onclick="takeDown()" ${ON.busy?'disabled':''}>Take it down</button>`:''}
+    <button class="ghost act sm" onclick="ON.showBackup=!ON.showBackup;render()">${ON.showBackup?'Hide':'Show'} backup code</button>
+   </div>${step}${err}
+   ${ON.showBackup&&o.backup?`<div style="border:1px dashed var(--tung);padding:10px 12px;border-radius:8px"><small class="note" style="margin:0 0 6px;display:block">Your backup code. Save it somewhere that isn't this phone (a note, an email to yourself). With it, a new phone can update your page.</small><code style="font-size:15px;letter-spacing:.06em;user-select:all">${esc(o.backup)}</code></div>`:''}
+  </div></div>`;
+ return h;
+}
 function publishPanel(){
  const site=(pkgSel.site||'').trim();
  const vids=[pkgSel.reel,pkgSel.about].filter(Boolean).length+pkgSel.clips.length+pkgSel.auditions.length+pkgSel.monologues.length;
  return `<div class="panel" id="publish" style="border-color:var(--good)">
-  <h2 style="color:var(--good)">Publish it as a website</h2>
+  <h2 style="color:var(--good)">Or download it, for a site you run yourself</h2>
   <small class="note">Everything on this page, hosted. Video goes out as separate files the browser streams, so the page loads fast no matter how much you include - none of the 20 MB email ceiling. You get a zip: unzip it, upload the folder.</small>
   <div style="padding:11px 13px;display:grid;gap:10px;max-width:640px">
    <input placeholder="https://yoursite.com" value="${esc(site)}" oninput="pkgSel.site=this.value">
@@ -3028,7 +3104,9 @@ function packageView(){
    </div>
   </div></div>`;
 
+ h+=onlinePanel();
  h+=publishPanel();
+ setTimeout(()=>{ if(!online().key&&ON.name&&!ON.check&&!ON.checking){ ON.checking=true; onName(ON.name); } },0);
  h+=`<div class="panel"><h2>The email</h2>
   <small class="note">Draft that goes with the attachment. Copy it, paste it, edit whatever you want.</small>
   <div style="padding:11px 13px"><textarea id="maildraft" rows="14" style="width:100%;font-family:var(--mono);font-size:12px" readonly>${esc(pkgMailDraft())}</textarea></div></div>`;
@@ -3363,7 +3441,7 @@ function profileView(){
 }
 
 function render(){setTimeout(sweepThumbs,60);
- if(location.hash==='#publish'&&!render.jumped&&tab==='package'){ render.jumped=true; setTimeout(()=>{ const e=document.getElementById('publish'); if(e) e.scrollIntoView({block:'start'}); },300); }
+ if(/^#(publish|online)$/.test(location.hash)&&!render.jumped&&tab==='package'){ render.jumped=true; setTimeout(()=>{ const e=document.getElementById(location.hash.slice(1)); if(e) e.scrollIntoView({block:'start'}); },300); }
  /* 'intake' used to be in this list, which meant the Setup checklist, Backup,
     the auditions CSV import, the paste-an-email intake and the Vault panel were
     all unreachable - several hundred lines of working code behind a door that

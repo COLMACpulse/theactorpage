@@ -10,8 +10,8 @@ want('ACT first, then YOUR PAGE, then MAKE YOUR OWN, with WRITE and FILM under i
 want('the heading says what it is for', /NO AUDITION THIS WEEK\?/.test(await p.innerText('#own'))&&/MAKE YOUR OWN/.test(await p.innerText('#ownname'))&&/already your sides in ACT/.test(await p.innerText('#own')));
 want('WRITE and FILM are steps 1 and 2 of it', /MAKE YOUR OWN · 1/.test(await p.innerText('#write'))&&/MAKE YOUR OWN · 2/.test(await p.innerText('#film')));
 want('YOUR PAGE: the Hub is where it all lands, mine and made-by-me', /WHERE IT ALL LANDS/.test(await p.innerText('#yourpage'))&&/films from Film Hub, scripts from Paper Trail/.test(await p.innerText('#yourpage'))&&!!(await p.$('#yourpage .tool:has-text("PROJECT HUB")'))&&!(await p.$('.band.act .tool:has-text("PROJECT HUB")')));
-await p.click('#yourpage .yp-go a'); await p.waitForURL(/hub\/\?tab=package#publish$/); await p.waitForTimeout(1500);
-want('Build your page: the Hub opens on the page builder, at Publish', await p.evaluate(()=>tab==='package'&&!!document.getElementById('publish')&&Math.abs(document.getElementById('publish').getBoundingClientRect().top)<200));
+await p.click('#yourpage .yp-go a'); await p.waitForURL(/hub\/\?tab=package#online$/); await p.waitForTimeout(1500);
+want('Build your page: the Hub opens on the page builder, at Put it online', await p.evaluate(()=>tab==='package'&&!!document.getElementById('online')&&Math.abs(document.getElementById('online').getBoundingClientRect().top)<200));
 await p.goto('http://localhost:8811/'); await p.waitForTimeout(400);
 await p.click('#own .own-path .f a'); await p.waitForTimeout(400);
 want('2 · SHOOT IT jumps to FILM', /#film$/.test(p.url()));

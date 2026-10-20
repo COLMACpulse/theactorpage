@@ -1,0 +1,66 @@
+# THEACTORPAGE HOST: test the host, then put it live on Cloudflare. Runs when server/ changes, or by hand (Actions > host > Run workflow).
+# Until the two secrets are in (Settings > Secrets and variables > Actions), it only runs the tests.
+#   CLOUDFLARE_API_TOKEN   a token with: Workers Scripts Edit, Workers Routes Edit, Workers R2 Storage Edit, DNS Edit, Zone Read
+#   CLOUDFLARE_ACCOUNT_ID  from the Cloudflare dashboard
+name: host
+on:
+  push:
+    branches: [main]
+    paths: ['server/**', '.github/workflows/host.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  host:
+    runs-on: ubuntu-latest
+    env:
+      HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      ZONE: theactorpage.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Install
+        working-directory: server
+        run: npm install --no-audit --no-fund
+      - name: Test the host
+        working-directory: server
+        run: node tests/host_tests.js
+      - name: Storage (made once)
+        if: env.HAS_TOKEN == 'true'
+        working-directory: server
+        env: { CLOUDFLARE_API_TOKEN: '${{ secrets.CLOUDFLARE_API_TOKEN }}', CLOUDFLARE_ACCOUNT_ID: '${{ secrets.CLOUDFLARE_ACCOUNT_ID }}' }
+        run: npx --yes wrangler@3 r2 bucket create theactorpage-sites || echo "bucket already there"
+      - name: Addresses (api and every name), made once
+        if: env.HAS_TOKEN == 'true'
+        run: |
+          set -e
+          H="Authorization: Bearer $CF_TOKEN"
+          ZID=$(curl -fsS -H "$H" "https://api.cloudflare.com/client/v4/zones?name=$ZONE" | jq -r '.result[0].id')
+          if [ -z "$ZID" ] || [ "$ZID" = "null" ]; then echo "$ZONE isn't on this Cloudflare account yet."; exit 1; fi
+          for N in api '*'; do
+            FQDN="$N.$ZONE"; [ "$N" = '*' ] && FQDN="*.$ZONE"
+            HAVE=$(curl -fsS -H "$H" "https://api.cloudflare.com/client/v4/zones/$ZID/dns_records?name=$(printf %s "$FQDN" | jq -sRr @uri)" | jq '.result | length')
+            if [ "$HAVE" = "0" ]; then
+              curl -fsS -X POST -H "$H" -H "Content-Type: application/json" "https://api.cloudflare.com/client/v4/zones/$ZID/dns_records" \
+                --data "{\"type\":\"AAAA\",\"name\":\"$FQDN\",\"content\":\"100::\",\"proxied\":true,\"comment\":\"THEACTORPAGE host\"}" >/dev/null
+              echo "made $FQDN"
+            else echo "$FQDN already there"; fi
+          done
+      - name: Put it live
+        if: env.HAS_TOKEN == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: server
+          wranglerVersion: '3'
+      - name: Check it answers
+        if: env.HAS_TOKEN == 'true'
+        run: |
+          for i in 1 2 3 4 5 6; do
+            if curl -fsS "https://api.$ZONE/api/names/health-check-name" | grep -q '"free"'; then echo "the host answers"; exit 0; fi; sleep 10
+          done
+          echo "deployed, but api.$ZONE didn't answer yet (DNS can take a few minutes)"

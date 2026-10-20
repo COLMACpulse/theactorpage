@@ -1,0 +1,24 @@
+# THEACTORPAGE HOST. Deployed by .github/workflows/host.yml on every push that changes server/.
+name = "theactorpage-host"
+main = "worker.js"
+compatibility_date = "2024-09-23"
+workers_dev = true
+
+# api.theactorpage.com and every name.theactorpage.com. Needs the domain on this Cloudflare account,
+# a proxied DNS record for api and a proxied wildcard (*) record.
+routes = [
+  { pattern = "api.theactorpage.com/*", zone_name = "theactorpage.com" },
+  { pattern = "*.theactorpage.com/*", zone_name = "theactorpage.com" }
+]
+
+[[r2_buckets]]
+binding = "SITES"
+bucket_name = "theactorpage-sites"
+
+[vars]
+ZONE = "theactorpage.com"
+# who may call the API from a browser: the site on GitHub Pages now, theactorpage.com later
+ORIGINS = "https://colmacpulse.github.io,https://theactorpage.com,https://www.theactorpage.com"
+MAX_FILE_MB = "95"
+MAX_SITE_MB = "100"
+HOME_URL = "https://colmacpulse.github.io/theactorpage/"

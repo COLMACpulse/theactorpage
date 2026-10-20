@@ -205,7 +205,7 @@
       <div class="kicker" style="margin-top:14px">On the page, in this order</div>
       <div id="sendorder">${sendOrderHtml(aud, order, fit)}</div></div>`;
     return `<div class="kicker">Send</div><h1 style="font-size:24px;margin-bottom:8px">Your résumé and your page</h1>
-      <div class="card" id="yourpage"><div class="kicker">Your page, all in one</div><p class="dim" style="font-size:14px;margin:4px 0 10px">Your finished work here goes on your page in the Project Hub, under your acting: the credits that count with the rest of your films, and your clips in Selected work. Use this tab for a one-off page aimed at one reader, or for the résumé.</p><a class="btn" href="../hub/?tab=package#publish">OPEN YOUR PAGE</a></div>
+      <div class="card" id="yourpage"><div class="kicker">Your page, all in one</div><p class="dim" style="font-size:14px;margin:4px 0 10px">Your finished work here goes on your page in the Project Hub, under your acting: the credits that count with the rest of your films, and your clips in Selected work. Use this tab for a one-off page aimed at one reader, or for the résumé.</p><a class="btn" href="../hub/?tab=package#online">OPEN YOUR PAGE</a></div>
       ${whoCard}
       <div class="row"><span class="dim" style="font-size:14px">Paper</span>${[['8x10', '8×10 (back of headshot)'], ['letter', 'Letter']].map(([k, l]) => `<button class="chip ${L.paper === k ? 'on' : ''}" data-a="paper" data-v="${k}">${l}</button>`).join('')}
         <button class="flag ${L.headTop ? 'on' : ''}" data-a="headtop" ${S.headUrl ? '' : 'disabled'}>Headshot at the top</button></div>
