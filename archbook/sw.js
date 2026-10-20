@@ -1,6 +1,6 @@
 /* ARCHBOOK service worker: the app opens with no signal. Your videos never touch the network. */
-const CACHE = 'archbook-0.3.12';
-const FILES = ['../shared/tour.js','../shared/view.js','./', '../shared/hot.js', '../shared/capture.js', '../shared/kit.js', 'index.html', 'app.js', 'engine.js', 'scenes.js', 'manifest.webmanifest',
+const CACHE = 'archbook-0.3.13';
+const FILES = ['../shared/tour.js','../shared/view.js','./', '../shared/hot.js', '../shared/capture.js', '../shared/kit.js','../shared/takes.js', 'index.html', 'app.js', 'engine.js', 'scenes.js', 'manifest.webmanifest',
   'fonts/jost-latin-400-normal.woff2', 'fonts/jost-latin-500-normal.woff2', 'fonts/jost-latin-600-normal.woff2',
   'fonts/courier-prime-latin-400-normal.woff2', 'fonts/courier-prime-latin-700-normal.woff2',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];

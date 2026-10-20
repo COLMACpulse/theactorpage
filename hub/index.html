@@ -170,6 +170,7 @@ small.note{display:block;padding:0 15px 13px;color:var(--faint);font-size:10.5px
 <script src="../shared/notes.js"></script>
 <script src="../shared/spotted.js"></script>
 <script src="../shared/takes.js"></script>
+<script src="../resume/engine.js"></script>
 <script src="../shared/madeby.js"></script>
 <script>
 var restoreReport=null;
@@ -1327,8 +1328,9 @@ function addRequestFrom(r,quiet){
 /* takes recorded with CAMERA on the home page (shared/takes.js): a self-tape goes on its audition,
    a clip into the library */
 async function fromTakes(){ const T=window.Takes; if(!T) return; let n=0;
- for(const it of T.pending('hub',['selftape','clip'])){ const b=await T.blob(it.id); if(!b){ T.take('hub',it.id); continue; }
+ for(const it of T.pending('hub',['selftape','clip','reel'])){ const b=await T.blob(it.id); if(!b){ T.take('hub',it.id); continue; }
   let scope='library', cat='clip';
+  if(it.for.type==='reel') cat='reel';
   if(it.for.type==='selftape'){ cat='take'; const lc=x=>String(x||'').toLowerCase().trim(); const p=projects.find(p=>p.request&&lc(p.role)===lc(it.for.role)&&(!it.for.title||lc(p.title)===lc(it.for.title)))||projects.find(p=>p.request&&lc(p.role)===lc(it.for.role)); if(p) scope=p.id; }
   const rec={id:'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),scope:scope,category:cat,label:String(it.name).replace(/\.[^.]+$/,''),filename:it.name,type:b.type,size:b.size,added:new Date(it.at).toISOString(),blob:b,from:'home'};
   try{ if(String(b.type).startsWith('video/')){ try{ rec.dur=await probeDur(b); }catch(_){} } await DB.put(rec); ARTS.push(rec); n++; if(String(b.type).startsWith('video/')&&typeof ensureThumb==='function') ensureThumb(rec).then(()=>render()); }catch(e){}
@@ -2666,6 +2668,8 @@ return `<div class="panel" style="border-color:var(--tung);background:rgba(224,1
 /* ===== PACKAGE: build a standalone landing page a rep can send ===== */
 var pkgSel={site:'',showLane:false,showSkills:false,headshot:null,resume:null,reel:null,about:'',clips:[],auditions:[],monologues:[],credits:null,note:'',role:'',contact:true,preset:'submission'};
 function pkgInit(){
+ /* the headshot can arrive after you open this tab (from YOUR PROFILE, a moment later): pick it up then */
+ if(pkgSel.headshot===''){ const hs0=ARTS.filter(a=>a.category==='headshot'&&(a.type||'').startsWith('image/')); const ph=profile.primaryHeadshot||(hs0[0]&&hs0[0].id)||''; if(ph) pkgSel.headshot=ph; }
  if(pkgSel.headshot===null){
   const hs=ARTS.filter(a=>a.category==='headshot'&&(a.type||'').startsWith('image/'));
   pkgSel.headshot=profile.primaryHeadshot||(hs[0]&&hs[0].id)||'';
@@ -2685,22 +2689,34 @@ function linkAdd(){ const u=$('vlurl'), l=$('vllabel'), a=$('vlas'); const v=win
  if(!v) return toast('Paste the whole link, starting with https://');
  pageLinks().push({url:v.url,label:(l&&l.value.trim())||'',as:(a&&a.value)||'clip'}); saveProfile(); render(); toast(v.kind==='link'?'Added. It shows as a link, not a player: only YouTube and Vimeo play on the page.':'Added. It plays right on the page.'); }
 function linkDel(i){ pageLinks().splice(i,1); saveProfile(); render(); }
-/* what the page gets from them; posters as data, small */
-async function pkgExtras(){
- const off=new Set(pageOff()), M=MADE||{films:[],writing:[]};
- const films=[]; for(const f of M.films){ if(off.has(f.id)) continue; films.push(Object.assign({},f,{poster:f.poster?{u:await blobToDataURL(f.poster),t:f.poster.type||'image/jpeg'}:null})); }
+/* what the page gets from them. mode 'file' (the website zip): videos and photos go in media/ as files; otherwise inside the page */
+async function pkgExtras(mode,entries){
+ const off=new Set(pageOff()), M=Object.assign({films:[],writing:[],clips:[],headshots:[]},MADE||{});
+ const media=async(b,name)=>{ if(!b) return null; if(mode==='file'&&entries){ const ext=String((b.type||'').split('/')[1]||'bin').replace(/;.*/,'').replace('quicktime','mov').replace('jpeg','jpg'); const nm='media/'+safeName(name)+'.'+ext; entries.push({name:nm,data:new Uint8Array(await b.arrayBuffer())}); return {u:nm,t:b.type||''}; } return {u:await blobToDataURL(b),t:b.type||''}; };
+ const films=[]; for(const f of M.films){ if(off.has(f.id)) continue; const v=f.video?await media(f.video,'made_'+f.title):null;
+  films.push(Object.assign({},f,{poster:f.poster?{u:await blobToDataURL(f.poster),t:f.poster.type||'image/jpeg'}:null,video:v?Object.assign(v,{n:f.title}):null})); }
  const writing=M.writing.filter(w=>!off.has(w.id));
- const vlinks=pageLinks().map(x=>Object.assign({},window.MadeBy?MadeBy.video(x.url):{kind:'link',url:x.url},{label:x.label,as:x.as})).filter(x=>x&&x.url);
- return {made:{films,writing},vlinks};
+ const xclips=[]; for(const c of M.clips){ if(off.has(c.id)) continue; if(c.video){ const v=await media(c.video,'clip_'+c.title); if(v) xclips.push(Object.assign(v,{n:c.title})); } else if(c.link) xclips.push({link:c.link,n:c.title}); }
+ const heads=[]; for(const h of M.headshots){ if(off.has(h.id)||h.name===primaryName()) continue; const m=await media(h.blob,'headshot_'+h.name.replace(/\.[^.]+$/,'')); if(m) heads.push(Object.assign(m,{roles:h.roles})); }
+ const links=pageLinks().concat(xclips.filter(x=>x.link).map(x=>({url:x.link,label:x.n,as:'clip'})));
+ const vlinks=links.map(x=>Object.assign({},window.MadeBy?MadeBy.video(x.url):{kind:'link',url:x.url},{label:x.label,as:x.as})).filter(x=>x&&x.url);
+ return {made:{films,writing},vlinks,xclips:xclips.filter(x=>x.u),heads,showRoles:!!profile.pageRoles};
 }
+function primaryName(){ const a=ARTS.find(x=>x.id===(pkgSel.headshot||profile.primaryHeadshot)); return a?(a.filename||a.label||''):''; }
 function madePanel(){
- if(!MADE){ loadMade(); return `<div class="panel"><h2>Made by me</h2><small class="note">Looking for your films and scripts&hellip;</small></div>`; }
- const off=new Set(pageOff()), F=MADE.films, W=MADE.writing;
- const row=(x,sub)=>{ const on=!off.has(x.id); return `<div class="reelrow" style="cursor:pointer;align-items:center" onclick="madeToggle('${esc(x.id)}')"><span class="num" style="${on?'color:var(--tung);border-color:var(--tung)':''}">${on?'&#10003;':''}</span><span class="rl">${esc(x.title)}</span><span class="tag">${esc(sub)}</span></div>`; };
- let h=`<div class="panel"><h2>Made by me &middot; ${F.length+W.length}</h2><small class="note">The work you made yourself goes on your page under your acting. Films come from Film Hub: the ones you added there, and Story Studio films you marked done. Scripts come from Paper Trail once you've written a logline. Tap one to leave it off.</small>`;
- if(!F.length&&!W.length) return h+`<small class="note" style="display:block;margin-top:8px">Nothing yet. Finish a film in Story Studio or add one in Film Hub, or write a logline for a script in Paper Trail, and it shows up here.</small></div>`;
- h+=`<div style="display:grid;gap:6px;padding:11px 13px">`+F.map(f=>row(f,[f.kind||'Film',f.year].filter(Boolean).join(' · '))).join('')+W.map(w=>row(w,[w.kind||'Script',w.genre].filter(Boolean).join(' · '))).join('')+`</div></div>`;
- return h;
+ if(!MADE){ loadMade(); return `<div class="panel"><h2>Made by me</h2><small class="note">Looking for your films, scripts and headshots&hellip;</small></div>`; }
+ const off=new Set(pageOff()), F=MADE.films||[], W=MADE.writing||[], C=MADE.clips||[], H=(MADE.headshots||[]).filter(h=>h.name!==primaryName());
+ const row=(x,sub)=>{ const on=!off.has(x.id); return `<div class="reelrow" style="cursor:pointer;align-items:center" onclick="madeToggle('${esc(x.id)}')"><span class="num" style="${on?'color:var(--tung);border-color:var(--tung)':''}">${on?'&#10003;':''}</span><span class="rl">${esc(x.title||x.name)}</span><span class="tag">${esc(sub)}</span></div>`; };
+ const n=F.length+W.length+C.length+H.length;
+ let h=`<div class="panel"><h2>From your other tools &middot; ${n}</h2><small class="note">What you made and kept elsewhere goes on your page too. Films: Film Hub (the ones you added, and Story Studio films you marked done) and your own shorts and stage work from Virtual Résumé. Scripts: Paper Trail, once you've written a logline. Clips: Virtual Résumé. More headshots: the ones you marked Keep in Headshots. Tap one to leave it off.</small>`;
+ if(!n) return h+`<small class="note" style="display:block;margin-top:8px">Nothing yet. Finish a film, write a logline, add a piece to Virtual Résumé, or mark a headshot Keep, and it shows up here.</small></div>`;
+ h+=`<div style="display:grid;gap:6px;padding:11px 13px">`
+  +F.map(f=>row(f,[f.from,f.kind||'Film',f.year,f.video?'video':''].filter(Boolean).join(' · '))).join('')
+  +W.map(w=>row(w,['Paper Trail',w.kind||'Script',w.genre].filter(Boolean).join(' · '))).join('')
+  +C.map(c=>row(c,['Virtual Résumé',c.kind||'Clip',c.video?'video':'link'].filter(Boolean).join(' · '))).join('')
+  +H.map(x=>row(x,['Headshot',x.roles.join(', ')].filter(Boolean).join(' · '))).join('')+`</div>`;
+ if(H.length) h+=`<label class="cbrow" style="padding:0 13px 12px"><input type="checkbox" ${profile.pageRoles?'checked':''} onchange="profile.pageRoles=this.checked;saveProfile();render()"><span>Under each headshot, say what it's for (your words from Headshots). Off by default.</span></label>`;
+ return h+`</div>`;
 }
 function linksPanel(){
  const L=pageLinks();
@@ -2892,7 +2908,7 @@ async function buildSiteZip(){
    cr.push({title:c.title,role:c.role,net:c.net,character:c.character||'',director:c.director||'',
             charNote:c.charNote||'',poster:po?await asData(po.id):null});}
 
-  const doc=packageHTML(Object.assign(await pkgExtras(),{profile,note:pkgSel.note,contact:pkgSel.contact,head,res,reel,about,
+  const doc=packageHTML(Object.assign(await pkgExtras('file',entries),{profile,note:pkgSel.note,contact:pkgSel.contact,head,res,reel,about,
     clips,auds,monos,credits:cr,site:site,ogfile:'share.jpg',
     showLane:!!pkgSel.showLane,showSkills:!!pkgSel.showSkills}));
   entries.unshift({name:'index.html',data:enc.encode(doc)});
@@ -3056,7 +3072,7 @@ function packageHTML(d){
    :`<figure class="well vl"><a href="${E(v.url)}" target="_blank" rel="noopener">${E(v.label||'Watch')} &rarr;</a></figure>`;
  const grid=(items,cls,links)=>`<div class="grid ${cls||''}">${items.map(m=>vid(m)).join('')}${(links||[]).map(emb).join('')}</div>`;
  const VL=(d.vlinks||[]).filter(v=>v&&v.url), reelL=VL.filter(v=>v.as==='reel'), clipL=VL.filter(v=>v.as!=='reel');
- const made=d.made||{}, mFilms=(made.films||[]), mWrite=(made.writing||[]);
+ const made=d.made||{}, mFilms=(made.films||[]), mWrite=(made.writing||[]), xclips=(d.xclips||[]).filter(has), heads=(d.heads||[]).filter(has), mVids=mFilms.filter(f=>f.video&&f.video.u).map(f=>f.video);
 
  const credits=d.credits||[];
  const posters=credits.filter(c=>c.poster&&c.poster.u).slice(0,8);
@@ -3135,6 +3151,8 @@ section:last-of-type{border-bottom:0}
 .well.vl{display:flex;align-items:center;justify-content:center;aspect-ratio:16/9;min-height:120px}
 .well.vl a,.mlinks a{font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:#F2F0EA;text-decoration:none;border-bottom:1px solid var(--salmon)}
 .mlinks{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px}.mlinks a{color:var(--blue)}
+.hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px}.hgrid figure{margin:0}.hgrid img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;background:var(--black);box-shadow:0 1px 5px rgba(20,18,14,.2)}.hgrid figcaption{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--grey);margin-top:6px}
+.mvids{margin-top:22px}
 .wlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px 26px;margin-top:22px}
 .wrow b{display:block;font-size:15px;line-height:1.25;color:var(--ink)}.wrow .cbits{font-family:var(--mono);font-size:11px;color:var(--grey);margin-top:5px;line-height:1.6}
 .solo{max-width:100%}
@@ -3197,9 +3215,11 @@ footer .sp{flex:1}
 
 ${d.note?`<p class="note">${E(d.note)}</p>`:''}
 
+${heads.length?`<section class="heads">${rule('More headshots',heads.length)}<div class="hgrid">${heads.map(h=>`<figure><img src="${h.u}" alt="${E(p.name||'')} headshot" loading="lazy">${d.showRoles&&(h.roles||[]).length?`<figcaption>${(h.roles||[]).map(E).join(' &middot; ')}</figcaption>`:''}</figure>`).join('')}</div></section>`:''}
+
 ${has(d.about)?`<section>${rule('About me')}${vid(d.about,'solo')}</section>`:''}
 ${(has(d.reel)||reelL.length)?`<section>${rule('Reel')}${has(d.reel)?vid(d.reel,'solo'):''}${reelL.map(emb).join('')}</section>`:''}
-${(clips.length||clipL.length)?`<section>${rule('Selected work',clips.length+clipL.length)}${grid(clips,'',clipL)}</section>`:''}
+${(clips.length||xclips.length||clipL.length)?`<section>${rule('Selected work',clips.length+xclips.length+clipL.length)}${grid(clips.concat(xclips),'',clipL)}</section>`:''}
 ${auds.length?`<section>${rule('Auditions',auds.length)}${grid(auds)}</section>`:''}
 ${monos.length?`<section>${rule('Monologues & stand-up',monos.length)}${grid(monos)}</section>`:''}
 
@@ -3226,6 +3246,7 @@ ${(mFilms.length||mWrite.length)?`<section class="made">${rule('Made by me',mFil
      ${f.logline?`<p class="cbrk">${E(f.logline)}</p>`:''}
      ${(f.links||[]).length?`<div class="mlinks">${f.links.map(l=>`<a href="${E(l.url)}" target="_blank" rel="noopener">${E(l.label||'Watch')} &rarr;</a>`).join('')}</div>`:''}
    </div></article>`).join('')}</div>`:''}
+ ${mVids.length?`<div class="grid mvids">${mVids.map(v=>vid(v)).join('')}</div>`:''}
  ${mWrite.length?`<div class="wlist">${mWrite.map(w=>`<article class="wrow"><b>${E(w.title)}</b><div class="cbits">${[w.kind||'Script',w.genre].filter(Boolean).map(E).join(' &middot; ')}</div>${w.logline?`<p class="cbrk">${E(w.logline)}</p>`:''}</article>`).join('')}</div>`:''}
 </section>`:''}
 

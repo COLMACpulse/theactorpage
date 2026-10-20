@@ -121,7 +121,8 @@ async function pageHtml(){ const L=pageFilms(); for(const x of L){ const b=await
  const y=you(); return H.pageHtml(L,{banner:D.me.banner,name:y.name||'',about:D.me.about,email:D.me.email}); }
 function pageView(){
  const y=you(), L=pageFilms();
- let h='<div class="card"><p class="kicker">Your page</p><label class="lab" for="pbanner">Banner</label><input class="field" id="pbanner" data-pm="banner" value="'+esc(D.me.banner)+'" placeholder="Your company, or your name">'
+ let h='<div class="card" id="actorpage"><p class="kicker">On your actor page too</p><p class="dim" style="margin:0 0 10px">Every film you added here, and every Story Studio film you mark done, also goes on your page in the Project Hub, under your acting, unless you set it to stay off the page. This tab makes a page of just your films.</p><a class="btn" style="text-decoration:none" href="../hub/?tab=package#publish">OPEN YOUR PAGE</a></div>'
+ +'<div class="card"><p class="kicker">Your page</p><label class="lab" for="pbanner">Banner</label><input class="field" id="pbanner" data-pm="banner" value="'+esc(D.me.banner)+'" placeholder="Your company, or your name">'
   +'<label class="lab" for="pname">Your name</label><input class="field" id="pname" value="'+esc(y.name||'')+'" placeholder="As it goes on the page">'
   +'<label class="lab" for="pabout">About (a line or two)</label><textarea class="field" id="pabout" data-pm="about" style="min-height:80px">'+esc(D.me.about)+'</textarea>'
   +'<label class="lab" for="pemail">Email on the page (optional)</label><input class="field" id="pemail" data-pm="email" value="'+esc(D.me.email)+'" inputmode="email"></div>';

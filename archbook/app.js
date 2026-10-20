@@ -473,7 +473,8 @@
     return `<div class="msg" style="margin-top:12px">Made ${esc(x.name)} · ${(x.blob.size / 1048576).toFixed(1)} MB · ${esc(x.mime.split(';')[0])}${codec ? ' (' + esc(codec) + ')' : ''}</div>
       ${h264 ? '' : `<div class="msg bad">This browser made it as ${esc(codec || 'an unknown codec')}, not H.264. It plays in Chrome, Premiere and Resolve, but not in QuickTime or iPhone Photos. Make it from Safari or desktop Chrome for an H.264 file, or use the cut list.</div>`}
       <video src="${x.url}" controls playsinline style="width:100%;border-radius:10px;background:#000;max-height:50vh"></video>
-      <div class="row" style="margin-top:8px"><button class="btn pri" data-a="saverender">${isPhone() && navigator.canShare ? 'Save or share' : 'Download'}</button></div>`;
+      <div class="row" style="margin-top:8px"><button class="btn pri" data-a="saverender">${isPhone() && navigator.canShare ? 'Save or share' : 'Download'}</button>${window.Takes ? `<button class="btn" data-a="topage"${x.onPage ? ' disabled' : ''}>${x.onPage ? 'ON YOUR PAGE ✓' : 'PUT IT ON YOUR PAGE'}</button>` : ''}</div>
+      ${window.Takes ? `<p class="faint" style="font-size:13px;margin:6px 0 0">${x.onPage ? 'It\'s in the Project Hub as a reel. Pick it in SEND, under Reel.' : 'Sends a copy to the Project Hub, where your page is built. It stays on this phone.'}</p>` : ''}`;
   }
 
   // ---------------------------------------------------------------- PACK
@@ -824,6 +825,9 @@
       case 'res': S.res = ds.v; render(); break;
       case 'renderreel': renderReel(reelById(S.reelId)); break;
       case 'saverender': if (S.rendered) deliver(S.rendered.blob, S.rendered.name); break;
+      case 'topage': if (S.rendered && window.Takes && !S.rendered.onPage) { const x = S.rendered, r = reelById(x.reel);
+        try { await window.Takes.put(x.blob, { kind: 'video', mime: x.mime, ext: x.name.split('.').pop(), name: x.name, for: { type: 'reel', title: (r && r.name) || 'Reel' } }); x.onPage = true; toast('On its way to your page. Open the Project Hub to use it.'); } catch (e) { toast('This phone would not keep it. Download it instead.'); }
+        render(); } break;
       // pack
       case 'savelib': {
         L.lastSaved = now(); L.dirty = 0; await DB.putLib(L);

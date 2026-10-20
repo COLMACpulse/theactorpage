@@ -18,9 +18,9 @@ await p.reload(); await p.waitForTimeout(1500);
 await p.evaluate(async([face,clip])=>{ const bl=(b64,t)=>{ const s=atob(b64),u=new Uint8Array(s.length); for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return new Blob([u],{type:t}); };
  const add=async(cat,name,blob)=>{ const rec={id:'a'+Math.random().toString(36).slice(2,9),scope:'library',category:cat,label:name,filename:name+'.'+(blob.type.split('/')[1]),type:blob.type,size:blob.size,added:new Date().toISOString(),blob}; await DB.put(rec); ARTS.push(rec); return rec; };
  const h=await add('headshot','Riley Hart',bl(face,'image/jpeg')); profile.primaryHeadshot=h.id; await add('clip','The diner scene',bl(clip,'video/mp4')); pkgSel.headshot=null; go('package'); },[face,clip]);
-await p.waitForFunction(()=>/Made by me · 3/i.test(document.getElementById('view').innerText),null,{timeout:8000}).catch(()=>{});
+await p.waitForFunction(()=>/From your other tools · 3/i.test(document.getElementById('view').innerText),null,{timeout:8000}).catch(()=>{});
 const v=await p.innerText('#view');
-want('the Hub finds your own work: two films and a script with a logline', /Made by me · 3/i.test(v)&&/Dry Creek/.test(v)&&/Salt Road/.test(v)&&/Low Water/.test(v)&&!/Untitled Draft|Shed/i.test(v), v.slice(v.search(/Made by me/i),v.search(/Made by me/i)+300));
+want('the Hub finds your own work: two films and a script with a logline', /From your other tools · 3/i.test(v)&&/Dry Creek/.test(v)&&/Salt Road/.test(v)&&/Low Water/.test(v)&&!/Untitled Draft|Shed/i.test(v), v.slice(v.search(/From your other tools/i),v.search(/From your other tools/i)+300));
 // video links
 await p.fill('#vlurl','https://youtu.be/dQw4w9WgXcQ'); await p.fill('#vllabel','Cold open, full length'); await p.selectOption('#vlas','clip'); await p.click('button:has-text("Add")'); await p.waitForTimeout(200);
 await p.fill('#vlurl','not a link'); await p.click('button:has-text("Add")'); await p.waitForTimeout(200);
