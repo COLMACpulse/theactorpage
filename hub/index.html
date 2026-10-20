@@ -172,6 +172,7 @@ small.note{display:block;padding:0 15px 13px;color:var(--faint);font-size:10.5px
 <script src="../shared/takes.js"></script>
 <script src="../resume/engine.js"></script>
 <script src="../shared/madeby.js"></script>
+<script src="../shared/repsheet.js"></script>
 <script>
 var restoreReport=null;
 var CREDIT_TOMBS=[];   // titles the user has deleted; never re-seed these
@@ -274,7 +275,7 @@ function addCredit(medium){credits.unshift({medium,title:'',billing:'',character
 function delCredit(i){if(confirm('Remove this credit?')){const cid=credits[i]&&credits[i].cid;const k=tombKey(credits[i]&&credits[i].title);if(k&&CREDIT_TOMBS.indexOf(k)<0){CREDIT_TOMBS.push(k);saveTombs();}credits.splice(i,1);saveCredits();if(cid){ARTS.filter(a=>String(a.scope)==='credit:'+cid).forEach(a=>{try{DB.del(a.id);}catch(e){}});ARTS=ARTS.filter(a=>String(a.scope)!=='credit:'+cid);}render();}}
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
-let projects=[]; let tab=(()=>{ try{ const t=new URLSearchParams(location.search).get('tab'); return ['profile','road','offices','keyart','reels','package','intake'].includes(t)?t:'profile'; }catch(e){ return 'profile'; } })(); let openId=null;
+let projects=[]; let tab=(()=>{ try{ const t=new URLSearchParams(location.search).get('tab'); return ['profile','road','offices','reps','keyart','reels','package','intake'].includes(t)?t:'profile'; }catch(e){ return 'profile'; } })(); let openId=null;
 
 // seed credits as archived projects
 function seed(){ projects=[]; }
@@ -635,7 +636,7 @@ function col(v){return v>=70?'var(--go)':v>=40?'var(--tung)':'var(--hold)';}
 function active(){return projects.filter(p=>p.state!=='archived');}
 function archived(){return projects.filter(p=>p.state==='archived');}
 
-const TABS=[['profile','Profile'],['road','Auditions'],['offices','Casting'],['keyart','Key art'],['reels','Reel Room'],['package','Send'],['intake','Setup']];
+const TABS=[['profile','Profile'],['road','Auditions'],['offices','Casting'],['reps','For my reps'],['keyart','Key art'],['reels','Reel Room'],['package','Send'],['intake','Setup']];
 function renderNav(){$('nav').innerHTML=TABS.map(([k,l])=>`<button class="${tab===k?'on':''}" onclick="go('${k}')">${l}</button>`).join('')+`<span id="ptarget" class="ptarget" title="where dropped or pasted files go">drop / paste &rarr; ${esc(targetLabel(pendScope,pendCat))}</span>`+vaultPill();}
 /* nav always lands on a tab's front; leaving an open audition turns its camera off */
 function go(t){if(openId){if(tapePhase!=='off')finishTake();if(camOpen)closeCam();}openId=null;tab=t;render();}
@@ -1775,6 +1776,51 @@ function offAddRead(name){
  projects.push(newProject({aaid:'man'+Date.now().toString(36),title:proj||'(title withheld)',role:role,
   casting:name,office:name,kind:'audition',state:'archived',status:'Submitted',when:when,deadline:when}));
  saveProjects();drawOffice();render();}
+
+/* ===== FOR MY REPS (shared/repsheet.js) =====
+   One sheet for your agent and your manager: your work, where you stand, who's on your radar, what you're right for
+   and want more of, what's casting that fits. After the first one it only says what's new. You pick when to send. */
+function spottedData(){ try{ return JSON.parse(localStorage.getItem('theactorpage_spotted_v1')||'null')||{items:[],me:{reps:[]}}; }catch(e){ return {items:[],me:{reps:[]}}; } }
+function headshotPlan(){ try{ return JSON.parse(localStorage.getItem('theactorpage_headshots_v1')||'null')||{}; }catch(e){ return {}; } }
+function repsState(){ profile.reps=profile.reps||{rhythm:'change',last:null}; return profile.reps; }
+function repsSource(){
+ const y=window.You?You.get():{}, hp=headshotPlan(), sd=spottedData();
+ const offices=officeIndex().map(o=>{ const last=o.reads.slice().sort((a,b)=>String(a.when).localeCompare(String(b.when))).slice(-1)[0];
+  return {name:o.name,gate:officeGate(o.name),reads:o.reads.length,inroom:o.inroom,callbacks:o.callbacks,booked:o.booked,last:last?{title:last.title,role:last.role}:null,people:o.people,why:o.why}; });
+ let spotted={fits:[],fresh:[]};
+ try{ if(window.Spotted&&(sd.items||[]).length){ const rep=Spotted.report(sd.items,{projects,credits,offices:window.Offices,types:(y.types||[])},{name:profile.name||y.name||''});
+  spotted.fits=(rep.fits||[]).map(x=>({id:x.it.id,project:x.it.card.project,network:x.it.card.network,role:x.it.card.role,casting:x.it.card.casting||[],url:x.it.card.source,mine:x.m||[]}));
+  spotted.fresh=(rep.fresh||[]).map(o=>({name:o.name,projects:o.now.map(n=>n.card.project||'(no title)')})); } }catch(e){}
+ let people=[]; try{ if(window.Notes) people=Notes.people(); }catch(e){}
+ return {name:profile.name||y.name||'',page:(online().live&&online().url)||pkgSel.site||'',at:Date.now(),offices,
+  credits:credits.filter(c=>c.kind==='credit').map(c=>({title:c.title,net:c.net,director:c.director,role:c.role})),people,
+  rightFor:(y.types||[]).concat(hp.called||[]),wantMore:y.wantMore||[],wantSeen:hp.want||[],spotted,typed:!!(y.types||[]).filter(Boolean).length};
+}
+function repsNow(){ const st=repsState(), m=RepSheet.build(repsSource()), ch=RepSheet.changes(st.last&&st.last.snap,m); return {st,m,ch,due:RepSheet.due(st.last&&st.last.at,st.rhythm,ch)}; }
+function repsEmails(){ return ((spottedData().me||{}).reps||[]).map(r=>r.email).filter(Boolean); }
+function repsRhythm(k){ repsState().rhythm=k; saveProfile(); render(); }
+function repsList(k,v){ if(!window.You) return; You.setList(k,String(v||'').split(/\s*,\s*/)); render(); }
+function repsCopy(){ const {m,ch}=repsNow(); const e=RepSheet.email(m,ch); copyText(e.full); toast('Copied: the note and the whole sheet'); }
+function repsSave(){ const {m,ch}=repsNow(); const nm=((m.name||'my')+'_for_my_reps_'+new Date().toISOString().slice(0,10)).replace(/[^\w.-]+/g,'_')+'.html'; downloadBlob(new Blob([RepSheet.html(m,ch)],{type:'text/html'}),nm); toast('Saved the sheet. Attach it to the email.'); }
+function repsMail(){ const {m,ch}=repsNow(); const e=RepSheet.email(m,ch), to=repsEmails();
+ location.href='mailto:'+encodeURIComponent(to.join(','))+'?subject='+encodeURIComponent(e.subject)+'&body='+encodeURIComponent(e.short+'\n\n(The whole sheet is attached.)'); }
+function repsSent(){ const {st,m}=repsNow(); st.last={at:Date.now(),snap:RepSheet.snapshot(m)}; saveProfile(); toast('Noted. Next time it only shows what\'s new from today.'); render(); }
+function repsView(){
+ if(!window.RepSheet){ $('view').innerHTML='<div class="panel"><h2>For my reps</h2><small class="note">This needs a newer copy of the page. Reload.</small></div>'; return; }
+ const {st,m,ch,due}=repsNow(), y=window.You?You.get():{}, hp=headshotPlan(), to=repsEmails(), when=st.last?new Date(st.last.at).toLocaleDateString(undefined,{month:'short',day:'numeric'}):'';
+ let h=`<div class="panel"><h2>For my reps</h2><small class="note">One sheet for your agent and your manager. It does their homework: your work, where you stand with every office, who's on your radar, what you're right for and want more of, and what's casting that fits. After the first one, it only says what's new. Nothing sends itself.</small></div>`;
+ h+=`<div class="panel" style="border-color:${due.due?'var(--tung)':'var(--line)'}"><h2 style="color:${due.due?'var(--tung)':'var(--ink)'}">${st.last?'Last sent '+esc(when):'Not sent yet'}</h2><small class="note">${esc(due.why)}</small>
+  <div class="row" style="padding:4px 13px 12px;gap:6px;flex-wrap:wrap"><span class="note" style="margin:0;align-self:center">Send it:</span>${RepSheet.RHYTHMS.map(([k,l])=>`<button class="${st.rhythm===k?'act':'ghost act'} sm" onclick="repsRhythm('${k}')">${l}</button>`).join('')}</div></div>`;
+ h+=`<div class="panel"><h2>${ch.first?'The first one':'What\'s new since '+esc(when)}</h2><div style="padding:6px 13px 12px">`+(ch.first?`<small class="note" style="margin:0">The whole sheet goes the first time. After that, only what changed.</small>`:ch.lines.length?`<ul style="margin:0;padding-left:18px">${ch.lines.map(x=>'<li>'+esc(x)+'</li>').join('')}</ul>`:`<small class="note" style="margin:0">Nothing new yet.</small>`)+`</div>
+  <div class="row" style="padding:0 13px 13px;gap:9px;flex-wrap:wrap"><button class="act" onclick="repsMail()">Email my reps</button><button class="ghost act" onclick="repsSave()">Save the sheet</button><button class="ghost act" onclick="repsCopy()">Copy it</button><button class="ghost act" onclick="repsSent()">I sent it</button></div>
+  <small class="note" style="display:block;padding:0 13px 12px">${to.length?'Email opens your mail app to '+esc(to.join(', '))+' with the short note. Attach the saved sheet.':'Add your reps\' emails in <a href="../spotted/">Spotted</a>, on YOU, and Email goes straight to them.'} Tap I SENT IT after, so next time only the new things show.</small></div>`;
+ h+=`<div class="panel"><h2>In your words</h2><div class="form">
+  <label>What I'm right for, with commas</label><input value="${esc((y.types||[]).join(', '))}" placeholder="cop, dad, rancher, small town" onchange="repsList('types',this.value)">
+  <label style="margin-top:10px">What I want more of</label><input value="${esc((y.wantMore||[]).join(', '))}" placeholder="westerns, dark drama, guest stars on procedurals" onchange="repsList('wantMore',this.value)">
+  <small class="note" style="margin-top:8px">Also on the sheet: the roles you're called in for and want to be seen for, from <a href="../headshots/">Headshots</a>${(hp.want||[]).length?' ('+esc(hp.want.join(', '))+')':''}. Offices you want to reach go in Casting, with why.</small></div></div>`;
+ h+=`<div class="panel"><h2>The sheet</h2><textarea readonly rows="22" style="width:100%;font-family:var(--mono);font-size:12px">${esc(RepSheet.text(m,ch))}</textarea></div>`;
+ $('view').innerHTML=h;
+}
 /* ===== OUTCOMES (v0.9) =====
    What happened after the tape: a callback, a pin (avail check), a booking. One tap
    each, dated today, tap again to clear. A booking makes the office "Worked with". */
@@ -2008,7 +2054,7 @@ function officesPanel(){
    <div class="row"><button class="act sm" onclick="jumpTo('qs-block')">Import from Actors Access</button></div></div>`;
  return `<div class="panel"><h2>Casting offices <span style="color:var(--mut);font-weight:400">&middot; ${idx.length}</span>
    <button class="act sm" style="float:right;margin-top:-3px" onclick="offNew()">+ Want to reach</button>
-   <button class="ghost act sm" style="float:right;margin:-3px 8px 0 0" onclick="repSheet()">For your rep</button>
+   <button class="ghost act sm" style="float:right;margin:-3px 8px 0 0" onclick="go('reps')">For my reps</button>
    <a class="ghost act sm" style="float:right;margin:-3px 8px 0 0;text-decoration:none" href="../spotted/">Spotted</a>
    ${Object.keys(OFFMETA).some(k=>OFFMETA[k]&&OFFMETA[k].hidden)?`<button class="ghost act sm" style="float:right;margin:-3px 8px 0 0" onclick="offUnhideAll()">Show removed</button>`:''}</h2>
   <small class="note">Confirmed = they confirmed an appointment (in the room or a live session). Total = every read, tapes included. Add researched offices: <button class="ghost act sm" onclick="$('tgin').click()">Bring in a list (.json)</button></small>
@@ -3449,7 +3495,7 @@ function render(){setTimeout(sweepThumbs,60);
  if(['deck','train','archive'].indexOf(tab)>=0)tab='profile';
  if(credId&&document.getElementById('cw'))setTimeout(drawCredit,0);
  if(tab==='train')tab='profile';renderNav();who();
- if(tab==='road')auditionView();else if(tab==='intake')intakeView();else if(tab==='keyart')keyArtView();else if(tab==='offices'){$('view').innerHTML=officesPanel();}else if(tab==='reels')reelRoomView();else if(tab==='package')packageView();else if(tab==='train')trainView();else if(tab==='profile')profileView();}
+ if(tab==='road')auditionView();else if(tab==='intake')intakeView();else if(tab==='keyart')keyArtView();else if(tab==='offices'){$('view').innerHTML=officesPanel();}else if(tab==='reps')repsView();else if(tab==='reels')reelRoomView();else if(tab==='package')packageView();else if(tab==='train')trainView();else if(tab==='profile')profileView();}
 
 $('tgin').addEventListener('change',e=>{const f=e.target.files[0];if(f)importTargets(f);e.target.value='';});
 $('qsin').addEventListener('change',e=>{const f=[].slice.call(e.target.files);if(f.length)importQuicksheet(f);e.target.value='';});
