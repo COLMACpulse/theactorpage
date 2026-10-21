@@ -445,6 +445,8 @@ window.MEM={tab:tab,level:setLevel,beat:setBeat,again:again,reveal:reveal,typing
  listen:listen,scene:sceneStart,sceneShow:sceneShow,sceneMark:sceneMark,sceneRetry:sceneRetry,verb:setVerb,resetProgress:resetProgress,
  pickMe:pickMe,takeAO:takeAO,paste:pasteIt,open:openScript,remove:removeScript,fromShelf:fromShelf,
  _db:()=>DB,_items:()=>ITEMS,_script:()=>SCRIPT,_state:()=>({D:D,R:R})};
+/* a practice scene is only for when you ask for it: opening Memorizer again goes back to your own sides */
+try{ const c=DB.scripts&&DB.scripts[DB.cur]; if(c&&window.DailyScenes&&(c.from==='Practice scene'||DailyScenes.isPractice(c.file))){ const own=Object.keys(DB.scripts).filter(k=>{ const x=DB.scripts[k]; return x&&x.from!=='Practice scene'&&!DailyScenes.isPractice(x.file); }); DB.cur=own[own.length-1]||''; save(); } }catch(e){}
 build();
 adoptShelf();
 if(!SC&&!PENDING) DB.tab='sides';

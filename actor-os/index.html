@@ -1028,6 +1028,8 @@ window.addEventListener('load',()=>{ setTimeout(()=>{
   }
   const last=JSON.parse(localStorage.getItem('actor_os_sides_last')||'null');
   if(!last||!last.text) return;
+  /* a practice scene is only ever for when you ask for it: never what Actor OS opens on (older versions saved them) */
+  try{ if(window.DailyScenes&&DailyScenes.isPractice(last.file)){ localStorage.removeItem('actor_os_sides_last'); return; } }catch(e){}
   if(last.pdfLines){ window.LAST_PDF={lines:last.pdfLines}; window.PDF_LINES=last.pdfLines.map(l=>l.text); window.SIDES_DOC=last.file; }
   SIDES.file=last.file||'';
   const r=JSON.parse(localStorage.getItem('actor_os_range_'+(SIDES.file||'x'))||'null');
