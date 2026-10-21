@@ -1,5 +1,7 @@
 name: wire-probe
 on: workflow_dispatch
+permissions:
+  contents: write
 jobs:
   probe:
     runs-on: ubuntu-latest
@@ -18,5 +20,8 @@ jobs:
           thr_robots.txt https://www.hollywoodreporter.com/robots.txt
           L
           cat out/_status.txt
-      - uses: actions/upload-artifact@v4
-        with: { name: probe, path: out, retention-days: 1 }
+      - name: Keep a short look on a temporary branch (feeds cut to their first 4 KB)
+        run: |
+          for f in deadline.xml variety.xml thr.xml; do head -c 4000 out/$f > out/$f.head && rm out/$f; done
+          cd out && git init -q && git checkout -q -b wire-probe && git add -A && git -c user.name=wire -c user.email=noreply@github.com commit -q -m probe
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" wire-probe
