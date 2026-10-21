@@ -115,4 +115,14 @@
   /* the site's own "leave the demo" button, if a page shows one in the frame, does the same as END DEMO here */
   window.addEventListener('message', e => { if (e.origin === location.origin && e.data === 'tapdemo:end') out(); });
   window.__tour = { at: '', done: false, log: [], list: () => LIST.map(s => s.id), play };
+  /* TRY IT: no voice, no tour. Low Tide goes in, you're on ANNA, and the site is yours to poke at. END DEMO puts your own work back. */
+  if (/[?&]try\b/.test(location.search)) (async () => {
+    D.start(['theactorpage_view']); window.__tour.depts = [];
+    $('start').style.display = 'none'; $('run').classList.add('on', 'slim'); $('where').textContent = 'DEMO'; $('count').textContent = '';
+    $('cap').textContent = 'Low Tide is in every tool, and you are ANNA. Tap around. END DEMO puts your own work back.';
+    document.documentElement.style.setProperty('--c', '#e0a23c');
+    await load(''); await sleep(400); const run = ++RUN, o = T.S.find(x => x.id === 'O03');
+    for (const a of (o && o.act) || []) { await step(a, run); }
+    window.__tour.tried = true;
+  })();
 })();

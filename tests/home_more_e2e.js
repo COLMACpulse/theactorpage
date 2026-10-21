@@ -6,7 +6,7 @@ let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===und
 const p=await b.newPage({viewport:{width:390,height:844}}); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
 await p.goto('http://localhost:8811/index.html'); await p.waitForTimeout(900);
 const T=await p.$$eval('.tool',x=>x.map(t=>({one:(t.querySelector('p.one')||{}).textContent||'',more:!!t.querySelector('details.more'),open:t.querySelector('details.more')&&t.querySelector('details.more').open})));
-want('17 tools (Slate Maker inside Actor OS, Backlot inside Story Studio), each one line (under 110 characters) and a folded More', T.length===17&&T.every(t=>t.one&&t.one.length<110&&t.more&&!t.open), T.filter(t=>!t.one||t.one.length>=110));
+want('16 tools (Slate Maker inside Actor OS, Backlot inside Story Studio, backup in the FAQ and footer), each one line (under 110 characters) and a folded More', T.length===16&&T.every(t=>t.one&&t.one.length<110&&t.more&&!t.open), T.filter(t=>!t.one||t.one.length>=110));
 const OP=await p.$$eval('.tool',x=>x.map(t=>({n:t.querySelector('.tool-name').textContent.trim(),a:[...t.querySelectorAll('.actions a')].map(a=>a.textContent.trim()),loose:[...t.children].filter(c=>c.tagName==='P'&&!c.classList.contains('one')).length,icon:!!t.querySelector('.tool-name svg')})));
 const nm=s=>s.toLowerCase().replace(/[^a-z]/g,'');
 want('every tool: its own Open button (one), an icon, nothing loose outside More', OP.every(t=>t.a.length===1&&nm(t.a[0]).includes(nm(t.n).slice(0,6))&&!t.loose&&t.icon), OP.filter(t=>!(t.a.length===1&&nm(t.a[0]).includes(nm(t.n).slice(0,6))&&!t.loose&&t.icon)));
@@ -15,9 +15,9 @@ const SC=await p.$$eval('.tool',x=>x.map(t=>{ const sec=t.closest('section').cla
 const want_={act:'rgb(224, 162, 60)',write:'rgb(247, 245, 240)',film:'rgb(111, 168, 214)'};
 want('each icon is drawn in its section color: ACT gold, WRITE white, FILM blue', SC.every(([k,c])=>!want_[k]||c===want_[k]), SC.filter(([k,c])=>want_[k]&&c!==want_[k]));
 { const w=await (await b.newContext({viewport:{width:1386,height:900}})).newPage(); await w.goto('http://localhost:8811/'); await w.waitForTimeout(600); want('wide screen: every tool in the right column', await w.evaluate(()=>[...document.querySelectorAll('.tool')].filter(t=>t.offsetParent).every(t=>t.getBoundingClientRect().left>innerWidth*0.3))); await w.close(); }
-await p.click('.tool details.more summary'); await p.waitForTimeout(150);
+await p.click('.dept[data-d="act"] > summary'); await p.waitForTimeout(150); await p.click('.tool details.more summary'); await p.waitForTimeout(150);
 want('More: the full description', await p.evaluate(()=>{ const d=document.querySelector('.tool details.more'); return d.open&&d.querySelector('p').textContent.length>150; }));
-want('the VO Booth mic is still there, outside the fold', await p.evaluate(()=>{ const m=document.getElementById('mic'); return !!m&&!m.closest('details'); }));
+want('the VO Booth mic is still there, outside the fold', await p.evaluate(()=>{ const m=document.getElementById('mic'); return !!m&&!m.closest('details.more'); }));
 const F=await p.$$eval('.fcol',x=>x.map(c=>c.querySelector('.froom').textContent+':'+c.querySelectorAll('.ftool').length));
 want('the footer: every tool, by room, WRITE and FILM marked make your own, Characters and Set List under WRITE', F.join()==='ACT:8,WRITE · make your own:5,FILM · make your own:3,YOURS:6'&&!!(await p.$('.fcol:nth-child(2) a[href="papertrail/?tab=allchars"]')), F);
 await p.click('footer a[href="papertrail/?tab=allchars"]'); await p.waitForURL(/papertrail/); await p.waitForTimeout(900);

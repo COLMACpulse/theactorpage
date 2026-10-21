@@ -12,7 +12,7 @@ p.on('frameattached',f=>{}); c.on('page',x=>{});
 const H='http://localhost:8811/';
 await p.goto(H); await p.evaluate(()=>{ localStorage.clear(); Shelf.put({text:'RIVA\nThe gate is locked.\n\nMOSS\nThen climb it.\n',file:'real_gate.fountain',me:'RIVA'}); });
 const realBefore=await p.evaluate(()=>localStorage.getItem('theactorpage_shelf_v1'));
-want('home has DEMO, up top', /DEMO/.test(await p.innerText('#demogo'))&&/demo\/$/.test(await p.getAttribute('#demogo','href')));
+want('home has the tour, up top, and TRY IT next to it', /5-minute tour/.test(await p.innerText('#demogo'))&&/demo\/$/.test(await p.getAttribute('#demogo','href'))&&/demo\/\?try$/.test(await p.getAttribute('#trygo','href')));
 await p.click('#demogo'); await p.waitForURL(/\/demo\/$/); await p.waitForTimeout(300);
 want('the start: about 5 minutes, ACT and MAKE YOUR OWN on', /about 5 minutes/.test(await p.innerText('#start'))&&(await p.$$eval('#chips [aria-pressed="true"]',x=>x.map(y=>y.dataset.d).join()))==='act,own', await p.innerText('#mins'));
 await p.click('#go');

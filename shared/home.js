@@ -275,3 +275,9 @@ window.addEventListener('storage',e=>{ if(e.key&&/shelf|inbox/.test(e.key)) show
 showPlay(); showYou();
 window.__home={take,route,readOne};
 })();
+
+/* SIX STEPS: tabs. One shows at a time; arrow keys move between them. */
+(function(){ const tabs=[...document.querySelectorAll('.steptab')]; if(!tabs.length) return;
+ const pick=(t,focus)=>{ tabs.forEach(x=>{ const on=x===t; x.setAttribute('aria-selected',String(on)); x.tabIndex=on?0:-1; const pn=document.getElementById(x.getAttribute('aria-controls')); if(pn) pn.hidden=!on; }); if(focus) t.focus(); };
+ tabs.forEach((t,i)=>{ t.tabIndex=i===0?0:-1; t.onclick=()=>pick(t); t.onkeydown=e=>{ const k=e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0; if(!k) return; e.preventDefault(); pick(tabs[(i+k+tabs.length)%tabs.length],true); }; });
+})();
