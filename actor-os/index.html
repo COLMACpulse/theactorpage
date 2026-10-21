@@ -709,6 +709,9 @@ window.addEventListener('DOMContentLoaded',()=>{
 <script src="oneread.js"></script>
 <script src="pocket.js"></script>
 <script src="pocketui.js"></script>
+<script src="../shared/readin.js"></script>
+<script src="readinui.js"></script>
+<script src="../shared/zipw.js"></script>
 <script src="slatemove.js"></script>
 <script src="compress.js"></script>
 <script>
@@ -2583,6 +2586,7 @@ async function boothRefresh(){
      <b id="gainVal">1.6x</b></span>
 </div>`;
  try{ h+=pocketBox(done); }catch(e){}
+ try{ h+=readInBox(); }catch(e){}
  h+=oneReadBox();
  h+=voiceRows(others);
 
@@ -2605,7 +2609,7 @@ async function boothRefresh(){
     const on=sel&&sel.id===c.id;
     h+=`<span class="tpill${on?' on':''}">
       <button onclick="boothPlayId('${c.id}','${b.who.replace(/'/g,"\\'")}')" title="listen">&#9654;</button>
-      <button onclick="boothPick('${k}','${c.id}')">${c.from==='file'?esc2(String(c.name||'file').replace(/\.[a-z0-9]+$/i,'').slice(0,18)):c.from==='oneread'?'One read':'Take '+(n+1)}${ActorReader.isVideo(c.blob)||c.master?' &middot; video':''}${c.dur?' &middot; '+c.dur.toFixed(1)+'s':''}</button>
+      <button onclick="boothPick('${k}','${c.id}')">${c.from==='friend'?esc2(String(c.name||'Friend').slice(0,18)):c.from==='file'?esc2(String(c.name||'file').replace(/\.[a-z0-9]+$/i,'').slice(0,18)):c.from==='oneread'?'One read':'Take '+(n+1)}${ActorReader.isVideo(c.blob)||c.master?' &middot; video':''}${c.dur?' &middot; '+c.dur.toFixed(1)+'s':''}</button>
       <button onclick="boothDrop('${k}','${c.id}')" title="delete">&times;</button></span>`;
    });
    h+=`</div>`;
