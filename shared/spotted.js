@@ -67,7 +67,7 @@ S.read=function(raw,opts){
  const body=text.replace(/\bhttps?:\/\/\S+/gi,' ');
  // project: labeled; a quoted title; "for <Title>" after a callback or audition; a line in capitals
  c.project=lab.project||'';
- if(!c.project){ const m=body.match(/[“"‘']([A-Z][^“”"‘’']{1,50}?)[”"’'](?=[\s,.)])/); if(m&&!/[.!?]$/.test(m[1])) c.project=m[1].trim(); }
+ if(!c.project){ const m=body.match(/[“"‘']([A-Z][^“”"‘’']{1,50}?)[”"’'](?=[\s,.):;!?]|$)/); if(m&&!/[.!?]$/.test(m[1])) c.project=m[1].trim(); }
  if(!c.project){ const m=body.match(/\b(?:callback|audition|session|booking|avail|hold|read|tape|self[- ]tape|submission|pilot|series|feature|commercial|spot|campaign)s?\b[^.\n]{0,60}?\bfor\s+(?:the\s+)?((?:[A-Z][\w'’&-]*|[0-9]+)(?:\s+(?:[A-Z][\w'’&-]*|of|the|and|&|[0-9]+)){0,5})/); if(m) c.project=trimEnd(m[1].replace(/\s+(?:of|the|and|&)$/,'')); }
  if(!c.project){ const m=body.match(/^[ \t]*((?:[A-Z][A-Z0-9’&-]*[A-Z0-9])(?:[ \t]+[A-Z][A-Z0-9’&-]*[A-Z0-9]){0,5})(?![A-Za-z'’])/gm); if(m){ const t=m.map(x=>x.trim()).find(x=>!STOPCAPS.test(x)&&!x.split(/\s+/).every(w=>STOPCAPS.test(w))&&x.length>2&&!/^[A-Z]{2,4}$/.test(x)&&!/^\d/.test(x)); if(t) c.project=t; } }
  // roles: labeled; [BRACKETED] roles in a listing; "the role of X"; "Role: X"

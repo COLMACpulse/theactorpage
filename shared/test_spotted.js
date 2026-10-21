@@ -176,4 +176,7 @@ ok('another story: its stage and date said, new casting named, your role and lin
 S.log(it,'stage','You marked it filming.'); S.log(it,'status','Moved.');
 ok('news: your calls and stories only', S.news([it]).map(n=>n.k).join()==='story,casting,stage', S.news([it]));
 ok('your call shows on the list and in the text for your manager', S.listText([Object.assign({},it,{status:'passed',you_stage:'filming'})],{}).indexOf('[Passed along · filming]')>0&&S.find([Object.assign({},it,{status:'spotted',you_stage:'filming'})],'filming').length===1);
+/* a title in quotes, wherever it sits in a headline (from the v1.2 vet) */
+ok('a quoted title at the end of a headline', S.read('Netflix orders western series "Dust Road"').project==='Dust Road'&&S.read("Netflix Orders Western 'Dust Road' From Canyon Pictures").project==='Dust Road'&&S.read('‘Dust Road’ Netflix Western Sets Cast').project==='Dust Road');
+ok('a headline with no title in it: no project', !S.read('Production company hires executive').project&&!S.read('Director signs new overall deal').project);
 console.log(pass+' passed, '+fail+' failed'); if(fail) process.exit(1);
