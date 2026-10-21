@@ -1,0 +1,6 @@
+[
+  {"id": "cfc", "label": "California Film Commission", "kind": "cfc", "home": "https://film.ca.gov/", "url": "https://film.ca.gov/film-and-television-tax-credit-program-approved-projects-list/"},
+  {"id": "deadline", "label": "Deadline", "kind": "rss", "home": "https://deadline.com/", "url": "https://deadline.com/feed/"},
+  {"id": "variety", "label": "Variety", "kind": "rss", "home": "https://variety.com/", "url": "https://variety.com/feed/"},
+  {"id": "thr", "label": "The Hollywood Reporter", "kind": "rss", "home": "https://www.hollywoodreporter.com/", "url": "https://www.hollywoodreporter.com/feed/"}
+]

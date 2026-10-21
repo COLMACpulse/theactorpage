@@ -1,0 +1,29 @@
+name: wire
+# THE WIRE: once a day (and when asked), read the JUICE sources in wire/sources.json and publish one public file,
+# wire.json, on the "wire" branch. Phones that turn JUICE on download that same file. See wire/fetch.py.
+on:
+  schedule:
+    - cron: '17 13 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: { group: wire, cancel-in-progress: false }
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test the fetcher first
+        run: python3 wire/test_fetch.py
+      - name: Yesterday's file
+        run: curl -sSf -o prev.json "https://raw.githubusercontent.com/${{ github.repository }}/wire/wire.json" || echo '{}' > prev.json
+      - name: Fetch
+        run: python3 wire/fetch.py out prev.json
+      - name: Publish (one commit, no history kept)
+        run: |
+          cd out && printf 'THE WIRE: the file JUICE reads. Made by .github/workflows/wire.yml from wire/sources.json. Every phone downloads the same file.\n' > README.md
+          git init -q && git checkout -q -b wire && git add -A && git -c user.name=wire -c user.email=noreply@github.com commit -q -m "wire $(date -u +%F)"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" wire
+      - name: Clear the old probe branch, if it's still there
+        run: git push -q "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" --delete wire-probe 2>/dev/null || true
