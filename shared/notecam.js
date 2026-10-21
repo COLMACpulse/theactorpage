@@ -76,7 +76,7 @@ function begin(){
  ['ncfor','ncsc','ncface','ncwords'].forEach(id=>{ const e=$(id); if(e) e.disabled=true; });
  const tick=()=>{ const c=$('ncclock'); if(c) c.innerHTML='<b>●</b> '+mmss((Date.now()-S.t0)/1000); }; tick(); S.tick=setInterval(tick,500);
  if(S.video) setTimeout(async()=>{ const v=$('ncv'); if(S&&S.rec&&v&&v.videoWidth){ try{ const b=await g.Capture.snap(v,false); S.thumb=await shrink(b,480); }catch(e){} } },700);
- if(SR&&N.wordsOn()){ try{ const r=new SR(); r.continuous=true; r.interimResults=true; r.lang=navigator.language||'en-US'; let fin='';
+ if(SR&&N.wordsOn()){ try{ const r=new SR(); r.continuous=true; r.interimResults=true; r.lang=(window.TapLang?TapLang.speech():((()=>{try{return localStorage.getItem('theactorpage_lang')}catch(e){}})()||navigator.language||'en-US')); let fin='';
    r.onresult=ev=>{ let mid=''; fin=''; for(let i=0;i<ev.results.length;i++){ const x=ev.results[i]; if(x.isFinal) fin+=x[0].transcript+' '; else mid+=x[0].transcript; } S.words=(fin+mid).trim(); const h=$('ncheard'); if(h){ h.hidden=!S.words; h.textContent=S.words; } };
    r.onend=()=>{ if(S&&S.rec&&S.ear===r){ try{ r.start(); }catch(e){} } };   // keeps listening for long notes
    r.start(); S.ear=r; }catch(e){} }

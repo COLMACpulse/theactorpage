@@ -892,7 +892,7 @@
   function dictStop() { if (!DICT) return; const r = DICT; DICT = null; try { r.stop(); } catch (e) {} const b = $('#nt_say'), w = $('#nt_sayw'); if (b) b.textContent = 'SAY IT'; if (w) w.textContent = 'Stopped. Edit it, then save.'; }
   function dictStart() {
     const ta = $('#nt_text'); if (!SR || !ta) return;
-    const r = new SR(); r.continuous = true; r.interimResults = true; r.lang = navigator.language || 'en-US';
+    const r = new SR(); r.continuous = true; r.interimResults = true; r.lang = (window.TapLang?TapLang.speech():((()=>{try{return localStorage.getItem('theactorpage_lang')}catch(e){}})()||navigator.language||'en-US'));
     const base = ta.value.trim(); let fin = '';
     r.onresult = ev => { let inter = ''; for (let i = ev.resultIndex; i < ev.results.length; i++) { const x = ev.results[i]; if (x.isFinal) fin += (fin ? ' ' : '') + x[0].transcript.trim(); else inter += x[0].transcript; }
       const t = $('#nt_text'); if (t) t.value = [base, fin, inter.trim()].filter(Boolean).join(base || fin ? ' ' : ''); };

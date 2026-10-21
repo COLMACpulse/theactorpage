@@ -19,7 +19,7 @@ for(const [w,h,tag] of [[1400,900,'desk'],[390,844,'phone']]){
  want(tag+': type your name: it is printed under the headshot', await p.evaluate(()=>document.getElementById('lensname').textContent)==='Sam Actor'&&await p.getAttribute('#lens','aria-label')==='Your profile, Sam Actor');
  const r=await p.evaluate(()=>{ const g=document.querySelector('#lens .glass').getBoundingClientRect(); return g.height/g.width; });
  want(tag+': an 8x10 (4 by 5)', Math.abs(r-1.25)<0.02, r);
- await p.screenshot({path:require('path').join(require('os').tmpdir(),'headshot_'+tag+'.png'),clip:await p.evaluate(()=>{ const b=document.getElementById('you').getBoundingClientRect(); return {x:0,y:b.top+scrollY,width:innerWidth,height:Math.min(520,b.height)}; })});
+ await p.screenshot({fullPage:true,path:require('path').join(require('os').tmpdir(),'headshot_'+tag+'.png'),clip:await p.evaluate(()=>{ const b=document.getElementById('you').getBoundingClientRect(); return {x:0,y:b.top+scrollY,width:innerWidth,height:Math.min(520,b.height)}; })});
  await p.waitForTimeout(1300); 
  await p.reload(); await p.waitForTimeout(1500);
  want(tag+': after a reload it is still there', await p.evaluate(()=>document.getElementById('lensimg').classList.contains('on')));

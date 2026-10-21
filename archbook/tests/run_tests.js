@@ -62,13 +62,13 @@ ok('tc: 24fps 12.5s', E.tc(E.toFrames(12.5, '24'), '24') === '00:00:12:12');
 ok('tc: 29.97 NDF labels 300 frames as 10:00', E.tc(E.toFrames(10, '29.97'), '29.97') === '00:00:10:00', E.tc(E.toFrames(10, '29.97'), '29.97'));
 
 const items = [
-  { card: true, label: 'BRENDAN McCARTHY', seconds: 2.5 },
+  { card: true, label: 'RILEY HART', seconds: 2.5 },
   { clip: 'c1', name: 'IMG_0001.MOV', in: 1.5, out: 4, label: 'Cold open', tags: ['authority'] },
   { clip: 'c2', name: 'IMG_0002.MOV', in: 10, out: 12.5, label: 'Interrogation' }
 ];
 const edl = E.toEDL('Sheriff reel', items, '24');
 const ev = edl.split('\n').filter(l => /^\d{3}\s/.test(l));
-ok('edl: 2 events, card as comment', ev.length === 2 && /\* CARD: BRENDAN/.test(edl), edl);
+ok('edl: 2 events, card as comment', ev.length === 2 && /\* CARD: RILEY/.test(edl), edl);
 ok('edl: event 1 source in/out + record start 01:00:00:00', /^001  AX       AA\/V  C        00:00:01:12 00:00:04:00 01:00:00:00 01:00:02:12$/.test(ev[0]), ev[0]);
 ok('edl: event 2 record continues', /01:00:02:12 01:00:05:00$/.test(ev[1]), ev[1]);
 ok('edl: clip name comments', (edl.match(/FROM CLIP NAME/g) || []).length === 2);

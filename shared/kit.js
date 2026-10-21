@@ -33,17 +33,35 @@ function css(){ if(document.getElementById('kitcss')) return; const st=document.
  +'.kit .kt span{font-size:13px;line-height:1.3;color:var(--dim,var(--faint,#9aa0a8))}.kit .kt small{font-size:11px;line-height:1.3;color:var(--faint,#8a8f98)}'
  +'.kit .kt i{position:absolute;top:8px;right:8px;font:600 10px/1 system-ui,-apple-system,"Segoe UI",sans-serif;font-style:normal;letter-spacing:.08em;padding:4px 7px;border-radius:99px;border:1px solid var(--line,#2a2f37);color:var(--faint,#8a8f98)}'
  +'.kit .kt i.on{background:#e0a23c;border-color:#e0a23c;color:#1a1206}.kit .kt i.hot{background:#d6332a;border-color:#d6332a;color:#fff}'
- +'.kit .kt.off{opacity:.55}';
+ +'.kit .kt.off{opacity:.55}'+'.klang{display:flex;align-items:center;gap:8px;margin:6px 0 0;font-size:10px;letter-spacing:.14em;color:var(--mut,#9a958c)}.klang select{font:inherit;font-size:12px;letter-spacing:0;max-width:240px}';
  (document.head||document.documentElement).appendChild(st); }
+
+/* THE LANGUAGE YOU SPEAK: one setting for every tool that listens (Memorizer, Actor OS, Notes, Breakdown, the writing tools).
+   Your browser's speech service does the hearing; this tells it which language. Default: your phone's language. */
+const L={}; L.KEY='theactorpage_lang';
+L.LIST=[['en-US','English (US)'],['en-GB','English (UK)'],['en-AU','English (Australia)'],['en-CA','English (Canada)'],['en-IE','English (Ireland)'],
+ ['es-US','Español (EE. UU.)'],['es-MX','Español (México)'],['es-ES','Español (España)'],['fr-FR','Français'],['fr-CA','Français (Canada)'],['de-DE','Deutsch'],['it-IT','Italiano'],
+ ['pt-BR','Português (Brasil)'],['pt-PT','Português (Portugal)'],['nl-NL','Nederlands'],['sv-SE','Svenska'],['da-DK','Dansk'],['nb-NO','Norsk'],['fi-FI','Suomi'],['pl-PL','Polski'],
+ ['cs-CZ','Čeština'],['ro-RO','Română'],['el-GR','Ελληνικά'],['tr-TR','Türkçe'],['ru-RU','Русский'],['uk-UA','Українська'],['he-IL','עברית'],['ar-SA','العربية'],
+ ['hi-IN','हिन्दी'],['ja-JP','日本語'],['ko-KR','한국어'],['zh-CN','中文 (普通话)'],['zh-TW','中文 (台灣)'],['yue-HK','粵語'],['tl-PH','Filipino'],['id-ID','Bahasa Indonesia'],['vi-VN','Tiếng Việt'],['th-TH','ไทย']];
+L.phone=()=>{ try{ return (typeof navigator!=='undefined'&&navigator.language)||'en-US'; }catch(e){ return 'en-US'; } };
+L.get=()=>{ try{ return localStorage.getItem(L.KEY)||''; }catch(e){ return ''; } };
+L.set=v=>{ try{ v?localStorage.setItem(L.KEY,v):localStorage.removeItem(L.KEY); }catch(e){} };
+L.speech=()=>L.get()||L.phone();
+L.name=c=>{ const x=L.LIST.find(y=>y[0].toLowerCase()===String(c||'').toLowerCase())||L.LIST.find(y=>y[0].split('-')[0]===String(c||'').split('-')[0].toLowerCase()); return x?x[1]:String(c||''); };
+L.picker=()=>{ const cur=L.get(); return '<label class="klang">I SPEAK <select data-klang aria-label="The language you speak">'+'<option value="">'+esc('My phone’s language ('+L.name(L.phone())+')')+'</option>'+L.LIST.map(([c,n])=>'<option value="'+c+'"'+(c===cur?' selected':'')+'>'+esc(n)+'</option>').join('')+'</select></label>'; };
+L.wire=root=>{ (root||document).querySelectorAll('[data-klang]').forEach(s=>{ s.onchange=()=>{ L.set(s.value); document.querySelectorAll('[data-klang]').forEach(o=>{ if(o!==s) o.value=s.value; }); }; }); };
+g.TapLang=L;
 const cls=w=>w==='OFF'?'':w==='ON'?'on':'hot';
 K.html=function(tiles){
  css();
  return '<div class="kit" role="group" aria-label="Camera and mic">'+(tiles||[]).map(t=>{ const w=K.state(t.dev);
   return '<button type="button" class="kt'+(t.off?' off':'')+'" data-kit="'+esc(t.id)+'" data-kdev="'+esc(t.dev)+'">'+(w?'<i class="'+cls(w)+'" data-kst>'+w+'</i>':'')
-   +(K.ICON[t.icon||(t.dev==='typewriter'?'mic':t.dev)]||'')+'<b>'+esc(t.label||t.dev.toUpperCase())+'</b><span>'+esc(t.what||'')+'</span>'+(t.note?'<small>'+esc(t.note)+'</small>':'')+'</button>'; }).join('')+'</div>';
+   +(K.ICON[t.icon||(t.dev==='typewriter'?'mic':t.dev)]||'')+'<b>'+esc(t.label||t.dev.toUpperCase())+'</b><span>'+esc(t.what||'')+'</span>'+(t.note?'<small>'+esc(t.note)+'</small>':'')+'</button>'; }).join('')+'</div>'+((tiles||[]).some(t=>t.dev==='typewriter')?L.picker():'');
 };
 K.wire=function(root,fns){
  (root||document).querySelectorAll('[data-kit]').forEach(b=>{ const f=fns&&fns[b.dataset.kit]; if(f) b.onclick=e=>{ e.preventDefault(); f(e); }; });
+ try{ L.wire(root); }catch(e){}
  K.paint();
 };
 /* keep the OFF / ON / RECORDING words true while the page is open */

@@ -1,0 +1,21 @@
+/* POCKET RUN, the pure parts. Made-up lines.  node actor-os/tests/pocket_tests.js */
+const P=require('../pocket.js'); let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y))); if(!x) ok=false; };
+const tone=(secs,sr)=>{ const a=new Float32Array(Math.round(secs*sr)); for(let i=0;i<a.length;i++) a[i]=0.1*Math.sin(i/7); return {pcm:a,sr}; };
+const L=[{who:'HAL',text:'We close at ten.',clip:tone(1,48000)},{who:'WREN',text:'Then I have twenty minutes, and I am going to use every one of them.',mine:true},{who:'HAL',text:'You have five.'},{who:'WREN',text:'Five is plenty.',mine:true,clip:tone(0.8,44100)}];
+let pl=P.plan(L,{});
+want('plan: reader plays, your lines are silences, an unrecorded reader line is a marked silence', pl.map(x=>x.kind).join()==='reader,yours,missing,yours', pl.map(x=>x.kind));
+want('your silence fits the line: longer line, longer silence', pl[1].secs>pl[3].secs&&pl[1].secs>=5&&pl[3].secs>=1.2, [pl[1].secs,pl[3].secs]);
+want('ROOM TO BREATHE gives more time than TIGHT', P.plan(L,{pace:'room'})[1].secs>P.plan(L,{pace:'tight'})[1].secs);
+want('stage directions in brackets don\'t count as words', P.gapFor('(beat) Fine.')===P.gapFor('Fine.'));
+pl=P.plan(L,{mineHeard:true});
+want('hear my reading: your recorded line plays; one with no recording stays a silence', pl[3].kind==='mine'&&pl[1].kind==='yours');
+const T=P.render(pl,{passes:3,sr:24000,beat:0.35,tail:2.5});
+want('render: three passes, each the same length, marks for every line of every pass', T.marks.length===12&&Math.abs(T.dur-3*T.pass)<0.01&&T.marks[4].pass===2&&Math.abs(T.marks[4].t-T.pass)<0.01, {dur:T.dur,pass:T.pass,n:T.marks.length});
+want('a 48k and a 44.1k recording both come out at the track\'s rate, at their own length', Math.abs((T.marks[0].end-T.marks[0].t)-1)<0.01&&Math.abs((T.marks[3].end-T.marks[3].t)-0.8)<0.01);
+want('quiet readings are brought up to the same level', Math.max(...T.pcm.slice(0,24000).map(Math.abs))>0.75);
+want('silences are silent', T.pcm.slice(Math.round(T.marks[1].t*24000)+10,Math.round(T.marks[1].end*24000)-10).every(v=>v===0));
+want('where am I: the line under the playhead', P.at(T.marks,T.marks[2].t+0.1).i===2&&P.at(T.marks,0).i===0);
+want('next line, and back: a tap early in a line goes to the line before, later goes to its start', P.next(T.marks,0.2)===T.marks[1].t&&P.prev(T.marks,T.marks[2].t+0.3)===T.marks[1].t&&P.prev(T.marks,T.marks[2].t+2)===T.marks[2].t);
+want('what\'s in it, in words', P.summary(P.plan(L,{}))==='1 reader line, 2 silences for your lines, 1 reader line not recorded yet, left as a silence.', P.summary(P.plan(L,{})));
+want('no em dashes', !/—/.test(require('fs').readFileSync(__dirname+'/../pocket.js','utf8')+require('fs').readFileSync(__dirname+'/../pocketui.js','utf8')));
+console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1);

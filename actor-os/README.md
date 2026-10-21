@@ -373,9 +373,9 @@ why this is **off by default** and why the breakdown always wins.
 Files come out the way Actors Access names them, so a casting office sees the
 convention it expects:
 
-    BRENDAN McCARTHY_Guram_Slate.mp4
-    BRENDAN McCARTHY_Guram_Tk1.mp4
-    BRENDAN McCARTHY_Guram_Tk2.mp4
+    RILEY HART_Lane_Slate.mp4
+    RILEY HART_Lane_Tk1.mp4
+    RILEY HART_Lane_Tk2.mp4
 
 ## Your takes belong on your phone, not in a browser
 

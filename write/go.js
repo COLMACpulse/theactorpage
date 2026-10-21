@@ -131,7 +131,7 @@ function addBox(){
 function earStop(){ if(EAR){ const r=EAR; EAR=null; try{ r.stop(); }catch(e){} } const b=$('gosay'); if(b){ b.classList.remove('live'); b.textContent='SAY IT'; } }
 function earStart(){
  if(!SR) return; if(EAR){ earStop(); return; }
- const r=new SR(); r.continuous=true; r.interimResults=true; r.lang=navigator.language||'en-US';
+ const r=new SR(); r.continuous=true; r.interimResults=true; r.lang=(window.TapLang?TapLang.speech():((()=>{try{return localStorage.getItem('theactorpage_lang')}catch(e){}})()||navigator.language||'en-US'));
  const b=$('gobox'), base=b?b.value.replace(/\s*$/,''):'';
  let said='';
  r.onresult=ev=>{ let fin='', mid=''; for(let i=0;i<ev.results.length;i++){ const x=ev.results[i]; if(x.isFinal) fin+=x[0].transcript+' '; else mid+=x[0].transcript; }

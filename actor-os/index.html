@@ -418,15 +418,16 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
 <div class="section"><h3>You</h3><div class="inside">
 <div class="grid2">
  <div><label>Name as casting sees it</label>
-  <input id="actorName" placeholder="BRENDAN McCARTHY" oninput="localStorage.setItem('actor_os_name',this.value);namePreview()"></div>
+  <input id="actorName" placeholder="YOUR NAME" oninput="localStorage.setItem('actor_os_name',this.value);namePreview()"></div>
  <div><label>Role</label>
   <input id="actorRole" placeholder="from your sides" oninput="localStorage.setItem('actor_os_role',this.value);namePreview()"></div>
 </div>
 <div class="duerow"><div><label>Due</label><input id="dueVis" type="date" oninput="setDue(this.value)"></div><div id="dueSay" class="duesay"></div></div>
 <label class="cbrow"><input type="checkbox" id="useURL" onchange="toggleURL()"><span>Include a link to my page</span></label>
 <div id="urlWrap" style="display:none;margin-top:9px">
- <input id="actorURL" placeholder="https://brendanmccarthyactor.com" oninput="localStorage.setItem('actor_os_url',this.value)">
+ <input id="actorURL" placeholder="https://yourname.com" oninput="localStorage.setItem('actor_os_url',this.value)">
 </div>
+<div id="langRow" style="margin-top:11px"></div><script>try{ const r=document.getElementById('langRow'); r.innerHTML=TapLang.picker()+'<small style="display:block;color:var(--mut);margin-top:4px">For LISTEN FOR MY CUE when it matches your words. Every tool that listens uses it.</small>'; TapLang.wire(r); }catch(e){}</script>
 </div></div>
 
 <div class="section" id="boothWrap" style="display:none"><h3>Reader booth</h3><div class="inside">
@@ -566,12 +567,14 @@ const $=id=>document.getElementById(id)||_NULLEL; const save=()=>{state.job=Obje
 ['project','role','due','instructions','research','cue','actorLine','displayMode','advanceMode','anchor','action','forbidden','posture','reader'].forEach(id=>$(id)?.addEventListener('input',()=>{save();renderPrompt()}));
 function renderJob(){$('jobTitle').textContent=$('project').value||'Untitled Performance';$('jobMeta').textContent=((state.job.role||'PERFORMANCE').toUpperCase())+' · Scene '+state.scene;$('project').focus()}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button,.panel').forEach(x=>x.classList.remove('on'));b.classList.add('on');$(b.dataset.tab).classList.add('on');navState();if(b.dataset.tab!=='shoot'&&!(typeof MODE!=='undefined'&&MODE)){try{releaseAll();const o=$('prevOff');if(o&&o.style)o.style.display='';}catch(e){}}if(b.dataset.tab==='cut'){renderCut();renderCutWork();}if(b.dataset.tab==='save')renderSave();if(b.dataset.tab==='send')renderSend();});
-function toks(s){return (s||'').toLowerCase().replace(/[^a-z0-9' ]/g,' ').split(/\s+/).filter(Boolean)}
+/* any language: every script's letters; Chinese, Japanese and Thai count a character as a word; accents don't decide a match */
+const WORDRE=/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]|[\p{L}\p{N}\p{M}]+(?:['\u2019][\p{L}\p{M}]+)?/gu;
+function toks(s){return (String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').normalize('NFC').replace(/\u2019/g,"'").match(WORDRE)||[])}
 function lev(a,b){let d=Array.from({length:a.length+1},(_,i)=>Array(b.length+1).fill(0));for(let i=0;i<=a.length;i++)d[i][0]=i;for(let j=0;j<=b.length;j++)d[0][j]=j;for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return d[a.length][b.length]}
 function lcs(a,b){let d=Array.from({length:a.length+1},()=>Array(b.length+1).fill(0));for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++)d[i][j]=a[i-1]===b[j-1]?d[i-1][j-1]+1:Math.max(d[i-1][j],d[i][j-1]);return d[a.length][b.length]}
 function cueConf(e,r){const E=toks(e),R=toks(r),es=E.join(' '),rs=R.join(' '),tok=1-lev(es,rs)/Math.max(1,es.length,rs.length),cov=lcs(E,R)/Math.max(1,E.length),tail=E.slice(-Math.min(4,E.length)),set=new Set(R),ts=tail.filter(x=>set.has(x)).length/Math.max(1,tail.length),c=Math.max(0,Math.min(1,.45*tok+.35*cov+.2*ts));return {c,action:c>=.82?'MATCH':c>=.65?'HOLD':'NO MATCH'}}
-function initials(s){return (s||'').replace(/[A-Za-z0-9][A-Za-z0-9'’-]*/g,w=>w[0].toUpperCase()).replace(/[^A-Za-z0-9.?!,:;—–\-\s]/g,'').replace(/\s+/g,' ').trim()}
-function displayLine(line,mode,cue){if(mode==='FULL_LINE')return line;if(mode==='FIRST_PHRASE')return ((line.match(/^(.+?[,;:—–.!?](?:\s|$))/)||[])[1]||line).split(/\s+/).slice(0,8).join(' ');if(mode==='FIRST_WORD')return (line.match(/[A-Za-z0-9'’-]+/)||[''])[0];if(mode==='INITIALS')return initials(line);if(mode==='CUE_ONLY')return cue;if(mode==='OFF')return '';return line}
+function initials(s){return (s||'').replace(/[\p{L}\p{N}][\p{L}\p{N}\p{M}'’-]*/gu,w=>Array.from(w)[0].toUpperCase()).replace(/[^\p{L}\p{N}.?!,:;—–¿¡。、？！\-\s]/gu,'').replace(/\s+/g,' ').trim()}
+function displayLine(line,mode,cue){if(mode==='FULL_LINE')return line;if(mode==='FIRST_PHRASE')return ((line.match(/^(.+?[,;:—–.!?](?:\s|$))/)||[])[1]||line).split(/\s+/).slice(0,8).join(' ');if(mode==='FIRST_WORD')return (line.match(/[\p{L}\p{N}\p{M}'’-]+/u)||[''])[0];if(mode==='INITIALS')return initials(line);if(mode==='CUE_ONLY')return cue;if(mode==='OFF')return '';return line}
 function renderPrompt(){const d=displayLine($('actorLine').value,$('displayMode').value,$('cue').value);$('displayPreview').textContent=d||'[SIDES OFF]';$('promptText').textContent=d;$('promptCue').textContent=$('cue').value||'CUE'}
 function testCue(){const x=cueConf($('cue').value,$('heard').value);$('cueResult').textContent=`${x.action} · confidence ${x.c.toFixed(3)}${x.action==='HOLD'?' · manual fallback':''}`;if(x.action==='MATCH'&&$('advanceMode').value==='CUE_AWARE')$('cueResult').textContent+=' · ADVANCE AUTHORIZED'}
 let stream=null,rec=null,chunks=[],audioCtx=null,analyser=null,raf=null;
@@ -704,6 +707,8 @@ window.addEventListener('DOMContentLoaded',()=>{
 <script src="pdf.js"></script>
 <script src="reader.js"></script>
 <script src="oneread.js"></script>
+<script src="pocket.js"></script>
+<script src="pocketui.js"></script>
 <script src="slatemove.js"></script>
 <script src="compress.js"></script>
 <script>
@@ -1801,7 +1806,7 @@ function listenGated(){ return partnerSpeaking || Date.now()<speakUntil; }
 function listenWindow(){
  const run=(SIDES.run||SIDES.script)||[];
  const b=run[sIdx];
- const n=(b&&b.text)?((String(b.text).match(/[A-Za-z0-9']+/g)||[]).length):0;
+ const n=(b&&b.text)?toks(b.text).length:0;
  return Math.max(40, Math.ceil(n*1.6)+8);
 }
 
@@ -1827,7 +1832,7 @@ function quietTick(){
  const talking = rms>Math.max(0.006,QL.floor*3.2);
  const run=(SIDES.run||SIDES.script)||[], b=run[sIdx];
  if(listenPaused||listenGated()||!b||!b.mine||(MODE!=='PARTNER'&&MODE!=='PROMPTER')){ QL.voiced=0; QL.sil=0; quietBadge(false); return; }
- const words=(String(b.text||'').match(/[A-Za-z0-9']+/g)||[]).length, need=Math.max(300, words/2.7*1000*0.4);
+ const words=toks(b.text).length, need=Math.max(300, words/2.7*1000*0.4);
  if(talking){ QL.voiced+=dt; QL.sil=0; }
  else if(QL.voiced>=need){ QL.sil+=dt;
   if(QL.sil>=QUIET_GAP){ QL.voiced=0; QL.sil=0; listenPaused=true; setTimeout(()=>{ listenPaused=false; },900); listenBadge({action:'MATCH'}); stageStep(1); return; } }
@@ -1852,7 +1857,7 @@ function wordsStart(){
  if(!wordsSupported()){ stageToast('This browser can\u2019t match words. LISTENING still works.'); return false; }
  const R=window.SpeechRecognition||window.webkitSpeechRecognition;
  try{ rec2=new R(); }catch(e){ return stageToast('Could not start listening.'); }
- rec2.continuous=true; rec2.interimResults=true; rec2.lang='en-US';
+ rec2.continuous=true; rec2.interimResults=true; rec2.lang=(window.TapLang?TapLang.speech():((()=>{try{return localStorage.getItem('theactorpage_lang')}catch(e){}})()||navigator.language||'en-US'));
  rec2.onresult=e=>{
   if(listenPaused||listenGated())return;
   listenFails=0;
@@ -2459,7 +2464,7 @@ function oneReadBox(){
  if(ONEREAD&&ONEREAD.busy==='cut') return `<div class="orbox" id="orBox"><b>ONE READ</b><span>Cutting it into lines&hellip;</span></div>`;
  return `<div class="orbox" id="orBox"><b>ONE READ</b><span>Read the scene out loud once, straight through, a beat between lines. It cuts the reading into the reader lines below, on this phone.</span>
    <div class="row"><button id="orAll" onclick="oneReadStart('all')">&#9679; READ IT ALL</button><button class="ghost" id="orOthers" onclick="oneReadStart('others')">&#9679; JUST THE OTHER PARTS</button></div>
-   <small>Read it all: every part, yours too, and yours are left out. Just the other parts: skip your lines. Or record line by line below.</small></div>`;
+   <small>Read it all: every part, yours too. Yours never play in a take; POCKET RUN can play them back so you can learn them. Just the other parts: skip your lines. Or record line by line below.</small></div>`;
 }
 async function oneReadStart(mode){
  if(boothBusy){ try{ await ActorReader.stop(); }catch(e){} boothBusy=null; }
@@ -2476,7 +2481,9 @@ async function oneReadStop(){
  let d; try{ d=await ActorReader.decode(blob); }catch(e){ ONEREAD=null; BOOTHMSG='This browser can\u2019t cut that reading. Record the lines one at a time below.'; return boothRefresh(); }
  const res=OneRead.cut(d.pcm,d.sr,o.lines), mid=await ActorReader.putMaster(blob,{dur:d.dur,mode:o.mode});
  let n=0, chk=0, miss=0;
- for(const cu of res.cuts){ const b=o.lines[cu.i]; if(b.mine) continue; const k=boothKey(b);
+ for(const cu of res.cuts){ const b=o.lines[cu.i]; const k=boothKey(b);
+  /* your own lines: kept for POCKET RUN (hear yourself to learn them), never played in a take */
+  if(b.mine){ if(cu.flag!=='missing'){ const w=new Blob([OneRead.wav(d.pcm,d.sr,cu.start,cu.end)],{type:'audio/wav'}); await ActorReader.putTakeFor('mine:'+k,w,{dur:Math.round((cu.end-cu.start)*10)/10,from:'oneread',master:mid,mine:true}); } continue; }
   if(cu.flag==='missing'){ OR_FLAGS[k]='missing'; miss++; continue; }
   const w=new Blob([OneRead.wav(d.pcm,d.sr,cu.start,cu.end)],{type:'audio/wav'});
   const id=await ActorReader.putTakeFor(k,w,{dur:Math.round((cu.end-cu.start)*10)/10,from:'oneread',master:mid,mstart:cu.start,mend:cu.end});
@@ -2575,6 +2582,7 @@ async function boothRefresh(){
        oninput="ActorReader.setGain(parseFloat(this.value));document.getElementById('gainVal').textContent=parseFloat(this.value).toFixed(1)+'x'">
      <b id="gainVal">1.6x</b></span>
 </div>`;
+ try{ h+=pocketBox(done); }catch(e){}
  h+=oneReadBox();
  h+=voiceRows(others);
 
@@ -2692,7 +2700,7 @@ async function boothClear(){
    writes to Photos - the camera roll, same as anything the phone shoots.
    Everything else falls back to a download, which lands in Files. */
 /* Match the convention Actors Access already uses, so a casting office sees the
-   naming it expects:  BRENDAN McCARTHY_Guram_Tk1
+   naming it expects:  RILEY HART_Lane_Tk1
    Their own instruction sheet asks for separate files per take, which is what
    this produces. */
 function actorName(){
@@ -3320,7 +3328,7 @@ window.capabilityNote=capabilityNote;
    which syllable is in the air. */
 function wordWeights(text){
  return String(text||'').split(/\s+/).filter(Boolean).map(w=>{
-  const bare=w.replace(/[^A-Za-z0-9'\u2019-]/g,'');
+  const bare=w.replace(/[^\p{L}\p{N}\p{M}'\u2019-]/gu,'');
   let wt=Math.max(1,bare.length)+1;
   if(/[,;:]$/.test(w)) wt+=3;
   if(/[.!?\u2026]$/.test(w)) wt+=6;
@@ -3370,7 +3378,7 @@ function highlightRun(){
    recogniser's own output, walked against the line in order, so the edge only moves
    when a word really landed. It is the honest version of "the system is listening". */
 function heardUpTo(expected,heard){
- const norm=s=>String(s||'').toLowerCase().match(/[a-z0-9'\u2019]+/g)||[];
+ const norm=s=>toks(s);
  const E=norm(expected), H=norm(heard);
  if(!E.length||!H.length) return 0;
  let ei=0;

@@ -64,7 +64,7 @@ One profile on this phone: name, union, rep and rep phone, your phone, email, he
 - **Filled from:** your résumé dropped on home (PDF with columns, Word, or pasted text: `Intake.resumeRead`), your headshots (kept at up to 1600 px; the first is the main one), and the name on a self-tape request.
 - **Read by:** the Hub (clears the demo actor, then fills its blanks; credits and headshots come in once each), Virtual Résumé (the top, skills with accents, training, headshot), Slate Maker (name, height, rep, headshot), Actor OS (your name on the slate).
 - **Rules:** a tool only fills its own blanks, never overwrites what you typed there. A line you fix in the profile stays fixed; a later résumé only adds what's new.
-- **Storage:** localStorage `theactorpage_you_v1`, IndexedDB `theactorpage_you` (photos). Nothing uploaded, nothing to brendanmccarthyactor.com.
+- **Storage:** localStorage `theactorpage_you_v1`, IndexedDB `theactorpage_you` (photos). Nothing uploaded, nothing sent anywhere.
 - **Tests:** `node shared/test_intake.js` (23, with a made-up résumé in `shared/fixtures/`); browser home02 13. Checked privately on a real 31-credit résumé and two headshots (31 of 31 credits, 10 skills, 11 accents), files deleted.
 
 # CAMERA, MIC, TYPEWRITER · `shared/capture.js`, `shared/takes.js`, `shared/studio.js`

@@ -25,12 +25,16 @@ function prep(s){
  return t.replace(/\d+/g,m=>' '+numWords(parseInt(m,10))+' ');
 }
 /* the same words with their case kept, for showing back to the actor */
-E.wordsAsWritten=function(s){ return (prep(s).match(/[A-Za-z0-9]+(?:'[A-Za-z]+)?/g)||[]); };
+/* any language: letters and numbers of every script; Chinese, Japanese and Thai, written without spaces, count a character as a word */
+const WORD=/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]|[\p{L}\p{N}\p{M}]+(?:'[\p{L}\p{M}]+)?/gu;
+/* accents don't decide a match: "esta" and "está" are the same word heard */
+const fold=t=>t.normalize('NFD').replace(/[\u0300-\u036f]/g,'').normalize('NFC');
+E.wordsAsWritten=function(s){ return (prep(s).match(WORD)||[]); };
 E.words=function(s){
  let t=String(s||'').replace(/[‘’ʼ]/g,"'").replace(/[“”]/g,'"')
   .replace(/[—–]/g,' ').replace(/(\d),(\d{3})/g,'$1$2');
  t=t.replace(/\d+/g,m=>' '+numWords(parseInt(m,10))+' ');
- return (t.toLowerCase().match(/[a-z0-9]+(?:'[a-z]+)?/g)||[]);
+ return (fold(t.toLowerCase()).match(WORD)||[]);
 };
 
 /* ---------- compare ---------- */
@@ -79,8 +83,8 @@ E.LEVELS=[
 ];
 E.letters=function(line){
  return String(line||'').replace(/[‘’]/g,"'")
-  .replace(/[A-Za-z0-9][A-Za-z0-9']*/g,w=>w[0].toUpperCase())
-  .replace(/[^A-Z0-9.?!,;:\-— ]/g,'').replace(/\s+/g,' ').trim();
+  .replace(/[\p{L}\p{N}][\p{L}\p{N}\p{M}']*/gu,w=>Array.from(w)[0].toUpperCase())
+  .replace(/[^\p{L}\p{N}.?!,;:\-—¿¡。、？！ ]/gu,'').replace(/\s+/g,' ').trim();
 };
 E.firstWords=function(line){
  const t=String(line||'').trim();

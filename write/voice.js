@@ -168,7 +168,7 @@ function start(){
 }
 function stop(){ WANT=false; try{ REC&&REC.stop(); }catch(e){} try{ lock&&lock.release(); }catch(e){} lock=null; LIVE=false; HEAR=''; draw(); }
 function make(){
- const r=new SR(); r.continuous=true; r.interimResults=true; r.lang=navigator.language||'en-US';
+ const r=new SR(); r.continuous=true; r.interimResults=true; r.lang=(window.TapLang?TapLang.speech():((()=>{try{return localStorage.getItem('theactorpage_lang')}catch(e){}})()||navigator.language||'en-US'));
  r.onstart=()=>{ if(!WANT){ try{ r.stop(); }catch(e){} return; } LIVE=true; draw(); };
  r.onresult=e=>{ let interim='';
   for(let k=e.resultIndex;k<e.results.length;k++){ const t=e.results[k][0].transcript; if(e.results[k].isFinal){ HEAR=''; handle(t); } else interim+=t; }

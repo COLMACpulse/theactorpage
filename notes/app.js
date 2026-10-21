@@ -92,7 +92,7 @@ function sttOk(){
 function sayTap(key){
  const SRC=sttOk(); if(!SRC) return;
  if(SR){ try{ SR.stop(); }catch(e){} return; }
- const ta=document.querySelector('[data-text="'+key+'"]'); SR=new SRC(); SR.lang=navigator.language||'en-US'; SR.interimResults=false; SR.continuous=true;
+ const ta=document.querySelector('[data-text="'+key+'"]'); SR=new SRC(); SR.lang=(window.TapLang?TapLang.speech():((()=>{try{return localStorage.getItem('theactorpage_lang')}catch(e){}})()||navigator.language||'en-US')); SR.interimResults=false; SR.continuous=true;
  const base=ta?ta.value:''; let got='';
  SR.onresult=e=>{ for(let i=e.resultIndex;i<e.results.length;i++) if(e.results[i].isFinal) got+=(got?' ':'')+e.results[i][0].transcript.trim(); const el=document.querySelector('[data-text="'+key+'"]'); const v=(base?base+' ':'')+got; if(el) el.value=v; slots[key]=Object.assign(slots[key]||{},{text:v}); };
  SR.onend=()=>{ SR=null; render(); }; SR.onerror=()=>{ SR=null; render(); };

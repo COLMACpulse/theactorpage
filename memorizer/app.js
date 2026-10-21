@@ -236,7 +236,7 @@ function listen(){
  const target=D.beat!=null?E.beats(it.text)[D.beat]:it.text;
  let r;
  try{ r=new Rec(); }catch(e){ toast('This browser can’t listen. Say it, then show the line.'); return; }
- r.lang=navigator.language||'en-US'; r.interimResults=true; r.continuous=true;
+ r.lang=(window.TapLang?TapLang.speech():((()=>{try{return localStorage.getItem('theactorpage_lang')}catch(e){}})()||navigator.language||'en-US')); r.interimResults=true; r.continuous=true;
  D.heard='';
  r.onresult=e=>{
   let s=''; for(let i=0;i<e.results.length;i++) s+=e.results[i][0].transcript+' ';

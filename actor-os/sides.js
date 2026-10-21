@@ -14,8 +14,8 @@ const MORE=/^\s*\(\s*MORE\s*\)\s*$/i;
 /* a sides watermark comes through pasted text as bits: "E417-E417-", "4:15 PM - 55120 - Mar 3, 2026" */
 const MARK=/(E\d{3}-){2,}|\d{1,2}:\d{2}\s*(AM|PM)\s*-\s*\d{3,}|\b\d{4,6}\s*-\s*[A-Z][a-z]{2}\s+\d{1,2},\s*\d{4}/;
 const PAREN=/^\s*\(.*\)\s*$/;
-const NAMEC=/^\s*([A-Z][A-Z0-9 .'’#&\-\/]{1,40}|Q|A)\s*:\s*(.+)$/;     // BO: line (and Q: / A: in an interview)
-const NAMEL=/^\s*([A-Z][A-Z0-9 .'’#&\-\/]{1,40})((\s*\([^)]*\))*)\s*\^?\s*$/;  // and ANNA/BO/CY, all three at once // BO  /  BO (CONT'D)  /  COP #2
+const NAMEC=/^\s*(\p{Lu}[\p{Lu}\p{M}0-9 .'’#&\-\/]{1,40}|Q|A)\s*:\s*(.+)$/u;     // BO: line (and Q: / A: in an interview)
+const NAMEL=/^\s*(\p{Lu}[\p{Lu}\p{M}0-9 .'’#&\-\/]{1,40})((\s*\([^)]*\))*)\s*\^?\s*$/u;  // and ANNA/BO/CY, all three at once // BO  /  BO (CONT'D)  /  COP #2
 /* camera and editing words are never a person: "LOW ANGLE", "POV DECKHAND:", "FLASHBACK:", "LATER" */
 const SHOT=/^(((EXTREME |LOW |HIGH |REVERSE |WIDE |TIGHT )?(ANGLE|CLOSE[ -]?UP|CLOSE( ON)?|SHOT|WIDE|TWO SHOT|INSERT|ECU|ECS|MCU|OTS)|(.* )?POV( .*)?|BACK TO( SCENE| PRESENT)?|(END )?FLASH ?BACK|FLASH|(END )?(MONTAGE|SERIES OF SHOTS|INTERCUT|DREAM|SEQUENCE)|INTERCUT .*|SUPER|SUPERIMPOSE|TITLE( CARD)?|CHYRON|CARD|LATER|MOMENTS LATER|SAME|CONTINUOUS|OVER BLACK|BLACK|BLACKOUT|ON SCREEN|ON TV|ESTABLISHING|AERIAL|TRACKING|OVERHEAD|SLOW MOTION|FREEZE FRAME|SPLIT SCREEN|THE END|END|START|BEGIN|SILENCE|BEAT|PRE-?LAP|VOICES)\b.*)$/;
 /* A name never ends like a sentence. Without this, shouted dialogue such as

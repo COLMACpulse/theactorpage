@@ -291,7 +291,7 @@ function toggleMic(){
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SpeechRecognition){ output('Voice recognition is not supported in this browser. Use typed capture.'); return; }
   if(recognition){ recognition.stop(); recognition=null; els.micBtn.classList.remove('recording'); return; }
-  recognition = new SpeechRecognition(); recognition.lang=navigator.language||'en-US'; recognition.interimResults=false; recognition.continuous=false;
+  recognition = new SpeechRecognition(); recognition.lang=(window.TapLang?TapLang.speech():((()=>{try{return localStorage.getItem('theactorpage_lang')}catch(e){}})()||navigator.language||'en-US')); recognition.interimResults=false; recognition.continuous=false;
   recognition.onstart=()=>{ els.micBtn.classList.add('recording'); els.speechStatus.textContent='Listening...'; };
   recognition.onresult=e=>{ els.taskInput.value = e.results[0][0].transcript; addFromInput(); };
   recognition.onerror=e=>output('Mic error: '+e.error+'. Typed fallback is ready.');

@@ -143,6 +143,8 @@ body.has .sigil{width:110px;margin-bottom:16px}
 /* ───────── the pitch ───────── */
 .pitch p{max-width:30em;font-size:clamp(1.12rem,3.4vw,1.4rem);line-height:1.56;margin:0 0 1.05em}
 .pitch p:last-child{margin-bottom:0}
+.pitch .promise{max-width:22em;font-family:inherit;font-weight:500;font-size:clamp(1.5rem,5.4vw,2.3rem);line-height:1.22;letter-spacing:-.005em;margin:0 0 .9em;color:var(--tungsten)}
+.pitch .nolimit{font-size:clamp(1rem,3vw,1.15rem);color:#c3c8d0}
 .pitch strong{font-weight:500;color:var(--tungsten)}
 
 /* ───────── discipline bands (the résumé structure) ───────── */
@@ -483,10 +485,12 @@ body.stopen{overflow:hidden}
 
 <section class="band pitch">
   <div class="wrap">
+    <h2 class="promise" id="promise">Every audition, from the sides to the send.<br>All of it stays yours.</h2>
     <p>Every service in this business rents you your own work back. Your reel sits on
        their server. Your sides live in their app. Stop paying and it all goes dark.</p>
     <p>THEACTORPAGE keeps your material on your own machine. Every tool, one account,
        and <strong>the footage never leaves your disk unless you send it somewhere.</strong></p>
+    <p class="nolimit" id="nolimit">No limit on your material. Add every headshot, every take, every clip, every draft. It's all on your machine, so adding more never costs you more.</p>
   </div>
 </section>
 
@@ -496,7 +500,7 @@ body.stopen{overflow:hidden}
   <div class="wrap disc">
     <div>
       <h2 class="disc-name">YOU</h2>
-      <p class="disc-what">Drop it once.<br>Every tool has it.</p>
+      <p class="disc-what">Put it in once.<br>Every tool has it.</p>
       <button class="lens" id="lens" type="button" aria-label="Your profile"><span class="glass"><img id="lensimg" alt=""></span><span class="hname none" id="lensname">Your name</span></button>
       <span class="lens-why" id="lenswhy">Your headshot goes here.</span>
     </div>
@@ -508,7 +512,7 @@ body.stopen{overflow:hidden}
         <a class="t3" href="write/writers-blockage.html"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="24" width="36" height="16" rx="2"/><path d="M14 24V8h20v16M10 32h28M18 36h12"/><path d="M18 13h12M18 18h9"/></svg><b>TYPEWRITER</b><span>write it, it reads everywhere</span></a>
         <a class="t3" href="gsd/" id="stgsd"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="9" y="7" width="30" height="36" rx="2"/><path d="M18 7V4h12v3"/><path d="M15 18l3 3 5-6M15 29l3 3 5-6M27 19h7M27 30h7M15 38h19"/></svg><b>GSD</b><span>what you need to get done</span></a>
       </div>
-      <label class="drop" id="drop"><input type="file" id="dropfile" multiple><b>ADD YOUR MATERIAL</b><span>tap to pick files, or drag them here · sides, scripts, requests, your résumé, headshots, footage</span></label>
+      <label class="drop" id="drop"><input type="file" id="dropfile" multiple><b>ADD YOUR MATERIAL</b><span>tap to pick files, or drag them here · sides, scripts, requests, your résumé, headshots, footage · as much as you like</span></label>
       <input type="file" id="dirfile" webkitdirectory multiple hidden><button class="pastego" id="pickdir" hidden>PICK A FOLDER</button><span class="dirwhy" id="dirwhy" hidden>Your Downloads, say. It reads the newest sides, scripts, requests and résumés in it and leaves the rest alone.</span>
       <div class="foldnote" id="foldnote" aria-live="polite"></div>
       <textarea class="pastebox" id="pastebox" placeholder="Or paste it: the request, the email, the sides"></textarea>

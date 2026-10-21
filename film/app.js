@@ -521,7 +521,7 @@ function wireSet(){
  if($('wrapit')) $('wrapit').onclick=()=>{ WRAPVIEW=true; render(); };
  const say=$('setsay'), SR=window.SpeechRecognition||window.webkitSpeechRecognition;
  if(say){ if(!SR){ say.disabled=true; say.title='This browser can\'t turn speech into words.'; }
-  else say.onclick=()=>{ if(DICT){ try{ DICT.stop(); }catch(e){} return; } const r=new SR(); DICT=r; r.lang=navigator.language||'en-US'; r.interimResults=false; say.textContent='LISTENING'; say.classList.add('pri');
+  else say.onclick=()=>{ if(DICT){ try{ DICT.stop(); }catch(e){} return; } const r=new SR(); DICT=r; r.lang=(window.TapLang?TapLang.speech():((()=>{try{return localStorage.getItem('theactorpage_lang')}catch(e){}})()||navigator.language||'en-US')); r.interimResults=false; say.textContent='LISTENING'; say.classList.add('pri');
    r.onresult=e=>{ const w=[...e.results].map(z=>z[0].transcript).join(' ').trim(); if(w){ note.value=(note.value?note.value+' ':'')+w; S.draft=note.value; save(); } };
    r.onend=()=>{ DICT=null; say.textContent='SAY IT'; say.classList.remove('pri'); }; r.onerror=()=>{}; try{ r.start(); }catch(e){ DICT=null; } }; }
 }

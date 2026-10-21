@@ -29,10 +29,11 @@ want('cut: three reader lines in, nothing to check', /One read: 3 lines cut and 
 want('the reader is ready', /Reader is ready/i.test(list));
 want('the camera and mic are off after', !(await p.evaluate(()=>ActorReader.micOpen()))&&(!(await p.$('#hotbar'))||!/ON|RECORDING/.test(await p.innerText('#hotbar'))));
 const clips=await p.evaluate(async()=>{ const all=await ActorReader.all(); return all.map(x=>({line:x.line,from:x.from,type:x.blob&&x.blob.type,s:x.mstart,e:x.mend,master:x.master,kind:x.kind})); });
-const lines=clips.filter(x=>x.from==='oneread'), master=clips.find(x=>x.kind==='master');
+const mine=clips.filter(x=>x.from==='oneread'&&/^mine:/.test(x.line)), lines=clips.filter(x=>x.from==='oneread'&&!/^mine:/.test(x.line)), master=clips.find(x=>x.kind==='master');
 want('one reading kept once, as video; each line its own sound, cut from it', !!master&&/^video\//.test(master.type)&&lines.length===3&&lines.every(x=>x.type==='audio/wav'&&x.master), clips);
 // the cuts land on HAL's lines (2nd, 4th, 6th); the recording starts a beat after the fake mic does, so check the lengths and order
 const exp=[1,3,5].map(i=>marks[i].end-marks[i].start), got=lines.sort((a,b)=>a.s-b.s).map(x=>x.e-x.s);
+want('READ IT ALL keeps your own three lines too, for POCKET RUN, apart from the reader lines', mine.length===3&&mine.every(x=>x.type==='audio/wav'), mine);
 want('each cut about as long as its line (start a little before, end a little after)', got.every((g,i)=>g>exp[i]-0.2&&g<exp[i]+0.9), {exp,got});
 want('in order, with gaps where your lines were', lines[1].s-lines[0].e>0.9&&lines[2].s-lines[1].e>0.9, lines);
 want('each line says One read, video', (list.match(/One read · video/g)||[]).length===3, list);
