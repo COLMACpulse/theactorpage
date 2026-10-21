@@ -505,6 +505,23 @@ body.stopen{overflow:hidden}
 .cost th{text-align:left;padding:12px 18px;font-weight:500;color:#9aa1ab;border-bottom:1px solid var(--rule)}.cost th:last-child{color:var(--tungsten)}
 .cost td{padding:12px 18px;border-bottom:1px solid #1f2328}.cost tr:last-child td{border-bottom:0}.cost td:nth-child(2){color:#c3c8d0}
 .trysec{text-align:center}.trysec p{color:#c3c8d0;max-width:30em;margin:0 auto 22px;font-size:1.06rem}
+
+.sec-lede{font-size:1.08rem;line-height:1.55;color:#c3c8d0;max-width:36em;margin:-12px 0 24px}
+.sp-tools{display:grid;gap:8px;margin:0 0 20px}
+.sp-tools a{display:grid;gap:2px;text-decoration:none;color:var(--ink);border:1px solid var(--rule);border-radius:10px;padding:12px 14px}
+.sp-tools a:hover,.sp-tools a:focus-visible{border-color:var(--tungsten)}
+.sp-tools b{font-weight:500}.sp-tools span{color:#c3c8d0;font-size:.95rem;line-height:1.45}
+.steppanel ul.sp-care{padding:0}.sp-care{list-style:none;padding:0;margin:0 0 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.sp-care li{border:1px solid var(--rule);border-radius:10px;padding:11px 13px;display:grid;gap:2px}
+.sp-care b{font-weight:500}.sp-care b:before{content:'\2713  ';color:var(--tungsten)}.sp-care span{color:#c3c8d0;font-size:.93rem;line-height:1.4}
+.band.reps{background:#111317}
+.repswrap{display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start}
+.reps-text{flex:1 1 440px;min-width:0}
+.reps-list{list-style:none;padding:0;margin:0 0 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.reps-list li{border:1px solid var(--rule);border-radius:12px;padding:14px 16px;display:grid;gap:3px;background:var(--stock)}
+.reps-list b{font:700 .74rem var(--script);letter-spacing:.18em;color:var(--tungsten)}.reps-list span{color:#c3c8d0;line-height:1.45}
+.reps-rules{color:#9aa1ab;font-size:.95rem;line-height:1.55;max-width:38em;margin:0 0 22px}
+.reps-go{justify-content:flex-start}
 footer .viewrow{margin:18px 0 4px;padding:0}
 </style>
 </head>
@@ -536,14 +553,15 @@ footer .viewrow{margin:18px 0 4px;padding:0}
 <section class="band how" id="how">
   <div class="wrap">
     <p class="kick">HOW AN AUDITION GOES HERE</p>
-    <h2 class="sec-h">Six steps. One place. Tap a step.</h2>
+    <h2 class="sec-h">You got the audition. Here’s every step after that.</h2>
+    <p class="sec-lede">Six steps, one place. Tap a step to see how it goes.</p>
     <div class="steptabs" role="tablist" aria-label="Audition steps"><button type="button" role="tab" class="steptab" id="st-get" aria-controls="sp-get" aria-selected="true" data-step="get"><i>1</i>GET IT</button><button type="button" role="tab" class="steptab" id="st-learn" aria-controls="sp-learn" aria-selected="false" data-step="learn"><i>2</i>LEARN IT</button><button type="button" role="tab" class="steptab" id="st-run" aria-controls="sp-run" aria-selected="false" data-step="run"><i>3</i>RUN IT</button><button type="button" role="tab" class="steptab" id="st-tape" aria-controls="sp-tape" aria-selected="false" data-step="tape"><i>4</i>TAPE IT</button><button type="button" role="tab" class="steptab" id="st-send" aria-controls="sp-send" aria-selected="false" data-step="send"><i>5</i>SEND IT</button><button type="button" role="tab" class="steptab" id="st-radar" aria-controls="sp-radar" aria-selected="false" data-step="radar"><i>6</i>STAY ON THEIR RADAR</button></div>
     <div class="steppanel" role="tabpanel" id="sp-get" aria-labelledby="st-get">
       <div class="sp-text">
         <p class="sp-n">STEP 1 OF 6</p>
-        <h3>Put in the sides. It finds your part.</h3>
-        <p class="sp-body">Drop in the sides, the self-tape request or your rep’s email. It reads who’s in the scene, which part is yours, and when the tape is due.</p>
-        <ul><li>Your lines lit, and the cue before each one</li><li>The due date read from the request, in your time zone</li><li>Every tool opens on your part from then on</li></ul>
+        <h3>You got an audition. Time to go to work.</h3>
+        <p class="sp-body">The email lands with the sides. Put it in here: the sides, the self-tape request, or your rep’s email. It finds your part, reads who’s casting and when the tape is due, and every tool opens on your part from then on.</p>
+        <ul><li>Your lines lit, and the cue before each one</li><li>The due date in your time zone and theirs</li><li>Their directions turned into a checklist</li></ul>
         <div class="sp-tool"><span>THE TOOL</span><b>Add your material, on this page</b><a class="btn" href="#you">ADD YOUR MATERIAL</a></div>
       </div>
       <div class="sp-shot"><img src="img/steps/get.webp" alt="A script read in: the characters found, your part picked" width="260" height="520" loading="lazy"></div>
@@ -551,39 +569,39 @@ footer .viewrow{margin:18px 0 4px;padding:0}
     <div class="steppanel" role="tabpanel" id="sp-learn" aria-labelledby="st-learn" hidden>
       <div class="sp-text">
         <p class="sp-n">STEP 2 OF 6</p>
-        <h3>Get off book.</h3>
-        <p class="sp-body">Say your lines out loud. It listens, and the lines you drop come back first, so you aren’t drilling the ones you already know.</p>
-        <ul><li>Whole line, first words or first letters</li><li>Checks your words in the language you speak</li><li>Breakdown lays out the role scene by scene</li></ul>
-        <div class="sp-tool"><span>THE TOOL</span><b>Memorizer, and Breakdown</b><a class="btn" href="memorizer/">OPEN MEMORIZER</a></div>
+        <h3>Learn it your way.</h3>
+        <p class="sp-body">Everybody learns lines differently. Pick the way that works for you, or mix them.</p>
+        <div class="sp-tools"><a href="memorizer/"><b>Memorizer</b><span>Say it out loud. The lines you drop come back first.</span></a><a href="breakdown/"><b>Breakdown</b><span>The role scene by scene: what you say, to whom, every question put to you.</span></a><a href="actor-os/"><b>First-letter sheet</b><span>The first letter of every word, to print or keep on your phone.</span></a><a href="cps/"><b>Character Bank</b><span>Keep a character’s voice, so the callback three weeks later sounds like you did.</span></a></div>
+        <div class="sp-tool"><span>THE TOOL</span><b>Memorizer, Breakdown, Character Bank</b><a class="btn" href="memorizer/">OPEN MEMORIZER</a></div>
       </div>
       <div class="sp-shot"><img src="img/steps/learn.webp" alt="Memorizer: say your line, first letters shown as a hint" width="260" height="520" loading="lazy"></div>
     </div>
     <div class="steppanel" role="tabpanel" id="sp-run" aria-labelledby="st-run" hidden>
       <div class="sp-text">
         <p class="sp-n">STEP 3 OF 6</p>
-        <h3>A reader who waits for you.</h3>
-        <p class="sp-body">Read the other parts once yourself, or send a friend a link and they read in on their own time. It plays them back and waits for you to finish your line.</p>
-        <ul><li>Your voice or a friend’s, never a computer voice</li><li>Loop the scene with the screen locked, earbuds in</li><li>A silence for each of your lines, the length of the line</li></ul>
-        <div class="sp-tool"><span>THE TOOL</span><b>Reader booth and Pocket run, in the self-tape studio</b><a class="btn" href="actor-os/">OPEN THE SELF-TAPE STUDIO</a></div>
+        <h3>Run it your way: on your own, or with some help.</h3>
+        <p class="sp-body">Nobody to read with at nine at night? Read the other parts once yourself and it plays them back, waiting for you to finish your line. Or send a friend a link and they read in on their own time. No call, no set time.</p>
+        <div class="sp-tools"><a href="actor-os/"><b>On your own</b><span>Read the scene once. Your reader is ready.</span></a><a href="actor-os/"><b>With a friend</b><span>They record the other parts on their phone and send you one file back.</span></a><a href="actor-os/"><b>Pocket run</b><span>The scene on a loop with the screen locked, earbuds in. A silence for each of your lines.</span></a></div><ul><li>Always a real voice, yours or a friend’s. Never a computer.</li></ul>
+        <div class="sp-tool"><span>THE TOOL</span><b>Reader booth, in the self-tape studio</b><a class="btn" href="actor-os/">OPEN THE SELF-TAPE STUDIO</a></div>
       </div>
       <div class="sp-shot"><img src="img/steps/run.webp" alt="Pocket run: the scene on a loop, the line you are on" width="260" height="520" loading="lazy"></div>
     </div>
     <div class="steppanel" role="tabpanel" id="sp-tape" aria-labelledby="st-tape" hidden>
       <div class="sp-text">
         <p class="sp-n">STEP 4 OF 6</p>
-        <h3>Shoot on the phone you have.</h3>
-        <p class="sp-body">It asks before the camera turns on and always shows you when it’s on. After a take it tells you what it heard: a line you went quiet on, a spot where the sound clipped.</p>
-        <ul><li>Framing the office asked for</li><li>Your slate, made for you</li><li>Not a grade. Just what casting will hear</li></ul>
+        <h3>One studio, every step, every time.</h3>
+        <p class="sp-body">The self-tape studio is built in, so every tape comes out the same way: framed, slated and clean. No juggling four apps to get one tape.</p>
+        <ul><li>Framed the way the office asked: landscape or portrait, how close</li><li>Your slate, made for you, in the order they asked</li><li>Your reader plays by the lens, from the right line</li><li>After each take, what it heard: a line you went quiet on, a spot where the sound clipped. Not a grade</li><li>It asks before the camera turns on, and always shows you when it’s on</li></ul>
         <div class="sp-tool"><span>THE TOOL</span><b>Self-tape studio (Actor OS)</b><a class="btn" href="actor-os/">OPEN THE SELF-TAPE STUDIO</a></div>
       </div>
-      <div class="sp-shot"><img src="img/steps/tape.webp" alt="The self-tape studio, ready to turn on the camera" width="260" height="520" loading="lazy"></div>
+      <div class="sp-shot"><img src="img/steps/tape.webp" alt="The self-tape studio, ready to turn on the camera" width="260" height="473" loading="lazy"></div>
     </div>
     <div class="steppanel" role="tabpanel" id="sp-send" aria-labelledby="st-send" hidden>
       <div class="sp-text">
         <p class="sp-n">STEP 5 OF 6</p>
-        <h3>Sized, named and ready.</h3>
-        <p class="sp-body">Paste the office’s instructions. It trims the take, sizes it and names the file the way they asked. You send it.</p>
-        <ul><li>No editing app, no compression app</li><li>The file named the way casting expects</li><li>Kept takes go to your hub, ready for next time</li></ul>
+        <h3>Sized, named and ready to go.</h3>
+        <p class="sp-body">This is where good tapes get lost. Paste the office’s instructions and it handles every step they asked for:</p>
+        <ul class="sp-care"><li><b>File name</b><span>Named the way the office asked. NAME_Role_Tk1, or whatever they want.</span></li><li><b>Compression</b><span>Casting quality, small enough to upload. No compression app.</span></li><li><b>Size limit</b><span>Lands under the cap. Actors Access asks for under 500 MB.</span></li><li><b>Trim</b><span>The dead air off the top and the tail.</span></li><li><b>One file or several</b><span>Scenes together or apart, slate first, the way they asked.</span></li><li><b>Where it’s going</b><span>Actors Access, your agent or manager, or a link.</span></li><li><b>On the record</b><span>The tape is kept with that audition in your hub.</span></li></ul><ul><li>Nothing uploads by itself. You pick the file and send it.</li></ul>
         <div class="sp-tool"><span>THE TOOL</span><b>Self-tape studio (Actor OS)</b><a class="btn" href="actor-os/">OPEN THE SELF-TAPE STUDIO</a></div>
       </div>
       <div class="sp-shot"><img src="img/steps/send.webp" alt="Send: paste the office instructions and it sets the file up" width="260" height="520" loading="lazy"></div>
@@ -591,13 +609,36 @@ footer .viewrow{margin:18px 0 4px;padding:0}
     <div class="steppanel" role="tabpanel" id="sp-radar" aria-labelledby="st-radar" hidden>
       <div class="sp-text">
         <p class="sp-n">STEP 6 OF 6</p>
-        <h3>Keep the people who matter in the loop.</h3>
-        <p class="sp-body">Every audition and every casting office, and what they told you, in one place. One sheet for your agent and manager, and after the first one, only what’s new.</p>
-        <ul><li>Who has had you in, and when</li><li>Projects that fit you, from the trades</li><li>A sheet for your reps, in your words</li></ul>
-        <div class="sp-tool"><span>THE TOOL</span><b>Project Hub, and Spotted</b><a class="btn" href="hub/?tab=reps">OPEN FOR MY REPS</a></div>
+        <h3>Stay on casting’s radar.</h3>
+        <p class="sp-body">Booking is a long game. Every audition, every office, what they told you and when you were last in the room, all in one place, so nobody who liked you forgets you.</p>
+        <ul><li>Every office: who has had you in, how often, the last read</li><li>Projects casting now that fit you, from the trades</li><li>Notes from class and sessions, kept with the people in them</li><li>For your reps: one sheet that does their homework. More below</li></ul>
+        <div class="sp-tool"><span>THE TOOL</span><b>Project Hub, and Spotted</b><a class="btn" href="#reps">SEE FOR YOUR REPS</a></div>
       </div>
       <div class="sp-shot"><img src="img/steps/radar.webp" alt="For my reps: one sheet for your agent and manager" width="260" height="520" loading="lazy"></div>
     </div>
+  </div>
+</section>
+
+<hr class="hair">
+
+<section class="band reps" id="reps">
+  <div class="wrap repswrap">
+    <div class="reps-text">
+      <p class="kick">FOR YOUR REPS</p>
+      <h2 class="sec-h">Make it easy for your reps to pitch you.</h2>
+      <p class="sec-lede">Agents and managers juggle a lot of clients. Hand them one sheet with the homework already done: who you are, where you stand with every office, and what's casting right now that fits you.</p>
+      <ul class="reps-list">
+        <li><b>My work</b><span>Your page, your reel, your credits.</span></li>
+        <li><b>Where I stand</b><span>Every casting office, grouped by how well they know you, with the last read.</span></li>
+        <li><b>Who should know me</b><span>Offices casting now that have never had you in.</span></li>
+        <li><b>Right for</b><span>Your types, and what you want more of.</span></li>
+        <li><b>Casting that fits</b><span>Projects from the trades with your words in them, with links.</span></li>
+        <li><b>What's new</b><span>After the first sheet, only what changed.</span></li>
+      </ul>
+      <p class="reps-rules">In your words, with counts, never scores. Other people's numbers and emails never go on it, and offices you marked Do not contact never appear. You pick when it goes out: when something changes, or every week, two weeks or month. Nothing sends itself.</p>
+      <div class="hero-go reps-go"><a class="btn" href="hub/?tab=reps">Build your first sheet</a></div>
+    </div>
+    <div class="sp-shot"><img src="img/steps/radar.webp" alt="FOR MY REPS: one sheet for your agent and your manager" width="260" height="520" loading="lazy"></div>
   </div>
 </section>
 
