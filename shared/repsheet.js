@@ -48,6 +48,7 @@
       fresh: fresh.map(o => ({ name: clean(o.name), projects: uniq((o.projects || []).map(clean)) })),
       rightFor: uniq((src.rightFor || []).map(clean)), wantMore: uniq((src.wantMore || []).map(clean)), wantSeen: uniq((src.wantSeen || []).map(clean)),
       typed: src.typed !== false,
+      news: (sp.news || []).filter(n => n && n.at && clean(n.t)).map(n => ({ project: clean(n.project) || '(no title)', at: n.at, t: clean(n.t).replace(/^You marked it /, 'I marked it ') })),
       fits: (sp.fits || []).map(f => ({ id: f.id, project: clean(f.project) || '(no title)', network: clean(f.network), role: clean(f.role), casting: (f.casting || []).map(clean).filter(Boolean), url: safeUrl(f.url), mine: uniq((f.mine || []).map(clean)) })),
       offices
     };
@@ -77,6 +78,9 @@
     add('Want to be seen for: ', prev.wantSeen, now.wantSeen);
     const pf = new Set((prev.fits || []).map(String)), nf = m.fits.filter(f => !pf.has(String(f.id || f.project)));
     if (nf.length) L.push(pl(nf.length, 'project') + ' casting' + (m.typed ? ' that fit' + (nf.length === 1 ? 's' : '') + ' me' : ' now') + ': ' + nf.map(f => f.project).join(', ') + '.');
+    /* on things you spotted: your calls and new stories since the last one, one line per project */
+    const byP = {}; (m.news || []).filter(n => n.at > (prev.at || 0)).forEach(n => { (byP[n.project] = byP[n.project] || []).push(n.t.replace(/\.$/, '')); });
+    Object.keys(byP).forEach(p => L.push(p + ': ' + uniq(byP[p]).join('. ') + '.'));
     return { first: false, since: prev.at, lines: L, count: L.length };
   };
   /* is it time? you pick the rhythm; "when something changes" is due when there's something new */

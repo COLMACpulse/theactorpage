@@ -128,14 +128,14 @@ S.read=function(raw,opts){
    delayed, no longer) is said, and doesn't count as that stage. Two stages: both shown, never picked. Casting words
    are their own line. How old the story is, from the date written in it; past 120 days it's stale. Nothing guessed. */
 S.STAGES=[
- ['stopped','stopped',/\b(?:shut down|halted|shelved|cancel(?:l)?ed|scrapped|pulled the plug|production (?:was )?suspended)\b/i],
+ ['stopped','stopped',/\b(?:shut down|halted|shelved|cancel(?:l)?ed|cancels|cancel(?:l)?ing|axed|axes|scraps|scrapped|pulled the plug|production (?:was )?suspended)\b/i],
  ['wrapped','wrapped',/\b(?:wrapped (?:filming|production|principal photography|shooting)|has wrapped|production (?:has )?wrapped|filming (?:has )?wrapped|wrapped in)\b/i],
  ['filming','filming',/\b(?:currently (?:filming|shooting|in production)|now filming|filming (?:is )?underway|production (?:is )?underway|began (?:filming|shooting|production)|started (?:filming|shooting|production)|cameras (?:are )?rolling|principal photography (?:began|started|is underway|has begun)|is (?:filming|shooting) (?:in|on|now|this)|on set in)\b/i],
- ['prep','in prep',/\b(?:pre-?production|location scouting|scouting locations|crew(?:ing)? up|hiring crew|(?:set|scheduled|slated|expected|due|aims?|planning|plans) to (?:begin |start )?(?:filming|shooting|production|lens|shoot)|(?:begins|starts|start|begin|will begin|will start) (?:filming|shooting|production|principal photography)|(?:filming|shooting|production) (?:begins|starts|is set to begin|is scheduled|will begin|will start)|(?:set|slated) to shoot|goes? (?:in)?to production)\b/i],
+ ['prep','in prep',/\b(?:(?:in|into|enters?|entered|entering|begins?|began|starts?|started|moves? into|moved into|heads? into|headed into|now in) pre-?production|pre-?production (?:is underway|has begun|has started|began|begins|starts|started|is set)|location scouting|scouting locations|crew(?:ing)? up|hiring crew|(?:set|scheduled|slated|expected|due|aims?|planning|plans) to (?:begin |start )?(?:filming|shooting|production|lens|shoot)|(?:begins|starts|start|begin|will begin|will start) (?:filming|shooting|production|principal photography)|(?:filming|shooting|production) (?:begins|starts|is set to begin|is scheduled|will begin|will start)|(?:set|slated) to shoot|goes? (?:in)?to production)\b/i],
  ['greenlit','greenlit',/\b(?:greenlit|green-?lit|greenlighted|given the green light|series order|ordered (?:to|a) series|picked up (?:to|for) series|straight-to-series)\b/i],
  ['development','in development',/\b(?:in development|in the works|being developed|(?:is|are|been) developing (?:an? |the )?(?:[\w'’-]+ ){0,3}(?:series|film|movie|feature|show|adaptation|pilot|script|drama|comedy|thriller|western|horror|remake|reboot|documentary|limited series)|set up at|optioned|has been optioned|attached to (?:direct|star|write)|in early development|financing (?:is )?(?:in place|secured)|has (?:landed|found) (?:a )?(?:home|financing))\b/i]
 ];
-S.CASTING=/\b(?:now casting|casting (?:locals|local talent|extras|background|now|call|for)|open (?:casting )?calls?|open auditions?|auditions? (?:are|will be) held|holding auditions|seeking (?:local )?(?:actors|talent|extras|background)|looking for (?:local )?(?:actors|talent|extras)|submissions? (?:are )?(?:open|now open)|accepting submissions|casting directors? (?:is|are) looking)\b/i;
+S.CASTING=/\b(?:now casting|(?:is|are) casting(?= (?!directors?\b)\w)|auditions? (?:are |is )?(?:now )?open|casting (?:is |has )?(?:underway|begun|started|opened|opens|begins)|casting (?:locals|local talent|extras|background|now|call|for)|open (?:casting )?calls?|open auditions?|auditions? (?:are|will be) held|holding auditions|seeking (?:local )?(?:actors|talent|extras|background)|looking for (?:local )?(?:actors|talent|extras)|submissions? (?:are )?(?:open|now open)|accepting submissions|casting directors? (?:is|are) looking)\b/i;
 const NOT=/\b(?:not|n't|never|no longer|won'?t|isn'?t|aren'?t|wasn'?t|until|delayed|postponed|pushed (?:back|to)|on hold|off|before)\b/i;
 const MON={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,sept:8,oct:9,nov:10,dec:11};
 /* the date the story ran: a "Published" or dateline date first, else the first full date with a year */
@@ -234,6 +234,8 @@ S.passAlong=function(card,facts,me){
  if(card.conflicts) L.push('Conflicts: '+card.conflicts);
  if(card.stage){ S.stageWords(card.stage).filter(w=>/^(Stage|Two stages|Casting)/.test(w)).forEach(w=>L.push(w)); }
  if(card.source) L.push(card.source);
+ (card.more||[]).slice(-2).forEach(m=>{ const sl=stageLine(m.stage), u=safeUrl(m.source); L.push('Newer story'+(m.stage&&m.stage.dated?', dated '+S.dayWords(m.stage.dated):'')+(sl?': '+sl:'')+'.'+(u?' '+u:'')); });
+ if(card.you_stage) L.push('Where it is, my read: '+S.yourStageWord(card.you_stage).toLowerCase()+'.');
  const f=(facts||[]).filter(x=>x.k!=='spotted').map(x=>x.t);  // includes a held conflict: your reps need that
  if(f.length){ L.push(''); f.forEach(t=>L.push(t)); }
  if(card.mine) { L.push(''); L.push(card.mine); }
@@ -395,13 +397,13 @@ S.lookUrl=function(q,where){
 S.STATUS=[['spotted','Spotted'],['passed','Passed along'],['submitted','Submitted'],['room','In the room'],['booked','Booked'],['nothing','Nothing back'],['not','Not for me']];
 S.statusWord=k=>(S.STATUS.find(s=>s[0]===k)||S.STATUS[0])[1];
 /* the list for your manager: searchable, with links. Every word has to be in the row somewhere. */
-S.rowText=x=>[x.card.project,x.card.role,(x.card.casting||[]).join(' '),x.card.type,x.card.network,S.statusWord(x.status),x.note||'',(x.facts||[]).map(f=>f.t).join(' ')].join(' ').toLowerCase();
+S.rowText=x=>[x.card.project,x.card.role,(x.card.casting||[]).join(' '),x.card.type,x.card.network,S.statusWord(x.status),x.you_stage?S.yourStageWord(x.you_stage):'',x.note||'',(x.facts||[]).map(f=>f.t).join(' ')].join(' ').toLowerCase();
 S.find=function(list,q){ const ws=String(q||'').toLowerCase().split(/\s+/).filter(Boolean); return ws.length?list.filter(x=>{ const t=S.rowText(x); return ws.every(w=>t.indexOf(w)>=0); }):list.slice(); };
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const safeUrl=u=>/^https?:\/\//i.test(u||'')&&!S.PRIVATE.test(u)?u:'';
 S.listText=function(list,me){
  me=me||{}; const L=['Spotted'+(me.name?' - '+me.name:''),new Date().toLocaleDateString(),''];
- list.forEach(x=>{ const c=x.card; L.push('- '+[c.project||'(no title)',c.role,(c.casting||[]).join(' & ')].filter(Boolean).join(' / ')+' ['+S.statusWord(x.status)+']');
+ list.forEach(x=>{ const c=x.card; L.push('- '+[c.project||'(no title)',c.role,(c.casting||[]).join(' & ')].filter(Boolean).join(' / ')+' ['+S.statusWord(x.status)+(x.you_stage?' · '+S.yourStageWord(x.you_stage).toLowerCase():'')+']');
   const f=(x.facts||[]).filter(f=>f.k==='office'||f.k==='roles').map(f=>f.t)[0]; if(f) L.push('  '+f);
   if(x.note) L.push('  '+x.note); const u=safeUrl(c.source); if(u) L.push('  '+u); });
  return L.join('\n');
@@ -410,7 +412,7 @@ S.listHtml=function(list,me){
  me=me||{}; const title='Spotted'+(me.name?' · '+me.name:'');
  const rows=list.map(x=>{ const c=x.card, u=safeUrl(c.source), f=(x.facts||[]).filter(f=>f.k!=='spotted').map(f=>'<li>'+esc(f.t)+'</li>').join('');
   return '<article data-t="'+esc(S.rowText(x))+'"><header><b>'+esc(c.project||'(no title)')+'</b>'+(c.role?' · '+esc(c.role):'')+'<span class="st">'+esc(S.statusWord(x.status))+'</span></header>'
-   +'<p class="m">'+[c.casting&&c.casting.length?esc(c.casting.join(' & '))+' casting':'',esc(c.type||''),esc(c.network||''),x.at?'spotted '+esc(new Date(x.at).toLocaleDateString()):''].filter(Boolean).join(' · ')+'</p>'
+   +'<p class="m">'+[c.casting&&c.casting.length?esc(c.casting.join(' & '))+' casting':'',esc(c.type||''),esc(c.network||''),x.you_stage?esc(S.yourStageWord(x.you_stage).toLowerCase()):'',x.at?'spotted '+esc(new Date(x.at).toLocaleDateString()):''].filter(Boolean).join(' · ')+'</p>'
    +(f?'<ul>'+f+'</ul>':'')+(x.note?'<p>'+esc(x.note)+'</p>':'')+(u?'<p><a href="'+esc(u)+'">'+esc(u.replace(/^https?:\/\//,'').slice(0,70))+'</a></p>':'')+'</article>'; }).join('\n');
  return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(title)+'</title><style>'
   +':root{--bg:#f6f2ea;--ink:#1d1a15;--dim:#5f584b;--line:#d3cab8;--acc:#8a5a08}@media(prefers-color-scheme:dark){:root{--bg:#121110;--ink:#ece7dc;--dim:#a39c8e;--line:#2f2b26;--acc:#e9b25a}}'
@@ -420,6 +422,29 @@ S.listHtml=function(list,me){
   +'</style></head><body><main><h1>'+esc(title)+'</h1><p class="d">'+list.length+' spotted · '+esc(new Date().toLocaleDateString())+'</p><input id="q" placeholder="Find: an office, a show, a role, a status" aria-label="Find">'
   +rows+'</main><script>document.getElementById("q").addEventListener("input",function(e){var ws=e.target.value.toLowerCase().split(/\\s+/).filter(Boolean);document.querySelectorAll("article").forEach(function(a){var t=a.getAttribute("data-t");a.hidden=!ws.every(function(w){return t.indexOf(w)>=0;});});});<\/script></body></html>';
 };
+/* ---------- your call, more stories, what changed ---------- */
+/* Where it is is yours to say. It reads "Not sure" until you pick; the story's words stay next to it. */
+S.YOURSTAGE=[['','Not sure'],['development','In development'],['greenlit','Greenlit'],['prep','In prep'],['casting','Casting'],['filming','Filming'],['wrapped','Wrapped'],['stopped','Stopped']];
+S.yourStageWord=k=>(S.YOURSTAGE.find(s=>s[0]===(k||''))||S.YOURSTAGE[0])[1];
+/* the change log on one you've kept: plain lines, dated. k: status, stage, story, casting */
+S.log=function(it,k,t,at){ (it.log=it.log||[]).push({at:at||Date.now(),k,t}); return it; };
+/* looks like one already on your list? Same name, or one name inside the other. Only asked, never joined. */
+S.sameAs=function(card,items){ const k=S.key(card&&card.project); if(!k||k.length<3) return [];
+ return (items||[]).filter(x=>{ const j=S.key(x.card&&x.card.project); if(!j) return false; if(j===k) return true; const a=j.length<k.length?j:k, b=a===j?k:j; return a.length>=5&&b.indexOf(a)>=0; }); };
+const stageLine=st=>{ if(!st) return ''; const by=k=>st.claims.filter(c=>c.stage===k&&!c.not);
+ return st.stages.length===1?'stage as written: '+by(st.stages[0])[0].word:st.stages.length>1?'stages as written: '+st.stages.map(k=>by(k)[0].word).join(' and '):''; };
+/* you said yes, it's the same one: the new story goes under it. Blanks get filled, nothing you wrote is changed. */
+S.addStory=function(it,card,raw,at){ at=at||Date.now(); const c=it.card, st=card.stage||null, L=[];
+ (it.more=it.more||[]).push({at,raw:String(raw||'').slice(0,4000),source:card.source||'',stage:st});
+ const nc=(card.casting||[]).filter(x=>!(c.casting||[]).some(y=>S.key(y)===S.key(x)));
+ if(nc.length){ c.casting=(c.casting||[]).concat(nc); L.push(['casting','Casting named: '+nc.join(' & ')+'.']); }
+ ['role','type','network','source','contact','where','union'].forEach(k=>{ if(!c[k]&&card[k]) c[k]=card[k]; });
+ const sl=stageLine(st), cast=st&&st.casting.length;
+ L.unshift(['story','Another story'+(st&&st.dated?' (dated '+S.dayWords(st.dated)+')':'')+(sl||cast?': '+[sl,cast?'casting as written':''].filter(Boolean).join(', '):'')+'.']);
+ L.forEach(([k,t])=>S.log(it,k,t,at)); return L.map(x=>x[1]); };
+/* what changed, for the reps sheet: your calls and new stories, never your status taps or notes */
+S.news=function(items){ const out=[]; (items||[]).forEach(it=>(it.log||[]).forEach(e=>{ if(/^(stage|story|casting)$/.test(e.k)) out.push({id:it.id,project:(it.card&&it.card.project)||'(no title)',at:e.at,k:e.k,t:e.t}); })); return out.sort((a,b)=>a.at-b.at); };
+
 g.Spotted=S;
 if(typeof module!=='undefined') module.exports=S;
 })(typeof window!=='undefined'?window:globalThis);

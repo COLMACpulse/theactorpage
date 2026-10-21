@@ -157,4 +157,23 @@ ok('"won\'t be casting" is not casting', !S.stage('They won\'t be casting locals
 ok('stale check', S.isStale(st2,NOW)&&!S.isStale(st1,NOW));
 const cd=S.read('Published: October 3, 2026\n\n"Dry Gulch" is set to begin filming in March. Now casting locals.');
 ok('on the card, and in the pass-along', cd.stage.stages.join()==='prep'&&/Stage, as written: in prep \("set to begin filming"\)\.\nCasting, as written: "now casting"\./i.test(S.passAlong(cd,[],{name:'Sam Actor'}).body), S.passAlong(cd,[],{name:'Sam Actor'}).body);
+/* the plain ways news is written (from the v1.1 vet); and the ones that shouldn't count */
+ok('"cancels" is stopped', S.stage('Netflix cancels Dust Road after one season.').stages.join()==='stopped');
+ok('"pre-production" alone is not a stage', !S.stage('Pre-production designer wins award for an old film.').stages.length);
+ok('"enters pre-production" is prep', S.stage('Dust Road enters pre-production in May.').stages.join()==='prep');
+ok('"won\'t enter pre-production until" is said with a not', (st=>!st.stages.length&&st.claims[0].not)(S.stage("Dust Road won't enter pre-production until 2028.")));
+ok('"not currently filming" is said with a not', (st=>!st.stages.length&&st.claims[0].not)(S.stage('The show is not currently filming after the strike.')));
+ok('"is casting Dust Road" and "auditions are open" are casting', S.stage('Canyon Casting is casting Dust Road.').casting.length&&S.stage('Auditions are open for Dust Road.').casting.length&&S.stage('Casting is underway on Dust Road.').casting.length);
+ok('"is casting director" is not casting', !S.stage('She is casting director on the show.').casting.length);
+/* your call, same project, another story, what changed */
+ok('your call reads Not sure until you pick', S.yourStageWord('')==='Not sure'&&S.yourStageWord('casting')==='Casting');
+const L1=[{id:'a',card:{project:'Dust Road'}},{id:'b',card:{project:'Salt Flat'}},{id:'c',card:{project:'Dust Roadhouse'}}];
+ok('same project: same name, or one name inside the other; asked, never joined', S.sameAs({project:'DUST ROAD'},L1).map(x=>x.id).join()==='a,c'&&!S.sameAs({project:'Salt'},L1).length&&!S.sameAs({project:''},L1).length, S.sameAs({project:'DUST ROAD'},L1).map(x=>x.id));
+const it={id:'a',card:{project:'Dust Road',casting:['Canyon Casting'],role:'Sheriff Cole',source:'https://example.com/a'},log:[]};
+const nc=S.read('Published: October 12, 2026\n\n"Dust Road" began filming this week in Kansas. Mesa Casting is casting day players.',{url:'https://example.com/b'});
+const lines=S.addStory(it,nc,'raw',Date.parse('2026-10-13T12:00:00Z'));
+ok('another story: its stage and date said, new casting named, your role and link kept', /Another story \(dated Oct 12, 2026\): stage as written: filming, casting as written\./.test(lines[0])&&lines.some(l=>/Casting named: Mesa( Casting)?\./.test(l))&&it.card.role==='Sheriff Cole'&&it.card.source==='https://example.com/a'&&it.more.length===1&&it.more[0].source==='https://example.com/b', [lines,it.card]);
+S.log(it,'stage','You marked it filming.'); S.log(it,'status','Moved.');
+ok('news: your calls and stories only', S.news([it]).map(n=>n.k).join()==='story,casting,stage', S.news([it]));
+ok('your call shows on the list and in the text for your manager', S.listText([Object.assign({},it,{status:'passed',you_stage:'filming'})],{}).indexOf('[Passed along · filming]')>0&&S.find([Object.assign({},it,{status:'spotted',you_stage:'filming'})],'filming').length===1);
 console.log(pass+' passed, '+fail+' failed'); if(fail) process.exit(1);

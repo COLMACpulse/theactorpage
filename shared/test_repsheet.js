@@ -41,4 +41,9 @@ want('every 2 weeks: not yet at 5 days, due at 14', !R.due(last,'2weeks',ch3,Dat
 const h=R.html(m2,ch);
 want('the page: plain, no scripts, not indexed, leads with the news', !/<script/i.test(h)&&/noindex/.test(h)&&h.indexOf('What&#39;s new since')<h.indexOf('Where I stand')&&/Ridge Casting/.test(h));
 want('no em dashes anywhere', !/—/.test(R.text(m2,ch)+h+e.full));
+/* things you spotted: your calls and new stories since you last sent, one line per project; older ones don't repeat */
+{ const T0=Date.parse('2026-10-20T12:00:00Z'), s1=src(); s1.spotted=Object.assign({},s1.spotted||{},{news:[{project:'Dust Road',at:T0-86400000,t:'You marked it in prep.'},{project:'Dust Road',at:T0+3600000,t:'Another story (dated Oct 21, 2026): stage as written: filming.'},{project:'Dust Road',at:T0+7200000,t:'Casting named: Canyon Casting.'},{project:'Dust Road',at:T0+9000000,t:'You marked it filming (was in prep).'},{project:'Salt Flat',at:T0+9000000,t:'You marked it stopped.'}]});
+  const mA=R.build(s1), prevA=R.snapshot(Object.assign({},mA,{at:T0})), chA=R.changes(prevA,mA), t=chA.lines.join('\n');
+  want('spotted news: one line per project, only since the last one, in my voice', /Dust Road: Another story \(dated Oct 21, 2026\): stage as written: filming\. Casting named: Canyon Casting\. I marked it filming \(was in prep\)\./.test(t)&&/Salt Flat: I marked it stopped\./.test(t)&&!/I marked it in prep\./.test(t), chA.lines);
+  want('spotted news: counts toward due when you send on change', R.due(T0,'change',chA,T0+10000000).due); }
 console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1);

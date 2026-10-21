@@ -32,6 +32,7 @@ const repEmails=()=>D.me.reps.map(r=>r.email).filter(Boolean).join(',');
 const mail=(to,subject,body)=>'mailto:'+encodeURIComponent(to||'').replace(/%2C/g,',')+'?subject='+encodeURIComponent(subject||'')+'&body='+encodeURIComponent(body||'');
 async function copy(t){ try{ await navigator.clipboard.writeText(t); toast('Copied.'); }catch(e){ toast('Select the text and copy it.'); } }
 function setStatus(it,s){ if(it.status===s) return; it.status=s; (it.history=it.history||[]).push({s,at:Date.now()}); save(); }
+function setYours(it,k){ if((it.you_stage||'')===k) return; const was=it.you_stage||''; it.you_stage=k; S.log(it,'stage','You marked it '+S.yourStageWord(k).toLowerCase()+(was?' (was '+S.yourStageWord(was).toLowerCase()+')':'')+'.'); save(); }
 
 /* ---------- SPOT ---------- */
 const onList=c=>{ const k=S.key(c.project); return !!k&&D.items.some(x=>S.key(x.card.project)===k); };
@@ -51,9 +52,14 @@ function spotView(){
  h+=stageHtml(c);
  h+='<div class="card"><p class="kicker">What it says</p>'+cardFields(c)+saidHtml(c)+'</div>';
  h+=factsHtml(F);
- h+='<div class="row"><button class="btn ghost" id="redo">START OVER</button><button class="btn pri" id="keep" style="flex:1">KEEP IT</button></div>';
+ const same=DRAFT.separate?[]:S.sameAs(c,D.items);
+ if(same.length) h+='<div class="card ask" id="sameask"><p class="kicker">Same project?</p><p class="dim small" style="margin-top:-4px">Looks like one already on your list. Your call: add this story to it, or keep it on its own.</p>'
+  +same.map(x=>'<div class="pair" style="align-items:center"><span style="flex:1"><b>'+esc(x.card.project||'(no title)')+'</b>'+(x.card.role?' · '+esc(x.card.role):'')+'<small class="faint" style="display:block">'+esc([(x.card.casting||[]).join(' & '),'spotted '+day(x.at)].filter(Boolean).join(' · '))+'</small></span><button class="btn pri sm" data-addto="'+x.id+'">ADD TO IT</button></div>').join('')
+  +'<div class="row" style="margin-top:8px"><button class="btn ghost" id="redo">START OVER</button><button class="btn" id="keepsep" style="flex:1">KEEP IT SEPARATE</button></div></div>';
+ else h+='<div class="row"><button class="btn ghost" id="redo">START OVER</button><button class="btn pri" id="keep" style="flex:1">KEEP IT</button></div>';
  return h;
 }
+function addTo(id){ const it=item(id); if(!it) return; S.addStory(it,DRAFT.card,DRAFT.raw); save(); DRAFT=null; U.open=it.id; U.tab='list'; saveU(); render(); toast('Added to '+(it.card.project||'it')+'. What changed is on it.'); }
 /* a story or a list with several projects in it: pick which to keep */
 function manyView(){
  const L=DRAFT.many, n=DRAFT.pick.filter(Boolean).length, T=types();
@@ -73,6 +79,17 @@ const stageOf=c=>c.stage||(c.stage===undefined&&c.about?S.stage(c.about):null);
 function stageHtml(c){ const st=stageOf(c); if(!st) return ''; const W=S.stageWords(st), stale=S.isStale(st);
  return '<div class="card stg'+(stale?' stale':'')+'" id="stagebox"><p class="kicker">Where it stands, as written</p><ul class="facts">'+W.map(w=>'<li'+(/^Said with a not|^Stale|Stale:/.test(w)?' class="warn"':'')+'>'+esc(w)+'</li>').join('')+'</ul>'
   +(st.claims.length?'<details style="margin-top:8px"><summary class="faint small" style="cursor:pointer">The sentences</summary>'+st.claims.concat(st.casting.map(x=>Object.assign({word:'casting'},x))).map(x=>'<p class="small" style="margin:6px 0"><span class="faint">'+esc(x.word)+(x.not?' (with a not)':'')+':</span> '+esc(x.sentence)+'</p>').join('')+'</details>':'')+'</div>'; }
+/* where it is, your call: Not sure until you pick */
+function yoursHtml(it){ const k=it.you_stage||'';
+ return '<div class="card" id="yours"><p class="kicker">Where it is, your call</p><p class="faint small" style="margin:-4px 0 8px">'+(k?'You marked it '+esc(S.yourStageWord(k).toLowerCase())+'.':'Not sure until you say. The story\'s own words are below.')+'</p><div class="row">'+S.YOURSTAGE.map(([v,l])=>'<button class="chip sm'+(k===v?' on':'')+'" data-ys="'+v+'">'+esc(l)+'</button>').join('')+'</div></div>'; }
+/* the other stories you added to this one, each with its words, its date and its link */
+function moreHtml(it){ const M=it.more||[]; if(!M.length) return '';
+ return '<div class="card" id="more"><p class="kicker">'+(M.length===1?'Another story':M.length+' more stories')+' on this</p>'+M.slice().reverse().map(m=>{ const W=S.stageWords(m.stage).filter(w=>!/^No date in what/.test(w)), u=/^https?:\/\//i.test(m.source||'')&&!S.PRIVATE.test(m.source)?m.source:'';
+  return '<div class="more"><p class="faint small" style="margin:8px 0 2px">Added '+esc(day(m.at))+'</p><ul class="facts">'+W.map(w=>'<li'+(/^Said with a not|Stale:/.test(w)?' class="warn"':'')+'>'+esc(w)+'</li>').join('')+'</ul>'+(u?'<p class="small" style="margin:4px 0"><a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">'+esc(u.replace(/^https?:\/\//,'').slice(0,60))+'</a></p>':'')+'</div>'; }).join('')+'</div>'; }
+/* what changed on this one, newest first: your calls, new stories, casting named, where you moved it */
+function changedHtml(it){ const L=(it.log||[]).map(e=>({at:e.at,t:e.t})).concat((it.history||[]).slice(1).map(h=>({at:h.at,t:'Moved to '+S.statusWord(h.s).toLowerCase()+'.'}))).sort((a,b)=>b.at-a.at);
+ if(!L.length) return '';
+ return '<details class="card" id="changed"'+(L.length<=4?' open':'')+'><summary class="kicker" style="cursor:pointer;margin:0">What changed <i>'+L.length+'</i></summary><ul class="facts" style="margin-top:8px">'+L.map(e=>'<li><span class="faint">'+esc(day(e.at))+':</span> '+esc(e.t)+'</li>').join('')+'</ul></details>'; }
 function cardFields(c){
  const f=(k,l,v,ph)=>'<label class="lab" for="cf_'+k+'">'+l+'</label><input class="field" id="cf_'+k+'" data-cf="'+k+'" value="'+esc(v)+'" placeholder="'+esc(ph||'Not written')+'">';
  let h=f('project','Project',c.project)+f('role','Role',c.role);
@@ -109,13 +126,16 @@ function lookHtml(){
 /* ---------- one you've kept ---------- */
 function itemView(it){
  const c=it.card, F=factsFor(it), m=me();
- const pa=S.passAlong(Object.assign({},c,{mine:it.mine}),F,m), pt=S.pitch(c,F,m), dn=S.direct(c,F,m);
+ const pa=S.passAlong(Object.assign({},c,{mine:it.mine,more:it.more||[],you_stage:it.you_stage||''}),F,m), pt=S.pitch(c,F,m), dn=S.direct(c,F,m);
  let h='<div class="row" style="margin-bottom:10px"><button class="lnk" id="back">‹ All spotted</button></div>';
  h+='<div class="card"><p class="kicker">'+esc(day(it.at))+'</p><h2 style="font-size:20px">'+esc(c.project||'(no title)')+'</h2><p class="dim" style="margin:4px 0 10px">'+esc([c.role,(c.casting||[]).length?c.casting.join(' & ')+' casting':''].filter(Boolean).join(' · '))+'</p>'
   +'<div class="row">'+S.STATUS.map(([k,l])=>'<button class="chip sm'+(it.status===k?' on':'')+'" data-st="'+k+'">'+l+'</button>').join('')+'</div>'
   +'<label class="lab" for="inote">Your note (on the list your manager sees)</label><input class="field" id="inote" value="'+esc(it.note)+'" placeholder="e.g. Rep submitted 10/20"></div>';
+ h+=yoursHtml(it);
  h+=stageHtml(c);
+ h+=moreHtml(it);
  h+=factsHtml(F);
+ h+=changedHtml(it);
  h+='<details class="card"><summary class="kicker" style="cursor:pointer;margin:0">What it says</summary><div style="margin-top:10px">'+cardFields(c)+saidHtml(c)+'</div></details>';
  if(!D.me.reps.length) h+='<div class="msg">Add your reps on YOU and EMAIL goes straight to them.</div>';
  const block=(id,k,l,sub,t,to,toWord)=>'<div class="card"><p class="kicker">'+l+'</p><p class="faint small" style="margin:-4px 0 8px">'+sub+'</p>'
@@ -129,7 +149,7 @@ function itemView(it){
 }
 
 /* ---------- LIST ---------- */
-function rowHtml(it){ const c=it.card; return '<button class="it" data-open="'+it.id+'"><span class="st">'+esc(S.statusWord(it.status))+'</span><b>'+esc(c.project||'(no title)')+(c.role?' · '+esc(c.role):'')+'</b><small>'+esc([(c.casting||[]).join(' & '),c.type,(()=>{ const st=stageOf(c); return st&&st.stages.length===1?st.claims.find(x=>!x.not).word:st&&st.stages.length>1?'stages differ':''; })(),day(it.at)].filter(Boolean).join(' · '))+(S.isStale(stageOf(c))?' · <i class="stl">story over 120 days old</i>':'')+'</small></button>'; }
+function rowHtml(it){ const c=it.card; return '<button class="it" data-open="'+it.id+'"><span class="st">'+esc(S.statusWord(it.status))+'</span><b>'+esc(c.project||'(no title)')+(c.role?' · '+esc(c.role):'')+'</b><small>'+esc([(c.casting||[]).join(' & '),c.type,(()=>{ if(it.you_stage) return S.yourStageWord(it.you_stage).toLowerCase(); const st=stageOf(c); return st&&st.stages.length===1?st.claims.find(x=>!x.not).word:st&&st.stages.length>1?'stages differ':''; })(),day(it.at)].filter(Boolean).join(' · '))+(S.isStale(stageOf(c))?' · <i class="stl">story over 120 days old</i>':'')+'</small></button>'; }
 function listed(){ const L=D.items.map(it=>Object.assign({},it,{facts:factsFor(it)})); return S.find(L,U.q).filter(x=>!U.st||x.status===U.st).sort((a,b)=>b.at-a.at); }
 function listView(){
  if(U.open&&item(U.open)) return itemView(item(U.open));
@@ -193,12 +213,14 @@ function cardOf(){ if(U.tab==='spot') return DRAFT&&DRAFT.card; const it=U.open&
 function wire(){
  const M=$('main');
  M.querySelectorAll('[data-cf]').forEach(el=>el.onchange=()=>{ const c=cardOf(); if(!c) return; const k=el.dataset.cf, v=el.value.trim();
-  if(k==='casting') c.casting=v.split(/\s*(?:,|&)\s*/).filter(Boolean); else c[k]=v; if(U.tab!=='spot') save(); render(); });
+  if(k==='casting'){ const was=c.casting||[]; c.casting=v.split(/\s*(?:,|&)\s*/).filter(Boolean); const nw=c.casting.filter(x=>!was.some(y=>S.key(y)===S.key(x))); const it=U.tab!=='spot'&&U.open&&item(U.open); if(it&&nw.length) S.log(it,'casting','Casting named: '+nw.join(' & ')+'.'); } else c[k]=v; if(U.tab!=='spot') save(); render(); });
  M.querySelectorAll('[data-role]').forEach(b=>b.onclick=()=>{ const c=cardOf(); if(!c) return; c.role=b.dataset.role; if(U.tab!=='spot') save(); render(); });
  if($('paste')) $('paste').onclick=async()=>{ try{ $('raw').value=await navigator.clipboard.readText(); }catch(e){ toast('Paste it into the box.'); } };
  if($('read')) $('read').onclick=()=>{ const t=$('raw').value; if(!t.trim()) return toast('Paste it first.'); const u=/^\s*https?:\/\/\S+\s*$/.test(t)?t.trim():''; readDraft(t,u); render(); };
  if($('redo')) $('redo').onclick=()=>{ DRAFT=null; render(); };
  if($('keep')) $('keep').onclick=keepDraft;
+ if($('keepsep')) $('keepsep').onclick=()=>{ DRAFT.separate=true; keepDraft(); };
+ M.querySelectorAll('[data-addto]').forEach(b=>b.onclick=()=>addTo(b.dataset.addto));
  M.querySelectorAll('[data-pick]').forEach(el=>el.onchange=()=>{ DRAFT.pick[+el.dataset.pick]=el.checked; render(); });
  if($('keepmany')) $('keepmany').onclick=keepMany;
  if(U.tab==='offices'){
@@ -211,6 +233,7 @@ function wire(){
  const it=U.open&&item(U.open);
  if(it&&U.tab==='list'){
   M.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{ setStatus(it,b.dataset.st); render(); });
+  M.querySelectorAll('[data-ys]').forEach(b=>b.onclick=()=>{ setYours(it,b.dataset.ys); render(); });
   if($('inote')) $('inote').onchange=e=>{ it.note=e.target.value.trim(); save(); };
   if($('mine')) $('mine').onchange=e=>{ it.mine=e.target.value.trim(); save(); render(); };
   M.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>copy($('t_'+b.dataset.copy).value));

@@ -1790,7 +1790,8 @@ function repsSource(){
  let spotted={fits:[],fresh:[]};
  try{ if(window.Spotted&&(sd.items||[]).length){ const rep=Spotted.report(sd.items,{projects,credits,offices:window.Offices,types:(y.types||[])},{name:profile.name||y.name||''});
   spotted.fits=(rep.fits||[]).map(x=>({id:x.it.id,project:x.it.card.project,network:x.it.card.network,role:x.it.card.role,casting:x.it.card.casting||[],url:x.it.card.source,mine:x.m||[]}));
-  spotted.fresh=(rep.fresh||[]).map(o=>({name:o.name,projects:o.now.map(n=>n.card.project||'(no title)')})); } }catch(e){}
+  spotted.fresh=(rep.fresh||[]).map(o=>({name:o.name,projects:o.now.map(n=>n.card.project||'(no title)')})); }
+  if(window.Spotted&&Spotted.news) spotted.news=Spotted.news(sd.items||[]); }catch(e){}
  let people=[]; try{ if(window.Notes) people=Notes.people(); }catch(e){}
  return {name:profile.name||y.name||'',page:(online().live&&online().url)||pkgSel.site||'',at:Date.now(),offices,
   credits:credits.filter(c=>c.kind==='credit').map(c=>({title:c.title,net:c.net,director:c.director,role:c.role})),people,
