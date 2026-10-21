@@ -28,6 +28,7 @@ const D=await p.evaluate(()=>JSON.parse(localStorage.getItem('theactorpage_spott
 want('ADD TO IT: still one Dust Road, the story under it', D.items.length===1&&D.items[0].more.length===1, D.items.length);
 const more=await p.innerText('#more');
 want('the other story: its stage as written, its date, its link', /ANOTHER STORY ON THIS/i.test(more)&&/Stage, as written: filming/.test(more)&&/dated Oct 12, 2026/.test(more)&&/example\.com\/dust-road-2/.test(more), more);
+want('how many stories, from how many sites', /2 stories, all from one site\./.test(more), more);
 const ch=await p.innerText('#changed');
 want('what changed: the new story, the new office, your call', /Another story \(dated Oct 12, 2026\): stage as written: filming, casting as written\./.test(ch)&&/Casting named: Mesa/.test(ch)&&/You marked it casting\./.test(ch), ch);
 want('your call stays yours after a new story', /You marked it casting\./.test(await p.innerText('#yours')));

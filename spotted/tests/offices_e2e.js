@@ -65,7 +65,7 @@ await p.click('[data-open]'); await p.waitForTimeout(300);
 want('tap one: it opens, with your words next to it', /Your words in it:/.test(await p.innerText('#main'))||/Just passing this along/.test(await p.inputValue('#t_pa')), await p.innerText('#main'));
 // one notice still reads as one
 await p.click('#tabs [data-t="spot"]'); await p.fill('#raw',fx('northgate_notice')); await p.click('#read'); await p.waitForTimeout(300);
-want('a single notice: the one card, as before', /What it says/i.test(await p.innerText('#main'))&&!!(await p.$('#keep')));
+want('a single notice: the one card, as before (and "Northgate" on the list gets the same-project question, never joined)', /What it says/i.test(await p.innerText('#main'))&&!!(await p.$('#sameask'))&&/Northgate/.test(await p.innerText('#sameask'))&&!!(await p.$('#keepsep')));
 // the home profile has your types too
 const q=await ctx.newPage(); await q.goto('http://localhost:8811/index.html'); await q.waitForTimeout(800);
 want('home YOUR PROFILE: Your types, filled', await q.evaluate(()=>{ const t=document.querySelector('[data-yl="types"]'); return t&&t.value; })==='sheriff, rancher, small town');
