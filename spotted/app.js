@@ -50,6 +50,7 @@ function spotView(){
  if(DRAFT.many) return manyView();
  const c=DRAFT.card, F=S.facts(c,ctx());
  h+=stageHtml(c);
+ if(DRAFT.from) h+='<div class="msg">From JUICE: '+esc(DRAFT.from)+'. Check the project name before you keep it.'+((c.tags||[]).length?' The site tagged it:</div><div class="row" style="margin:-4px 0 12px">'+c.tags.map(t=>'<button class="chip sm'+(t===c.project?' on':'')+'" data-tag="'+esc(t)+'">'+esc(t)+'</button>').join('')+'</div>':'</div>');
  h+='<div class="card"><p class="kicker">What it says</p>'+cardFields(c)+saidHtml(c)+'</div>';
  h+=factsHtml(F);
  const same=DRAFT.separate?[]:S.sameAs(c,D.items);
@@ -59,7 +60,7 @@ function spotView(){
  else h+='<div class="row"><button class="btn ghost" id="redo">START OVER</button><button class="btn pri" id="keep" style="flex:1">KEEP IT</button></div>';
  return h;
 }
-function addTo(id){ const it=item(id); if(!it) return; S.addStory(it,DRAFT.card,DRAFT.raw); save(); DRAFT=null; U.open=it.id; U.tab='list'; saveU(); render(); toast('Added to '+(it.card.project||'it')+'. What changed is on it.'); }
+function addTo(id){ const it=item(id); if(!it) return; if(DRAFT.wid&&JS){ JS.gone[DRAFT.wid]=1; W.save(JS); } S.addStory(it,DRAFT.card,DRAFT.raw); save(); DRAFT=null; U.open=it.id; U.tab='list'; saveU(); render(); toast('Added to '+(it.card.project||'it')+'. What changed is on it.'); }
 /* a story or a list with several projects in it: pick which to keep */
 function manyView(){
  const L=DRAFT.many, n=DRAFT.pick.filter(Boolean).length, T=types();
@@ -114,6 +115,7 @@ function factsHtml(F){
 }
 function keepDraft(){
  const it={id:uid(),at:Date.now(),raw:DRAFT.raw,card:DRAFT.card,status:'spotted',history:[{s:'spotted',at:Date.now()}],note:'',mine:''};
+ if(DRAFT.wid&&JS){ JS.gone[DRAFT.wid]=1; W.save(JS); S.log(it,'story','From JUICE: '+DRAFT.from+'.'); }
  D.items.push(it); save(); DRAFT=null; U.open=it.id; U.tab='list'; saveU(); render(); toast('Kept. Pass it along when you\'re ready.');
 }
 
@@ -203,11 +205,52 @@ function youView(){
  return h;
 }
 
+/* ---------- JUICE: THE WIRE, only when you say ---------- */
+const W=window.Wire; let JS=W?W.load():null, WIRE=null, JBUSY=false, JERR='', JOPEN={list:false,news:false};
+const wireMe=()=>{ const y=you(), offs={}, add=(n,seen)=>{ const k=S.key(n); if(!k) return; offs[k]=offs[k]||{name:n,seen:false}; if(seen) offs[k].seen=true; };
+ ((HUB&&HUB.projects)||[]).forEach(p=>add(p.casting_office||p.casting_director||p.casting||'',true)); D.items.forEach(it=>(it.card.casting||[]).forEach(n=>add(n,false)));
+ const ppl=[]; try{ if(N) N.people().forEach(p=>ppl.push(p.name)); }catch(e){} ((HUB&&HUB.credits)||[]).forEach(c=>{ if(c.director) ppl.push(c.director); });
+ return {types:types(),wantMore:(y.wantMore||[]).filter(Boolean),places:String(y.locations||'').split(/\s*(?:,|;|\/|\band\b)\s*/).filter(Boolean),offices:Object.values(offs),people:ppl}; };
+async function juiceCheck(){
+ if(!W||JBUSY) return; JBUSY=true; JERR=''; $('online').hidden=false; if(U.tab==='juice') render();
+ try{ WIRE=await W.fetch(); const o=W.sort(WIRE,wireMe(),JS); JS.last={at:Date.now(),wireAt:WIRE.at,newCount:o.newCount,lines:W.receipt(WIRE,o.newCount)}; JS.day=W.today(); JS.pend=WIRE.items.map(i=>i.id); W.save(JS); }
+ catch(e){ JERR=e.message||'Couldn\'t get THE WIRE.'; JS.last=Object.assign({},JS.last||{},{err:JERR,errAt:Date.now()}); W.save(JS); }
+ JBUSY=false; $('online').hidden=true; if(U.tab==='juice') render(); else if(WIRE&&!JERR&&JS.last.newCount) toast('JUICE: '+JS.last.newCount+' new on THE WIRE.');
+}
+/* what you've looked at counts as seen when you leave the tab, so "new" means new since your last look */
+function juiceSeen(){ if(!JS||!JS.pend) return; const cur=W.load(); JS.pend.forEach(id=>cur.seen[id]=1); delete JS.pend; JS.seen=cur.seen; W.save(Object.assign(cur,{seen:cur.seen})); }  // fresh from storage: another tab may have changed it
+function wiRow(x){ const i=x.i, src=(WIRE.sources.find(s=>s.id===i.src)||{}).label||i.src, tc=i.kind==='taxcredit';
+ const meta=tc?['California tax credit',W.day(i.allocated)].concat(W.flags(i)).join(' · '):[src,W.day(i.date)].join(' · ');
+ const sub=tc?[i.company,i.type,W.plans(i)].filter(Boolean).join(' · '):(i.summary||'');
+ return '<div class="wi" data-wi="'+esc(i.id)+'"><span class="src">'+esc(meta)+'</span>'+(x.fresh?'<span class="nw">NEW</span>':'')+'<b>'+esc(i.title)+'</b>'+(sub?'<div class="sm2">'+esc(sub)+'</div>':'')+(x.m.any?'<div class="why">'+esc(W.why(x.m))+'</div>':'')
+  +'<div class="row"><button class="btn sm pri" data-wkeep="'+esc(i.id)+'">KEEP</button>'+(/^https:\/\//.test(i.link||'')?'<a class="btn sm" style="text-decoration:none" href="'+esc(i.link)+'" target="_blank" rel="noopener noreferrer">OPEN</a>':'')+'<button class="btn sm ghost" data-wgone="'+esc(i.id)+'">NOT FOR ME</button></div></div>'; }
+function juiceView(){
+ if(!W) return '<div class="card"><p class="dim">This needs a newer copy of the page. Reload.</p></div>';
+ let h='<div class="card"><p class="kicker">JUICE</p><p class="dim small" style="margin-top:-4px">The one time this goes online for you, and only when you say. It gets THE WIRE: the California Film Commission\'s tax-credit list (what plans to shoot in California, with how many cast) and the newest stories from Deadline, Variety and The Hollywood Reporter. Every phone downloads the same file, so nobody learns who\'s asking. What fits you is worked out here, on your phone.</p>'
+  +'<div class="row" style="margin:6px 0 10px">'+W.MODES.map(([k,l])=>'<button class="chip sm'+(JS.mode===k?' on':'')+'" data-jmode="'+k+'">'+esc(l)+'</button>').join('')+'</div>'
+  +'<button class="btn pri" id="jcheck" style="width:100%"'+(JBUSY?' disabled':'')+'>'+(JBUSY?'CHECKING…':'CHECK THE WIRE')+'</button>';
+ const L=JS.last;
+ if(JERR) h+='<div class="msg bad">'+esc(JERR)+'</div>';
+ if(L&&L.lines) h+='<ul class="receipt" id="receipt" style="margin-top:10px">'+L.lines.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
+ h+='</div>';
+ if(!WIRE){ h+='<p class="faint small">'+(L&&L.at?'Tap CHECK to look again.':'Nothing checked yet.')+' Your words, places and the offices you know come from YOU and your Hub.'+(types().length?'':' Add your types on YOU so it can show what fits.')+'</p>'; return h; }
+ const o=W.sort(WIRE,wireMe(),JS), q=(U.jq||'').toLowerCase().split(/\s+/).filter(Boolean), f=x=>!q.length||q.every(w=>W.text(x.i).toLowerCase().indexOf(w)>=0);
+ h+='<input class="field" id="jq" value="'+esc(U.jq||'')+'" placeholder="Find on THE WIRE: a show, a company, a word" style="margin-bottom:10px">';
+ const fits=o.fits.filter(f), list=o.list.filter(f), news=o.news.filter(f);
+ h+='<p class="kicker">Fits you <i>'+fits.length+'</i></p>'+(fits.map(wiRow).join('')||'<p class="faint small">Nothing with your words, places, offices or people in it'+(q.length?' for that search':'')+'.</p>');
+ h+='<details class="card" id="jlist"'+(JOPEN.list||q.length?' open':'')+'><summary class="kicker" style="cursor:pointer;margin:0">The California tax-credit list <i>'+list.length+'</i></summary><p class="faint small" style="margin:8px 0">Productions approved to shoot in California, newest round first. Approved isn\'t casting: it means it plans to shoot here, with about this many cast.</p>'+list.map(wiRow).join('')+'</details>';
+ h+='<details class="card" id="jnews"'+(JOPEN.news||q.length?' open':'')+'><summary class="kicker" style="cursor:pointer;margin:0">From the trades <i>'+news.length+'</i></summary><div style="margin-top:8px">'+news.map(wiRow).join('')+'</div></details>';
+ return h;
+}
+function juiceKeep(id){ const i=WIRE&&WIRE.items.find(x=>x.id===id); if(!i) return; const src=(WIRE.sources.find(s=>s.id===i.src)||{}).label||'';
+ DRAFT={raw:i.kind==='taxcredit'?'':[i.title,i.summary,i.link].filter(Boolean).join('\n'),url:i.link||'',card:W.card(i,S),from:i.kind==='taxcredit'?'the California tax-credit list':src,wid:i.id};
+ U.tab='spot'; saveU(); render(); window.scrollTo(0,0); }
+
 /* ---------- draw and wire ---------- */
 function render(){
  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===U.tab));
  $('count').textContent=D.items.length?D.items.length+' spotted · '+D.items.filter(x=>x.status==='spotted').length+' not passed along':'';
- $('main').innerHTML=U.tab==='spot'?spotView():U.tab==='list'?listView():U.tab==='offices'?officesView():youView();
+ $('main').innerHTML=U.tab==='spot'?spotView():U.tab==='list'?listView():U.tab==='offices'?officesView():U.tab==='juice'?juiceView():youView();
  wire();
 }
 function cardOf(){ if(U.tab==='spot') return DRAFT&&DRAFT.card; const it=U.open&&item(U.open); return it&&it.card; }
@@ -220,6 +263,15 @@ function wire(){
  if($('read')) $('read').onclick=()=>{ const t=$('raw').value; if(!t.trim()) return toast('Paste it first.'); const u=/^\s*https?:\/\/\S+\s*$/.test(t)?t.trim():''; readDraft(t,u); render(); };
  if($('redo')) $('redo').onclick=()=>{ DRAFT=null; render(); };
  if($('keep')) $('keep').onclick=keepDraft;
+ M.querySelectorAll('[data-tag]').forEach(b=>b.onclick=()=>{ const c=cardOf(); if(!c) return; c.project=b.dataset.tag; render(); });
+ if(U.tab==='juice'){
+  M.querySelectorAll('[data-jmode]').forEach(b=>b.onclick=()=>{ JS.mode=b.dataset.jmode; W.save(JS); render(); toast(JS.mode==='daily'?'JUICE checks once a day, when you open Spotted.':'JUICE only checks when you tap.'); });
+  if($('jcheck')) $('jcheck').onclick=juiceCheck;
+  M.querySelectorAll('[data-wkeep]').forEach(b=>b.onclick=()=>juiceKeep(b.dataset.wkeep));
+  M.querySelectorAll('[data-wgone]').forEach(b=>b.onclick=()=>{ JS.gone[b.dataset.wgone]=1; W.save(JS); render(); });
+  ['jlist','jnews'].forEach(id=>{ const d=$(id); if(d) d.ontoggle=()=>{ JOPEN[id==='jlist'?'list':'news']=d.open; }; });
+  if($('jq')) $('jq').oninput=e=>{ U.jq=e.target.value; const p=e.target.selectionStart; render(); const q=$('jq'); q.focus(); try{ q.setSelectionRange(p,p); }catch(x){} };
+ }
  if($('keepsep')) $('keepsep').onclick=()=>{ DRAFT.separate=true; keepDraft(); };
  M.querySelectorAll('[data-addto]').forEach(b=>b.onclick=()=>addTo(b.dataset.addto));
  M.querySelectorAll('[data-pick]').forEach(el=>el.onchange=()=>{ DRAFT.pick[+el.dataset.pick]=el.checked; render(); });
@@ -259,7 +311,7 @@ function wire(){
  M.querySelectorAll('[data-rmheld]').forEach(b=>b.onclick=()=>{ D.held.splice(+b.dataset.rmheld,1); save(); render(); });
  if($('addheld')) $('addheld').onclick=()=>{ D.held.push({brand:'',category:'',until:''}); save(); render(); };
 }
-document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{ U.tab=b.dataset.t; if(b.dataset.t==='list'&&U.tab==='list') {} saveU(); render(); window.scrollTo(0,0); });
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{ if(U.tab==='juice'&&b.dataset.t!=='juice') juiceSeen(); U.tab=b.dataset.t; if(b.dataset.t==='list'&&U.tab==='list') {} saveU(); render(); window.scrollTo(0,0); });
 document.querySelector('#tabs [data-t="list"]').addEventListener('click',()=>{ if(U.open){ U.open=''; saveU(); render(); } });
 
 /* shared here from another app (Android share sheet): ?title=&text=&url= */
@@ -267,4 +319,6 @@ document.querySelector('#tabs [data-t="list"]').addEventListener('click',()=>{ i
  if(t||u){ readDraft([t,u&&t.indexOf(u)<0?u:''].filter(Boolean).join('\n'),u); U.tab='spot'; history.replaceState(null,'',location.pathname); } })();
 render();
 if(O&&O.load) O.load().then(h=>{ HUB=h; render(); }).catch(()=>{});
+if(W&&JS&&W.dueToday(JS)) setTimeout(juiceCheck,600);
+window.addEventListener('pagehide',()=>{ try{ if(U.tab==='juice') juiceSeen(); }catch(e){} });
 })();

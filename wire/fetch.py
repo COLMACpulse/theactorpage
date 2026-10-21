@@ -1,4 +1,4 @@
-"""THE WIRE: the JUICE fetcher. Runs on GitHub once a day (and when asked), never on anyone's phone.
+"""THE WIRE: the JUICE fetcher. Runs on GitHub every hour (the trade feeds only list their latest few), never on anyone's phone.
 
 It reads only the sources in sources.json, only over https, only what each site's robots rules allow for a plain
 feed reader, and it says who it is. From the trades it keeps what a feed app shows: the headline, the link, the
@@ -17,7 +17,8 @@ from email.utils import parsedate_to_datetime
 UA = 'theactorpage-wire/1.0 (feed reader for actors; +https://colmacpulse.github.io/theactorpage/privacy/)'
 MAX_BYTES = 4 * 1024 * 1024
 TIMEOUT = 30
-KEEP_DAYS = 21                 # trade stories older than this drop off
+KEEP_DAYS = 14                 # trade stories older than this drop off
+MAX_NEWS = 1500                # and never more than this many, newest kept
 CFC_YEARS = 2                  # the two latest fiscal years of the state list
 SUMMARY = 280                  # characters of the site's own summary, at most
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -184,6 +185,10 @@ def run(sources, prev=None, now=None, get_=get):
             return now
     items = [i for i in items if i.get('kind') != 'news' or ts(i) >= cutoff]
     items.sort(key=lambda i: (i.get('date', ''), i['id']), reverse=True)
+    news = [i for i in items if i.get('kind') == 'news']
+    if len(news) > MAX_NEWS:
+        drop = {i['id'] for i in news[MAX_NEWS:]}
+        items = [i for i in items if i['id'] not in drop]
     return {'v': 1, 'at': datetime.datetime.fromtimestamp(now, datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
             'sources': health, 'items': items,
             'note': 'Public headlines, links, tags and short summaries from each site, plus the California Film Commission tax-credit list. Every phone downloads this same file.'}

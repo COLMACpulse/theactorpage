@@ -1,0 +1,123 @@
+{
+ "v": 1,
+ "at": "2026-10-21T12:17:00Z",
+ "sources": [
+  {
+   "id": "cfc",
+   "label": "California Film Commission",
+   "ok": true,
+   "count": 3
+  },
+  {
+   "id": "trade",
+   "label": "Made Up Trade",
+   "ok": true,
+   "count": 4
+  },
+  {
+   "id": "down",
+   "label": "Down Trade",
+   "ok": false,
+   "count": 0,
+   "err": "connection refused"
+  }
+ ],
+ "items": [
+  {
+   "id": "a1",
+   "src": "trade",
+   "kind": "news",
+   "title": "Netflix Orders Western Series ‘Dust Road’",
+   "link": "https://trade.example.com/dust-road",
+   "date": "2026-10-20T18:30:00Z",
+   "tags": [
+    "News",
+    "Dust Road",
+    "Canyon Casting"
+   ],
+   "summary": "Set in 1880s Kansas. Canyon Casting is casting."
+  },
+  {
+   "id": "a2",
+   "src": "trade",
+   "kind": "news",
+   "title": "Southwestern Airlines Ad Wins Award",
+   "link": "https://trade.example.com/ad",
+   "date": "2026-10-20T10:00:00Z",
+   "tags": [
+    "Awards"
+   ],
+   "summary": "Shot in Arkansas by a copper company."
+  },
+  {
+   "id": "a3",
+   "src": "trade",
+   "kind": "news",
+   "title": "Riley Hart Joins Harbor Lights",
+   "link": "https://trade.example.com/harbor",
+   "date": "2026-10-19T10:00:00Z",
+   "tags": [
+    "Harbor Lights",
+    "Riley Hart",
+    "TV"
+   ],
+   "summary": "Jo Banner directs."
+  },
+  {
+   "id": "a4",
+   "src": "trade",
+   "kind": "news",
+   "title": "Box Office Weekend",
+   "link": "https://trade.example.com/bo",
+   "date": "2026-10-18T10:00:00Z",
+   "tags": [
+    "Box Office"
+   ],
+   "summary": ""
+  },
+  {
+   "id": "c1",
+   "src": "cfc",
+   "kind": "taxcredit",
+   "title": "Salt Flat",
+   "company": "Mesa Films LLC",
+   "type": "Independent Film $10m & Under Live Action",
+   "fy": "2026-2027",
+   "allocated": "2026-09-21",
+   "date": "2026-09-21T00:00:00Z",
+   "days": 33,
+   "cast": 50,
+   "bg": 1310,
+   "mark": "latest",
+   "link": "https://state.example.gov/list/"
+  },
+  {
+   "id": "c2",
+   "src": "cfc",
+   "kind": "taxcredit",
+   "title": "Glass Pond",
+   "company": "Pond Animation",
+   "type": "Independent Film Over $10m Animation",
+   "allocated": "2026-09-21",
+   "days": null,
+   "cast": 20,
+   "bg": null,
+   "mark": "latest",
+   "link": "https://state.example.gov/list/"
+  },
+  {
+   "id": "c3",
+   "src": "cfc",
+   "kind": "taxcredit",
+   "title": "Unt. Comedy Project",
+   "company": "Big Studio",
+   "type": "Non-Independent Feature Film Live Action",
+   "allocated": "2026-07-27",
+   "days": 40,
+   "cast": 43,
+   "bg": 3618,
+   "mark": "",
+   "link": "https://state.example.gov/list/"
+  }
+ ]
+}

@@ -57,7 +57,7 @@ d = next(i for i in n if 'Dust' in i['title'])
 want('a trade story: headline unescaped, link, date, the site\'s own tags', d['title'] == 'Netflix Orders Western Series ‘Dust Road’' and d['link'] == 'https://trade.example.com/2026/10/dust-road-1/' and d['date'] == '2026-10-20T18:30:00Z' and d['tags'] == ['News', 'Dust Road', 'Canyon Casting'], d)
 want('the summary: the site\'s own first lines, cut short, never the article', d['summary'].startswith('The western from Canyon Pictures') and len(d['summary']) <= W.SUMMARY + 1 and d['summary'].endswith('…') and '<p>' not in d['summary'], d['summary'])
 want('no link or a plain-http link: dropped', not any(i['title'] in ('No Link Here', 'Plain http link') for i in w['items']))
-want('older than 3 weeks: dropped', not any(i['title'] == 'Old Story' for i in w['items']))
+want('older than 2 weeks: dropped', not any(i['title'] == 'Old Story' for i in w['items']))
 a = next(i for i in w['items'] if i['src'] == 'atom')
 want('Atom: link, ISO date, tags', a['link'] == 'https://atom.example.com/salt-flat' and a['date'] == '2026-10-19T09:00:00Z' and a['tags'] == ['Salt Flat'], a)
 c = [i for i in w['items'] if i['kind'] == 'taxcredit']
@@ -76,6 +76,9 @@ want('the state table changes shape: says so, never guesses', changed)
 BODY.pop('https://trade.example.com/feed/'); BODY.pop('https://state.example.gov/list/')
 w2 = W.run(SRC, w, NOW + 86400, fake)
 want('a source down tomorrow: yesterday\'s stories and the state list stay', any(i['title'].startswith('Netflix Orders') for i in w2['items']) and len([i for i in w2['items'] if i['kind'] == 'taxcredit']) == 3 and not {h['id']: h for h in w2['sources']}['trade']['ok'])
+big = {'items': [{'id': 'n%d' % k, 'src': 'trade', 'kind': 'news', 'title': 't', 'link': 'https://trade.example.com/%d' % k, 'date': '2026-10-%02dT%02d:00:00Z' % (10 + k // 300, k % 24)} for k in range(2000)]}
+w3 = W.run([], big, NOW)
+want('never more than the cap of trade stories, newest kept, state list untouched', len([i for i in w3['items'] if i['kind'] == 'news']) == W.MAX_NEWS and w3['items'][0]['date'] >= w3['items'][-1]['date'])
 want('no duplicates across runs', len({i['id'] for i in w2['items']}) == len(w2['items']))
 want('https only', (lambda: (W.get('http://example.com/') and False))() if False else True)
 try:

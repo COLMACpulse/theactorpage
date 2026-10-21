@@ -18,7 +18,7 @@ await h.evaluate(async()=>{ if(isDemo()) await dropDemoData();
 await h.waitForTimeout(500);
 const p=await ctx.newPage(); p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
 await p.goto('http://localhost:8811/spotted/index.html'); await p.evaluate(()=>{ localStorage.removeItem('theactorpage_spotted_v1'); localStorage.removeItem('spotted_ui_v1'); localStorage.removeItem('theactorpage_you_v1'); }); await p.reload(); await p.waitForTimeout(700);
-want('four tabs: SPOT, LIST, OFFICES, YOU', (await p.$$eval('#tabs button',x=>x.map(y=>y.dataset.t))).join()==='spot,list,offices,you');
+want('five tabs: SPOT, LIST, OFFICES, JUICE, YOU', (await p.$$eval('#tabs button',x=>x.map(y=>y.dataset.t))).join()==='spot,list,offices,juice,you');
 await p.click('#tabs [data-t="offices"]');
 want('OFFICES with nothing spotted: says what to paste', /trade story, an IMDbPro list or a casting notice/.test(await p.innerText('#main')));
 // YOU: name, a rep, your types

@@ -1,9 +1,9 @@
 name: wire
-# THE WIRE: once a day (and when asked), read the JUICE sources in wire/sources.json and publish one public file,
+# THE WIRE: every hour (the trade feeds only list their latest 10 or so), read the JUICE sources in wire/sources.json and publish one public file,
 # wire.json, on the "wire" branch. Phones that turn JUICE on download that same file. See wire/fetch.py.
 on:
   schedule:
-    - cron: '17 13 * * *'
+    - cron: '17 * * * *'
   workflow_dispatch:
 permissions:
   contents: write
