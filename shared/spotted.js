@@ -239,6 +239,7 @@ S.passAlong=function(card,facts,me){
  const f=(facts||[]).filter(x=>x.k!=='spotted').map(x=>x.t);  // includes a held conflict: your reps need that
  if(f.length){ L.push(''); f.forEach(t=>L.push(t)); }
  if(card.mine) { L.push(''); L.push(card.mine); }
+ if(card.cut) { L.push(''); L.push(S.cutLine(card.cut)); }
  L.push(''); L.push(me.name||'');
  return {subject:'Just passing this along: '+(card.project||'something I saw')+(card.role?' / '+card.role:''),body:L.join('\n').replace(/\n{3,}/g,'\n\n').trim()};
 };
@@ -257,6 +258,7 @@ S.pitch=function(card,facts,me){
  const hb=historyBit(facts,who,nm); if(hb) L.push(hb);
  const cb=creditBits(facts,me); if(cb.length) L.push(nm+' has done '+(cb.length>1?cb.slice(0,-1).join(', ')+' and '+cb.slice(-1):cb[0])+'.');
  const m=material(me); if(m.length){ L.push(''); m.forEach(x=>L.push(x)); }
+ if(card.cut) L.push('There\'s a '+mmss(card.cut.secs)+' cut for this role, ready to send.');
  L.push(''); L.push('Love to hear from you.');
  return {subject:(me.name||'Submission')+(card.role?' for '+card.role:'')+(card.project?', '+card.project:''),body:L.join('\n').trim()};
 };
@@ -442,8 +444,25 @@ S.addStory=function(it,card,raw,at){ at=at||Date.now(); const c=it.card, st=card
  const sl=stageLine(st), cast=st&&st.casting.length;
  L.unshift(['story','Another story'+(st&&st.dated?' (dated '+S.dayWords(st.dated)+')':'')+(sl||cast?': '+[sl,cast?'casting as written':''].filter(Boolean).join(', '):'')+'.']);
  L.forEach(([k,t])=>S.log(it,k,t,at)); return L.map(x=>x[1]); };
-/* what changed, for the reps sheet: your calls and new stories, never your status taps or notes */
-S.news=function(items){ const out=[]; (items||[]).forEach(it=>(it.log||[]).forEach(e=>{ if(/^(stage|story|casting)$/.test(e.k)) out.push({id:it.id,project:(it.card&&it.card.project)||'(no title)',at:e.at,k:e.k,t:e.t}); })); return out.sort((a,b)=>a.at-b.at); };
+/* what changed, for the reps sheet: your calls, new stories, cuts you built; never your status taps or notes */
+S.news=function(items){ const out=[]; (items||[]).forEach(it=>(it.log||[]).forEach(e=>{ if(/^(stage|story|casting|cut)$/.test(e.k)) out.push({id:it.id,project:(it.card&&it.card.project)||'(no title)',at:e.at,k:e.k,t:e.t}); })); return out.sort((a,b)=>a.at-b.at); };
+
+/* ---------- a cut for this one (ARCHBOOK) ----------
+   What Archbook reads to find your footage: the role's own words when the card has them (a notice, a breakdown),
+   else the project's kind and genre with your types. It says which, so you know what the cut was built from. */
+S.cutText=function(card,types){
+ card=card||{}; const r=(card.roles||[]).find(x=>x.name===card.role)||{}, desc=[r.desc,(card.musts||[]).join(' ')].filter(Boolean).join(' ').trim();
+ const head='['+String(card.role||card.project||'THE ROLE').toUpperCase()+']';
+ if(desc) return {from:'role',text:head+' '+desc};
+ const bits=[card.type,card.genre].filter(Boolean).join(', '), ty=(types||[]).filter(Boolean);
+ return {from:'project',text:head+' '+[bits,ty.length?'Right for: '+ty.join(', ')+'.':''].filter(Boolean).join('. ').replace(/\.\./g,'.')};
+};
+S.CUTS='theactorpage_cuts_v1';
+/* the cuts Archbook built for cards here: [{spotted, reel, name, secs, from, at}] */
+S.cuts=function(){ try{ const a=JSON.parse(localStorage.getItem(S.CUTS)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } };
+S.cutFor=id=>S.cuts().filter(c=>c.spotted===id).sort((a,b)=>b.at-a.at)[0]||null;
+const mmss=n=>{ n=Math.round(n||0); return Math.floor(n/60)+':'+String(n%60).padStart(2,'0'); };
+S.cutLine=c=>c?'I put together a '+mmss(c.secs)+' cut for this role. Say the word and I\'ll send it.':'';
 
 g.Spotted=S;
 if(typeof module!=='undefined') module.exports=S;

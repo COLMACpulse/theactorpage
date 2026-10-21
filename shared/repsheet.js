@@ -48,7 +48,7 @@
       fresh: fresh.map(o => ({ name: clean(o.name), projects: uniq((o.projects || []).map(clean)) })),
       rightFor: uniq((src.rightFor || []).map(clean)), wantMore: uniq((src.wantMore || []).map(clean)), wantSeen: uniq((src.wantSeen || []).map(clean)),
       typed: src.typed !== false,
-      news: (sp.news || []).filter(n => n && n.at && clean(n.t)).map(n => ({ project: clean(n.project) || '(no title)', at: n.at, t: clean(n.t).replace(/^You marked it /, 'I marked it ') })),
+      news: (sp.news || []).filter(n => n && n.at && clean(n.t)).map(n => ({ project: clean(n.project) || '(no title)', at: n.at, t: clean(n.t).replace(/^You marked it /, 'I marked it ').replace(/^Built a (\S+) cut in Archbook\.?$/, 'I built a $1 cut for it.') })),
       fits: (sp.fits || []).map(f => ({ id: f.id, project: clean(f.project) || '(no title)', network: clean(f.network), role: clean(f.role), casting: (f.casting || []).map(clean).filter(Boolean), url: safeUrl(f.url), mine: uniq((f.mine || []).map(clean)) })),
       offices
     };

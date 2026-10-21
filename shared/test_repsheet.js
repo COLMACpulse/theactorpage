@@ -46,4 +46,6 @@ want('no em dashes anywhere', !/—/.test(R.text(m2,ch)+h+e.full));
   const mA=R.build(s1), prevA=R.snapshot(Object.assign({},mA,{at:T0})), chA=R.changes(prevA,mA), t=chA.lines.join('\n');
   want('spotted news: one line per project, only since the last one, in my voice', /Dust Road: Another story \(dated Oct 21, 2026\): stage as written: filming\. Casting named: Canyon Casting\. I marked it filming \(was in prep\)\./.test(t)&&/Salt Flat: I marked it stopped\./.test(t)&&!/I marked it in prep\./.test(t), chA.lines);
   want('spotted news: counts toward due when you send on change', R.due(T0,'change',chA,T0+10000000).due); }
+{ const T0=Date.parse('2026-10-20T12:00:00Z'), s1=src(); s1.spotted=Object.assign({},s1.spotted||{},{news:[{project:'Dust Road',at:T0+60000,t:'Built a 1:28 cut in Archbook.'}]});
+  const mC=R.build(s1); want('a cut you built: in your voice on the reps sheet', R.changes(R.snapshot(Object.assign({},mC,{at:T0})),mC).lines.includes('Dust Road: I built a 1:28 cut for it.')); }
 console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1);

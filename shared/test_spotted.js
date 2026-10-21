@@ -179,4 +179,13 @@ ok('your call shows on the list and in the text for your manager', S.listText([O
 /* a title in quotes, wherever it sits in a headline (from the v1.2 vet) */
 ok('a quoted title at the end of a headline', S.read('Netflix orders western series "Dust Road"').project==='Dust Road'&&S.read("Netflix Orders Western 'Dust Road' From Canyon Pictures").project==='Dust Road'&&S.read('‘Dust Road’ Netflix Western Sets Cast').project==='Dust Road');
 ok('a headline with no title in it: no project', !S.read('Production company hires executive').project&&!S.read('Director signs new overall deal').project);
+/* a cut for this one (Archbook) */
+{ const ct=S.cutText({role:'SHERIFF COLE',roles:[{name:'SHERIFF COLE',desc:'40s. Weathered, quiet authority.'}],musts:['Must ride a horse.']});
+  ok('cut text: the role\'s own words when the card has them', ct.from==='role'&&ct.text==='[SHERIFF COLE] 40s. Weathered, quiet authority. Must ride a horse.', ct);
+  const cp=S.cutText({project:'Dust Road',type:'Series',genre:'western'},['cop','rancher']);
+  ok('cut text: no role words, so the project\'s kind and your types, and it says so', cp.from==='project'&&cp.text==='[DUST ROAD] Series, western. Right for: cop, rancher.', cp);
+  const cut={secs:88};
+  ok('the notes say a cut is ready, with its length', /I put together a 1:28 cut for this role\. Say the word and I'll send it\./.test(S.passAlong(Object.assign(S.read('Dust Road is casting.'),{mine:'',cut}),[],{name:'Riley Hart'}).body)&&/There's a 1:28 cut for this role, ready to send\./.test(S.pitch(Object.assign(S.read('Dust Road is casting.'),{cut}),[],{name:'Riley Hart'}).body));
+  const it2={id:'z',card:{project:'Dust Road'},log:[]}; S.log(it2,'cut','Built a 1:28 cut in Archbook.');
+  ok('a cut counts as news for the reps sheet', S.news([it2]).length===1&&S.news([it2])[0].k==='cut'); }
 console.log(pass+' passed, '+fail+' failed'); if(fail) process.exit(1);

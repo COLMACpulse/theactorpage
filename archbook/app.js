@@ -384,10 +384,15 @@
     const t = S.lib.lastBreakdown || '';
     S.match = t.trim() ? E.matchBreakdown(t, S.lib.moments, S.lib.tags, S.lib.aliases) : null;
   }
+  /* SPOTTED handed a role over (BUILD A CUT): the cut built here goes back to that card */
+  const CUTS = 'theactorpage_cuts_v1';
+  function cutsAll() { try { const a = JSON.parse(localStorage.getItem(CUTS) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+  function cutSave(r) { if (!r || !r.spotted) return; const a = cutsAll().filter(c => c.reel !== r.id); a.push({ spotted: r.spotted, reel: r.id, name: r.name, secs: Math.round(reelLen(r)), from: r.spottedFrom || 'role', at: Date.parse(r.at) || Date.now() }); try { localStorage.setItem(CUTS, JSON.stringify(a.slice(-200))); } catch (e) { } }
+  function forBanner(f) { return `<div class="msg" id="forspotted" style="font-size:14px"><b>For ${esc(f.project || 'this project')}${f.role ? ' · ' + esc(f.role) : ''}</b>, from Spotted. ${f.src === 'role' ? 'Read from the role\'s own words.' : 'There\'s no role description on this one, so it\'s read from the project\'s kind and your types. Paste the breakdown if your reps have it.'}<div class="row" style="margin-top:8px"><button class="btn ghost" data-a="tospotted" data-id="${esc(f.spotted)}">‹ Back to Spotted</button></div></div>`; }
   function vMatch() {
     if (S.match === null && S.lib.lastBreakdown) runMatch();
     const M = S.match;
-    return `<div class="kicker">For a role</div><h1 style="font-size:24px;margin-bottom:6px">Do you have footage for this?</h1>
+    return `${S.forSpotted ? forBanner(S.forSpotted) : ''}<div class="kicker">For a role</div><h1 style="font-size:24px;margin-bottom:6px">Do you have footage for this?</h1>
       <p class="dim" style="font-size:14px;margin:0 0 10px">Paste the role description. Your tags are matched by word root ("menacing" finds "menace"). Nothing is assumed.</p>
       <textarea class="field" id="bdtext" data-f="breakdown" placeholder="[SHERIFF DALE] 40s-50s. Weathered small-town sheriff with quiet authority and a dry sense of humor. Menacing when pushed.">${esc(S.lib.lastBreakdown)}</textarea>
       <div class="row" style="margin:8px 0 16px"><button class="btn pri" data-a="domatch">Read it</button>${S.lib.lastBreakdown ? '<button class="btn ghost" data-a="clearmatch">Clear</button>' : ''}</div>
@@ -426,7 +431,8 @@
     const unl = seqFor(r).filter(x => !x.card && (!x.url || !x.playable)).length;
     const M = r.breakdown ? E.matchBreakdown(r.breakdown, S.lib.moments.filter(m => r.items.includes(m.id)), S.lib.tags, S.lib.aliases) : null;
     const p = S.lib.profile;
-    return `<div class="row" style="flex-wrap:nowrap;margin-bottom:8px"><button class="iconbtn" data-a="tab" data-t="reels" aria-label="All reels">${ICON.back}</button>
+    if (r.spotted) cutSave(r);
+    return `${r.spotted ? `<div class="msg" id="cutfor" style="font-size:14px">A cut for <b>${esc(r.spottedProject || 'a card in Spotted')}</b>. Spotted's card and the notes to your reps say it's ready. <button class="btn ghost" style="margin-left:6px" data-a="tospotted" data-id="${esc(r.spotted)}">‹ Back to Spotted</button></div>` : ''}<div class="row" style="flex-wrap:nowrap;margin-bottom:8px"><button class="iconbtn" data-a="tab" data-t="reels" aria-label="All reels">${ICON.back}</button>
         <input class="field" style="flex:1" data-f="reelname" value="${esc(r.name)}" aria-label="Reel name"><button class="iconbtn" data-a="delreel" aria-label="Delete reel">${ICON.close}</button></div>
       <div class="len ${over ? 'over' : ''}"><i style="width:${Math.min(100, len / (r.target * 1.3) * 100)}%"></i><span class="tgt" style="left:${100 / 1.3}%"></span></div>
       <div class="row" style="justify-content:space-between;font-size:14px"><span>${fmtShort(len)} <span class="faint">of ${fmtShort(r.target)} target</span></span>
@@ -780,7 +786,7 @@
       case 'unwant': L.wants = L.wants.filter(w => w.key !== ds.k); touch(); render(); break;
       // match
       case 'domatch': { const t = $('#bdtext'); L.lastBreakdown = t ? t.value : L.lastBreakdown; touch(true); runMatch(); render(); break; }
-      case 'clearmatch': L.lastBreakdown = ''; S.match = null; touch(true); render(); break;
+      case 'clearmatch': L.lastBreakdown = ''; S.match = null; S.forSpotted = null; touch(true); render(); break;
       case 'showrow': {
         const r = S.match && S.match.rows.find(x => x.key === ds.k); if (!r) break;
         openSheet(`<div class="kicker">"${esc(r.text)}" · matched by ${esc(r.tags.map(tagLabel).join(', '))}</div>${r.moments.map(id => momentById(id)).filter(Boolean).map(m => momentCard(m, { showClip: true })).join('')}`);
@@ -802,12 +808,15 @@
         const D = E.buildDraft(S.match, L.moments, target);
         if (!D.items.length) { toast('Nothing to build from yet.'); break; }
         const nm = (L.lastBreakdown.match(/\[([^\]]+)\]/) || [, ''])[1] || (S.match.covered[0] ? S.match.covered[0].text : 'Breakdown');
-        const r = { id: rid(), name: nm.trim().replace(/\s+/g, ' ').slice(0, 60) + ' reel', items: D.items, target, slate: !!L.profile.name, endcard: false, breakdown: L.lastBreakdown, at: now() };
-        L.reels.unshift(r); touch(); S.reelId = r.id; S.tab = 'reel'; render(); window.scrollTo(0, 0); break;
+        const f = S.forSpotted;
+        const r = { id: rid(), name: f ? ((f.project || nm) + (f.role ? ' · ' + f.role : '')).slice(0, 60) + ' cut' : nm.trim().replace(/\s+/g, ' ').slice(0, 60) + ' reel', items: D.items, target, slate: !!L.profile.name, endcard: false, breakdown: L.lastBreakdown, at: now() };
+        if (f) { r.spotted = f.spotted; r.spottedFrom = f.src; r.spottedProject = f.project; }
+        L.reels.unshift(r); touch(); cutSave(r); S.reelId = r.id; S.tab = 'reel'; render(); window.scrollTo(0, 0); break;
       }
       // reels
       case 'newreel': { const r = { id: rid(), name: 'Reel ' + (L.reels.length + 1), items: [], target: 90, slate: !!L.profile.name, endcard: false, at: now() }; L.reels.unshift(r); touch(); S.reelId = r.id; S.tab = 'reel'; render(); break; }
       case 'openreel': S.reelId = ds.id; S.tab = 'reel'; render(); window.scrollTo(0, 0); break;
+      case 'tospotted': { try { const u = JSON.parse(localStorage.getItem('spotted_ui_v1') || '{}'); u.tab = 'list'; u.open = ds.id; localStorage.setItem('spotted_ui_v1', JSON.stringify(u)); } catch (e) { } location.href = '../spotted/'; break; }
       case 'delreel': if (confirm('Delete this reel? Your moments stay in the library.')) { L.reels = L.reels.filter(r => r.id !== S.reelId); touch(); act('tab', { t: 'reels' }); } break;
       case 'target': reelById(S.reelId).target = +ds.s; touch(); render(); break;
       case 'slate': { const r = reelById(S.reelId); r[ds.v] = !r[ds.v]; touch(); render(); break; }
@@ -904,7 +913,14 @@
     S.lib = lib && lib.schema === SCHEMA ? Object.assign(emptyLib(), lib) : emptyLib();
     for (const c of S.lib.clips) { try { const b = await DB.getMedia(c.id); if (b) { S.urls[c.id] = URL.createObjectURL(b); S.files[c.id] = b; } } catch (e) { } }
     try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { }
+    try {
+      const q = new URLSearchParams(location.search), h = JSON.parse(localStorage.getItem('theactorpage_handoff_cut') || 'null');
+      if (h && h.from === 'spotted' && h.text && Date.now() - (h.at || 0) < 2 * 3600e3) {
+        S.lib.lastBreakdown = h.text; S.forSpotted = { spotted: h.spotted, project: h.project, role: h.role, src: h.src }; S.match = null; S.tab = 'match'; localStorage.removeItem('theactorpage_handoff_cut');
+      } else if (q.get('reel') && S.lib.reels.some(r => r.id === q.get('reel'))) { S.reelId = q.get('reel'); S.tab = 'reel'; }
+      if (q.toString()) history.replaceState(null, '', location.pathname);
+    } catch (e) { }
     render();
-    window.ARCHBOOK = { S, act, E, runSequence, seqFor, version: VERSION };
+    window.ARCHBOOK = { S, act, E, runSequence, seqFor, save: () => touch(), version: VERSION };
   })();
 })();

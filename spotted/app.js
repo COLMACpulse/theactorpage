@@ -92,6 +92,16 @@ function moreHtml(it){ const M=it.more||[]; if(!M.length) return '';
 function changedHtml(it){ const L=(it.log||[]).map(e=>({at:e.at,t:e.t})).concat((it.history||[]).slice(1).map(h=>({at:h.at,t:'Moved to '+S.statusWord(h.s).toLowerCase()+'.'}))).sort((a,b)=>b.at-a.at);
  if(!L.length) return '';
  return '<details class="card" id="changed"'+(L.length<=4?' open':'')+'><summary class="kicker" style="cursor:pointer;margin:0">What changed <i>'+L.length+'</i></summary><ul class="facts" style="margin-top:8px">'+L.map(e=>'<li><span class="faint">'+esc(day(e.at))+':</span> '+esc(e.t)+'</li>').join('')+'</ul></details>'; }
+/* a cut for this one: Archbook builds it from your footage; the card keeps it, the notes mention it */
+const mmss=n=>{ n=Math.round(n||0); return Math.floor(n/60)+':'+String(n%60).padStart(2,'0'); };
+function cutLogged(it,cut){ if(!cut) return; if((it.log||[]).some(e=>e.k==='cut'&&e.reel===cut.reel)) return; S.log(it,'cut','Built a '+mmss(cut.secs)+' cut in Archbook.',cut.at); it.log[it.log.length-1].reel=cut.reel; save(); }
+function cutHtml(it,cut){ const T=S.cutText(it.card,types());
+ if(cut) return '<div class="card" id="cutbox"><p class="kicker">A cut for this</p><p style="margin:0 0 4px"><b>'+esc(cut.name)+'</b> · '+mmss(cut.secs)+'</p><p class="faint small" style="margin:0 0 8px">Built '+esc(day(cut.at))+' from '+(cut.from==='role'?'the role\'s own words':'the project\'s kind and your types')+'. The notes below mention it. To send the video: open it in Archbook, make the video, then Save or share.</p>'
+  +'<div class="row"><a class="btn pri" style="flex:1;text-decoration:none" href="../archbook/?reel='+encodeURIComponent(cut.reel)+'">OPEN IN ARCHBOOK</a><button class="btn" id="buildcut">BUILD ANOTHER</button></div></div>';
+ return '<div class="card" id="cutbox"><p class="kicker">A cut for this</p><p class="faint small" style="margin:-4px 0 8px">Archbook finds the footage you have for this role and builds a 1:00 to 2:00 cut, '+(T.from==='role'?'from the role\'s own words':'from the project\'s kind and your types (there\'s no role description on this one)')+'. Your reps get a line saying it\'s ready.</p><button class="btn pri block" id="buildcut">BUILD A CUT</button></div>'; }
+function buildCut(it){ const T=S.cutText(it.card,types());
+ try{ localStorage.setItem('theactorpage_handoff_cut',JSON.stringify({from:'spotted',spotted:it.id,project:it.card.project||'',role:it.card.role||'',text:T.text,src:T.from,at:Date.now()})); }catch(e){ return toast('This phone is out of room.'); }
+ location.href='../archbook/?for=spotted'; }
 function cardFields(c){
  const f=(k,l,v,ph)=>'<label class="lab" for="cf_'+k+'">'+l+'</label><input class="field" id="cf_'+k+'" data-cf="'+k+'" value="'+esc(v)+'" placeholder="'+esc(ph||'Not written')+'">';
  let h=f('project','Project',c.project)+f('role','Role',c.role);
@@ -129,7 +139,8 @@ function lookHtml(){
 /* ---------- one you've kept ---------- */
 function itemView(it){
  const c=it.card, F=factsFor(it), m=me();
- const pa=S.passAlong(Object.assign({},c,{mine:it.mine,more:it.more||[],you_stage:it.you_stage||''}),F,m), pt=S.pitch(c,F,m), dn=S.direct(c,F,m);
+ const cut=S.cutFor(it.id); cutLogged(it,cut);
+ const pa=S.passAlong(Object.assign({},c,{mine:it.mine,more:it.more||[],you_stage:it.you_stage||'',cut}),F,m), pt=S.pitch(Object.assign({},c,{cut}),F,m), dn=S.direct(c,F,m);
  let h='<div class="row" style="margin-bottom:10px"><button class="lnk" id="back">‹ All spotted</button></div>';
  h+='<div class="card"><p class="kicker">'+esc(day(it.at))+'</p><h2 style="font-size:20px">'+esc(c.project||'(no title)')+'</h2><p class="dim" style="margin:4px 0 10px">'+esc([c.role,(c.casting||[]).length?c.casting.join(' & ')+' casting':''].filter(Boolean).join(' · '))+'</p>'
   +'<div class="row">'+S.STATUS.map(([k,l])=>'<button class="chip sm'+(it.status===k?' on':'')+'" data-st="'+k+'">'+l+'</button>').join('')+'</div>'
@@ -138,6 +149,7 @@ function itemView(it){
  h+=stageHtml(c);
  h+=moreHtml(it);
  h+=factsHtml(F);
+ h+=cutHtml(it,cut);
  h+=changedHtml(it);
  h+='<details class="card"><summary class="kicker" style="cursor:pointer;margin:0">What it says</summary><div style="margin-top:10px">'+cardFields(c)+saidHtml(c)+'</div></details>';
  if(!D.me.reps.length) h+='<div class="msg">Add your reps on YOU and EMAIL goes straight to them.</div>';
@@ -296,6 +308,7 @@ function wire(){
   M.querySelectorAll('[data-mail]').forEach(a=>a.onclick=e=>{ const id=a.dataset.mail, ta=$('t_'+id); let body=ta.value;
    if(id==='pt') body='If it helps, a note you could send them:\n\n'+body;
    a.href=mail(a.dataset.to,ta.dataset.subj,body); if(id==='pa'&&it.status==='spotted'){ setStatus(it,'passed'); setTimeout(render,300); } });
+  if($('buildcut')) $('buildcut').onclick=()=>buildCut(it);
   if($('del')) $('del').onclick=()=>{ if(!confirm('Delete this one?')) return; D.items=D.items.filter(x=>x.id!==it.id); U.open=''; save(); saveU(); render(); };
  }
  if($('q')) $('q').oninput=e=>{ U.q=e.target.value; saveU(); const p=e.target.selectionStart; render(); const q=$('q'); q.focus(); try{ q.setSelectionRange(p,p); }catch(x){} };
