@@ -34,6 +34,8 @@ R.slateData=function(){
 };
 function slate(){
  const d=R.slateData();
+ /* nothing of yours yet: the slate shows the sample, said so under it */
+ if(!d.title){ put('sl_prod','LOW TIDE (SAMPLE)'); put('sl_role','ANNA'); put('sl_take','1'); put('sl_date',dots()); put('sl_name',cut(d.name||'YOUR NAME',22)); why('sl_why',true); changed('slate','|'); return; }
  put('sl_prod',cut(d.title,22)); put('sl_role',cut(d.role,14)); put('sl_take',d.title?String(Math.max(1,d.take+1)):''); put('sl_date',dots()); put('sl_name',cut(d.name,22));
  why('sl_why',!d.title);
  if(changed('slate',d.title+'|'+d.role)) play($('slate'),'clap');

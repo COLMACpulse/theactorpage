@@ -9,7 +9,7 @@ const c=await b.newContext({viewport:{width:1300,height:900}}); const p=await c.
 await p.goto('http://localhost:8811/index.html'); await p.evaluate(()=>{ localStorage.clear(); indexedDB.deleteDatabase('filmhub'); }); await p.reload(); await p.waitForTimeout(800);
 const T=id=>p.evaluate(i=>{ const e=document.getElementById(i); return e?e.textContent:null; },id);
 const vis=id=>p.evaluate(i=>{ const e=document.getElementById(i); return !!(e&&!e.hidden); },id);
-want('from nothing: a blank slate, a blank page, an empty camera, each with its line', await vis('sl_why')&&await vis('tw_why')&&await vis('cam_why')&&!(await T('sl_prod'))&&!(await T('tw_title'))&&/next audition/.test(await T('sl_why'))&&/page goes here/.test(await T('tw_why'))&&/film goes here/.test(await T('cam_why')));
+want('from nothing: the slate shows the sample and says so; a blank page, an empty camera, each with its line', await vis('sl_why')&&await vis('tw_why')&&await vis('cam_why')&&(await T('sl_prod'))==='LOW TIDE (SAMPLE)'&&!(await T('tw_title'))&&/A sample, until your first audition comes in/.test(await T('sl_why'))&&/page goes here/.test(await T('tw_why'))&&/film goes here/.test(await T('cam_why')));
 want('the slate has today\'s date even when blank', /^\d{1,2}\.\d{1,2}\.\d\d$/.test(await T('sl_date')));
 want('each opens its room: Actor OS, Writer\'s Blockage, Story Studio, VO Booth', await p.evaluate(()=>['slate','tw','cam','mic'].map(i=>document.getElementById(i).getAttribute('href')).join('|'))==='actor-os/|write/writers-blockage.html|film/|booth/');
 want('nothing is made on this device just to look (no FILM HUB database)', await p.evaluate(async()=>{ const L=indexedDB.databases?await indexedDB.databases():[]; return !L.some(d=>d.name==='filmhub'); }));

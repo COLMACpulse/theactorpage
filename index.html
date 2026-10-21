@@ -366,6 +366,13 @@ body.has .scrollcue{display:none}
 .lens .glass{position:relative;display:block;aspect-ratio:4/5;overflow:hidden;background:linear-gradient(160deg,#2a2d33,#15171b)}
 .lens .glass img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 25%;opacity:0}
 .lens .glass img.on{opacity:1}
+.lens .glass img.ph{opacity:.92;object-position:50% 40%}
+.starters{display:grid;gap:8px;margin:14px 0 0;width:min(100%,210px)}
+.starters[hidden]{display:none}
+.starter{display:flex;align-items:center;justify-content:center;min-height:44px;padding:8px 10px;border:1px solid var(--tungsten);border-radius:0;background:none;color:var(--tungsten);font:700 .7rem var(--script);letter-spacing:.14em;cursor:pointer;text-align:center}
+.starter:hover,.starter:focus-within,.starter:focus-visible{background:rgba(224,162,60,.1)}
+.starter[hidden]{display:none}
+.ipsample{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;border:1px dashed #3a3f47;padding:12px 14px;margin-top:12px;color:#c3c8d0;font-size:.95rem}.ipsample b{font:700 .74rem var(--script);letter-spacing:.18em;color:var(--ink)}.ipsample i{font-style:normal;color:var(--tungsten)}.ipsample a{font:700 .72rem var(--script);letter-spacing:.16em;color:var(--tungsten);border:1px solid var(--tungsten);padding:9px 12px;text-decoration:none}
 .lens .hname{display:block;padding:9px 4px 10px;font:500 .78rem/1.2 Jost,system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#1d1a15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lens .hname.none{color:#9a9284}
 .yres{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;border:1px solid #2a2f37;background:#12151a;padding:12px 14px;margin:10px 0}
@@ -373,7 +380,7 @@ body.has .scrollcue{display:none}
 .dept{margin-top:4px}.deptsum{list-style:none;cursor:pointer;display:flex;flex-direction:column;gap:4px;padding:16px 18px;border:1px solid var(--rule);font-family:var(--script)}.deptsum::-webkit-details-marker{display:none}.deptsum b{letter-spacing:.12em;font-size:.9rem}.deptsum span{color:var(--faint);font-size:.82rem}.dept[open] .deptsum{margin-bottom:14px}.dept[open] .deptsum b::after{content:" · CLOSE";color:var(--faint)}.deptopen{all:unset;cursor:pointer}.deptopen:focus-visible{outline:2px solid currentColor;outline-offset:4px}
 .pastego.sm{padding:8px 12px;font-size:.72rem;cursor:pointer;margin:0}.yx{background:none;border:0;color:var(--faint);cursor:pointer;font-size:14px;padding:6px}
 .keepline{font-size:.86rem;color:#9aa0a8;border-top:1px solid #23272e;margin-top:14px;padding-top:12px;line-height:1.55}.keepline a{color:var(--tungsten)}.keepline .ios{display:block;margin-top:6px;color:#c3c8d0}.keepline button{background:none;border:0;color:var(--faint);cursor:pointer;padding:0 0 0 6px;font:inherit}
-.lens-why{display:block;font-family:var(--script);font-size:.78rem;color:var(--faint);margin-top:14px}
+.lens-why{display:block;font-family:var(--script);font-size:.78rem;color:#9aa1ab;margin-top:14px;max-width:210px}
 .lens-why[hidden]{display:none}
 @media(prefers-reduced-motion:no-preference){
   .lens .glass img{transition:opacity .35s ease}
@@ -658,7 +665,7 @@ footer .viewrow{margin:18px 0 4px;padding:0}
         <g class="sll"><text x="16" y="70">PROD.</text><text x="16" y="102">ROLE</text><text x="112" y="102">TAKE</text><text x="16" y="132">DATE</text><text x="112" y="132">ROLL</text><text x="16" y="162">ACTOR</text></g>
         <g class="slv"><text id="sl_prod" x="16" y="86"></text><text id="sl_role" x="16" y="116"></text><text id="sl_take" class="big" x="112" y="118"></text><text id="sl_date" x="16" y="146"></text><text x="112" y="146">A</text><text id="sl_name" x="16" y="176"></text></g>
        </svg></a>
-      <span class="obj-why" id="sl_why">Your next audition goes here.</span>
+      <span class="obj-why" id="sl_why">A sample, until your first audition comes in. <a href="demo/?try">Try it</a></span>
       <div class="spark" data-spark="act"></div>
       <p class="spark-why">A five-minute nudge to get you working, from your own sides when you have them.</p>
       <div class="spark practice" data-practice=""></div>
@@ -810,8 +817,13 @@ footer .viewrow{margin:18px 0 4px;padding:0}
     <div>
       <h2 class="disc-name">YOU</h2>
       <p class="disc-what">Put it in once.<br>Every tool has it.</p>
-      <button class="lens" id="lens" type="button" aria-label="Your profile"><span class="glass"><img id="lensimg" alt=""></span><span class="hname none" id="lensname">Your name</span></button>
-      <span class="lens-why" id="lenswhy">Your headshot goes here.</span>
+      <button class="lens" id="lens" type="button" aria-label="Your profile"><span class="glass"><img class="ph" src="img/you-mask.webp" alt="" width="400" height="500"><img id="lensimg" alt=""></span><span class="hname none" id="lensname">Your name</span></button>
+      <span class="lens-why" id="lenswhy">This is you, before your headshot. Add one, and every tool uses it.</span>
+      <div class="starters" id="starters">
+        <label class="starter" id="st_head">ADD A HEADSHOT<input type="file" id="st_headfile" accept="image/*" multiple hidden></label>
+        <label class="starter" id="st_res">BRING IN YOUR RÉSUMÉ<input type="file" id="st_resfile" accept=".pdf,.doc,.docx,.txt,.rtf,.pages,image/*" hidden></label>
+        <button type="button" class="starter" id="st_sides">ADD YOUR SIDES</button>
+      </div>
     </div>
     <div>
       <p class="you-lede">Put your material in once: your sides, the self-tape request, your rep's email, scripts, your résumé, headshots, footage. It's kept on your device and used wherever it fits, so you're never filling in the same details twice.</p>

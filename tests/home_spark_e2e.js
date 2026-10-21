@@ -6,7 +6,7 @@ const {chromium}=require('playwright'); const path=require('path'), fs=require('
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,400))); if(!x) ok=false; };
 const c=await b.newContext({viewport:{width:1300,height:900}}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
 await p.goto('http://localhost:8811/index.html'); await p.evaluate(()=>{ localStorage.clear(); sessionStorage.clear(); }); await p.reload(); await p.waitForTimeout(700);
-want('nothing in: no IN PLAY at all', (await p.innerText('#inplay')).trim()==='');
+want('nothing in: IN PLAY says nothing of yours yet, and offers the sample', /nothing of yours yet/.test(await p.innerText('#inplay'))&&/Low Tide/.test(await p.innerText('#inplay'))&&(await p.getAttribute('#inplay a','href'))==='demo/?try');
 want('SPARK on ACT, WRITE and FILM, and nothing shown until tapped', (await p.$$eval('[data-spark]',x=>x.map(y=>y.dataset.spark))).join()==='act,write,film'&&await p.$$eval('.spark-card',x=>x.length)===0);
 // fill: five sides, a tape due tomorrow, a draft
 const text=fs.readFileSync(path.join(__dirname,'..','shared','fixtures','low_tide.fountain'),'utf8');

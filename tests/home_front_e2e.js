@@ -50,5 +50,10 @@ const fr=p.frame({url:/localhost:8811\/(index\.html)?$/})||p.frames()[1];
 want('TRY IT: the site in the demo, Low Tide in, you\'re ANNA, no tour', await p.evaluate(()=>window.__tour.tried&&!document.getElementById('start').offsetParent&&/DEMO/.test(document.getElementById('where').textContent))&&/ANNA/.test(await fr.innerText('#took')), await p.evaluate(()=>document.getElementById('cap').textContent));
 want('it never talks', spoke===0);
 want('END DEMO is there', await p.isVisible('#end'));
+// a first visit: YOU isn't empty
+await p.goto('http://localhost:8811/'); await p.evaluate(()=>localStorage.clear()); await p.reload(); await p.waitForTimeout(900);
+want('first visit: the mask in the frame, a line saying what it is, three ways in', await p.$eval('#lens .glass img.ph',i=>i.complete&&i.naturalWidth>100)&&/This is you, before your headshot/.test(await p.innerText('#lenswhy'))&&await p.isVisible('#st_head')&&await p.isVisible('#st_res')&&await p.isVisible('#st_sides'));
+await p.setInputFiles('#st_headfile',{name:'me.png',mimeType:'image/png',buffer:require('zlib')&&Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==','base64')}); await p.waitForTimeout(1500);
+want('add a headshot: that button goes, the line goes, the other two stay', !(await p.isVisible('#st_head'))&&!(await p.isVisible('#lenswhy'))&&await p.isVisible('#st_res'));
 want('no page errors', !errs.length, errs);
 await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();

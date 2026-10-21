@@ -155,7 +155,7 @@ let LENSID=null;
 async function drawLens(){
  const L=$('lens'), im=$('lensimg'), why=$('lenswhy'); if(!L||!im||!Y) return;
  const y=Y.get(), id=y.primary&&y.photos.some(p=>p.id===y.primary)?y.primary:(y.photos[0]&&y.photos[0].id)||'';
- if(why) why.hidden=!!id;
+ if(why) why.hidden=!!id; try{ drawStarters(); }catch(e){}
  const nm=$('lensname'); if(nm){ nm.textContent=y.name||'Your name'; nm.classList.toggle('none',!y.name); }
  L.setAttribute('aria-label',id?'Your profile'+(y.name?', '+y.name:''):'Your profile. No headshot yet.');
  if(id===LENSID) return; LENSID=id;
@@ -165,6 +165,16 @@ async function drawLens(){
  im.onload=()=>{ im.classList.add('on'); L.classList.remove('pull'); void L.offsetWidth; L.classList.add('pull'); };
  im.src=URLS[id];
 }
+/* STARTERS: on a first visit, the three ways in. Each one goes once you have it. */
+function drawStarters(){ const box=$('starters'); if(!box||!Y) return; const y=Y.get();
+ const has={head:!!(y.photos&&y.photos.length),res:!!y.resume,sides:!!(Sh&&Sh.all().length)};
+ $('st_head').hidden=has.head; $('st_res').hidden=has.res; $('st_sides').hidden=has.sides; box.hidden=has.head&&has.res&&has.sides;
+ const w=$('lenswhy'); if(w) w.hidden=has.head; }
+(function(){ const h=$('st_headfile'), r=$('st_resfile'), sd=$('st_sides'); if(!h) return;
+ h.onchange=e=>{ const fl=[...e.target.files]; e.target.value=''; if(fl.length) take(fl,''); };
+ r.onchange=e=>{ const fl=[...e.target.files]; e.target.value=''; if(fl.length) take(fl.slice(0,1),'',false,{asResume:true}); };
+ sd.onclick=()=>{ const f=$('dropfile'); if(f) f.click(); };
+})();
 (function(){ const L=$('lens'); if(!L) return;
  L.onclick=()=>{ YOPEN=true; YFORCE=true; showYou(); const b=$('youpanel'); if(b) b.scrollIntoView({block:'nearest',behavior:'smooth'}); };
  ['dragenter','dragover'].forEach(ev=>L.addEventListener(ev,e=>{ e.preventDefault(); }));
@@ -189,7 +199,9 @@ function showPlay(){
  const D=I.all('draft').filter(x=>!A.includes('d:'+x.id)).sort((a,b)=>(b.at||0)-(a.at||0));
  document.body.classList.toggle('has',!!(Sh.all().length||I.all('request').length||I.all('draft').length||(Y&&Y.has())));
  const box=$('inplay'); if(!box) return;
- if(!S.length&&!R.length&&!D.length){ box.innerHTML=''; return; }
+ try{ drawStarters(); }catch(e){}
+ /* nothing of yours yet: a sample to try, said plainly */
+ if(!S.length&&!R.length&&!D.length){ box.innerHTML='<div class="ipsample"><span><b>IN PLAY</b> · nothing of yours yet. <i>Sample:</i> Low Tide, a short made-up scene.</span><a href="demo/?try">TRY IT</a></div>'; return; }
  const dw=x=>x.data.dueObj?HubReq.dueWords(x.data.dueObj):(x.data.dueWords||'');
  const pl=(n,w)=>n+' '+w+(n===1?'':'s');
  const soon=R.find(x=>Date.parse(x.data.due)-Date.now()<48*3600e3);
