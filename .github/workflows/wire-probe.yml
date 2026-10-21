@@ -1,0 +1,22 @@
+name: wire-probe
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch the candidate sources and their robots rules, raw
+        run: |
+          mkdir out; UA='theactorpage-wire/0.1 (+https://colmacpulse.github.io/theactorpage/privacy/)'
+          while read n u; do curl -sS -A "$UA" -L --max-redirs 3 --max-time 30 -o "out/$n" -w "$n %{http_code} %{content_type} %{size_download} %{url_effective}\n" "$u" >> out/_status.txt || echo "$n FAILED" >> out/_status.txt; done <<'L'
+          cfc.html https://film.ca.gov/film-and-television-tax-credit-program-approved-projects-list/
+          cfc_robots.txt https://film.ca.gov/robots.txt
+          deadline.xml https://deadline.com/feed/
+          deadline_robots.txt https://deadline.com/robots.txt
+          variety.xml https://variety.com/feed/
+          variety_robots.txt https://variety.com/robots.txt
+          thr.xml https://www.hollywoodreporter.com/feed/
+          thr_robots.txt https://www.hollywoodreporter.com/robots.txt
+          L
+          cat out/_status.txt
+      - uses: actions/upload-artifact@v4
+        with: { name: probe, path: out, retention-days: 1 }
