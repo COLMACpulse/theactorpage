@@ -227,5 +227,16 @@ ok('brief: ask-me-first gathered at the end; no scores or percents', /ASK ME FIR
  ok('no FILE column: says so', /No FILE column/.test(F.logRead([['A','B'],['1','2']]).notes[0]));
  ok('duration words: 68s, 1m 8s, an hour checked', F.logDur('68s').sec===68&&F.logDur('1m 8s').sec===68&&/Over an hour/.test(F.logDur('1:08:00').note||''));
  ok('time formats: h:mm, mm:ss, [h]:mm:ss, a date is not a time', F.timeKind('h:mm')==='hm'&&F.timeKind('mm:ss')==='ms'&&F.timeKind('[h]:mm:ss')==='hms'&&F.timeKind('m/d/yyyy h:mm')===''&&F.timeKind('General')==='');
- console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail?1:0);
+ /* from the Filmmaker OS vet: a no, a plural, and through the script */
+{ const T3='EXT. DUST ROAD - DAWN\n\nCOLE rides in on a horse. He has no gun. A lantern swings from the saddle.\n\nCOLE\nWhere\'s the rifle?\n\nINT. BARN - NIGHT\n\nCOLE hangs the lantern. He pulls on his gloves and grabs two rifles.\n\nMAE\nYou forgot your hat.\n\nEXT. DUST ROAD - DAY\n\nCOLE walks the horse. Thunder.\n';
+  const s3=F.scenes(T3);
+  ok('a no: "He has no gun" is not on the list, and is said', !s3[0].props.includes('gun')&&s3[0].propsNot.join()==='gun', [s3[0].props,s3[0].propsNot]);
+  ok('a plural: "two rifles" is a rifle', s3[1].props.includes('rifle'), s3[1].props);
+  ok('dialogue still never counts: the rifle and the hat they talk about are not props', !s3[0].props.includes('rifle')&&!s3[1].props.includes('hat'), [s3[0].props,s3[1].props]);
+  ok('"glasses" stays glasses, never "glass"', F.find('She puts on her glasses.',['glass','glasses']).join()==='glasses');
+  ok('a yes beats a no in the same scene', F.find('No gun at first. Then he finds a gun.',['gun']).join()==='gun'&&!F.findNot('No gun at first. Then he finds a gun.',['gun']).length);
+  const th=F.through(s3);
+  ok('through the script: the lantern in 1 and 2, the horse in 1 and 3, DUST ROAD in 1 and 3', th.some(x=>x.label==='lantern'&&x.scenes.join()==='1,2')&&th.some(x=>x.label==='horse'&&x.scenes.join()==='1,3')&&th.some(x=>x.kind==='place'&&x.label==='DUST ROAD'&&x.scenes.join()==='1,3'), th);
+}
+console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail?1:0);
 })();

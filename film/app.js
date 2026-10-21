@@ -143,7 +143,8 @@ function front(){
  ])+'<p class="faint" style="font-size:13px;margin:-6px 0 18px">'+(all?all+' take'+(all===1?'':'s')+' so far. They\'re in CUT.':'Takes you shoot here go straight into CUT, on their scene.')+'</p>':'';
 }
 function vScenes(){
- return '<p class="kicker">Tap a scene to pick how you\'ll make it</p>'+SCENES.map(sc=>{
+ const TH=F.through(SCENES);
+ return (TH.length?'<div class="card" id="through"><p class="kicker">Through the script</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">In more than one scene, so it\'s there and it matches.</p>'+TH.slice(0,14).map(x=>'<div style="font-size:14px;margin:3px 0"><b>'+esc(x.label)+'</b> <span class="faint">'+(x.kind==='place'?'place · ':'')+'scenes '+x.scenes.join(', ')+'</span></div>').join('')+(TH.length>14?'<p class="faint" style="font-size:13px">And '+(TH.length-14)+' more.</p>':'')+'</div>':'')+'<p class="kicker">Tap a scene to pick how you\'ll make it</p>'+SCENES.map(sc=>{
   const w=wayOf(sc.n), wn=w?F.wayName(w):'', where=whereName(sc.n), dn=doneOf(sc);
   return '<button class="sc" data-scene="'+sc.n+'"><div class="hd">'+sc.n+'. '+esc(sc.heading)+'</div>'
    +'<div class="sub">'+(sc.speakers.length?sc.speakers.map(s=>esc(s.name)+' '+s.lines+(s.voice?' (voice)':'')).join(' · '):'No dialogue')+'</div>'
@@ -177,6 +178,7 @@ function vScene(n){
  const mine=F.owns(sc,owned());
  const bits=[];
  const ins=Array.isArray(s.ins)?s.ins:sc.props.slice(0,6);
+ if((sc.propsNot||[]).length) bits.push('<p class="faint" id="propsnot" style="font-size:13px;margin:8px 0 0">Said with a no, so not on the list: '+esc(sc.propsNot.join(', '))+'.</p>');
  if(sc.props.length&&s.way!=='list') bits.push('<p class="kicker" style="margin:12px 0 6px">In the action · tap for an insert</p><div class="chips">'+sc.props.map(p=>'<button class="chip'+(ins.includes(p)?' on':'')+'" data-ins="'+esc(p)+'">'+esc(p)+'</button>').join('')+'</div>');
  if(mine.length) bits.push('<p class="kicker" style="margin:12px 0 6px">Yours, named in the scene</p><div class="chips">'+mine.map(o=>'<span class="tag on">'+esc(o.name)+'</span>').join('')+'</div>');
  if(sc.people.length) bits.push('<p class="kicker" style="margin:12px 0 6px">People in the action, no lines</p><div class="chips">'+sc.people.map(p=>'<span class="tag">'+esc(p)+'</span>').join('')+'</div><p class="faint" style="font-size:13px;margin:6px 0 0">A walk-by, a shoulder, or a sound. Not a cast.</p>');

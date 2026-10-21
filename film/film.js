@@ -63,7 +63,7 @@ F.scenes=function(text){
   const all=action.join(' ');
   out.push({n:out.length+1,heading:c.heading||'(no scene heading)',ie:h.ie,place:h.place||'',tod:h.tod,
    speakers:speakers,beats:beats,action:action,
-   props:F.find(all,PROPS),sound:F.find(all,SOUNDS),people:F.find(all,PEOPLE).filter(p=>!speakers.some(s=>s.name.toLowerCase().split(/\s+/).includes(p)))});
+   props:F.find(all,PROPS),propsNot:F.findNot(all,PROPS),sound:F.find(all,SOUNDS),people:F.find(all,PEOPLE).filter(p=>!speakers.some(s=>s.name.toLowerCase().split(/\s+/).includes(p)))});
  });
  // CONTINUOUS / SAME / LATER carry the time of the scene before
  for(let i=1;i<out.length;i++) if(/^(CONTINUOUS|SAME|LATER|MOMENTS LATER)$/.test(out[i].tod)&&out[i-1].tod) out[i].tod=out[i-1].tod;
@@ -71,15 +71,35 @@ F.scenes=function(text){
 };
 
 /* ---------- what's in the action ----------
-   Whole words only: "hat" is never found inside "that". Shown as suggestions. */
+   Whole words only: "hat" is never found inside "that". A plural counts ("two rifles" is a rifle). Said with a no
+   ("He has no gun") stays off the list. Shown as suggestions. */
 const PROPS=['ticket','tickets','duffel','bag','suitcase','backpack','purse','wallet','keys','key','phone','cell','letter','envelope','note','photo','photograph','map','book','bible','notebook','file','folder','badge','gun','pistol','rifle','shotgun','revolver','holster','knife','rope','lantern','flashlight','lamp','bulb','candle','lighter','match','matches','cigarette','cigarettes','cigar','bottle','glass','glasses','cup','mug','coffee','thermos','flask','beer','whiskey','plate','bowl','fork','spoon','table','chair','chairs','bench','bed','door','window','fridge','magnet','radio','tv','television','laptop','camera','money','cash','coin','ring','watch','hat','cap','coat','jacket','gloves','boots','umbrella','blanket','towel','newspaper','box','crate','bucket','shovel','axe','hammer','saddle','bridle','truck','pickup','car','van','bus','horse','bike','motorcycle','trailer','tractor','engine','wipers','heater','dashboard','steering','wheel','headlights','seatbelt','gas','pump','sign','fence','gate','tire','tires'];
 const SOUNDS=['rain','thunder','wind','storm','engine','idles','idling','horn','honk','siren','wipers','heater','radio','phone','rings','ringing','buzz','buzzes','door','slams','knock','knocks','footsteps','steps','boots','dog','dogs','barks','horse','cattle','birds','crickets','creek','river','water','fire','crackle','crackles','clock','ticks','tv','music','crowd','traffic','train','bus','truck','gravel','tires','glass','breaks','shatters','gunshot','shot','shots','bell','creak','creaks','hum','buzzing','bulb','tin','roof'];
 const PEOPLE=['man','woman','men','women','kid','kids','child','children','boy','girl','driver','bartender','waitress','waiter','clerk','cop','cops','officer','deputy','sheriff','doctor','nurse','crowd','stranger','strangers','passenger','passengers','customer','customers','guard','guards','hand','hands','rider','riders','neighbor','pastor','preacher','priest','judge','soldier','soldiers'];
-F.find=function(text,list){
- const words=String(text||'').toLowerCase().match(/[a-z']+/g)||[];
+const NEG=/^(?:no|not|without|never|nobody|none|isn't|doesn't|don't|hasn't|haven't|didn't|can't|cannot|won't)$/;
+/* each sentence's words; "rifles" counts as "rifle" when the list has the one and not the other */
+const hits=function(text,list){
  const want=new Set(list), out=[];
- words.forEach(w=>{ if(want.has(w)&&!out.includes(w)) out.push(w); });   // in the order the script names them
+ String(text||'').toLowerCase().replace(/[’]/g,"'").split(/(?<=[.!?;])\s+|\n+/).forEach(snt=>{
+  const ws=snt.match(/[a-z']+/g)||[];
+  ws.forEach((w,i)=>{ let k=want.has(w)?w:want.has(w.replace(/es$/,''))&&/(?:s|x|z|ch|sh)es$/.test(w)?w.replace(/es$/,''):want.has(w.replace(/s$/,''))?w.replace(/s$/,''):null;
+   if(!k) return; const before=ws.slice(Math.max(0,i-3),i), not=before.some(b=>NEG.test(b)||/n't$/.test(b));
+   out.push({w:k,not}); }); });
  return out;
+};
+F.find=function(text,list){
+ const out=[];
+ hits(text,list).forEach(h=>{ if(!h.not&&!out.includes(h.w)) out.push(h.w); });   // in the order the script names them
+ return out;
+};
+/* said with a no ("He has no gun", "without the lantern"): kept off the list, said so */
+F.findNot=function(text,list){ const H=hits(text,list), yes=new Set(H.filter(h=>!h.not).map(h=>h.w)), out=[];
+ H.forEach(h=>{ if(h.not&&!yes.has(h.w)&&!out.includes(h.w)) out.push(h.w); }); return out; };
+/* through the script: each thing and place in more than one scene, with the scenes. So it's there, and it matches. */
+F.through=function(scenes){
+ const by={}, add=(k,label,n)=>{ const o=by[k]=by[k]||{label,scenes:[]}; if(!o.scenes.includes(n)) o.scenes.push(n); };
+ (scenes||[]).forEach(sc=>{ (sc.props||[]).forEach(p=>add('p:'+p,p,sc.n)); if(sc.place) add('l:'+sc.place.toUpperCase(),sc.place.toUpperCase(),sc.n); });
+ return Object.keys(by).map(k=>({kind:k[0]==='l'?'place':'thing',label:by[k].label,scenes:by[k].scenes})).filter(x=>x.scenes.length>1).sort((a,b)=>b.scenes.length-a.scenes.length||(a.kind==='place')-(b.kind==='place')||a.label.localeCompare(b.label));
 };
 /* your own things named in the scene: "Pickup truck" is in a scene that says "pickup" */
 F.owns=function(scene,owned){
