@@ -79,6 +79,9 @@ want('a source down tomorrow: yesterday\'s stories and the state list stay', any
 big = {'items': [{'id': 'n%d' % k, 'src': 'trade', 'kind': 'news', 'title': 't', 'link': 'https://trade.example.com/%d' % k, 'date': '2026-10-%02dT%02d:00:00Z' % (10 + k // 300, k % 24)} for k in range(2000)]}
 w3 = W.run([], big, NOW)
 want('never more than the cap of trade stories, newest kept, state list untouched', len([i for i in w3['items'] if i['kind'] == 'news']) == W.MAX_NEWS and w3['items'][0]['date'] >= w3['items'][-1]['date'])
+BODY['https://trade.example.com/feed/'] = RSS; BODY['https://trade.example.com/film/feed/'] = RSS
+w4 = W.run([SRC[1], {'id': 'trade-film', 'label': 'Made Up Trade film', 'kind': 'rss', 'url': 'https://trade.example.com/film/feed/'}], None, NOW, fake)
+want('the same story in two feeds of one site: kept once', len(w4['items']) == len({i['id'] for i in w4['items']}) == 1, [i['src'] for i in w4['items']])
 want('no duplicates across runs', len({i['id'] for i in w2['items']}) == len(w2['items']))
 want('https only', (lambda: (W.get('http://example.com/') and False))() if False else True)
 try:

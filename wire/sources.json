@@ -1,6 +1,58 @@
 [
-  {"id": "cfc", "label": "California Film Commission", "kind": "cfc", "home": "https://film.ca.gov/", "url": "https://film.ca.gov/film-and-television-tax-credit-program-approved-projects-list/"},
-  {"id": "deadline", "label": "Deadline", "kind": "rss", "home": "https://deadline.com/", "url": "https://deadline.com/feed/"},
-  {"id": "variety", "label": "Variety", "kind": "rss", "home": "https://variety.com/", "url": "https://variety.com/feed/"},
-  {"id": "thr", "label": "The Hollywood Reporter", "kind": "rss", "home": "https://www.hollywoodreporter.com/", "url": "https://www.hollywoodreporter.com/feed/"}
+  {
+    "id": "cfc",
+    "label": "California Film Commission",
+    "kind": "cfc",
+    "home": "https://film.ca.gov/",
+    "url": "https://film.ca.gov/film-and-television-tax-credit-program-approved-projects-list/"
+  },
+  {
+    "id": "deadline",
+    "label": "Deadline",
+    "kind": "rss",
+    "home": "https://deadline.com/",
+    "url": "https://deadline.com/feed/"
+  },
+  {
+    "id": "variety",
+    "label": "Variety",
+    "kind": "rss",
+    "home": "https://variety.com/",
+    "url": "https://variety.com/feed/"
+  },
+  {
+    "id": "thr",
+    "label": "The Hollywood Reporter",
+    "kind": "rss",
+    "home": "https://www.hollywoodreporter.com/",
+    "url": "https://www.hollywoodreporter.com/feed/"
+  },
+  {
+    "id": "deadline-film",
+    "label": "Deadline film",
+    "kind": "rss",
+    "home": "https://deadline.com/",
+    "url": "https://deadline.com/v/film/feed/"
+  },
+  {
+    "id": "deadline-tv",
+    "label": "Deadline TV",
+    "kind": "rss",
+    "home": "https://deadline.com/",
+    "url": "https://deadline.com/v/tv/feed/"
+  },
+  {
+    "id": "variety-film",
+    "label": "Variety film",
+    "kind": "rss",
+    "home": "https://variety.com/",
+    "url": "https://variety.com/v/film/feed/"
+  },
+  {
+    "id": "variety-tv",
+    "label": "Variety TV",
+    "kind": "rss",
+    "home": "https://variety.com/",
+    "url": "https://variety.com/v/tv/feed/"
+  }
 ]

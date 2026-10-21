@@ -34,6 +34,16 @@ await p.click('#jlist summary'); await p.waitForTimeout(200);
 const lt=await p.innerText('#jlist');
 want('the state list: approved isn\'t casting, said; the plans in words; animation means voice cast', /Approved isn't casting/.test(lt)&&/33 filming days in California, 50 cast hired, 1,310 background days/.test(lt)&&/animation, so voice cast/.test(lt)&&/a working title/.test(lt), lt.slice(0,600));
 if(SHOTS) await p.screenshot({path:SHOTS+'/juice.png',fullPage:true});
+// watch for, and not for me
+await p.click('#jwords summary'); await p.waitForTimeout(150);
+await p.fill('#jwatch','Mesa Films'); await p.press('#jwatch','Tab'); await p.waitForTimeout(300);
+let fx=await p.$$eval('#main > .wi',x=>x.map(e=>e.innerText));
+want('watch for: a company you want to work with brings its state-list row into "fits you"', fx.some(t=>/Salt Flat/.test(t)&&/On your watch list: Mesa Films/.test(t)), fx);
+await p.fill('#jnot','Kansas'); await p.press('#jnot','Tab'); await p.waitForTimeout(300);
+fx=await p.$$eval('#main > .wi',x=>x.map(e=>e.innerText));
+want('not for me: the Kansas western leaves "fits you"', !fx.some(t=>/Dust Road/.test(t)), fx);
+want('the lists stick', await p.evaluate(()=>{ const s=Wire.load(); return s.watch.join()==='Mesa Films'&&s.not.join()==='Kansas'; }));
+await p.fill('#jnot',''); await p.press('#jnot','Tab'); await p.fill('#jwatch',''); await p.press('#jwatch','Tab'); await p.waitForTimeout(300);
 // KEEP the Harbor Lights story: a card to check, with the site's tags
 await p.click('.wi:has-text("Harbor Lights") [data-wkeep]'); await p.waitForTimeout(300);
 v=await p.innerText('#main');

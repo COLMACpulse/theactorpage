@@ -4,13 +4,15 @@
    asking or what you're right for. What fits you is worked out here, on the phone: your words (your types, what
    you want more of), your places, and the offices you know, matched as whole words. What matched is shown, never
    a score. Keep one and it becomes a Spotted card you check before it's saved.
-   State: localStorage theactorpage_juice_v1 {mode:'manual'|'daily', last, seen{}, gone{}, day}. */
+   Watch for: companies, directors, showrunners you want to work with. Not for me: words that keep a story out of
+   "fits you" (it stays in its list, saying why).
+   State: localStorage theactorpage_juice_v1 {mode:'manual'|'daily', last, seen{}, gone{}, day, watch[], not[]}. */
 (function (g) {
   const J = {};
   J.URL = 'https://raw.githubusercontent.com/COLMACpulse/theactorpage/wire/wire.json';
   J.KEY = 'theactorpage_juice_v1';
   J.MODES = [['manual', 'Only when I tap CHECK'], ['daily', 'Once a day, when I open Spotted']];
-  const blank = () => ({ mode: 'manual', last: null, seen: {}, gone: {}, day: '' });
+  const blank = () => ({ mode: 'manual', last: null, seen: {}, gone: {}, day: '', watch: [], not: [] });
   J.load = function () { try { const d = JSON.parse(localStorage.getItem(J.KEY) || 'null'); if (d && typeof d === 'object') return Object.assign(blank(), d); } catch (e) { } return blank(); };
   J.save = function (s) { try { const ks = Object.keys(s.seen); if (ks.length > 4000) ks.slice(0, ks.length - 4000).forEach(k => delete s.seen[k]); localStorage.setItem(J.KEY, JSON.stringify(s)); } catch (e) { } };
   J.url = function () { try { return localStorage.getItem('tap_wire') || J.URL; } catch (e) { return J.URL; } };
@@ -50,19 +52,23 @@
       words: uniq((me.types || []).concat(me.wantMore || []).map(clean).filter(x => x && J.has(t, x))),
       places: uniq((me.places || []).map(clean).filter(x => x && J.has(t, x))),
       offices: (me.offices || []).filter(o => o && clean(o.name).length > 3 && J.has(t, o.name.replace(/\bcasting\b/i, '').trim() || o.name)).map(o => ({ name: o.name, seen: !!o.seen })),
-      people: uniq((me.people || []).map(clean).filter(x => x && x.split(' ').length > 1 && J.has(t, x)))
+      people: uniq((me.people || []).map(clean).filter(x => x && x.split(' ').length > 1 && J.has(t, x))),
+      watch: uniq((me.watch || []).map(clean).filter(x => x && J.has(t, x))),
+      not: uniq((me.not || []).map(clean).filter(x => x && J.has(t, x)))
     };
     if (item.kind === 'taxcredit' && (me.places || []).some(p => /^(?:california|ca|los angeles|la|hollywood|san francisco|bay area|san diego|sacramento|socal|southern california)$/i.test(clean(p))))
       m.places = uniq(m.places.concat(['California']));
-    m.any = !!(m.words.length || m.places.length || m.offices.length || m.people.length);
+    m.any = !!(m.words.length || m.places.length || m.offices.length || m.people.length || m.watch.length);
     return m;
   };
   J.why = function (m) {
     const L = [];
+    if (m.watch.length) L.push('On your watch list: ' + m.watch.join(', '));
     if (m.words.length) L.push('Your words: ' + m.words.join(', '));
     if (m.offices.length) L.push(m.offices.map(o => o.name + (o.seen ? ' (has had you in)' : ' (never had you in)')).join(', '));
     if (m.people.length) L.push('People you know: ' + m.people.join(', '));
     if (m.places.length) L.push('Your places: ' + m.places.join(', '));
+    if (m.not.length) L.push('Has a not-for-me word: ' + m.not.join(', '));
     return L.join(' · ');
   };
   /* the state list in plain words */
@@ -104,7 +110,8 @@
       const m = J.match(i, me), x = { i, m, fresh: !st.seen[i.id] };
       if (x.fresh) out.newCount++;
       /* California alone doesn't make a state-list row fit you: the whole list is California */
-      if (m.words.length || m.offices.length || m.people.length || (m.places.length && i.kind !== 'taxcredit')) out.fits.push(x);
+      /* a not-for-me word keeps it out of "fits you"; it stays in its list, saying why */
+      if (!m.not.length && (m.words.length || m.watch.length || m.offices.length || m.people.length || (m.places.length && i.kind !== 'taxcredit'))) out.fits.push(x);
       if (i.kind === 'taxcredit') out.list.push(x); else out.news.push(x);
     });
     const by = (a, b) => (b.fresh - a.fresh) || String(b.i.date || '').localeCompare(String(a.i.date || ''));

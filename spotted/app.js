@@ -210,7 +210,7 @@ const W=window.Wire; let JS=W?W.load():null, WIRE=null, JBUSY=false, JERR='', JO
 const wireMe=()=>{ const y=you(), offs={}, add=(n,seen)=>{ const k=S.key(n); if(!k) return; offs[k]=offs[k]||{name:n,seen:false}; if(seen) offs[k].seen=true; };
  ((HUB&&HUB.projects)||[]).forEach(p=>add(p.casting_office||p.casting_director||p.casting||'',true)); D.items.forEach(it=>(it.card.casting||[]).forEach(n=>add(n,false)));
  const ppl=[]; try{ if(N) N.people().forEach(p=>ppl.push(p.name)); }catch(e){} ((HUB&&HUB.credits)||[]).forEach(c=>{ if(c.director) ppl.push(c.director); });
- return {types:types(),wantMore:(y.wantMore||[]).filter(Boolean),places:String(y.locations||'').split(/\s*(?:,|;|\/|\band\b)\s*/).filter(Boolean),offices:Object.values(offs),people:ppl}; };
+ return {types:types(),wantMore:(y.wantMore||[]).filter(Boolean),places:String(y.locations||'').split(/\s*(?:,|;|\/|\band\b)\s*/).filter(Boolean),offices:Object.values(offs),people:ppl,watch:JS.watch||[],not:JS.not||[]}; };
 async function juiceCheck(){
  if(!W||JBUSY) return; JBUSY=true; JERR=''; $('online').hidden=false; if(U.tab==='juice') render();
  try{ WIRE=await W.fetch(); const o=W.sort(WIRE,wireMe(),JS); JS.last={at:Date.now(),wireAt:WIRE.at,newCount:o.newCount,lines:W.receipt(WIRE,o.newCount)}; JS.day=W.today(); JS.pend=WIRE.items.map(i=>i.id); W.save(JS); }
@@ -233,6 +233,10 @@ function juiceView(){
  if(JERR) h+='<div class="msg bad">'+esc(JERR)+'</div>';
  if(L&&L.lines) h+='<ul class="receipt" id="receipt" style="margin-top:10px">'+L.lines.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
  h+='</div>';
+ h+='<details class="card" id="jwords"'+(JOPEN.words?' open':'')+'><summary class="kicker" style="cursor:pointer;margin:0">Watch for, and not for me</summary>'
+  +'<label class="lab" for="jwatch">Watch for: companies, directors, showrunners you want to work with</label><input class="field" id="jwatch" value="'+esc((JS.watch||[]).join(', '))+'" placeholder="e.g. Canyon Pictures, Sam Ortiz">'
+  +'<label class="lab" for="jnot">Not for me: words that keep a story out of "fits you"</label><input class="field" id="jnot" value="'+esc((JS.not||[]).join(', '))+'" placeholder="e.g. horror, reality">'
+  +'<p class="faint small" style="margin:8px 0 0">Kept on this phone, like everything else here. Your types and places come from YOU.</p></details>';
  if(!WIRE){ h+='<p class="faint small">'+(L&&L.at?'Tap CHECK to look again.':'Nothing checked yet.')+' Your words, places and the offices you know come from YOU and your Hub.'+(types().length?'':' Add your types on YOU so it can show what fits.')+'</p>'; return h; }
  const o=W.sort(WIRE,wireMe(),JS), q=(U.jq||'').toLowerCase().split(/\s+/).filter(Boolean), f=x=>!q.length||q.every(w=>W.text(x.i).toLowerCase().indexOf(w)>=0);
  h+='<input class="field" id="jq" value="'+esc(U.jq||'')+'" placeholder="Find on THE WIRE: a show, a company, a word" style="margin-bottom:10px">';
@@ -269,7 +273,8 @@ function wire(){
   if($('jcheck')) $('jcheck').onclick=juiceCheck;
   M.querySelectorAll('[data-wkeep]').forEach(b=>b.onclick=()=>juiceKeep(b.dataset.wkeep));
   M.querySelectorAll('[data-wgone]').forEach(b=>b.onclick=()=>{ JS.gone[b.dataset.wgone]=1; W.save(JS); render(); });
-  ['jlist','jnews'].forEach(id=>{ const d=$(id); if(d) d.ontoggle=()=>{ JOPEN[id==='jlist'?'list':'news']=d.open; }; });
+  ['jlist','jnews','jwords'].forEach(id=>{ const d=$(id); if(d) d.ontoggle=()=>{ JOPEN[{jlist:'list',jnews:'news',jwords:'words'}[id]]=d.open; }; });
+  [['jwatch','watch'],['jnot','not']].forEach(([id,k])=>{ const el=$(id); if(el) el.onchange=()=>{ JS[k]=el.value.split(/\s*,\s*/).map(x=>x.trim()).filter(Boolean); W.save(JS); render(); }; });
   if($('jq')) $('jq').oninput=e=>{ U.jq=e.target.value; const p=e.target.selectionStart; render(); const q=$('jq'); q.focus(); try{ q.setSelectionRange(p,p); }catch(x){} };
  }
  if($('keepsep')) $('keepsep').onclick=()=>{ DRAFT.separate=true; keepDraft(); };

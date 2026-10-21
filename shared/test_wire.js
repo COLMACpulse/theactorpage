@@ -41,4 +41,13 @@ want('flags: animation means voice cast; working titles said', J.flags(W.items[5
 const pa = S.passAlong(Object.assign({}, k, { mine: '' }), [], { name: 'Riley Hart' }).body;
 want('pass it along: the state list facts go to your reps', /California tax credit, Sep 21, 2026/.test(pa) && /50 cast hired/.test(pa), pa);
 want('no em dashes', !/—/.test(JSON.stringify([J.why(m1), r, k, c, pa])));
+/* watch for, and not for me (from the recon vet) */
+const me2 = Object.assign({}, me, { watch: ['Canyon Pictures', 'Mesa Films'], not: ['airlines'] });
+const mw = J.match(W.items[0], me2);
+want('watch for: a company you want to work with, said first', mw.watch.length === 0 && J.match(W.items[4], me2).watch.join() === 'Mesa Films' && /^On your watch list: Mesa Films/.test(J.why(J.match(W.items[4], me2))));
+const o2 = J.sort(W, me2, J.load());
+want('a watch-list company puts a state-list row in "fits you"', o2.fits.some(x => x.i.id === 'c1'));
+const me3 = Object.assign({}, me, { not: ['Kansas'] }), o3 = J.sort(W, me3, J.load());
+want('not for me: out of "fits you", still in its list, saying why', !o3.fits.some(x => x.i.id === 'a1') && o3.news.some(x => x.i.id === 'a1' && /Has a not-for-me word: Kansas/.test(J.why(x.m))));
+want('not for me is whole words too: "air" never hits "airlines"', !J.match(W.items[1], Object.assign({}, me, { not: ['air'] })).not.length);
 console.log(ok ? 'ALL PASS' : 'SOME FAILED'); process.exit(ok ? 0 : 1);

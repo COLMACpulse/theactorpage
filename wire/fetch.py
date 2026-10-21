@@ -163,7 +163,8 @@ def run(sources, prev=None, now=None, get_=get):
                 raise ValueError('its robots rules say no to a feed reader, so it was left alone')
             status, body = get_(s['url'])
             got = parse_cfc(body, s) if s['kind'] == 'cfc' else parse_rss(body, s)
-            items += got
+            seen_ids = {i['id'] for i in items}
+            items += [i for i in got if i['id'] not in seen_ids]   # the same story in two feeds is one story
             h.update(ok=True, count=len(got))
         except Exception as e:
             h['err'] = str(e)[:160] or e.__class__.__name__
