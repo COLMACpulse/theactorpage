@@ -262,7 +262,12 @@ fi.onchange=()=>{ const fl=[...fi.files]; fi.value=''; take(fl,''); };
 drop.addEventListener('drop',e=>{ const fl=[...(e.dataTransfer&&e.dataTransfer.files||[])]; if(fl.length) take(fl,''); else { const t=e.dataTransfer&&e.dataTransfer.getData('text'); if(t) take([],t); } });
 $('pastego').onclick=()=>{ const t=$('pastebox').value; if(!t.trim()){ $('took').innerHTML='<div class="tk"><p class="tkwhy">Paste something in the box first: the request, your rep\'s email, the sides.</p></div>'; $('pastebox').focus(); return; } take([],t); $('pastebox').value=''; };
 /* WRITE and FILM: one line each until you open them */
-function openDept(k,scroll){ const d=document.querySelector('.dept[data-d="'+k+'"]'); if(!d) return; d.open=true; if(scroll) d.closest('section').scrollIntoView({block:'start',behavior:'smooth'}); }
+/* WRITE and FILM stay shut behind their doors in MAKE YOUR OWN; a door opens its room with every tool showing */
+function rule(){ const w=document.getElementById('write'), f=document.getElementById('film'), r=document.getElementById('filmrule'); if(r&&w&&f) r.classList.toggle('shut',w.classList.contains('shut')||f.classList.contains('shut')); }
+function shutDept(k){ const sec=document.getElementById(k); if(sec) sec.classList.add('shut'); const dr=document.querySelector('.door[data-door="'+k+'"]'); if(dr) dr.setAttribute('aria-expanded','false'); rule(); }
+function openDept(k,scroll){ const sec=document.getElementById(k); if(sec) sec.classList.remove('shut'); const dr=document.querySelector('.door[data-door="'+k+'"]'); if(dr) dr.setAttribute('aria-expanded','true'); rule();
+ const d=document.querySelector('.dept[data-d="'+k+'"]'); if(!d) return; d.open=true; if(scroll) d.closest('section').scrollIntoView({block:'start',behavior:'smooth'}); }
+document.querySelectorAll('.door[data-door]').forEach(b=>b.onclick=()=>{ const k=b.dataset.door, sec=document.getElementById(k); if(sec&&!sec.classList.contains('shut')) return shutDept(k); openDept(k,true); });
 document.querySelectorAll('.deptopen').forEach(b=>b.onclick=()=>{ const d=document.querySelector('.dept[data-d="'+b.dataset.open+'"]'); if(d) d.open=!d.open; });
 document.querySelectorAll('a[href="#write"],a[href="#film"]').forEach(a=>a.addEventListener('click',()=>openDept(a.getAttribute('href').slice(1),false)));
 if(/^#(write|film)$/.test(location.hash)) openDept(location.hash.slice(1),true);

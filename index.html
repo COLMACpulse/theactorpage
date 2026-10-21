@@ -174,6 +174,18 @@ body.has .sigil{width:110px;margin-bottom:16px}
 .own-name{font-size:clamp(1.65rem,5.4vw,2.5rem);letter-spacing:.13em;line-height:1.05;font-weight:400;margin:0;
   background:linear-gradient(90deg,var(--paper),var(--daylight));-webkit-background-clip:text;background-clip:text;color:transparent}
 .own-lede{max-width:640px;margin:16px 0 0;color:var(--grey);line-height:1.6}
+.doors{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:24px 0 0}
+.door{display:grid;justify-items:start;gap:8px;text-align:left;padding:22px 22px 20px;background:none;border:1px solid var(--rule);border-radius:4px;color:var(--ink);cursor:pointer;font:inherit}
+.door svg{width:84px;height:84px;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.door.w svg{stroke:var(--paper)}.door.f svg{stroke:var(--daylight)}
+.door b{font:700 1.5rem var(--script);letter-spacing:.2em}.door.w b{color:var(--paper)}.door.f b{color:var(--daylight)}
+.door span{color:var(--grey);font-size:.98rem;line-height:1.45}
+.door i{font:700 .66rem var(--script);font-style:normal;letter-spacing:.22em;color:var(--faint);margin-top:4px}
+.door[aria-expanded="true"]{border-color:var(--grey)}.door[aria-expanded="true"] i{color:var(--ink)}
+.door:hover,.door:focus-visible{border-color:var(--grey)}
+.band.sub.shut,.subrule.shut{display:none}
+body.v-no-write #own .door.w,body.v-no-film #own .door.f{display:none}
+.spark-why{margin:4px 0 12px;max-width:26em;color:var(--faint);font-size:.84rem;line-height:1.45}.spark-why b{font:700 .64rem var(--script);letter-spacing:.18em;color:var(--grey);margin-right:.5em}
 .own-path{list-style:none;padding:0;margin:22px 0 0;display:flex;flex-wrap:wrap;gap:10px}
 .own-path a{display:inline-flex;gap:.6em;align-items:baseline;padding:9px 14px;border:1px solid var(--rule);border-radius:999px;text-decoration:none;font:700 .74rem var(--script);letter-spacing:.18em;color:var(--grey)}
 .own-path a b{font-weight:700}.own-path .w b{color:var(--paper)}.own-path .f b{color:var(--daylight)}
@@ -527,6 +539,44 @@ body.stopen{overflow:hidden}
 </section>
 
 
+<hr class="hair">
+
+<section class="band yourpage" id="yourpage" aria-labelledby="ypname">
+  <div class="wrap disc">
+    <div>
+      <span class="sub-kick">WHERE IT ALL LANDS</span>
+      <h2 class="disc-name" id="ypname">YOUR PAGE</h2>
+      <p class="disc-what">The page casting<br>clicks on.</p>
+    </div>
+    <div>
+      <p class="yp-lede">Everything you keep ends up in the Project Hub: your headshots, your reel, the takes you kept, your credits, every audition and every casting office. So does the work you made yourself, the films and the scripts. From there it builds the page casting clicks on, and the package your rep sends out.</p>
+      <ul class="yp-from">
+        <li><b>ACT</b> headshots, takes you keep, credits from your résumé</li>
+        <li><b>MAKE YOUR OWN</b> films from Film Hub, scripts from Paper Trail</li>
+        <li><b>LINKS</b> long scenes on YouTube or Vimeo, full quality</li>
+      </ul>
+      <div class="yp-go"><a class="btn" href="hub/?tab=package#online">Build your page</a> <a class="btn ghost" id="yp-reps" href="hub/?tab=reps">For my reps</a></div>
+      <p class="yp-note"><b>FOR MY REPS</b>: one sheet for your agent and your manager. Your work, where you stand with every office, who should know you, what you're right for, and what's casting that fits. After the first one it only sends what's new, on the rhythm you pick. Nothing sends itself.</p>
+      <p class="yp-note">One tap puts it online at yourname.theactorpage.com, hosted for you (switching on soon). Or download it for a site you run yourself. Only your page goes up, and only when you tap.</p>
+      <div class="tool yp-tool">
+        <div class="tool-head">
+          <span class="tool-name"><svg class="ticon st r-act" viewBox="0 0 96 96" aria-hidden="true"><circle class="ring" cx="48" cy="48" r="44"/><use href="#s-hub" x="18" y="16" width="60" height="60"/></svg>PROJECT HUB</span>
+          <span class="lead"></span>
+          <span class="tool-role">credits and auditions</span>
+          <span class="status live">OPEN</span>
+        </div>
+        <p class="one">Every credit, audition and casting office. FOR MY REPS and your page are built here.</p>
+        <div class="toolfoot"><div class="actions"><a class="btn ghost" href="hub/">Open Project Hub</a></div>
+        <details class="more"><summary>More</summary><p>Every credit, every audition, every casting office you have read for, with your headshots,
+           resume and clips beside them. Builds the package that goes out to a rep or an office, and
+           writes the whole lot into a folder on your disk as you work. Paste a self-tape request from
+           Eco Cast or your rep's email: it reads the role, who is casting, when the tape is due in their
+           time zone and yours, and their directions as a checklist.</p></details></div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <div class="wrap viewrow" id="viewrow" data-vkeep>
   <span class="vlab">SHOW ME</span>
   <button type="button" class="vbtn r-act" data-view="act" aria-pressed="true">ACT</button>
@@ -554,7 +604,9 @@ body.stopen{overflow:hidden}
        </svg></a>
       <span class="obj-why" id="sl_why">Your next audition goes here.</span>
       <div class="spark" data-spark="act"></div>
+      <p class="spark-why">A five-minute nudge to get you working, from your own sides when you have them.</p>
       <div class="spark practice" data-practice=""></div>
+      <p class="spark-why">A short two-person scene to tape or learn when there's no audition, cut from your own material when it can.</p>
     </div>
     <div>
       <div class="tool">
@@ -683,54 +735,24 @@ body.stopen{overflow:hidden}
 
 <hr class="hair">
 
-<section class="band yourpage" id="yourpage" data-dept="act" aria-labelledby="ypname">
-  <div class="wrap disc">
-    <div>
-      <span class="sub-kick">WHERE IT ALL LANDS</span>
-      <h2 class="disc-name" id="ypname">YOUR PAGE</h2>
-      <p class="disc-what">The page casting<br>clicks on.</p>
-    </div>
-    <div>
-      <p class="yp-lede">Everything you keep ends up in the Project Hub: your headshots, your reel, the takes you kept, your credits, every audition and every casting office. So does the work you made yourself, the films and the scripts. From there it builds the page casting clicks on, and the package your rep sends out.</p>
-      <ul class="yp-from">
-        <li><b>ACT</b> headshots, takes you keep, credits from your résumé</li>
-        <li><b>MAKE YOUR OWN</b> films from Film Hub, scripts from Paper Trail</li>
-        <li><b>LINKS</b> long scenes on YouTube or Vimeo, full quality</li>
-      </ul>
-      <div class="yp-go"><a class="btn" href="hub/?tab=package#online">Build your page</a> <a class="btn ghost" id="yp-reps" href="hub/?tab=reps">For my reps</a></div>
-      <p class="yp-note"><b>FOR MY REPS</b>: one sheet for your agent and your manager. Your work, where you stand with every office, who should know you, what you're right for, and what's casting that fits. After the first one it only sends what's new, on the rhythm you pick. Nothing sends itself.</p>
-      <p class="yp-note">One tap puts it online at yourname.theactorpage.com, hosted for you (switching on soon). Or download it for a site you run yourself. Only your page goes up, and only when you tap.</p>
-      <div class="tool yp-tool">
-        <div class="tool-head">
-          <span class="tool-name"><svg class="ticon st r-act" viewBox="0 0 96 96" aria-hidden="true"><circle class="ring" cx="48" cy="48" r="44"/><use href="#s-hub" x="18" y="16" width="60" height="60"/></svg>PROJECT HUB</span>
-          <span class="lead"></span>
-          <span class="tool-role">credits and auditions</span>
-          <span class="status live">OPEN</span>
-        </div>
-        <p class="one">Every credit, audition and casting office. FOR MY REPS and your page are built here.</p>
-        <div class="toolfoot"><div class="actions"><a class="btn ghost" href="hub/">Open Project Hub</a></div>
-        <details class="more"><summary>More</summary><p>Every credit, every audition, every casting office you have read for, with your headshots,
-           resume and clips beside them. Builds the package that goes out to a rep or an office, and
-           writes the whole lot into a folder on your disk as you work. Paste a self-tape request from
-           Eco Cast or your rep's email: it reads the role, who is casting, when the tape is due in their
-           time zone and yours, and their directions as a checklist.</p></details></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<hr class="hair">
 
 <section class="band own-head" id="own" aria-labelledby="ownname">
   <div class="wrap">
     <p class="own-kick">NO AUDITION THIS WEEK?</p>
     <h2 class="own-name" id="ownname">MAKE YOUR OWN</h2>
     <p class="own-lede">A scene for your reel. A short with a friend. Write it, shoot it, hand it to an editor. Whatever you write here is already your sides in ACT, and Story Studio already has the script.</p>
-    <ol class="own-path"><li class="w"><a href="#write"><b>1 · WRITE IT</b> on the page</a></li><li class="f"><a href="#film"><b>2 · SHOOT IT</b> and hand it off</a></li></ol>
+    <div class="doors">
+      <button type="button" class="door w" data-door="write" aria-expanded="false" aria-controls="write">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="24" width="36" height="16" rx="2"/><path d="M14 24V8h20v16M10 32h28M18 36h12"/><path d="M18 13h12M18 18h9"/></svg>
+        <b>WRITE</b><span>Write the scene. It's your sides the moment you save it.</span><i>SEE THE TOOLS</i></button>
+      <button type="button" class="door f" data-door="film" aria-expanded="false" aria-controls="film">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="16" cy="12" r="6"/><circle cx="30" cy="12" r="5"/><rect x="8" y="20" width="26" height="15" rx="2"/><path d="M34 24l8-4v14l-8-4M21 35l-7 9M21 35v9M21 35l7 9"/></svg>
+        <b>FILM</b><span>Shoot it, log every take, hand your editor a map.</span><i>SEE THE TOOLS</i></button>
+    </div>
   </div>
 </section>
 
-<section class="band write sub" id="write" data-dept="write">
+<section class="band write sub shut" id="write" data-dept="write">
   <div class="wrap disc">
     <div>
       <span class="sub-kick">MAKE YOUR OWN · 1</span>
@@ -821,9 +843,9 @@ body.stopen{overflow:hidden}
   </div>
 </section>
 
-<hr class="subrule">
+<hr class="subrule shut" id="filmrule">
 
-<section class="band film sub" id="film" data-dept="film">
+<section class="band film sub shut" id="film" data-dept="film">
   <div class="wrap disc">
     <div>
       <span class="sub-kick">MAKE YOUR OWN · 2</span>

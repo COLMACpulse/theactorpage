@@ -50,7 +50,7 @@ await p.click('[data-spark="act"] [data-another]'); await p.waitForTimeout(100);
 want('ANOTHER: a different one', (await p.innerText('[data-spark="act"] .spark-card p'))!==first);
 await p.click('[data-spark="act"] [data-notnow]');
 want('NOT NOW: gone', await p.$$eval('.spark-card',x=>x.length)===0);
-await p.click('[data-spark="write"] .spark-btn'); await p.waitForTimeout(100);
+await p.click('.door[data-door="write"]'); await p.click('.door[data-door="film"]'); await p.waitForTimeout(200); await p.click('[data-spark="write"] .spark-btn'); await p.waitForTimeout(100);
 const go=await p.$eval('[data-spark="write"] .spark-go',x=>x.getAttribute('href')||x.tagName);
 want('WRITE SPARK goes to GO or Paper Trail', /writers-blockage\.html\?go|papertrail\//.test(go), go);
 await p.click('[data-spark="film"] .spark-btn'); await p.waitForTimeout(100);

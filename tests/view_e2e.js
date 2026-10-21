@@ -8,10 +8,10 @@ const c=await b.newContext({viewport:{width:1280,height:900}}); const p=await c.
 const shown=sel=>p.$eval(sel,e=>!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)).catch(()=>false);
 await p.goto('http://localhost:8811/index.html'); await p.evaluate(()=>{ localStorage.clear(); sessionStorage.setItem('theactorpage_sigil','1'); }); await p.reload(); await p.waitForTimeout(700);
 want('to start: all three on, SHOW ME row', (await p.$$eval('[data-view]',x=>x.map(y=>y.textContent+':'+y.getAttribute('aria-pressed')))).join()==='ACT:true,WRITE:true,FILM:true');
-want('all three bands and footer columns show', await shown('.band.act')&&await shown('.band.write')&&await shown('.band.film')&&await shown('.fcol[data-dept="write"]'));
+want('all three bands and footer columns show', await shown('.band.act')&&await shown('.door.w')&&await shown('.door.f')&&await shown('.fcol[data-dept="write"]'));
 // WRITE off
 await p.click('[data-view="write"]'); await p.waitForTimeout(200);
-want('WRITE off: its band and footer column go, says nothing is deleted', !(await shown('.band.write'))&&!(await shown('.fcol[data-dept="write"]'))&&await shown('.band.act')&&/WRITE hidden\. Nothing is deleted/.test(await p.innerText('#vwhy')));
+want('WRITE off: its band and footer column go, says nothing is deleted', !(await shown('.door.w'))&&!(await shown('.fcol[data-dept="write"]'))&&await shown('.band.act')&&/WRITE hidden\. Nothing is deleted/.test(await p.innerText('#vwhy')));
 want('the typewriter link in YOU goes too', !(await p.$$eval('a[href="write/writers-blockage.html"]',x=>x.some(a=>a.offsetWidth>0))));
 await p.click('[data-practice] .spark-btn'); await p.waitForTimeout(200);
 want('practice scene: REWRITE IT goes, TAPE IT and LEARN stay', !(await shown('[data-pgo="write"]'))&&await shown('[data-pgo="tape"]')&&await shown('[data-pgo="learn"]'));
@@ -25,7 +25,7 @@ want('still kept for Paper Trail, if WRITE comes back', await p.evaluate(()=>Inb
 await p.click('[data-view="film"]'); await p.waitForTimeout(100); await p.click('[data-view="act"]'); await p.waitForTimeout(150);
 want('the last one can\'t go off', (await p.getAttribute('[data-view="act"]','aria-pressed'))==='true'&&/One has to stay on/.test(await p.innerText('#vwhy')));
 await p.reload(); await p.waitForTimeout(700);
-want('remembered after a reload: ACT only', (await p.$$eval('[data-view]',x=>x.map(y=>y.getAttribute('aria-pressed')))).join()==='true,false,false'&&!(await shown('.band.film'))&&!(await shown('.band.write')));
+want('remembered after a reload: ACT only', (await p.$$eval('[data-view]',x=>x.map(y=>y.getAttribute('aria-pressed')))).join()==='true,false,false'&&!(await shown('.door.f'))&&!(await shown('.door.w')));
 // in a tool: a link into a hidden department goes; links inside your own stay
 await p.goto('http://localhost:8811/breakdown/'); await p.waitForTimeout(800);
 const bd=await p.$$eval('a[href]',x=>x.map(a=>[a.getAttribute('href'),a.closest('[data-vhide]')?0:1]));
@@ -39,7 +39,7 @@ want('FILM only: in Backlot, PAPER TRAIL (WRITE) goes, Story Studio (FILM) stays
 // script and style files are never hidden: only page links
 want('deptOf: pages only, not files', await p.evaluate(()=>View.deptOf('../actor-os/')==='act'&&View.deptOf('../write/writers-blockage.html')==='write'&&View.deptOf('../actor-os/sides.js')===''&&View.deptOf('https://example.com/film/')===''&&View.deptOf('../filmhub/')==='film'&&View.deptOf('../hub/')==='act'&&View.deptOf('../actor-os/vendor/pdfjs-LICENSE')===''&&View.deptOf('../film/#open=3')==='film'));
 await p.evaluate(()=>{ View.set('act',true); View.set('write',true); }); await p.goto('http://localhost:8811/index.html'); await p.waitForTimeout(600);
-want('all back on: everything shows again', await shown('.band.write')&&await shown('.band.film')&&!(await p.$('[data-vhide]'))&&(await p.innerText('#vwhy'))==='');
+want('all back on: everything shows again', await shown('.door.w')&&await shown('.door.f')&&!(await p.$('[data-vhide]'))&&(await p.innerText('#vwhy'))==='');
 want('no em dashes in the row', !/—/.test(await p.innerText('#viewrow')));
 want('no page errors', !errs.length, errs);
 await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();
