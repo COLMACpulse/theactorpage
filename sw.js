@@ -1,6 +1,6 @@
 /* THEACTORPAGE home, offline. Only the home page and what it loads; each tool has its own.
    Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='home-0.6.44';
+const CACHE='home-0.6.45';
 const FILES=['shared/tour.js','shared/madeby.js','shared/repsheet.js','demo/','demo/index.html','demo/stops.js','demo/player.js','demo/low_tide.fountain','shared/view.js','./','index.html','fonts/jost-latin-300-normal.woff2','fonts/jost-latin-400-normal.woff2','fonts/jost-latin-500-normal.woff2','fonts/jost-latin-600-normal.woff2','fonts/courier-prime-latin-400-normal.woff2','fonts/courier-prime-latin-700-normal.woff2','privacy/','shared/hot.js','shared/shelf.js','shared/scenes.js','shared/inbox.js','shared/you.js','shared/offices.js','shared/notes.js','shared/intake.js','shared/home.js','shared/rooms.js','shared/spark.js','shared/yourscenes.js','shared/practice.js','shared/capture.js','shared/takes.js','shared/studio.js',
  'actor-os/sides.js','actor-os/pdf.js','hub/request.js','img/sigil-apex.webp','img/sigil-left.webp','img/sigil-right.webp','img/sigil-head.webp','img/sigil-strip.webp','img/sigil-glow.webp','img/sigil-film-64.png','shared/sigil.js'];
 const OWN=new Set(FILES.map(f=>new URL(f,self.registration.scope).href));

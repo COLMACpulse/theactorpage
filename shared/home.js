@@ -147,7 +147,7 @@ function keepLine(){
  const ios=/iPhone|iPad|iPod/.test(navigator.userAgent)&&!(navigator.standalone||matchMedia('(display-mode: standalone)').matches);
  let off=false; try{ off=localStorage.getItem('theactorpage_ios_note')==='off'; }catch(e){}
  el.innerHTML='Everything you put in is kept on this device, not online. '+(own.lastBackup?'Last backup: '+ago(own.lastBackup)+'.':'No backup yet.')+' <a href="device/">BACK UP</a> &middot; <a href="privacy/">Privacy</a>'
-  +(ios&&!off?'<span class="ios">On an iPhone, add this site to your Home Screen (Share, then Add to Home Screen). Safari can clear a site\'s saved things after a stretch of not visiting; a Home Screen app is kept.<button id="iosx" aria-label="Hide this">\u2715</button></span>':'');
+  +(ios&&!off?'<span class="ios">On an iPhone, add this site to your Home Screen (Share, then Add to Home Screen). Safari can clear what a site has saved after a stretch of not visiting; a Home Screen app is kept.<button id="iosx" aria-label="Hide this">\u2715</button></span>':'');
  el.hidden=false; const x=$('iosx'); if(x) x.onclick=()=>{ try{ localStorage.setItem('theactorpage_ios_note','off'); }catch(e){} keepLine(); };
 }
 /* the headshot: your main headshot as an 8x10, your name under it. A new one develops in. Tap it for YOUR PROFILE; drop a photo on it like the drop box. */
