@@ -132,6 +132,9 @@
     if (ad) { out.due = R.parseWhen(ad.split('\n')[0].replace(/Instructional Media.*$/i, ''), yHint); out.dueFrom = 'Eco Cast'; }
     const rep = text.match(/(?:the\s+)?deadline\s+is\s+([^\n.]+(?:\.[^\n.]+)?)/i);
     if (rep) { const w = R.parseWhen(rep[1], yHint); if (w) { if (!out.due) { out.due = w; out.dueFrom = "your rep's email"; } else if (w.utc && out.due.utc && w.utc !== out.due.utc) out.otherDates.push({ text: rep[0].trim(), what: "Your rep's email says something different. Eco Cast is the one that closes; check with your rep." }); } }
+    /* a rep's or casting's own words: "due Friday 10/24 by 5pm PT", "please submit by Oct 24 at noon", "need it by 10/24" */
+    if (!out.due) { const said = text.match(/(?:\btape\s+(?:is\s+)?due|\bdue(?:\s+back)?|submit(?:ted)?\s+(?:it\s+|this\s+|your\s+tape\s+)?by|need(?:ed)?\s+(?:it\s+|this\s+|the\s+tape\s+)?by|send\s+(?:it\s+|this\s+)?(?:in\s+)?by|no\s+later\s+than)\b\s*:?\s*([^\n]{3,80})/i);
+      if (said && !/shoot|film(?:s|ing)?\s+(?:on|dates?)|callback/i.test(text.slice(Math.max(0, said.index - 30), said.index))) { const w = R.parseWhen(said[1], yHint); if (w) { out.due = w; out.dueFrom = 'the request'; } } }
     const bd = text.match(/^\s*DEADLINE:\s*([^\n]+)/im);
     if (bd) { const w = R.parseWhen(bd[1], yHint); if (w && (!out.due || w.y !== out.due.y || w.mo !== out.due.mo || w.d !== out.due.d)) out.otherDates.push({ text: 'DEADLINE: ' + bd[1].trim(), what: "On the breakdown: the reps' submission deadline. Not your tape." }); }
     if (out.shootDates) out.otherDates.push({ text: 'Shoot: ' + out.shootDates, what: 'When they film. Hold it in case you book.' });

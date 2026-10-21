@@ -115,4 +115,11 @@ const S = R.read(ECO.replace('Submit to	Upload', 'The audition deadline has pass
 ok('sent and passed are noticed', S.sent && S.passed);
 ok('no scores anywhere', !/score|%|ready/i.test(JSON.stringify(a)));
 
+// 6) the due date in a rep's or casting's own words (made-up request)
+{ const base = 'Hi Riley,\nCanyon Casting would like a self-tape for DUST ROAD, role of SHERIFF COLE. ';
+  const due = t => R.read(base + t).due;
+  ok('"Due Friday 10/24 by 5pm PT" is the tape due', (d => d && d.mo === 9 && d.d === 24 && d.hh === 17 && /P[DS]T/.test(d.zone))(due('Due Friday 10/24 by 5pm PT.')));
+  ok('"please submit by" and "need it by" too', !!due('Please submit by 10/24 at 5pm PT') && !!due('We need it by Oct 24 at noon ET'));
+  ok('shoot dates are never read as the tape due', !due('Shoot dates 11/4 - 11/5. Thanks!')); }
+
 console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

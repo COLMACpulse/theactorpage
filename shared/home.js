@@ -96,6 +96,7 @@ function card(x,i){
  if(x.why&&x.why.length&&!['image','other','unknown','resume'].includes(x.kind)) h+='<div class="why">Read as '+esc(x.why.join(', '))+(x.struck?'. '+x.struck+' crossed-out line'+(x.struck===1?'':'s')+' left out':'')+'.</div>';
  if(x.kind==='request'&&x.req) h+='<div class="why">Tape due: '+esc(HubReq.dueWords(x.req.due))+'</div>'+(x.offWords?'<div class="why">'+esc(x.offWords)+'</div>':'')+(x.noteWords?'<div class="why">'+esc(x.noteWords)+'</div>':'')+(x.named?'<div class="why">Your name for the slate: '+esc(x.named)+'.</div>':'');
  h+='<div class="went">'+esc(x.went||'')+'</div>';
+ if(['other','unknown'].includes(x.kind)&&x.text&&x.text.trim()) h+='<div class="why" style="margin-top:6px">News, a post, a casting notice? That goes to your reps through Spotted.</div><div class="parts"><a class="pastego sm" style="text-decoration:none" href="spotted/?text='+encodeURIComponent(x.text.slice(0,3000))+'">PASS IT ALONG IN SPOTTED</a></div>';
  if(x.shelfId&&x.parts&&x.parts.length){
   h+='<div class="why" style="margin-top:6px">'+(x.me?'Your part: <b>'+esc(x.me)+'</b>'+(x.meFrom?' (from '+esc(x.meFrom)+')':'')+'. Tap another to change it.':'Which part is yours? One tap, and every tool knows.')+'</div><div class="parts">'
    +x.parts.map(p=>'<button data-part="'+i+'|'+esc(p.name)+'" class="'+(p.name===x.me?'on':'')+'">'+esc(p.name)+' <small>'+p.lines+'</small></button>').join('')+'</div>';
@@ -172,17 +173,20 @@ async function drawLens(){
 function showTook(){ $('took').innerHTML=LAST.map(card).join('');
  document.querySelectorAll('[data-part]').forEach(b=>b.onclick=()=>{ const [i,name]=b.dataset.part.split('|'); const x=LAST[+i]; if(!x||!x.shelfId) return; Sh.setMe(x.shelfId,name,'home'); x.me=name; x.meFrom=''; showTook(); showPlay(); }); wireMain($('took')); fillPhotos($('took')); }
 /* IN PLAY: what you've brought in that's still live (tapes due, sides, drafts). Folded to one line until you open it.
-   A tape due within two days is said on that line. PUT AWAY takes a row off this list only (the tools keep it).
-   Past three of a kind, the rest wait under "and N older". */
+   A tape due within two days is said on that line. Open, it's one list you can search, by SIDES (auditions), PROJECTS
+   (your scripts and drafts) or BOTH. PUT AWAY takes a row off this list only (the tools keep it). */
 const AWAY='home_inplay_away';
 const away=()=>{ try{ return JSON.parse(localStorage.getItem(AWAY)||'[]'); }catch(e){ return []; } };
 function putAway(k){ const a=away(); if(!a.includes(k)) a.push(k); try{ localStorage.setItem(AWAY,JSON.stringify(a.slice(-200))); }catch(e){} showPlay(); }
 let PLAYOPEN=(()=>{ try{ return sessionStorage.getItem('home_inplay_open')==='1'; }catch(e){ return false; } })(), PLAYALL=false;
+/* how you look at it: SIDES (auditions: tapes due and sides), PROJECTS (your scripts and drafts), or BOTH. And a find box. */
+const PV='home_inplay_view';
+let PLAYVIEW=(()=>{ try{ return localStorage.getItem(PV)||'both'; }catch(e){ return 'both'; } })(), PLAYQ='';
 function showPlay(){
  const A=away(), now=new Date().toISOString();
- const S=Sh.all().filter(x=>!A.includes('s:'+x.id)&&!(window.DailyScenes&&DailyScenes.isPractice(x.file)));
+ const S=Sh.all().filter(x=>!A.includes('s:'+x.id)&&!(window.DailyScenes&&DailyScenes.isPractice(x.file))).sort((a,b)=>String(b.updated||'').localeCompare(String(a.updated||'')));
  const R=I.all('request').filter(x=>x.data.due&&x.data.due>=now.slice(0,16)&&!A.includes('r:'+x.id)).sort((a,b)=>String(a.data.due).localeCompare(String(b.data.due)));
- const D=I.all('draft').filter(x=>!A.includes('d:'+x.id));
+ const D=I.all('draft').filter(x=>!A.includes('d:'+x.id)).sort((a,b)=>(b.at||0)-(a.at||0));
  document.body.classList.toggle('has',!!(Sh.all().length||I.all('request').length||I.all('draft').length||(Y&&Y.has())));
  const box=$('inplay'); if(!box) return;
  if(!S.length&&!R.length&&!D.length){ box.innerHTML=''; return; }
@@ -190,17 +194,28 @@ function showPlay(){
  const pl=(n,w)=>n+' '+w+(n===1?'':'s');
  const soon=R.find(x=>Date.parse(x.data.due)-Date.now()<48*3600e3);
  const bits=[R.length?pl(R.length,'tape')+' due':'',S.length?S.length+' side'+(S.length===1?'':'s'):'',D.length?pl(D.length,'draft'):''].filter(Boolean);
- const cap=n=>PLAYALL?n:3;
- let rows='';
- R.slice(0,cap(R.length)).forEach(x=>{ rows+='<div class="ip"><span><b>Tape due</b> '+esc(dw(x))+'<br><small>'+esc([x.data.title,x.data.role].filter(Boolean).join(' · '))+'</small></span><span class="go"><a href="hub/">HUB</a><a href="actor-os/">TAPE IT</a><button type="button" data-away="r:'+esc(x.id)+'">PUT AWAY</button></span></div>'; });
- S.slice(0,cap(S.length)).forEach((it,k)=>{ rows+='<div class="ip"><span><b>'+(k===0?'Sides now':'Sides')+'</b> '+esc(plain(it.file))+'<br><small>'+(it.me?'You: '+esc(it.me):'No part picked yet')+'</small></span><span class="go"><a href="actor-os/">READ</a><a href="memorizer/">LEARN</a><a href="breakdown/">BREAK DOWN</a><button type="button" data-away="s:'+esc(it.id)+'">PUT AWAY</button></span></div>'; });
- D.slice(0,cap(D.length)).forEach(x=>{ rows+='<div class="ip"><span><b>Draft</b> '+esc(plain(x.data.file))+'</span><span class="go"><a href="papertrail/">PAPER TRAIL</a><a href="film/">STORY STUDIO</a><button type="button" data-away="d:'+esc(x.id)+'">PUT AWAY</button></span></div>'; });
- const more=Math.max(0,R.length-3)+Math.max(0,S.length-3)+Math.max(0,D.length-3);
+ // the project a set of sides belongs to: the request that lists it, else its own name
+ const projOf=it=>{ const f=String(it.file||'').toLowerCase(), r=I.all('request').find(q=>(q.data.sides||[]).some(n=>String(n).toLowerCase()===f)); return r&&r.data.title?r.data.title:''; };
+ const rows=[];
+ R.forEach(x=>rows.push({kind:'sides',key:'r:'+x.id,find:[x.data.title,x.data.role,x.data.file,dw(x)].join(' '),
+  html:'<div class="ip"><span><b>Tape due</b> '+esc(dw(x))+'<br><small>'+esc([x.data.title,x.data.role].filter(Boolean).join(' · '))+'</small></span><span class="go"><a href="hub/">HUB</a><a href="actor-os/">TAPE IT</a><button type="button" data-away="r:'+esc(x.id)+'">PUT AWAY</button></span></div>'}));
+ S.forEach((it,k)=>{ const pj=projOf(it); rows.push({kind:'sides',key:'s:'+it.id,find:[it.file,it.me,pj,String(it.text||'').slice(0,400)].join(' '),
+  html:'<div class="ip"><span><b>'+(k===0?'Sides now':'Sides')+'</b> '+esc(plain(it.file))+'<br><small>'+esc([pj,it.me?'You: '+it.me:'No part picked yet'].filter(Boolean).join(' · '))+'</small></span><span class="go"><a href="actor-os/">READ</a><a href="memorizer/">LEARN</a><a href="breakdown/">BREAK DOWN</a><button type="button" data-away="s:'+esc(it.id)+'">PUT AWAY</button></span></div>'}); });
+ D.forEach(x=>rows.push({kind:'projects',key:'d:'+x.id,find:[x.data.file,x.data.title].join(' '),
+  html:'<div class="ip"><span><b>Draft</b> '+esc(plain(x.data.file))+'</span><span class="go"><a href="papertrail/">PAPER TRAIL</a><a href="film/">STORY STUDIO</a><button type="button" data-away="d:'+esc(x.id)+'">PUT AWAY</button></span></div>'}));
+ const q=PLAYQ.toLowerCase().split(/\s+/).filter(Boolean);
+ const shown=rows.filter(r=>(PLAYVIEW==='both'||r.kind===PLAYVIEW)&&q.every(w=>r.find.toLowerCase().indexOf(w)>=0));
+ const cap=PLAYALL||q.length?shown.length:8, nS=rows.filter(r=>r.kind==='sides').length, nP=rows.length-nS;
+ const chip=(k,l,n)=>'<button type="button" class="ipv'+(PLAYVIEW===k?' on':'')+'" data-pv="'+k+'">'+l+' <i>'+n+'</i></button>';
  box.innerHTML='<details id="ipd"'+(PLAYOPEN?' open':'')+'><summary><b>IN PLAY</b> · '+esc(bits.join(' · '))+(soon?'<span class="ipsoon">Tape due '+esc(dw(soon))+(soon.data.title?': '+esc(soon.data.title):'')+'</span>':'')+'</summary>'
-  +'<p class="ipwhat">What you’ve brought in that’s still live: tapes due, sides, drafts. Newest first. PUT AWAY takes one off this list; the tools keep it.</p>'
-  +rows+(more&&!PLAYALL?'<button type="button" class="ipmore" id="ipmore">and '+more+' older</button>':'')+'</details>';
+  +'<p class="ipwhat">What you’ve brought in that’s still live. SIDES is your auditions (tapes due and sides), PROJECTS your scripts and drafts. PUT AWAY takes one off this list; the tools keep it.</p>'
+  +'<div class="ipbar"><input type="search" id="ipq" class="ipq" placeholder="Find: a project, a role, a part, a word" value="'+esc(PLAYQ)+'" aria-label="Find in IN PLAY"><div class="ipvs">'+chip('sides','SIDES',nS)+chip('projects','PROJECTS',nP)+chip('both','BOTH',rows.length)+'</div></div>'
+  +'<div id="iplist">'+(shown.slice(0,cap).map(r=>r.html).join('')||'<p class="ipwhat">Nothing here'+(q.length?' for that.':'.')+'</p>')+'</div>'
+  +(shown.length>cap?'<button type="button" class="ipmore" id="ipmore">and '+(shown.length-cap)+' more</button>':'')+'</details>';
  const d=$('ipd'); d.ontoggle=()=>{ PLAYOPEN=d.open; try{ sessionStorage.setItem('home_inplay_open',d.open?'1':'0'); }catch(e){} };
  box.querySelectorAll('[data-away]').forEach(b=>b.onclick=()=>putAway(b.dataset.away));
+ box.querySelectorAll('[data-pv]').forEach(b=>b.onclick=()=>{ PLAYVIEW=b.dataset.pv; try{ localStorage.setItem(PV,PLAYVIEW); }catch(e){} showPlay(); });
+ const qi=$('ipq'); if(qi) qi.oninput=()=>{ PLAYQ=qi.value; const at=qi.selectionStart; showPlay(); const n=$('ipq'); if(n){ n.focus(); try{ n.setSelectionRange(at,at); }catch(e){} } };
  const m=$('ipmore'); if(m) m.onclick=()=>{ PLAYALL=true; showPlay(); };
 }
 
@@ -208,7 +223,7 @@ async function take(files,pasted,fromFolder,opts){
  const items=[];
  for(let i=0;i<files.length;i++){ if(fromFolder) $('foldnote').innerHTML='<p>Reading '+(i+1)+' of '+files.length+'…</p>'; items.push(await readOne(files[i])); }
  if(opts&&opts.asResume) items.forEach(x=>{ if(x.kind!=='resume'&&x.fk!=='image'&&x.fk!=='media'){ x.kind='resume'; x.why=['you said it is your résumé']; try{ x.profile=x.text?X.resumeRead(x.rows||X.rowsOfText(x.text)):null; }catch(e){ x.profile=null; } } });
- if(pasted&&pasted.trim()){ const w=X.what(pasted); items.push({name:'Pasted '+(w.kind==='request'?'request':w.kind==='script'?'script':'sides'),text:pasted,kind:w.kind,why:w.why,req:w.req||null,script:w.script||null,fk:'text'}); }
+ if(pasted&&pasted.trim()){ const w=X.what(pasted); items.push({name:'Pasted '+(w.kind==='request'?'request':w.kind==='script'?'script':w.kind==='sides'?'sides':'text'),text:pasted,kind:w.kind,why:w.why,req:w.req||null,script:w.script||null,fk:'text'}); }
  if(!items.length) return;
  await route(items);
  // from a folder: only the actor things get a card; the rest is counted and left alone
@@ -245,7 +260,12 @@ fi.onchange=()=>{ const fl=[...fi.files]; fi.value=''; take(fl,''); };
 ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.add('over'); }));
 ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.remove('over'); }));
 drop.addEventListener('drop',e=>{ const fl=[...(e.dataTransfer&&e.dataTransfer.files||[])]; if(fl.length) take(fl,''); else { const t=e.dataTransfer&&e.dataTransfer.getData('text'); if(t) take([],t); } });
-$('pastego').onclick=()=>{ const t=$('pastebox').value; if(!t.trim()) return; take([],t); $('pastebox').value=''; };
+$('pastego').onclick=()=>{ const t=$('pastebox').value; if(!t.trim()){ $('took').innerHTML='<div class="tk"><p class="tkwhy">Paste something in the box first: the request, your rep\'s email, the sides.</p></div>'; $('pastebox').focus(); return; } take([],t); $('pastebox').value=''; };
+/* WRITE and FILM: one line each until you open them */
+function openDept(k,scroll){ const d=document.querySelector('.dept[data-d="'+k+'"]'); if(!d) return; d.open=true; if(scroll) d.closest('section').scrollIntoView({block:'start',behavior:'smooth'}); }
+document.querySelectorAll('.deptopen').forEach(b=>b.onclick=()=>{ const d=document.querySelector('.dept[data-d="'+b.dataset.open+'"]'); if(d) d.open=!d.open; });
+document.querySelectorAll('a[href="#write"],a[href="#film"]').forEach(a=>a.addEventListener('click',()=>openDept(a.getAttribute('href').slice(1),false)));
+if(/^#(write|film)$/.test(location.hash)) openDept(location.hash.slice(1),true);
 window.addEventListener('storage',e=>{ if(e.key&&/shelf|inbox/.test(e.key)) showPlay(); });
 showPlay(); showYou();
 window.__home={take,route,readOne};

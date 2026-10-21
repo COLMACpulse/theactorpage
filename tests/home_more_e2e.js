@@ -27,5 +27,17 @@ want('no em dashes in the one-liners', !T.some(t=>/—/.test(t.one)));
   want('JUICE is on home, on the Spotted card', /JUICE checks the trades for what fits you/.test(hb));
   want('FOR MY REPS is on home, in YOUR PAGE, with its own button to the Hub', /FOR MY REPS: one sheet for your agent and your manager/.test(hb)&&(await p.getAttribute('#yp-reps','href'))==='hub/?tab=reps');
   want('Slate Maker and Backlot are no longer their own tools on home; Set List only under WRITE', !(await p.$('a[href="slate/"]'))&&!(await p.$('a[href="backlot/"]'))&&(await p.$$('.fcol[data-dept="act"] a[href="setlist/"]')).length===0); }
+{ await p.goto('http://localhost:8811/index.html'); await p.waitForTimeout(600);
+  await p.click('#pastego'); await p.waitForTimeout(200);
+  want('READ IT with nothing pasted: says what to do', /Paste something in the box first/.test(await p.innerText('#took')));
+  await p.fill('#pastebox','Netflix orders western series "Dust Road".'); await p.click('#pastego'); await p.waitForTimeout(800);
+  want('READ IT on news: says where it goes, one tap to Spotted with it', /PASS IT ALONG IN SPOTTED/.test(await p.innerText('#took'))&&/^spotted\/\?text=/.test(await p.getAttribute('#took a[href^="spotted/"]','href')));
+  want('the drop copy: once, where it goes, stays on your device', /Drop it in once: sides, the self-tape request/.test(await p.innerText('#you'))&&/It stays on your device\./.test(await p.innerText('#you')));
+  const closed=await p.$$eval('.dept',x=>x.map(d=>d.open));
+  want('WRITE and FILM: folded to one line each', closed.join()==='false,false'&&/OPEN WRITE/.test(await p.innerText('#write'))&&/OPEN FILM/.test(await p.innerText('#film')));
+  await p.click('.deptopen[data-open="write"]'); await p.waitForTimeout(150);
+  want('tap WRITE: its tools open', await p.$eval('.dept[data-d="write"]',d=>d.open)&&await p.isVisible('#write a[href="papertrail/"]'));
+  await p.click('.dept[data-d="film"] .deptsum'); await p.waitForTimeout(150);
+  want('tap OPEN FILM: its tools open', await p.$eval('.dept[data-d="film"]',d=>d.open)&&await p.isVisible('#film a[href="filmhub/"]')); }
 want('no page errors', !errs.length, errs);
 await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();
