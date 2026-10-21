@@ -9,7 +9,7 @@
   const S = [
     { id: 'O01', ch: 'open', path: '', hi: 'header', line: "If you're an actor, you know the drill. Sides in your email. Takes in your camera roll. The notes from class in your head. And a login for every one of them." },
     { id: 'O02', ch: 'open', path: '', hi: '.band.pitch', line: "And most of those apps rent your own work back to you. Stop paying, and it's gone. Here, everything stays on your phone. No upload. No account to get started." },
-    { id: 'O03', ch: 'open', path: '', act: [{ drop: 'demo/low_tide.fountain' }, { wait: '#took [data-part]' }, { click: '#took [data-part$="|ANNA"]' }], hi: '#took', line: "Here's how it works. We made up a short script called Low Tide. You drop it in once, right here, and tap the part that's yours. That's it. Every tool on the site has it now." },
+    { id: 'O03', ch: 'open', path: '', act: [{ drop: 'demo/low_tide.fountain' }, { wait: '#took [data-part]' }, { click: '#took [data-part$="|ANNA"]' }], hi: '#took', line: "Here's how it works. We made up a short script called Low Tide. You put your material in once, here, and tap the part that's yours. That's it. Every tool on the site has it now." },
 
     { id: 'A00', ch: 'act', path: '', wash: true, hi: '.band.act', line: "ACT. Say your agent sends an audition at six. The tape's due tomorrow by noon." },
     { id: 'A01', ch: 'act', path: 'actor-os/', ready: '#sidesOut button, #sidesOut *', hi: '#sidesOut', line: "Normally you print the sides, grab a pen and mark your lines. Here, that's done. Every line of yours is lit, and every cue that leads into it." },
@@ -35,7 +35,7 @@
     { id: 'M06', ch: 'own', dept: 'film', path: 'film/', act: [{ click: '#wrapit' }], hi: 'pre.wrap', line: "At wrap, your editor gets a map instead of a mess. Every circled take, every note, what has to stay." },
     { id: 'M07', ch: 'own', dept: 'film', path: 'filmhub/', ready: '#main', hi: '#main', line: "And the finished piece goes on your page, with everybody who worked on it." },
 
-    { id: 'C01', ch: 'close', path: '', hi: 'header', line: "That's the idea. You drop it in once, and every tool knows it. Your work stays on your phone, and it works with no signal." },
+    { id: 'C01', ch: 'close', path: '', hi: 'header', line: "That's the idea. You put your material in once, and every tool uses it. Your work stays on your phone, and it works with no signal." },
     { id: 'C02', ch: 'close', path: '', hi: '#you', line: "The free version does everything you just saw. Keep playing with Low Tide, or drop in your own." }
   ];
   const CH = { open: { name: 'OPEN', color: '#ece7dc' }, act: { name: 'ACT', color: '#e0a23c' }, own: { name: 'MAKE YOUR OWN', color: '#ece7dc', wash: 'linear-gradient(90deg,#ece7dc 0 50%,#6fa8d6 50% 100%)' }, close: { name: 'CLOSE', color: '#ece7dc' } };
