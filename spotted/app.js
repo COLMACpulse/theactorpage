@@ -170,7 +170,7 @@ function listView(){
 function officesView(){
  const live=D.items.filter(x=>['spotted','passed','submitted','room'].includes(x.status));
  if(!live.length) return '<div class="card"><p class="dim">Nothing spotted yet. Paste a trade story, an IMDbPro list or a casting notice on SPOT, and every office in it shows up here.</p></div>';
- const c=ctx(), OF=S.offices(live,c), R=S.report(D.items,c,me()), T=types();
+ const c=ctx(), OF=S.offices(live,c), T=types();
  let h='';
  if(!T.length) h+='<div class="msg">Add your types on YOU (cop, dad, rancher, western) and this shows what has your words in it.</div>';
  const row=o=>'<div class="off"><p class="oh"><b>'+esc(o.name)+'</b><span class="'+(o.seen?'dim':'hit')+'">'+(o.seen?'Has had you in':'Never had you in')+'</span></p>'
@@ -180,9 +180,7 @@ function officesView(){
  if(fresh.length) h+='<p class="kicker">Casting now, never had you in <i>'+fresh.length+'</i></p>'+fresh.map(row).join('');
  if(known.length) h+='<p class="kicker" style="margin-top:18px">Casting now, has had you in <i>'+known.length+'</i></p>'+known.map(row).join('');
  if(!OF.length) h+='<div class="card"><p class="dim">No casting named on what you spotted yet. Open one and add who is casting.</p></div>';
- h+='<div class="card" style="margin-top:16px"><p class="kicker">For your reps</p><p class="faint small" style="margin:-4px 0 8px">What fits you, offices that know you, offices you should be going in for and aren\'t. Edit it, send it.'+(HUB?'':' No Hub on this device, so every office reads as new.')+'</p>'
-  +'<textarea class="field send" id="t_rep" data-subj="'+esc(R.subject)+'" style="min-height:260px">'+esc(R.body)+'</textarea>'
-  +'<div class="row" style="margin-top:8px"><button class="btn" data-copy="rep">COPY</button><button class="btn" id="rpage">SAVE AS A PAGE</button><a class="btn pri" style="flex:1;text-decoration:none" id="rmail" href="#">EMAIL YOUR REPS</a></div></div>';
+ h+='<a class="card" id="toreps" href="../hub/?tab=reps" style="display:block;margin-top:16px;text-decoration:none;color:inherit"><p class="kicker">For your reps ›</p><p class="faint small" style="margin:0">What fits you, offices that know you and offices you should be going in for all go on one sheet: FOR MY REPS, in the Hub. It reads what you spotted here, and after the first one it only sends what\'s new.</p></a>';
  return h;
 }
 

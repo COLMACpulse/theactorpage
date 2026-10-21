@@ -1,0 +1,118 @@
+{
+ "v": 1,
+ "at": "2026-10-21T13:17:00Z",
+ "note": "MADE UP for the tour. Not real productions.",
+ "sources": [
+  {
+   "id": "cfc",
+   "label": "California Film Commission",
+   "ok": true,
+   "count": 3
+  },
+  {
+   "id": "trade",
+   "label": "The Trade (made up)",
+   "ok": true,
+   "count": 4
+  }
+ ],
+ "items": [
+  {
+   "id": "dm1",
+   "src": "trade",
+   "kind": "news",
+   "title": "Coastal Drama ‘Salt Marsh’ Casts a Mother and Daughter",
+   "link": "https://example.com/salt-marsh",
+   "date": "2026-10-21T09:00:00Z",
+   "tags": [
+    "Salt Marsh",
+    "Tidewater Casting"
+   ],
+   "summary": "The limited series, set in a fishing town, is casting locals for a mother and daughter. Tidewater Casting is casting."
+  },
+  {
+   "id": "dm2",
+   "src": "trade",
+   "kind": "news",
+   "title": "‘Harbor Lights’ Picked Up for a Second Season",
+   "link": "https://example.com/harbor-lights",
+   "date": "2026-10-20T15:00:00Z",
+   "tags": [
+    "Harbor Lights"
+   ],
+   "summary": "The drama returns next spring."
+  },
+  {
+   "id": "dm3",
+   "src": "trade",
+   "kind": "news",
+   "title": "Box Office Weekend: Holdovers Hold",
+   "link": "https://example.com/box-office",
+   "date": "2026-10-19T10:00:00Z",
+   "tags": [
+    "Box Office"
+   ],
+   "summary": ""
+  },
+  {
+   "id": "dm4",
+   "src": "trade",
+   "kind": "news",
+   "title": "Dust Road Begins Filming in Kansas",
+   "link": "https://example.com/dust-road",
+   "date": "2026-10-18T10:00:00Z",
+   "tags": [
+    "Dust Road"
+   ],
+   "summary": "The western is shooting now."
+  },
+  {
+   "id": "dmc1",
+   "src": "cfc",
+   "kind": "taxcredit",
+   "title": "Low Water",
+   "company": "Tidewater Films LLC",
+   "type": "Independent Film $10m & Under Live Action",
+   "fy": "2026-2027",
+   "allocated": "2026-09-21",
+   "date": "2026-09-21T00:00:00Z",
+   "days": 28,
+   "cast": 34,
+   "bg": 420,
+   "mark": "latest",
+   "link": "https://example.com/state-list"
+  },
+  {
+   "id": "dmc2",
+   "src": "cfc",
+   "kind": "taxcredit",
+   "title": "Paper Boats",
+   "company": "Pond Animation",
+   "type": "Independent Film Over $10m Animation",
+   "fy": "2026-2027",
+   "allocated": "2026-09-21",
+   "date": "2026-09-21T00:00:00Z",
+   "days": null,
+   "cast": 18,
+   "bg": null,
+   "mark": "latest",
+   "link": "https://example.com/state-list"
+  },
+  {
+   "id": "dmc3",
+   "src": "cfc",
+   "kind": "taxcredit",
+   "title": "Unt. Coastal Thriller",
+   "company": "Big Studio",
+   "type": "Non-Independent Feature Film Live Action",
+   "fy": "2026-2027",
+   "allocated": "2026-07-27",
+   "date": "2026-07-27T00:00:00Z",
+   "days": 40,
+   "cast": 43,
+   "bg": 3618,
+   "mark": "",
+   "link": "https://example.com/state-list"
+  }
+ ]
+}

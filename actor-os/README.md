@@ -3,7 +3,7 @@
 Self-tape field unit for actors. Prep, shoot, cut, send — on the phone you already
 have. No account, no server, no upload. Runs offline once installed.
 
-**Live:** https://YOURUSERNAME.github.io/actor-os/
+**Live:** https://colmacpulse.github.io/theactorpage/actor-os/
 
 ---
 
@@ -406,14 +406,9 @@ read-only hardening — exists in source and needs a Mac to compile.
 
 ---
 
-## Gauntlet
+## Device check
 
-`gauntlet/PHYSICAL_DEVICE_GAUNTLET.html` — twelve tests covering permissions,
-enumeration, focus, exposure, cinematic detection, master recording, hash
-verification, kill/relaunch persistence, storage and battery edges, and a
-ten-master endurance run.
-
-Every test starts UNKNOWN and only moves on evidence. **UNKNOWN is not a pass.**
+`gauntlet/WEB_CAPABILITY_PROBE.html`: open it on the phone you'll tape with. It reports what that browser's camera and mic can do (resolution, focus, exposure, recording formats) before you trust a take to it.
 
 ---
 

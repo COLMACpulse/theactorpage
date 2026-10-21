@@ -20,10 +20,10 @@ const t0=Date.now(); const fe=[];
 await p.waitForFunction(()=>window.__tour.done,null,{timeout:240000,polling:500}).catch(()=>{});
 const log=await p.evaluate(()=>window.__tour.log), list=await p.evaluate(()=>window.__tour.list());
 console.log(log.map((x,i)=>x.id+':'+(i?Math.round((x.t-log[i-1].t)/100)/10:0)).join(' ')); console.log('ran '+log.length+' stops in '+Math.round((Date.now()-t0)/1000)+' s');
-want('every stop played, in order ('+list.length+')', log.map(x=>x.id).join()===list.join()&&list.length===25, log.map(x=>x.id).join());
+want('every stop played, in order ('+list.length+')', log.map(x=>x.id).join()===list.join()&&list.length===27, log.map(x=>x.id).join());
 const dark=log.filter(x=>!x.lit); want('every stop lit up its part', !dark.length, dark);
 const said=await p.evaluate(()=>window.__said.filter(s=>s.trim()));
-want('the voice said each line once (no clips yet, so the stand-in)', said.length===25&&/you know the drill/.test(said[0]), said.length);
+want('the voice said each line once (no clips yet, so the stand-in)', said.length===27&&/you know the drill/.test(said[0]), said.length);
 const pages=[...new Set(log.map(x=>x.path))]; want('it went through the tools ('+pages.length+' pages)', ['/actor-os/','/breakdown/','/memorizer/','/cps/','/write/writers-blockage.html','/papertrail/','/film/','/filmhub/'].every(x=>pages.includes(x)), pages);
 const fr=p.frame({url:/\/(index\.html)?$/})||p.frames()[1];
 want('the end: keep playing, again, or end', await p.isVisible('#done')&&/KEEP PLAYING/.test(await p.innerText('#done')));
@@ -42,7 +42,7 @@ want('SHOW ME with only ACT: the tour starts on ACT alone', (await p.$$eval('#ch
 await p.click('#chips [data-d="act"]');
 want('one always stays on', (await p.$$eval('#chips [aria-pressed="true"]',x=>x.map(y=>y.dataset.d).join()))==='act');
 await p.evaluate(()=>{ window.__said=[]; }); await p.click('#go'); await p.waitForFunction(()=>window.__tour.at==='O02',null,{timeout:20000});
-want('ACT only: open, ACT, close (17 stops)', (await p.evaluate(()=>window.__tour.list())).every(id=>/^[OAC]/.test(id))&&(await p.evaluate(()=>window.__tour.list().length))===17);
+want('ACT only: open, ACT, close (19 stops)', (await p.evaluate(()=>window.__tour.list())).every(id=>/^[OAC]/.test(id))&&(await p.evaluate(()=>window.__tour.list().length))===19);
 await p.click('#pp'); const atP=await p.evaluate(()=>window.__tour.at); await p.waitForTimeout(1500);
 want('PAUSE holds the stop', (await p.evaluate(()=>window.__tour.at))===atP&&/PLAY/.test(await p.innerText('#pp')));
 await p.click('#sk'); await p.waitForFunction(()=>window.__tour.at==='A00',null,{timeout:20000}).catch(()=>{});
@@ -51,5 +51,6 @@ await p.click('#bk'); await p.waitForFunction(()=>window.__tour.at==='O03',null,
 want('BACK: the stop before', (await p.evaluate(()=>window.__tour.at))==='O03');
 await p.click('#end'); await p.waitForURL(/index\.html$/); await p.waitForTimeout(300);
 want('END DEMO mid-tour: real shelf as it was', (await p.evaluate(()=>localStorage.getItem('theactorpage_shelf_v1')))===realBefore);
+want('the tour reaches JUICE and FOR MY REPS, and JUICE in the tour never goes online', log.some(x=>x.id==='A12')&&log.some(x=>x.id==='A13'));
 want('no page errors', !errs.length, errs);
 await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();

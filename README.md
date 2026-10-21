@@ -1,12 +1,31 @@
-# THEACTORPAGE · ACT tools
+# THEACTORPAGE
+
+Tools for actors, live at https://colmacpulse.github.io/theactorpage/. ACT is the front door; WRITE and FILM sit under MAKE YOUR OWN. Every tool runs in the browser, works offline once opened, and keeps your material on your device.
 
 | Folder | Tool | What it does |
 |---|---|---|
-| `breakdown/` | BREAKDOWN v0.3.1 | Drop your sides, pick your role. Every line, cue and note tied to the page. |
-| `archbook/` | ARCHBOOK v0.3.2 | Your footage, sorted by archetype. Paste a breakdown, build a cut for the role. |
-| `slate/` | SLATE MAKER v0.4 | One take. Face to full body. Every shape. |
-| `resume/` | VIRTUAL RESUME v0.3 | Make the work. It becomes the résumé. |
+| `actor-os/` | ACTOR OS | The self-tape studio: read the sides, shoot, cut, send. Slate options inside. |
+| `hub/` | PROJECT HUB | Auditions and requests, casting offices, FOR MY REPS, your page. |
+| `spotted/` | SPOTTED | Pass a project to your reps with the facts. JUICE brings in THE WIRE. |
+| `memorizer/` | MEMORIZER | Off book: say the line, it checks you. |
+| `breakdown/` | BREAKDOWN | The role on the page. |
+| `notes/` | NOTES | What they told you in the room, and who was there. |
+| `headshots/` | HEADSHOTS | Your headshots in your own words. |
+| `booth/` | VO BOOTH | A voice over audition from a closet. |
+| `cps/` | CHARACTER BANK | Keep a character you found. |
+| `archbook/` | ARCHBOOK | Your footage, sorted by character; reels. |
+| `resume/` | VIRTUAL RÉSUMÉ | Work you shot yourself, as honest credits. |
+| `slate/` | SLATE MAKER | The solo slate, opened from Actor OS. |
+| `gsd/` | GSD | What you need to get done. |
+| `write/` | WRITER'S BLOCKAGE | Write the script. |
+| `papertrail/` | PAPER TRAIL | Every draft, kept. |
+| `setlist/` | SET LIST | Funny, in order. |
+| `film/` | STORY STUDIO | Crew or solo, script to cut. |
+| `backlot/` | BACKLOT | The ground you have, opened from Story Studio. |
+| `filmhub/` | FILM HUB | Your films. |
+| `device/` | ON THIS DEVICE | Back up and restore everything. |
+| `demo/` | THE TOUR | A narrated walkthrough with a made-up actor. |
+| `wire/` | THE WIRE | The hourly fetcher behind JUICE (runs on GitHub, see .github/workflows/wire.yml). |
+| `server/` | THE HOST | Hosting for PUT IT ONLINE (Cloudflare, not switched on yet). |
 
-Each folder is self-contained (offline, installable to the home screen) and has its own README and MANIFEST.json.
-Served from the same origin, at /act/breakdown/, /act/archbook/, /act/slate/ and /act/resume/. Same origin is what lets VIRTUAL RESUME bring in your ARCHBOOK clips and SLATE MAKER kit.
-Before trusting video features on a phone, open any tool's tests/probe.html on that phone.
+Tests: every folder's `tests/` plus `shared/test_*.js` and `tests/`. Made-up names only.

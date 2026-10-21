@@ -60,7 +60,7 @@
   function render() {
     closeSheet(true);
     $('#app').innerHTML = `<div class="shell">
-      <header class="top"><div class="title"><b>VIRTUAL RESUME</b><span>${esc(S.lib.me.name || 'Make the work. It becomes the résumé.')}</span></div><button class="iconbtn" data-a="theme" aria-label="Light or dark">${ICON.theme}</button></header>
+      <header class="top"><div class="title"><b>VIRTUAL RÉSUMÉ</b><span>${esc(S.lib.me.name || 'Make the work. It becomes the résumé.')}</span></div><button class="iconbtn" data-a="theme" aria-label="Light or dark">${ICON.theme}</button></header>
       <main id="main">${({ work: vWork, training: vTraining, you: vYou, next: vNext, send: vSend }[S.tab])()}</main>
       <nav class="tabs">${TABS.map(([k, l]) => `<button class="${S.tab === k ? 'on' : ''}" data-a="tab" data-t="${k}">${ICON[k]}<span>${l}</span>${k === 'next' && nextList().length ? '<i class="badge"></i>' : ''}</button>`).join('')}</nav></div>`;
     const drop = $('#drop');
@@ -77,7 +77,7 @@
   // ---------------------------------------------------------------- WORK
   function vWork() {
     const L = S.lib, credits = L.pieces.filter(p => E.countsCheck(p).counts).length;
-    return `${L.pieces.length ? '' : `<div style="padding:12px 0 4px"><div class="kicker">THEACTORPAGE · ACT</div><h1 style="font-size:30px;letter-spacing:.1em">VIRTUAL RESUME</h1>
+    return `${L.pieces.length ? '' : `<div style="padding:12px 0 4px"><div class="kicker">THEACTORPAGE · ACT</div><h1 style="font-size:30px;letter-spacing:.1em">VIRTUAL RÉSUMÉ</h1>
         <div style="color:var(--tung-text);letter-spacing:.04em;margin-top:2px">Make the work. It becomes the résumé.</div>
         <p class="dim" style="margin:8px 0 0;max-width:36em">No credits yet? Shoot your own: a scene with a friend, a short, a monologue. Drop it here. Finish it and show it, and it stands on your résumé as a real credit. The rest goes on your page as clips.</p></div>`}
       <div class="drop" id="drop" data-a="addclip" role="button" tabindex="0"><b>Drop your work</b><span class="dim" style="font-size:14px">Scenes, shorts, monologues, self-tapes.</span><span class="btn pri">Choose videos</span></div>
@@ -220,7 +220,7 @@
         <p class="faint" style="font-size:13px;margin:8px 0 0">Text is for casting-site forms. Your page is a folder you can host anywhere: open index.html to see it.</p></div>
       <div class="card"><b>Library file</b><p class="dim" style="font-size:14px;margin:4px 0 10px">${L.lastSaved ? 'Last saved ' + new Date(L.lastSaved).toLocaleString() + '.' : '<b style="color:var(--tung-text)">Never saved to a file.</b>'} Holds everything but the videos.</p>
         <div class="row"><button class="btn" data-a="savelib">Save library file</button><button class="btn ghost" data-a="openlib">Open a library file</button></div></div>
-      <p class="faint" style="font-size:12px">VIRTUAL RESUME ${VERSION}</p>`;
+      <p class="faint" style="font-size:12px">VIRTUAL RÉSUMÉ ${VERSION}</p>`;
   }
   function fitPaper() {
     const pw = $('#pw'), pp = $('#paper'); if (!pw || !pp) return;

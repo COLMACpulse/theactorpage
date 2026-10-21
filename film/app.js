@@ -373,16 +373,18 @@ function vLoc(o){
 function vOwn(){
  if(OEDIT){ const o=owned().find(x=>x.id===OEDIT); if(o) return vLoc(o); OEDIT=null; }
  let h='';
+ const toBacklot='<a class="card" id="tobacklot" href="../backlot/" style="display:block;text-decoration:none;color:inherit"><p class="kicker">Backlot ›</p><p class="faint" style="font-size:13px;margin:0">The same list, walked with your phone: a photo per spot, what each can pass for, your scripts held against it, and a start dealt from what you have.</p></a>';
  if(DB.owned===null||!owned().length){
-  h+='<div class="card"><p class="kicker">What you own</p><p>Your locations, props, wardrobe and gear. Scenes get matched to them. Same list as BACKLOT.</p>'
+  h+='<div class="card"><p class="kicker">What you own</p><p>Your locations, props, wardrobe and gear. Scenes get matched to them. Backlot shows the same list, with photos.</p>'
    +'<button class="btn pri block" id="ranch">START FROM THE RANCH LIST</button><p class="faint" style="font-size:13px;margin:6px 0 10px">Barn, porch, creek, workshop, oak treeline, corral, fire pit, the pickup, the gear. 40 things. Edit or remove any.</p>'
    +'<button class="btn block ghost" id="empty">Start empty</button></div>';
-  if(DB.owned===null) return h;
+  if(DB.owned===null) return h+toBacklot;
  }
  h+='<div class="card"><p class="kicker">Add</p><div class="row"><select class="field" id="okind" style="flex:1 1 120px">'+KINDS.map(k=>'<option value="'+k[0]+'">'+k[1]+'</option>').join('')+'</select>'
   +'<input class="field" id="oname" placeholder="Name" style="flex:2 1 180px"></div>'
   +'<input class="field" id="oplays" placeholder="Can play (locations): bus shelter, motel lot…" style="margin-top:8px">'
   +'<input class="field" id="onotes" placeholder="Notes" style="margin-top:8px"><button class="btn pri block" id="oadd" style="margin-top:8px">ADD</button></div>';
+ h+=toBacklot;
  KINDS.forEach(([k,l])=>{
   const L=owned().filter(o=>o.kind===k); if(!L.length) return;
   h+='<p class="kicker" style="margin-top:16px">'+l+' · '+L.length+'</p>'+L.map(o=>'<div class="own"><div><b>'+esc(o.name)+'</b>'+(o.plays?'<small>Plays: '+esc(o.plays)+'</small>':'')

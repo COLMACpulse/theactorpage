@@ -47,8 +47,9 @@
     if (g.top === g) g.addEventListener('DOMContentLoaded', () => {
       if (document.getElementById('tapdemobar') || document.documentElement.hasAttribute('data-tour-player')) return;
       const b = document.createElement('div'); b.id = 'tapdemobar';
-      b.setAttribute('style', 'position:fixed;left:0;right:0;bottom:0;z-index:2147483000;background:#111;color:#fff;font:600 13px system-ui,sans-serif;padding:8px 12px calc(8px + env(safe-area-inset-bottom));display:flex;gap:10px;align-items:center;justify-content:space-between;border-top:2px solid #e0a23c');
-      b.innerHTML = '<span>DEMO · Your own work is put away while you look.</span><button type="button" style="font:700 12px system-ui;padding:6px 10px;border-radius:8px;border:1px solid #fff;background:transparent;color:#fff">END DEMO</button>';
+      /* a small pill above the tools' own bottom tabs, never over them */
+      b.setAttribute('style', 'position:fixed;right:10px;bottom:calc(86px + env(safe-area-inset-bottom));max-width:calc(100vw - 20px);z-index:2147483000;background:#111;color:#fff;font:600 12px system-ui,sans-serif;padding:6px 6px 6px 12px;border-radius:999px;display:flex;gap:8px;align-items:center;border:2px solid #e0a23c;box-shadow:0 4px 18px rgba(0,0,0,.4)');
+      b.innerHTML = '<span>DEMO · your own work is put away</span><button type="button" style="font:700 12px system-ui;padding:6px 10px;border-radius:999px;border:1px solid #fff;background:transparent;color:#fff;white-space:nowrap">END DEMO</button>';
       b.querySelector('button').onclick = () => D.end().then(() => { location.href = D.root + 'index.html'; });
       document.body.appendChild(b);
     });

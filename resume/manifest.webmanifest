@@ -1,6 +1,6 @@
 {
-  "name": "VIRTUAL RESUME",
-  "short_name": "RESUME",
+  "name": "VIRTUAL RÉSUMÉ",
+  "short_name": "RÉSUMÉ",
   "description": "Shoot your own work. This turns it into a real résumé and a page casting can click.",
   "start_url": "./", "scope": "./", "display": "standalone",
   "background_color": "#121110", "theme_color": "#121110",

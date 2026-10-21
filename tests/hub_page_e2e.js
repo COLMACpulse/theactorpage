@@ -6,7 +6,7 @@ const FX=path.join(__dirname,'..','shared','fixtures');
 (async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,400))); if(!x) ok=false; };
 const c=await b.newContext({viewport:{width:1280,height:900},acceptDownloads:true}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
-await p.goto('http://localhost:8811/hub/'); await p.evaluate(()=>{ localStorage.clear(); });
+await p.goto('http://localhost:8811/hub/'); await p.evaluate(()=>{ localStorage.clear(); localStorage.setItem('hub_demo','1'); });   // the made-up actor, as in the tour
 const face=fs.readFileSync(path.join(FX,'made_up_face.jpg')).toString('base64'), clip=fs.readFileSync(path.join(FX,'made_up_clip.mp4')).toString('base64'), barn=fs.readFileSync(path.join(FX,'made_up_barn.jpg')).toString('base64');
 // the other tools' work, as they save it
 await p.evaluate(async barn=>{ localStorage.setItem('film_os_v1',JSON.stringify({cur:'a',scripts:{a:{text:'Title: Salt Road\n\nINT. DINER - NIGHT\n\nSAM\nWe close at nine.\n',file:'salt_road.fountain'},b:{text:'INT. SHED - DAY\n',file:'shed.fountain'}}}));

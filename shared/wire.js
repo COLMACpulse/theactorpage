@@ -15,7 +15,8 @@
   const blank = () => ({ mode: 'manual', last: null, seen: {}, gone: {}, day: '', watch: [], not: [] });
   J.load = function () { try { const d = JSON.parse(localStorage.getItem(J.KEY) || 'null'); if (d && typeof d === 'object') return Object.assign(blank(), d); } catch (e) { } return blank(); };
   J.save = function (s) { try { const ks = Object.keys(s.seen); if (ks.length > 4000) ks.slice(0, ks.length - 4000).forEach(k => delete s.seen[k]); localStorage.setItem(J.KEY, JSON.stringify(s)); } catch (e) { } };
-  J.url = function () { try { return localStorage.getItem('tap_wire') || J.URL; } catch (e) { return J.URL; } };
+  /* the tour never goes online: in the demo it reads a made-up wire that ships with the site */
+  J.url = function () { try { if (g.TapDemo && g.TapDemo.on) return (g.TapDemo.root || '/') + 'demo/wire_demo.json'; } catch (e) { } try { return localStorage.getItem('tap_wire') || J.URL; } catch (e) { return J.URL; } };
   J.today = (t) => { const d = new Date(t || Date.now()); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   /* daily: the first time Spotted opens on a new day */
   J.dueToday = (s, now) => s.mode === 'daily' && s.day !== J.today(now);

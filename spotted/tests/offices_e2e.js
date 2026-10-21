@@ -50,16 +50,7 @@ m=await p.innerText('#main');
 want('OFFICES: never had you in, first', /Casting now, never had you in 3/i.test(m)&&m.toLowerCase().indexOf('never had you in')<m.toLowerCase().indexOf('has had you in'), m.slice(0,400));
 want('Wren Ashby: has had you in, your history, how they reached you', /Wren Ashby\nHas had you in/i.test(m)&&/You and Wren Ashby: 3 reads before this/.test(m)&&/Came to me through Actors Access 2 times, straight from the office 1 time\./.test(m), m);
 want('Dana Pell: casting Salt Road and Low Tide, never had you in, ask your reps how', /Dana Pell\nNever had you in/i.test(m)&&/Breakdowns or direct: ask your reps\./.test(m), m);
-const rep=await p.inputValue('#t_rep');
-want('the report: three parts, what fits first', /^Here's what I'm seeing\.\n\nCASTING NOW THAT FITS ME\n- Salt Road/.test(rep)&&/OFFICES THAT KNOW ME, CASTING NOW\n- Wren Ashby: Dry Creek\./.test(rep)&&/OFFICES I SHOULD BE GOING IN FOR AND AM NOT\n- Dana Pell: Low Tide, Salt Road\. My words: rancher\.\n  Never had me in\. Do they go through Breakdowns, or direct\?/.test(rep), rep);
-want('the report: no contacts, no em dashes, signed', !/@/.test(rep)&&!/—/.test(rep)&&/Sam Actor$/.test(rep), rep);
-await p.click('#rmail');
-const href=await p.getAttribute('#rmail','href');
-want('EMAIL YOUR REPS: to your rep, the report in it', /^mailto:pat%40example\.com\?subject=What's%20casting%20-%20Sam%20Actor/.test(href)&&decodeURIComponent(href).indexOf('OFFICES I SHOULD BE GOING IN FOR')>0, href.slice(0,120));
-const [dl]=await Promise.all([p.waitForEvent('download'),p.click('#rpage')]);
-const html=fs.readFileSync(await dl.path(),'utf8');
-want('SAVE AS A PAGE: a page with the report, links you can tap', /What's casting · Sam Actor/.test(dl.suggestedFilename().replace(' - ',' · ').replace(/ - .*$/,''))||/<title>What&#39;s casting · Sam Actor<\/title>/.test(html), dl.suggestedFilename());
-want('the page: the parts in bold, the story link a link', /<b>OFFICES THAT KNOW ME, CASTING NOW<\/b>/.test(html)&&/<a href="https:\/\/example.com\/news\/pilot-orders">/.test(html));
+want('for your reps: one sheet, FOR MY REPS in the Hub; no second report here', !(await p.$('#t_rep'))&&(await p.getAttribute('#toreps','href'))==='../hub/?tab=reps'&&/FOR MY REPS/.test(await p.innerText('#toreps')));
 // a kept one, opened from OFFICES
 await p.click('[data-open]'); await p.waitForTimeout(300);
 want('tap one: it opens, with your words next to it', /Your words in it:/.test(await p.innerText('#main'))||/Just passing this along/.test(await p.inputValue('#t_pa')), await p.innerText('#main'));

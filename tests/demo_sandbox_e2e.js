@@ -24,7 +24,7 @@ const pages=['actor-os/','breakdown/','memorizer/','cps/','write/writers-blockag
 const leaks=[];
 for(const pg of pages){ await p.goto(H+pg); await p.waitForTimeout(700); const t=await p.evaluate(()=>document.body.innerText); if(/real_gate|\bRIVA\b|\bMOSS\b/.test(t)) leaks.push(pg); if(!(await p.evaluate(()=>window.TapDemo&&TapDemo.on&&TapDemo.lsOk))) leaks.push(pg+' (not sandboxed)'); }
 want('every tool in the demo: nothing from the real shelf shows ('+pages.length+' pages)', !leaks.length, leaks);
-want('outside the player, a page says it is the demo, with END DEMO', /DEMO · Your own work is put away/.test(await p.innerText('#tapdemobar')));
+want('outside the player, a page says it is the demo, with END DEMO', /DEMO · your own work is put away/.test(await p.innerText('#tapdemobar')));
 const realDuring=await p.evaluate(()=>TapDemo.realGet('theactorpage_shelf_v1'));
 want('the real shelf, read under the demo: still only the real script', /real_gate/.test(realDuring)&&!/low_tide/.test(realDuring));
 const twins=await p.evaluate(async()=>(await indexedDB.databases()).length);

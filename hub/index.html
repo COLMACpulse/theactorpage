@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
 <script src="../shared/tour.js"></script>
 <script src="../shared/hot.js"></script><script src="../shared/kit.js"></script><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>COLMAC Project Hub</title>
+<title>PROJECT HUB · THEACTORPAGE</title>
 <style>
 :root{--paper:#0d0f12;--p1:#14171c;--p2:#1b1f26;--p3:#232831;--line:#2b3038;--line2:#3a414c;
 --ink:#ece7dc;--mut:#9aa0a8;--faint:#646b75;--tung:#e0a23c;--go:#5cae7e;--hold:#d6794e;--pend:#6a7280;--bad:#d9694e;
@@ -156,7 +156,7 @@ small.note{display:block;padding:0 15px 13px;color:var(--faint);font-size:10.5px
 <div id="view"></div>
 <div class="foot"><div class="sig" style="width:34px;height:34px;flex:0 0 34px"></div>
  <div class="e">Prior Proper Planning. The machine shows you what's not ready.</div>
- <div class="r2">COLMAC TOOLWORKS<br>PROJECT HUB &middot; v0.10 &middot; built for the operator</div></div>
+ <div class="r2">THEACTORPAGE<br>PROJECT HUB</div></div>
 </div>
 <input id="csv" type="file" accept=".csv" class="hide"><input id="qsin" type="file" accept=".html,.htm,.mhtml,.mht" multiple class="hide"><input id="tgin" type="file" accept=".json,application/json" class="hide">
 <input id="artin" type="file" multiple class="hide">
@@ -236,10 +236,14 @@ function importCSV(text){
 <script>
 const DEFAULT_PROFILE={"name": "RILEY HART", "union": "SAG-AFTRA", "rep": "Northgate Talent (LA)", "phone": "(555) 010-0142", "locals": "LA / Atlanta local hire", "height": "5'10\"", "weight": "165 lbs", "lane": "Grounded authority. Cops, medics, the guy who tells you the bad news.", "skills": ["Horseback - Western", "Firearms handling", "Stage combat", "Improv", "Valid passport"], "accents": ["General American", "Southern", "Boston", "Light Irish"], "demo": true};
 const DEFAULT_CREDITS=[{"title": "Harbor Street", "role": "Guest Star", "net": "FX", "kind": "credit", "medium": "TV", "state": "archived", "character": "DET. MARA KEYS", "demo": true}, {"title": "The Quiet Hours", "role": "Co-Star", "net": "HBO", "kind": "credit", "medium": "TV", "state": "archived", "character": "ORDERLY", "demo": true}, {"title": "Ninth Precinct", "role": "Recurring", "net": "NBC", "kind": "credit", "medium": "TV", "state": "archived", "character": "SGT. DOYLE", "demo": true}, {"title": "Cold Creek", "role": "Lead", "net": "Independent", "kind": "credit", "medium": "Film", "state": "archived", "character": "WES BRANNON", "demo": true}, {"title": "Five Miles Out", "role": "Supporting", "net": "Independent", "kind": "credit", "medium": "Film", "state": "archived", "character": "RAY", "demo": true}, {"title": "Signal Loss", "role": "Guest Star", "net": "AMC", "kind": "credit", "medium": "TV", "state": "archived", "character": "FIELD TECH", "demo": true}];
-let profile=JSON.parse(JSON.stringify(DEFAULT_PROFILE));
+/* The made-up actor (RILEY HART) is for the demo tour only. A real first visit starts empty.
+   HUB_DEMO: the tour's sandbox is on, or a test asked for it (localStorage hub_demo = 1). */
+const HUB_DEMO=(()=>{ try{ if(window.TapDemo&&TapDemo.on) return true; }catch(e){} try{ return localStorage.getItem('hub_demo')==='1'; }catch(e){ return false; } })();
+const BLANK_PROFILE=()=>({name:'',union:'',rep:'',phone:'',locals:'',height:'',weight:'',lane:'',skills:[],accents:[]});
+let profile=HUB_DEMO?JSON.parse(JSON.stringify(DEFAULT_PROFILE)):BLANK_PROFILE();
 const CREDITS_SEED_V=2;
-let credits=DEFAULT_CREDITS.map(c=>Object.assign({character:'',charNote:'',director:''},c));
-async function seedCredits(){let sv=0;try{sv=(await DB.getMeta('creditsSeedV'))||0;}catch(e){}if(sv>=CREDITS_SEED_V)return;const have=new Set(credits.map(c=>(c.title||'').toLowerCase().trim()));let added=0;DEFAULT_CREDITS.forEach(d=>{const k=(d.title||'').toLowerCase().trim();if(!have.has(k)){credits.push(Object.assign({character:'',charNote:'',director:''},JSON.parse(JSON.stringify(d))));have.add(k);added++;}});if(added){ensureCids();saveCredits();}try{await DB.putMeta('creditsSeedV',CREDITS_SEED_V);}catch(e){}}
+let credits=HUB_DEMO?DEFAULT_CREDITS.map(c=>Object.assign({character:'',charNote:'',director:''},c)):[];
+async function seedCredits(){if(!HUB_DEMO)return;let sv=0;try{sv=(await DB.getMeta('creditsSeedV'))||0;}catch(e){}if(sv>=CREDITS_SEED_V)return;const have=new Set(credits.map(c=>(c.title||'').toLowerCase().trim()));let added=0;DEFAULT_CREDITS.forEach(d=>{const k=(d.title||'').toLowerCase().trim();if(!have.has(k)){credits.push(Object.assign({character:'',charNote:'',director:''},JSON.parse(JSON.stringify(d))));have.add(k);added++;}});if(added){ensureCids();saveCredits();}try{await DB.putMeta('creditsSeedV',CREDITS_SEED_V);}catch(e){}}
 let DEMO_CLEARED=false;
 async function seedAuditions(){
  try{
@@ -247,7 +251,7 @@ async function seedAuditions(){
   /* Once the demo has been cleared it stays cleared. This seeder runs on every boot
      and re-adds anything in AUD_SEED it cannot already see, which meant pressing
      "clear the demo data" worked until you reloaded and then quietly undid itself. */
-  if(DEMO_CLEARED)return 0;
+  if(DEMO_CLEARED||!HUB_DEMO)return 0;
   const have=new Set(projects.map(p=>p.aaid).filter(Boolean));
   let n=0;
   AUD_SEED.forEach(r=>{
@@ -643,7 +647,7 @@ function go(t){if(openId){if(tapePhase!=='off')finishTake();if(camOpen)closeCam(
 
 function who(){const bn=document.getElementById('brandname');if(bn&&profile.name)bn.textContent=profile.name;
  const bs=document.getElementById('brandsub');if(bs)bs.textContent='';
- $('who').innerHTML=`${esc(profile.union)} &middot; ${esc(profile.rep)}<br><button class="act sm" style="margin-top:7px" onclick="exportBackup()" title="Save a .zip of everything (headshots, posters, reel, resume, data). Do this often - it is how your work travels between files.">&#8681; Back up now</button> <button class="ghost act sm" style="margin-top:7px" onclick="$('bkin').click()" title="Restore from a .zip backup. Always available - your media does not travel inside this HTML file.">&#8679; Restore</button>`;}
+ $('who').innerHTML=`${[profile.union,profile.rep].filter(Boolean).length?esc([profile.union,profile.rep].filter(Boolean).join(' · '))+'<br>':(profile.name?'':'<span style="color:var(--dim)">Start with your name and a headshot on Profile, or bring in your résumé.</span><br>')}<button class="act sm" style="margin-top:7px" onclick="exportBackup()" title="Save a .zip of everything (headshots, posters, reel, resume, data). Do this often - it is how your work travels between files.">&#8681; Back up now</button> <button class="ghost act sm" style="margin-top:7px" onclick="$('bkin').click()" title="Restore from a .zip backup. Always available - your media does not travel inside this HTML file.">&#8679; Restore</button>`;}
 
 
 function openRoad(id){openId=id;tab='road';render();}
@@ -3877,7 +3881,7 @@ function makeCover(art){
  x.strokeStyle='#2b3038';x.beginPath();x.moveTo(80,H-220);x.lineTo(W-80,H-220);x.stroke();
  x.fillStyle='#e0a23c';x.font='22px monospace';x.fillText('Lane:  '+(profile.lane||''),80,H-170);
  x.fillStyle='#9aa0a8';x.font='22px monospace';x.fillText([profile.phone,profile.locals].filter(Boolean).join('    '),80,H-120);
- x.fillStyle='#646b75';x.font='17px monospace';x.fillText('Material prepared via COLMAC Project Hub',80,H-64);
+ x.fillStyle='#646b75';x.font='17px monospace';x.fillText('Made with THEACTORPAGE',80,H-64);
  c.toBlob(b=>downloadBlob(b,(art.label||'reel').replace(/[^a-z0-9]+/gi,'_')+'_cover.png'),'image/png');
 }
 function exportReel(id){const a=ARTS.find(x=>x.id===id);if(!a)return;downloadBlob(a.blob,a.filename);makeCover(a);toast('Exported: file + cover one-sheet. Drag both into your email.');}
@@ -3971,6 +3975,6 @@ function reelRoomView(){
    wrong tombstone list - so the vault was correcting the record instead of being
    it. Now: browser cache, then folder, then the seeding and filtering run on
    whatever won. */
-seed();render();loadArts().then(()=>loadMeta()).then(()=>vaultAuto()).then(()=>{const n=credits.length;credits=credits.filter(c=>!isTombed(c.title));if(credits.length!==n)saveCredits();}).then(()=>seedAuditions()).then(()=>fromInbox()).then(()=>fromYou()).then(()=>fromTakes()).then(render);
+seed();render();loadArts().then(()=>loadMeta()).then(async()=>{ if(!HUB_DEMO&&isDemo()) await dropDemoData(); }).then(()=>vaultAuto()).then(()=>{const n=credits.length;credits=credits.filter(c=>!isTombed(c.title));if(credits.length!==n)saveCredits();}).then(()=>seedAuditions()).then(()=>fromInbox()).then(()=>fromYou()).then(()=>fromTakes()).then(render);
 </script><script src="../shared/view.js"></script>
 </body></html>
