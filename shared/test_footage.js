@@ -1,0 +1,24 @@
+/* FOOTAGE, the pure parts. Made-up jobs only.  node shared/test_footage.js */
+const mem={}; global.localStorage={getItem:k=>mem[k]==null?null:mem[k],setItem:(k,v)=>{mem[k]=String(v);},removeItem:k=>{delete mem[k];}};
+const F=require('./footage.js'); let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,300))); if(!x) ok=false; };
+const D='2026-10-21';
+const a=F.add({title:'Harbor Lights',role:'Deckhand',kind:'tv',episode:'Ep. 104',out:'2026-10-30',where:'Made Up TV',ask:'Jo Producer'});
+const b=F.add({title:'Dust Road',role:'Sheriff',kind:'film',out:'2026-09-01'});
+const c=F.add({title:'Salt Flat',role:'Clerk',out:'2026-08-01',asked:'2026-09-01',next:'2026-10-15',ask:'Lee Editor',status:'asked'});
+want('the same job twice is one job', F.add({title:'harbor lights',role:'deckhand'}).id===a.id&&F.jobs().length===3);
+want('where it stands, from the date when you haven\'t said', F.status(a,D)==='notyet'&&F.status(b,D)==='out'&&F.status(c,D)==='asked');
+const al=F.alerts(D).map(x=>x.line);
+want('what needs you: comes out soon, out and not asked, a follow-up due', al.includes('Harbor Lights, Ep. 104 comes out in 9 days on Made Up TV.')&&al.includes('Dust Road is out. Ask for your footage.')&&al.includes('Salt Flat: time to follow up with Lee Editor.'), al);
+F.set(b.id,{status:'have'});
+want('have the file: trim it', F.alerts(D).some(x=>/Dust Road: you have the file\. Trim your moment into a clip\./.test(x.line)));
+F.addClip(b.id,{name:'Dust_Road_Sheriff_clip.mp4',secs:12.5});
+want('a clip made: CLIPPED, and nothing nags', F.status(F.get(b.id),D)==='clipped'&&!F.alerts(D).some(x=>/Dust Road/.test(x.line))&&F.get(b.id).clips.length===1);
+want('counts by where it stands', JSON.stringify(F.counts(D))===JSON.stringify({notyet:1,out:0,asked:1,have:0,clipped:1}), F.counts(D));
+const fc=F.fromCredits([{title:'Harbor Lights',role:'Deckhand'},{title:'Night Shift',role:'Nurse',medium:'TV',net:'Made Up Net'},{title:'Night Shift',role:'Nurse'}]);
+want('Hub credits you aren\'t tracking: once each, with what it is and where', fc.length===1&&fc[0].title==='Night Shift'&&fc[0].kind==='tv'&&fc[0].where==='Made Up Net', fc);
+want('the clip name: Project_Role_clip', F.clipName({title:'Dust Road',role:'Sheriff Cole'},'mp4')==='Dust_Road_Sheriff_Cole_clip.mp4'&&F.clipName({title:'Café Noir'},'webm')==='Café_Noir_clip.webm');
+const t=F.trim(10,22.5,60);
+want('the trim: in and out become what the compressor takes, never past the ends', t.trimStart===10&&t.trimEnd===37.5&&t.secs===12.5&&F.trim(-5,999,30).trimEnd===0&&F.trim(20,10,30).secs===0.2);
+want('times read as minutes and seconds', F.time(75.25)==='1:15.3'&&F.time(5)==='0:05.0');
+want('no em dashes', !/—/.test(require('fs').readFileSync(__dirname+'/footage.js','utf8')+require('fs').readFileSync(__dirname+'/../footage/app.js','utf8')));
+console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1);

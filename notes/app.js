@@ -151,7 +151,7 @@ function newView(){
   +'<p class="lab">What kind</p><div class="row">'+N.ROOMS.map(r=>ch('room',r[0],r[1],d.room)).join('')+'</div>'
   +'<p class="lab" style="margin-top:12px">Who\'s in the room</p>';
  d.who.forEach((w,i)=>{ h+='<div class="whorow"><input class="field" data-wn="'+i+'" placeholder="Name (the guest: casting, director, coach)" value="'+esc(w.name)+'" list="peoplelist"><div class="row">'+N.ROLES.slice(0,4).map(r=>'<button class="chip sm'+(w.role===r[0]?' on':'')+'" data-wr="'+i+'|'+r[0]+'">'+r[1]+'</button>').join('')+'</div></div>'; });
- h+='<datalist id="peoplelist">'+N.people().filter(p=>!N.SELF.test(p.name)).map(p=>'<option value="'+esc(p.name)+'">').join('')+'</datalist>'
+ h+='<datalist id="peoplelist">'+(()=>{ const seen={}, out=[]; const add=n=>{ const k=N.key(n); if(!k||seen[k]||N.SELF.test(n)) return; seen[k]=1; out.push(n); }; N.people().forEach(p=>add(p.name)); try{ if(window.Contacts) Contacts.mine().filter(p=>!p.dnc).forEach(p=>add(p.name)); }catch(e){} return out.map(n=>'<option value="'+esc(n)+'">').join(''); })()+'</datalist>'
   +'<button class="btn sm ghost" id="addwho">+ SOMEONE ELSE</button>'
   +'<p class="lab" style="margin-top:12px">Date</p><input class="field" type="date" id="dd" value="'+esc(d.date)+'">'
   +'<p class="lab" style="margin-top:12px">Scene or project, and your part</p><div class="row"><input class="field half" id="dt" placeholder="LOW TIDE" value="'+esc(d.title)+'"><input class="field half" id="dp" placeholder="ANNA" value="'+esc(d.part)+'"></div>'

@@ -28,7 +28,7 @@ const ctx=()=>({projects:(HUB&&HUB.projects)||[],credits:(HUB&&HUB.credits)||[],
 const factsFor=it=>S.facts(it.card,Object.assign(ctx(),{selfId:it.id}));
 const item=id=>D.items.find(x=>x.id===id);
 const day=t=>t?new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}):'';
-const repEmails=()=>D.me.reps.map(r=>r.email).filter(Boolean).join(',');
+const repEmails=()=>{ const e=D.me.reps.map(r=>r.email).filter(Boolean); try{ if(window.Contacts) Contacts.myReps().forEach(p=>{ if(p.email&&e.indexOf(p.email)<0) e.push(p.email); }); }catch(x){} return e.join(','); };
 const mail=(to,subject,body)=>'mailto:'+encodeURIComponent(to||'').replace(/%2C/g,',')+'?subject='+encodeURIComponent(subject||'')+'&body='+encodeURIComponent(body||'');
 async function copy(t){ try{ await navigator.clipboard.writeText(t); toast('Copied.'); }catch(e){ toast('Select the text and copy it.'); } }
 function setStatus(it,s){ if(it.status===s) return; it.status=s; (it.history=it.history||[]).push({s,at:Date.now()}); save(); }
@@ -152,7 +152,7 @@ function itemView(it){
  h+=cutHtml(it,cut);
  h+=changedHtml(it);
  h+='<details class="card"><summary class="kicker" style="cursor:pointer;margin:0">What it says</summary><div style="margin-top:10px">'+cardFields(c)+saidHtml(c)+'</div></details>';
- if(!D.me.reps.length) h+='<div class="msg">Add your reps on YOU and EMAIL goes straight to them.</div>';
+ if(!D.me.reps.length&&!(window.Contacts&&Contacts.myReps().some(p=>p.email))) h+='<div class="msg">Add your reps on YOU and EMAIL goes straight to them.</div>';
  const block=(id,k,l,sub,t,to,toWord)=>'<div class="card"><p class="kicker">'+l+'</p><p class="faint small" style="margin:-4px 0 8px">'+sub+'</p>'
   +(id==='pa'?'<label class="lab" for="mine" style="margin-top:0">Your line (optional)</label><input class="field" id="mine" value="'+esc(it.mine)+'" placeholder="e.g. I grew up on a dock. I can drive a boat." style="margin-bottom:8px">':'')
   +'<textarea class="field send" id="t_'+id+'" data-subj="'+esc(t.subject)+'">'+esc(t.body)+'</textarea><div class="row" style="margin-top:8px"><button class="btn" data-copy="'+id+'">COPY</button><a class="btn pri" style="flex:1;text-decoration:none" data-mail="'+id+'" data-to="'+esc(to)+'" href="#">'+toWord+'</a></div></div>';
@@ -207,7 +207,7 @@ function youView(){
  h+='<div class="card"><p class="kicker">Your types</p><p class="dim small" style="margin-top:-4px">Your own words for what you\'re right for, with commas: cop, dad, rancher, western, small town. Anything you spot with all of a type\'s words in it says so.</p>'
   +'<textarea class="field" id="ytypes" rows="2" placeholder="cop, dad, rancher">'+esc((y.types||[]).join(', '))+'</textarea></div>';
  h+='<div class="card"><p class="kicker">Your reps</p>'+m.reps.map((r,i)=>'<div class="pair"><input class="field" data-rep="'+i+'|name" value="'+esc(r.name)+'" placeholder="Name"><input class="field" data-rep="'+i+'|email" value="'+esc(r.email)+'" placeholder="Email" inputmode="email"><button class="lnk faint" data-rmrep="'+i+'" aria-label="Remove">✕</button></div>').join('')
-  +'<button class="btn sm" id="addrep" style="margin-top:6px">ADD A REP</button></div>';
+  +'<button class="btn sm" id="addrep" style="margin-top:6px">ADD A REP</button>'+(()=>{ try{ const m=window.Contacts?Contacts.myReps():[]; return m.length?'<p class="dim small" style="margin-top:8px">From CONTACTS too: '+esc(m.map(p=>p.name).join(', '))+'.</p>':''; }catch(e){ return ''; } })()+'<p class="small" style="margin-top:8px"><a href="../contacts/?tab=reps">Everyone in your work is in CONTACTS</a></p></div>';
  h+='<div class="card"><p class="kicker">Conflicts you hold</p><p class="dim small" style="margin-top:-4px">A spot you booked: the brand, its category, and when it runs out. When something you spot lists the same thing, the card says so.</p>'
   +D.held.map((x,i)=>'<div class="pair"><input class="field" data-held="'+i+'|brand" value="'+esc(x.brand)+'" placeholder="Brand"><input class="field" data-held="'+i+'|category" value="'+esc(x.category)+'" placeholder="Category"><input class="field" type="date" data-held="'+i+'|until" value="'+esc(x.until)+'" aria-label="Runs out"><button class="lnk faint" data-rmheld="'+i+'" aria-label="Remove">✕</button></div>').join('')
   +'<button class="btn sm" id="addheld" style="margin-top:6px">ADD ONE</button></div>';

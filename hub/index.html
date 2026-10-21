@@ -2056,8 +2056,10 @@ function officesPanel(){
  const idx=officeIndex();
  if(!idx.length)return `<div class="panel"><h2>Casting offices</h2>
    <small class="note">Nothing here yet. Import your Actors Access history and every office you have read for shows up.</small>
+   <small class="note">Everyone in your work, not just casting, is in <a href="../contacts/">CONTACTS</a>.</small>
    <div class="row"><button class="act sm" onclick="jumpTo('qs-block')">Import from Actors Access</button></div></div>`;
  return `<div class="panel"><h2>Casting offices <span style="color:var(--mut);font-weight:400">&middot; ${idx.length}</span>
+   <a class="act sm" style="float:right;margin-top:-3px;margin-left:6px;text-decoration:none" href="../contacts/">Contacts</a>
    <button class="act sm" style="float:right;margin-top:-3px" onclick="offNew()">+ Want to reach</button>
    <button class="ghost act sm" style="float:right;margin:-3px 8px 0 0" onclick="go('reps')">For my reps</button>
    <a class="ghost act sm" style="float:right;margin:-3px 8px 0 0;text-decoration:none" href="../spotted/">Spotted</a>

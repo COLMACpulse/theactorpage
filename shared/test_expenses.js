@@ -1,0 +1,24 @@
+/* EXPENSES, the pure parts. Made-up amounts only.  node shared/test_expenses.js */
+const mem={}; global.localStorage={getItem:k=>mem[k]==null?null:mem[k],setItem:(k,v)=>{mem[k]=String(v);},removeItem:k=>{delete mem[k];}};
+const E=require('./expenses.js'); let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,300))); if(!x) ok=false; };
+want('amounts however you type them, kept in cents', E.cents('$1,234.50')===123450&&E.cents('12')===1200&&E.cents('9.999')===999&&E.cents('abc')===0);
+want('money reads back plainly', E.money(123450)==='$1,234.50'&&E.money(5)==='$0.05');
+const a=E.add({date:'2026-03-02',cat:'photos',amount:'450',what:'New headshots',paidTo:'Made Up Studio'});
+const b=E.add({date:'2026-03-20',cat:'training',amount:'$85.00',what:'Scene study'});
+const m=E.add({date:'2026-04-01',cat:'miles',miles:24,what:'To the callback and back'});
+want('miles at the 2026 IRS rate: 24 miles is $17.40', m.amount===1740&&E.rate(2026)===72.5&&E.rate(2025)===70);
+want('nothing to add: no amount, no line', E.add({cat:'dues',amount:''})===null&&E.all().length===3);
+E.add({date:'2025-12-30',cat:'dues',amount:'120'});
+const s=E.summary(2026);
+want('the year: total, miles, by kind, biggest first; last year kept apart', s.total===45000+8500+1740&&s.miles===24&&s.cats[0].cat==='photos'&&s.cats.length===3&&E.summary(2025).total===12000, s);
+want('years with something in them, newest first', E.years()[0]>='2026'&&E.years().includes('2025'));
+E.setRate(2026,70); E.set(m.id,{miles:24});
+want('your own rate for the year: miles go at it', E.get(m.id).amount===1680);
+E.set(b.id,{amount:'90'}); want('change an amount', E.get(b.id).amount===9000);
+E.set(a.id,{receipt:'image/jpeg'}); const csv=E.csv(2026,x=>x.id===a.id?'receipts/a.jpg':'');
+want('the file for your tax preparer: every line, oldest first, the receipt name, totals by kind', /^Date,Kind,What,Paid to,Amount,Miles,Rate \(cents a mile\),Receipt,Note\r\n2026-03-02,Headshots and photos,New headshots,Made Up Studio,450.00,,,receipts\/a.jpg,/.test(csv)&&/2026-04-01,Miles driven,To the callback and back,,16.80,24,70,,/.test(csv)&&/Total 2026,,,,556.80,24/.test(csv), csv);
+want('commas and quotes in a line are kept safe', /"Coach, \"\"the\"\" one"/.test((E.add({date:'2026-05-01',cat:'training',amount:'1',what:'Coach, "the" one'}),E.csv(2026))));
+want('a receipt file name: date, what, short id', /^2026-03-02_New_headshots_\w{4}\.jpg$/.test(E.receiptName(a,'jpg')));
+E.remove(a.id); want('remove', !E.get(a.id));
+want('no em dashes', !/—/.test(require('fs').readFileSync(__dirname+'/expenses.js','utf8')+require('fs').readFileSync(__dirname+'/../expenses/app.js','utf8')));
+console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1);

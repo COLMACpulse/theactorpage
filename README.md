@@ -7,6 +7,9 @@ Tools for actors, live at https://colmacpulse.github.io/theactorpage/. ACT is th
 | `actor-os/` | ACTOR OS | The self-tape studio: read the sides, shoot, cut, send. Slate options inside. |
 | `hub/` | PROJECT HUB | Auditions and requests, casting offices, FOR MY REPS, your page. |
 | `spotted/` | SPOTTED | Pass a project to your reps with the facts. JUICE brings in THE WIRE. |
+| `contacts/` | CONTACTS | The who: one list every tool shares. REPS: your reps, and rep search with steps and follow-ups. |
+| `footage/` | FOOTAGE | Every job and where its footage stands; trim your own file into a clip. |
+| `expenses/` | EXPENSES | What the work costs, for tax time: receipts, miles, one file for your tax preparer. |
 | `memorizer/` | MEMORIZER | Off book: say the line, it checks you. |
 | `breakdown/` | BREAKDOWN | The role on the page. |
 | `notes/` | NOTES | What they told you in the room, and who was there. |

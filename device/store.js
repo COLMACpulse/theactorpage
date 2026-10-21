@@ -31,13 +31,16 @@ D.TOOLS=[
  {id:'booth', name:'VO Booth', href:'../booth/', ls:[/^booth_/], db:[/^booth_media$/]},
  {id:'setlist', name:'Set List', href:'../setlist/', ls:[/^setlist_/], db:[/^setlist_media$/]},
  {id:'filmhub', name:'Film Hub', href:'../filmhub/', ls:[/^filmhub_/], db:[/^filmhub$/]},
- {id:'backlot', name:'Backlot', href:'../backlot/', ls:[/^backlot_/], db:[]}
+ {id:'backlot', name:'Backlot', href:'../backlot/', ls:[/^backlot_/], db:[]},
+ {id:'contacts', name:'Contacts', href:'../contacts/', ls:[/^theactorpage_contacts/,/^contacts_ui/], db:[]},
+ {id:'footage', name:'Footage', href:'../footage/', ls:[/^theactorpage_footage/], db:[]},
+ {id:'expenses', name:'Expenses', href:'../expenses/', ls:[/^theactorpage_expenses/], db:[/^theactorpage_receipts$/]}
 ];
 D.OWN_KEY='theactorpage_device_v1';
 /* passing notes between tools (gone in minutes) and things that can't go in a file */
 const SKIP_LS=[/^theactorpage_handoff_/, /^rooms_seen_/, new RegExp('^'+D.OWN_KEY+'$')];   // rooms_seen_: home's 'is this new' marks, nothing of yours
 const SKIP_STORES={'writers-blockage':['handles']};   // links to files on this computer; they only work here
-D.KNOWN_DBS=['actor_os_reader','colmac_hub','breakdown_v03','cps_v02','slate_v04','vresume_v03','writers-blockage','paper_trail','archbook_v03','film_os','theactorpage_shelf','theactorpage_you','theactorpage_takes','theactorpage_headshot_refs','booth_media','setlist_media','filmhub'];
+D.KNOWN_DBS=['theactorpage_receipts','actor_os_reader','colmac_hub','breakdown_v03','cps_v02','slate_v04','vresume_v03','writers-blockage','paper_trail','archbook_v03','film_os','theactorpage_shelf','theactorpage_you','theactorpage_takes','theactorpage_headshot_refs','booth_media','setlist_media','filmhub'];
 D.toolOfKey=k=>{ if(SKIP_LS.some(r=>r.test(k))) return null; return D.TOOLS.find(t=>t.ls.some(r=>r.test(k)))||null; };
 D.toolOfDb=n=>D.TOOLS.find(t=>t.db.some(r=>r.test(n)))||null;
 D.skipStore=(db,st)=>(SKIP_STORES[db]||[]).includes(st);
