@@ -9,14 +9,14 @@ const c=await b.newContext({viewport:{width:390,height:844}}); const p=await c.n
 const H='http://localhost:8811/';
 await p.goto(H); await p.evaluate(()=>localStorage.clear());
 // the "real" world: a script on the shelf and a database row
-await p.evaluate(async()=>{ Shelf.put({text:'RIVA\nThe gate is locked.\n\nMOSS\nThen climb it.\n',file:'real_gate.fountain',me:'RIVA'}); await Shelf.putFile(Shelf.current().id,new File(['%PDF real'],'real_gate.pdf',{type:'application/pdf'})); localStorage.setItem('theactorpage_view',JSON.stringify(['act','film'])); });
+await p.evaluate(async()=>{ Shelf.put({text:'RIVA\nThe gate is locked.\n\nMOSS\nThen climb it.\n',file:'real_gate.fountain',me:'RIVA'}); await Shelf.putFile(Shelf.current().id,new File(['%PDF real'],'real_gate.pdf',{type:'application/pdf'})); });
 const realBefore=await p.evaluate(()=>JSON.stringify(Object.keys(localStorage).sort().map(k=>[k,localStorage.getItem(k)])));
 const realFile=async()=>p.evaluate(async()=>{ const f=await Shelf.getFile(Shelf.current()&&Shelf.current().id); return f?f.name:null; });
 want('the real world: a script on the shelf, its file kept', /real_gate/.test(realBefore)&&(await realFile())==='real_gate.pdf');
 // demo on in this tab
-await p.evaluate(()=>TapDemo.start(['theactorpage_view'])); await p.reload(); await p.waitForTimeout(400);
+await p.evaluate(()=>TapDemo.start([])); await p.reload(); await p.waitForTimeout(400);
 want('demo on: localStorage and IndexedDB both swapped', await p.evaluate(()=>TapDemo.on&&TapDemo.lsOk&&TapDemo.idbOk));
-want('demo: the shelf is empty, your SHOW ME choice carried in', await p.evaluate(()=>Shelf.all().length===0&&localStorage.getItem('theactorpage_view')==='["act","film"]'));
+want('demo: the shelf is empty', await p.evaluate(()=>Shelf.all().length===0));
 want('demo: the real file is not there either', (await p.evaluate(async()=>{ const db=await new Promise(r=>{ const q=indexedDB.open('theactorpage_shelf',1); q.onupgradeneeded=()=>q.result.createObjectStore('files'); q.onsuccess=()=>r(q.result); }); return new Promise(r=>{ const q=db.transaction('files').objectStore('files').getAllKeys(); q.onsuccess=()=>r(q.result.length); }); }))===0);
 await p.evaluate(()=>{ Shelf.put({text:'ANNA\nVoss.\n\nMR. DELL (V.O.)\nThey found the boat.\n',file:'low_tide.fountain',me:'ANNA'}); localStorage.demoProp='x'; });
 want('demo writes work like normal, and Object.keys sees them', await p.evaluate(()=>Shelf.current().file==='low_tide.fountain'&&Object.keys(localStorage).includes('demoProp')&&localStorage.demoProp==='x'&&('demoProp' in localStorage)));

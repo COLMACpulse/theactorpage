@@ -35,10 +35,11 @@ want('the takes logged on the tour are in the demo', await inner.evaluate(()=>{ 
 await p.click('#end'); await p.waitForURL(/index\.html$/); await p.waitForTimeout(400);
 want('END DEMO: home, real shelf exactly as it was', (await p.evaluate(()=>localStorage.getItem('theactorpage_shelf_v1')))===realBefore&&!(await p.evaluate(()=>TapDemo.on)));
 want('no demo databases left', !(await p.evaluate(async()=>(await indexedDB.databases()).some(d=>/__tapdemo$/.test(d.name)))));
-// only the parts you show: your real SHOW ME picks the chapters; the chips change it
-await p.evaluate(()=>{ localStorage.setItem('theactorpage_view',JSON.stringify({act:true,write:false,film:false})); });
+// both chapters to start; you pick with the chips
 await p.goto(H+'demo/'); await p.waitForTimeout(300);
-want('SHOW ME with only ACT: the tour starts on ACT alone', (await p.$$eval('#chips [aria-pressed="true"]',x=>x.map(y=>y.dataset.d).join()))==='act');
+want('the tour starts with both chapters on', (await p.$$eval('#chips [aria-pressed="true"]',x=>x.map(y=>y.dataset.d).join()))==='act,own');
+await p.click('#chips [data-d="own"]');
+want('turn one off: ACT alone', (await p.$$eval('#chips [aria-pressed="true"]',x=>x.map(y=>y.dataset.d).join()))==='act');
 await p.click('#chips [data-d="act"]');
 want('one always stays on', (await p.$$eval('#chips [aria-pressed="true"]',x=>x.map(y=>y.dataset.d).join()))==='act');
 await p.evaluate(()=>{ window.__said=[]; }); await p.click('#go'); await p.waitForFunction(()=>window.__tour.at==='O02',null,{timeout:20000});

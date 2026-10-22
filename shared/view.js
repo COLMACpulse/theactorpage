@@ -9,6 +9,8 @@ V.DEPTS=D; V.NAMES={act:'ACT',write:'WRITE',film:'FILM'};
 V.MAP={act:['actor-os','breakdown','memorizer','cps','booth','notes','spotted','headshots','slate','archbook','resume','hub','contacts','footage','expenses','press'],write:['write','papertrail','setlist'],film:['film','filmhub','backlot']};
 const FOLDER={}; D.forEach(d=>V.MAP[d].forEach(f=>FOLDER[f]=d));
 const LS=g.localStorage;
+/* the SHOW ON THIS SITE row is gone from home, so nothing stays hidden with no way back: clear any old choice */
+try{ LS.removeItem(KEY); }catch(e){}
 V.get=function(){ const o={act:true,write:true,film:true}; let v=null; try{ v=JSON.parse(LS.getItem(KEY)||'null'); }catch(e){}
  if(v&&typeof v==='object') D.forEach(d=>{ if(v[d]===false) o[d]=false; }); return D.some(d=>o[d])?o:{act:true,write:true,film:true}; };
 V.has=d=>!d||V.get()[d]!==false;

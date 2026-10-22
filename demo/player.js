@@ -8,10 +8,8 @@
   const T = window.TourStops, D = window.TapDemo, $ = id => document.getElementById(id);
   const ROOT = D.root, fr = $('fr'), vo = $('vo');
   const CHS = ['act', 'own'];
-  /* from your real SHOW ME: ACT if you show ACT; Make your own if you show WRITE or FILM */
-  function shown() { let o = null; try { o = JSON.parse(D.realGet('theactorpage_view') || 'null'); } catch (e) { }
-    const has = d => !(o && o[d] === false), s = [];
-    if (has('act')) s.push('act'); if (has('write') || has('film')) s.push('own'); return s.length ? s : CHS.slice(); }
+  /* both chapters to start; you pick */
+  function shown() { return CHS.slice(); }
   /* your own clips from record.html, on this device, before the site's */
   const MINE = {}; if (window.MyVoice) MyVoice.clips().then(c => { Object.keys(c).forEach(k => { MINE[k] = URL.createObjectURL(c[k]); }); window.__tour && (window.__tour.mine = Object.keys(MINE).length); }).catch(() => { });
   /* and the words you changed while recording: the caption follows what you said */
@@ -105,7 +103,7 @@
   function finish() { hush(); unring(); $('done').classList.add('on'); window.__tour.done = true; }
   $('go').onclick = () => {
     unlock(); LIST = T.pick(pickD); if (!LIST.length) return;
-    D.start(['theactorpage_view']); window.__tour.depts = pickD.slice();
+    D.start([]); window.__tour.depts = pickD.slice();
     $('start').style.display = 'none'; $('run').classList.add('on'); $('done').classList.remove('on'); PAUSED = false; play(0);
   };
   $('pp').onclick = () => { PAUSED = !PAUSED; if (PAUSED) { RUN++; hush(); paint(LIST[I]); } else play(I); };
@@ -121,7 +119,7 @@
   window.__tour = { at: '', done: false, log: [], list: () => LIST.map(s => s.id), play };
   /* TRY IT: no voice, no tour. Low Tide goes in, you're on ANNA, and the site is yours to poke at. END DEMO puts your own work back. */
   if (/[?&]try\b/.test(location.search)) (async () => {
-    D.start(['theactorpage_view']); window.__tour.depts = [];
+    D.start([]); window.__tour.depts = [];
     $('start').style.display = 'none'; $('run').classList.add('on', 'slim'); $('where').textContent = 'DEMO'; $('count').textContent = '';
     $('cap').textContent = 'Low Tide is in every tool, and you are ANNA. Tap around. END DEMO puts your own work back.';
     document.documentElement.style.setProperty('--c', '#e0a23c');
