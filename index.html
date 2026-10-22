@@ -388,6 +388,9 @@ body.has .scrollcue{display:none}
 .gs{margin:18px 0 0;width:min(100%,210px)}
 .gs a.starter{text-decoration:none}
 .gs .gs-plug{margin-top:12px}
+.lookline{display:flex;align-items:center;justify-content:space-between;gap:12px;width:min(100%,210px);margin:26px 0 0;padding:12px 0;border-top:1px solid rgba(255,255,255,.1);border-bottom:1px solid rgba(255,255,255,.1);color:#c3c8d0;text-decoration:none;min-height:44px}
+.lookline span{display:flex;flex-direction:column;gap:2px}.lookline i{font:700 .62rem var(--script);font-style:normal;letter-spacing:.2em;color:#9aa1ab}.lookline b{font-weight:400;color:#ece7dc}
+.lookline svg{width:18px;height:18px;fill:none;stroke:#9aa1ab;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.lookline:hover b{text-decoration:underline}
 .gs-h{display:flex;gap:12px;justify-content:space-between;align-items:baseline;font:700 .7rem var(--script);letter-spacing:.16em;color:var(--tungsten);margin:0 0 8px}
 .gs-h a{color:var(--tungsten);text-decoration:none}.gs-h a:hover{text-decoration:underline}
 .gs-wall{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
@@ -910,6 +913,7 @@ body.stopen{overflow:hidden}
       </div>
       <div class="gs gs-plan"><a class="starter" href="plan/" id="st_plan">THE PLAN</a><span class="gs-why">Got an audition? Say what you know. It lays out the days to the deadline.</span></div>
       <div class="gs" id="viz"><a class="starter" href="picture/" id="st_viz">PICTURE IT</a><span class="gs-why">The show you want to be on, the director, your union card. Put it up where you see it.</span><a class="starter gs-plug" href="picture/?plugs" id="st_plug">SHAMELESS PLUG</a><span class="gs-why">News to share? A new headshot, a show about to air. Your words, the facts dropped in.</span></div>
+      <a class="lookline" href="looks/" id="st_looks"><span><i>FOR COMMERCIAL WORK</i><b>Looks</b></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
     </div>
     <div>
       <div class="week" id="week" hidden aria-live="polite"></div>

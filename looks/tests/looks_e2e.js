@@ -1,0 +1,59 @@
+/* LOOKS in the browser: the quiet line on home, add a look, photos (added and from YOU), a skill with a clip,
+   the book with stats off and on, saving it as a folder. Made-up looks only. Server on :8811. */
+const {chromium}=require('playwright'); const path=require('path'), fs=require('fs'), os=require('os');
+const A=path.join(__dirname,'look_a.jpg'), B=path.join(__dirname,'look_b.jpg'), V=path.join(__dirname,'clip.mp4');
+(async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,300))); if(!x) ok=false; };
+const c=await b.newContext({viewport:{width:390,height:844},acceptDownloads:true});
+const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
+await p.goto('http://localhost:8811/'); await p.evaluate(()=>{ localStorage.clear(); indexedDB.deleteDatabase('theactorpage_looks'); indexedDB.deleteDatabase('theactorpage_you'); }); await p.reload(); await p.waitForTimeout(500);
+const home=await p.innerText('#you');
+want('home: one quiet line, nothing else about looks', (await p.$$('#st_looks')).length===1&&(home.match(/look/gi)||[]).length===1&&/FOR COMMERCIAL WORK/.test(home), home.match(/.*look.*/gi));
+/* a headshot in YOU, made up */
+await p.evaluate(async()=>{ const r=await fetch('/looks/tests/look_b.jpg'); const bl=await r.blob(); await You.addPhoto(new File([bl],'riley.jpg',{type:'image/jpeg'})); You.set('name','Riley Hart'); You.set('union','SAG-AFTRA'); You.set('height','6\'1"'); You.set('rep','Northgate Talent'); });
+await p.click('#st_looks'); await p.waitForTimeout(400);
+const t0=await p.innerText('main');
+want('empty: no looks, one way in, nothing suggested', /No looks yet/.test(t0)&&/ADD A LOOK/.test(t0)&&!/LOOK BOOK/.test(t0));
+await p.click('#addOpen'); await p.click('#a_go'); await p.waitForTimeout(200);
+want('no name, no look', /Give it a name first/.test(await p.innerText('#msg')));
+await p.fill('#a_n','Ranch hand'); await p.click('#a_go'); await p.waitForTimeout(400);
+want('a new look opens empty, your name on it', (await p.inputValue('#l_name'))==='Ranch hand'&&(await p.inputValue('#l_spots'))===''&&(await p.inputValue('#l_notes'))===''&&/No photos on this look yet/.test(await p.innerText('main')));
+await p.setInputFiles('#l_pic',A); await p.waitForTimeout(700);
+await p.click('#fromYou'); await p.waitForTimeout(400); await p.click('[data-you]'); await p.waitForTimeout(500);
+want('photos: one added, one from YOU; the first is the main one', await p.$$eval('.pics .pic',x=>x.length)===2&&/MAIN/.test(await p.innerText('.pics .pic:first-child')));
+await p.click('.pics .pic:nth-child(2)'); await p.click('#pMain'); await p.waitForTimeout(500);
+want('make the second one main', (await p.evaluate(()=>Looks.all()[0].photos[0])).startsWith('you:'));
+await p.fill('#sk_n','Ropes a fence post'); await p.click('#sk_go'); await p.waitForTimeout(300);
+await p.fill('#sk_n','Drives stick'); await p.press('#sk_n','Enter'); await p.waitForTimeout(300);
+await p.setInputFiles('[data-clip]',V); await p.waitForTimeout(700);
+want('two skills, one with a clip that plays here, one says NO CLIP', await p.$$eval('.sk',x=>x.length)===2&&await p.$$eval('.sk video',x=>x.length)===1&&/NO CLIP/.test(await p.innerText('.sk:nth-child(2), .sk >> nth=1')));
+await p.fill('#l_spots','Beer, boots, pickup trucks'); await p.fill('#l_notes','My notes'); await p.click('#save'); await p.waitForTimeout(400);
+const li=await p.innerText('.lk');
+want('your looks: the name, the spots, the counts', /Ranch hand/.test(li)&&/Beer, boots/.test(li)&&/2 PHOTOS · 1 SKILL CLIP/.test(li), li);
+await p.click('#addOpen'); await p.fill('#a_n','Tech exec'); await p.click('#a_go'); await p.waitForTimeout(300); await p.click('#save'); await p.waitForTimeout(300);
+want('two looks, in order, with move buttons', await p.$$eval('.lk',x=>x.length)===2&&/NO CLIPS YET/.test(await p.innerText('.lk >> nth=1')));
+await p.click('[data-dn]'); await p.waitForTimeout(300);
+want('move one down: order changes', (await p.innerText('.lk >> nth=1')).includes('Ranch hand'));
+/* the book */
+await p.click('#bookGo'); await p.waitForTimeout(800);
+const f=p.frameLocator('#bookf'); const bt=await f.locator('body').innerText();
+want('the book: your name, both looks, the clip, your rep; no stats yet', /RILEY HART/i.test(bt)&&/Tech exec/.test(bt)&&/Ranch hand/.test(bt)&&/Ropes a fence post/.test(bt)&&/Represented by Northgate Talent/.test(bt)&&!/SAG-AFTRA/.test(bt), bt.slice(0,300));
+want('no notes and no where-you-want-to-take-it on the book', !/My notes/.test(bt));
+await p.check('#b_stats'); await p.fill('#b_sizes','Jacket 42L'); await p.press('#b_sizes','Tab'); await p.waitForTimeout(800);
+const bt2=await p.frameLocator('#bookf').locator('body').innerText();
+want('stats on: union, height, sizes from you', /SAG-AFTRA/.test(bt2)&&/6'1"/.test(bt2)&&/Jacket 42L/.test(bt2), bt2.slice(0,200));
+const imgs=await p.frameLocator('#bookf').locator('img.main').count();
+want('main photo on the look with photos', imgs===1);
+const [dl]=await Promise.all([p.waitForEvent('download'),p.click('#zip')]); const zp=path.join(os.tmpdir(),'lookbook_test.zip'); await dl.saveAs(zp);
+const buf=fs.readFileSync(zp); const z=require(path.join(__dirname,'../../shared/zipw.js')); const files=z.read(new Uint8Array(buf)).map(x=>x.name);
+want('saved as a folder: the page and its photos and clip', dl.suggestedFilename()==='lookbook-riley-hart.zip'&&files.includes('lookbook/lookbook.html')&&files.filter(n=>/media\/\d+\.jpg$/.test(n)).length===2&&files.some(n=>/media\/\d+\.mp4$/.test(n)), files);
+await p.screenshot({path:path.join(os.tmpdir(),'looks_book.png'),fullPage:true});
+/* untick, delete */
+await p.goto('http://localhost:8811/looks/'); await p.waitForTimeout(400); await p.click('.lk >> nth=0'); await p.waitForTimeout(400);
+await p.uncheck('#l_book'); await p.click('#save'); await p.waitForTimeout(300);
+want('not in the book: the list says so', /NOT IN THE BOOK/.test(await p.innerText('.lk >> nth=0')));
+await p.click('.lk >> nth=1'); await p.waitForTimeout(400); await p.click('#del'); await p.click('#delY'); await p.waitForTimeout(400);
+const ph=await p.evaluate(()=>You.get().photos.length);
+want('delete a look: gone; the photo from YOU stays in YOU', await p.$$eval('.lk',x=>x.length)===1&&ph===1);
+want('no page errors', errs.length===0, errs);
+await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();

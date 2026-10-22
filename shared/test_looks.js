@@ -1,0 +1,34 @@
+/* LOOKS, the pure parts. Made-up looks only. node shared/test_looks.js */
+const mem = {}; globalThis.localStorage = { getItem: k => mem[k] || null, setItem: (k, v) => { mem[k] = String(v); }, removeItem: k => { delete mem[k]; } };
+const L = require('./looks.js');
+let ok = true; const want = (n, x, y) => { console.log((x ? 'PASS ' : 'FAIL ') + n + (x || y === undefined ? '' : ' ' + JSON.stringify(y))); if (!x) ok = false; };
+want('starts empty: no looks, nothing suggested', L.all().length === 0 && L.book().stats === false && L.book().sizes === '');
+want('no look without a name', L.add('   ') === null && L.all().length === 0);
+const a = L.add(' Weekend  dad '), b = L.add('Ranch hand'), c = L.add('Tech exec'), d = L.add('Coach'), e = L.add('Barista');
+want('a look: your name for it and nothing else filled in', a.name === 'Weekend dad' && a.spots === '' && a.next === '' && a.notes === '' && !a.photos.length && !a.skills.length && a.inBook);
+L.set(a.id, { spots: 'Trucks, insurance' }); L.addPhoto(a.id, 'you:h1'); L.addPhoto(a.id, 'lk:m1'); L.addPhoto(a.id, 'you:h1');
+want('photos: added once each, in order', JSON.stringify(L.get(a.id).photos) === '["you:h1","lk:m1"]');
+L.mainPhoto(a.id, 'lk:m1');
+want('make one the main one: it goes first', L.get(a.id).photos[0] === 'lk:m1');
+const s1 = L.addSkill(a.id, 'Grill flip'), s2 = L.addSkill(b.id, 'grill flip'), s3 = L.addSkill(b.id, 'Ropes a post');
+L.setSkill(a.id, s1.id, { clip: 'lk:v1' });
+want('skills: in your words, a clip if you have one', L.get(a.id).skills[0].name === 'Grill flip' && L.get(a.id).skills[0].clip === 'lk:v1' && L.addSkill(a.id, ' ') === null);
+want('all the skills, once each', JSON.stringify(L.allSkills(L.all())) === '["Grill flip","Ropes a post"]');
+want('the book: ticked looks, your order, the first four', L.inBook().map(x => x.name).join('|') === 'Weekend dad|Ranch hand|Tech exec|Coach');
+L.set(b.id, { inBook: false }); L.move(e.id, -4);
+want('untick one, move one up: the book follows', L.inBook().map(x => x.name).join('|') === 'Barista|Weekend dad|Tech exec|Coach');
+const you = { union: 'SAG-AFTRA', height: "6'1\"", locations: '' };
+want('stats: off unless you switch them on', L.stats(you, L.book()).length === 0);
+L.setBook({ stats: true, sizes: 'Jacket 42L' });
+want('stats on: only the ones you have', JSON.stringify(L.stats(you, L.book())) === JSON.stringify([['Union', 'SAG-AFTRA'], ['Height', "6'1\""], ['Sizes', 'Jacket 42L']]));
+const m = { name: 'Riley Hart', rep: 'Northgate Talent', stats: L.stats(you, L.book()), reel: { url: 'https://example.com/reel' },
+  looks: [{ name: 'Weekend dad', spots: 'Trucks, insurance', photos: ['media/1.jpg', 'media/2.jpg'], skills: [{ name: 'Grill flip', clip: 'media/3.mp4' }, { name: 'Drives <stick>', clip: '' }] }, { name: 'Tech exec', spots: '', photos: [], skills: [] }] };
+const h = L.html(m);
+want('the page: name, looks, their photos', /RILEY HART|Riley Hart/.test(h) && /<h2>Weekend dad<\/h2>/.test(h) && /<h2>Tech exec<\/h2>/.test(h) && h.includes('src="media/1.jpg"') && h.includes('src="media/2.jpg"'));
+want('a skill clip plays in a box on the page, no clip says so plainly', /href="#c1"/.test(h) && /id="c1"/.test(h) && h.includes('src="media/3.mp4"') && /sk none/.test(h) && h.includes('Drives &lt;stick&gt;'));
+want('stats, rep, reel on the page when there', /<dt>Union<\/dt><dd>SAG-AFTRA<\/dd>/.test(h) && /Represented by Northgate Talent/.test(h) && h.includes('https://example.com/reel'));
+const h2 = L.html(Object.assign({}, m, { stats: [], rep: '', reel: null }));
+want('stats off: no facts block; no rep, no reel, none of it shows', !/<dl>/.test(h2) && !/Represented/.test(h2) && !/reel/i.test(h2.replace(/<style>[\s\S]*?<\/style>/, '')));
+want('no advice anywhere on the page', !/wear|wardrobe|hair|you should|try /i.test(h.replace(/<style>[\s\S]*?<\/style>/, '')));
+want('one small script only, to stop a clip when you close it', (h.match(/<script>/g) || []).length === 1);
+console.log(ok ? 'ALL PASS' : 'SOME FAILED'); process.exit(ok ? 0 : 1);
