@@ -99,6 +99,40 @@
     try { if (g.Offices) { const h = await g.Offices.load(); if (h) s.projects = h.projects || []; } } catch (e) { }
     return s;
   };
+  /* A LIST FROM A SPREADSHEET: a workshop's casting directors, a rep list. rows: arrays of cells (first row the headers,
+     or the first row with a name column). -> {people:[{name, role, company, email, phone, city, site, note}], blank, cols} */
+  const COLS = { name: /^(full ?name|name|contact( name)?|person|cd|casting director)$/, first: /^first( ?name)?$/, last: /^(last|sur)( ?name)?$/, company: /^(company|office|agency|casting office|outlet|organi[sz]ation|org|firm)$/,
+    role: /^(role|title|type|position|job|job title)$/, email: /^(e-?mail( address)?)$/, phone: /^(phone|cell|mobile|tel|telephone|phone number)$/, city: /^(city|location|market|region)$/, site: /^(website|web|url|link|imdb|site)$/, note: /^(notes?|comments?|memo)$/ };
+  C.roleOf = t => { t = String(t || '').toLowerCase(); return /\bcasting|\bcsa\b|\bcd\b/.test(t) ? 'casting' : /\bagent|agency/.test(t) ? 'agent' : /manag/.test(t) ? 'manager' : /direct/.test(t) ? 'director' : /produc/.test(t) ? 'producer' : /coach|teach|instruct/.test(t) ? 'coach' : /actor|actress|performer/.test(t) ? 'actor' : /press|journal|reporter|editor|writer|critic|host|podcast/.test(t) ? 'press' : /crew|dp|camera|editor/.test(t) ? 'crew' : ''; };
+  C.fromRows = function (rows, fallbackRole) {
+    rows = (rows || []).map(r => (r || []).map(c => clean(c && typeof c === 'object' ? c.v : c)));
+    let hi = rows.findIndex(r => r.some(c => COLS.name.test(c.toLowerCase()) || COLS.first.test(c.toLowerCase())));
+    if (hi < 0) return { people: [], blank: 0, cols: [] };
+    const head = rows[hi].map(c => c.toLowerCase()), col = {};
+    Object.keys(COLS).forEach(k => { const i = head.findIndex(h => COLS[k].test(h)); if (i >= 0) col[k] = i; });
+    const out = [], seen = {}; let blank = 0;
+    rows.slice(hi + 1).forEach(r => {
+      const v = k => col[k] != null ? clean(r[col[k]]) : '';
+      const name = v('name') || [v('first'), v('last')].filter(Boolean).join(' ');
+      if (!name) { if (r.some(Boolean)) blank++; return; }
+      const k = C.key(name); if (seen[k]) return; seen[k] = 1;
+      const role = C.roleOf(v('role')) || C.roleOf(v('company')) || fallbackRole || 'other';
+      out.push({ name, role, company: v('company'), email: /@/.test(v('email')) ? v('email') : '', phone: v('phone'), city: v('city'), site: /^https?:\/\//i.test(v('site')) ? v('site') : '', note: [v('role') && C.roleOf(v('role')) !== v('role').toLowerCase() ? v('role') : '', v('note')].filter(Boolean).join('. ') });
+    });
+    return { people: out, blank, cols: Object.keys(col) };
+  };
+  /* bring them in: new people added; someone already here only gets their blanks filled. -> {added, filled} */
+  C.bringIn = function (people, from) {
+    let added = 0, filled = 0;
+    (people || []).forEach(x => {
+      const had = C.find(x.name);
+      if (!had) { C.add(Object.assign({}, x, { note: [x.note, from ? 'From your list: ' + from : ''].filter(Boolean).join('. '), checked: false })); added++; return; }
+      const patch = {}; ['company', 'email', 'phone', 'city', 'site'].forEach(k => { if (x[k] && !had[k]) patch[k] = x[k]; });
+      if ((!had.role || had.role === 'other') && x.role && x.role !== 'other') patch.role = x.role;
+      if (Object.keys(patch).length) { C.set(had.id, patch); filled++; }
+    });
+    return { added, filled };
+  };
   g.Contacts = C;
   if (typeof module !== 'undefined') module.exports = C;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -88,9 +88,9 @@
     now = now || Date.now();
     if (!last) return { due: true, why: 'Your reps haven\'t had this yet.' };
     const days = Math.floor((now - last) / 86400000), n = changes ? changes.count : 0;
-    if (rhythm === 'change' || !DAYS[rhythm]) return { due: n > 0, days, why: n ? pl(n, 'thing') + ' new since ' + day(last) + '.' : 'Nothing new since ' + day(last) + '.' };
+    if (rhythm === 'change' || !DAYS[rhythm]) return { due: n > 0, days, why: n ? pl(n, 'change') + ' new since ' + day(last) + '.' : 'Nothing new since ' + day(last) + '.' };
     const left = DAYS[rhythm] - days;
-    return { due: left <= 0, days, why: left <= 0 ? 'It\'s been ' + pl(days, 'day') + '.' + (n ? ' ' + pl(n, 'thing') + ' new.' : ' Nothing new, so the note can be short.') : 'Next one in ' + pl(left, 'day') + '.' + (n ? ' ' + pl(n, 'thing') + ' new so far.' : '') };
+    return { due: left <= 0, days, why: left <= 0 ? 'It\'s been ' + pl(days, 'day') + '.' + (n ? ' ' + pl(n, 'change') + ' new.' : ' Nothing new, so the note can be short.') : 'Next one in ' + pl(left, 'day') + '.' + (n ? ' ' + pl(n, 'change') + ' new so far.' : '') };
   };
 
   const offLine = o => { const b = []; if (o.reads) b.push(o.inroom ? o.inroom + ' in the room, ' + pl(o.reads, 'read') + ' in all' : pl(o.reads, 'read')); if (o.callbacks) b.push(pl(o.callbacks, 'callback')); if (o.booked) b.push(o.booked + ' booked');

@@ -246,7 +246,7 @@ async function take(files,pasted,fromFolder,opts){
  LAST=items.sort((a,b)=>(a.kind==='request'?0:1)-(b.kind==='request'?0:1));
  // a résumé or headshot just landed: open your profile so you see it
  if(items.some(x=>(x.kind==='image'&&x.photo&&!x.dup)||(x.kind==='resume'&&x.changed&&x.changed.length))) YOPEN=true;
- showTook(); showPlay(); showYou();
+ showTook(); showPlay(); showYou(); showWeek();
  $('took').scrollIntoView({block:'nearest',behavior:'smooth'});
 }
 
@@ -284,8 +284,25 @@ document.querySelectorAll('.deptopen').forEach(b=>b.onclick=()=>{ const d=docume
 document.querySelectorAll('a[href="#write"],a[href="#film"]').forEach(a=>a.addEventListener('click',()=>openDept(a.getAttribute('href').slice(1),false)));
 if(/^#(write|film)$/.test(location.hash)) openDept(location.hash.slice(1),true);
 window.addEventListener('storage',e=>{ if(e.key&&/shelf|inbox/.test(e.key)) showPlay(); });
-showPlay(); showYou();
-window.__home={take,route,readOne};
+showPlay(); showYou(); showWeek();
+window.__home={take,route,readOne,showWeek};
+/* THIS WEEK: what needs you, from every tool (shared/week.js). Hidden on a first visit; your goal, if you set one, on top. */
+var WEEKGOAL=false;
+async function showWeek(){ const box=$('week'); if(!box||!window.Week) return;
+ const src=await Week.gather(), w=Week.list(src), has=document.body.classList.contains('has')||w.lines.length||w.goal;
+ if(!has){ box.innerHTML=''; box.hidden=true; return; } box.hidden=false;
+ const y=Y?Y.get():{};
+ let h='<p class="wk-h">THIS WEEK</p>';
+ if(w.goal&&!WEEKGOAL) h+='<p class="wk-goal"><b>Your goal</b> '+esc(w.goal.text)+(w.goal.by?' <span>· by '+esc(Week.when(w.goal.by,Week.iso(new Date())))+'</span>':'')+' <button type="button" class="wk-edit" id="wkgoal">CHANGE</button></p>';
+ if(WEEKGOAL) h+='<div class="wk-form"><label for="wk_g">YOUR GOAL, IN YOUR WORDS</label><input id="wk_g" value="'+esc(y.goal||'')+'" placeholder="Book a co-star"><label for="wk_d">BY</label><input type="date" id="wk_d" value="'+esc(y.goalBy||'')+'"><div><button type="button" class="pastego sm" id="wk_save">SAVE</button> <button type="button" class="wk-edit" id="wk_cancel">CANCEL</button></div></div>';
+ h+=w.lines.length?'<ul class="wk-list">'+w.lines.slice(0,10).map(l=>'<li><a href="'+esc(l.href)+'">'+esc(l.line)+'</a></li>').join('')+'</ul>'+(w.lines.length>10?'<p class="wk-more">and '+(w.lines.length-10)+' more in the tools.</p>':'')
+  :'<p class="wk-none">Nothing needs you this week.</p>';
+ if(!w.goal&&!WEEKGOAL) h+='<button type="button" class="wk-edit" id="wkgoal">SET A GOAL</button>';
+ box.innerHTML=h;
+ const g=$('wkgoal'); if(g) g.onclick=()=>{ WEEKGOAL=true; showWeek(); setTimeout(()=>{ const i=$('wk_g'); if(i) i.focus(); },50); };
+ const sv=$('wk_save'); if(sv) sv.onclick=()=>{ Y.set('goal',$('wk_g').value); Y.set('goalBy',$('wk_d').value); WEEKGOAL=false; showWeek(); };
+ const cc=$('wk_cancel'); if(cc) cc.onclick=()=>{ WEEKGOAL=false; showWeek(); };
+}
 })();
 
 /* SIX STEPS: tabs. One shows at a time; arrow keys move between them. */

@@ -529,6 +529,14 @@ body.stopen{overflow:hidden}
 .reps-list b{font:700 .74rem var(--script);letter-spacing:.18em;color:var(--tungsten)}.reps-list span{color:#c3c8d0;line-height:1.45}
 .reps-rules{color:#9aa1ab;font-size:.95rem;line-height:1.55;max-width:38em;margin:0 0 22px}
 .reps-go{justify-content:flex-start}
+.week{border:1px solid var(--tungsten);background:#15130e;padding:16px 18px;margin:0 0 22px}
+.week[hidden]{display:none}
+.wk-h{font:700 .74rem var(--script);letter-spacing:.24em;color:var(--tungsten);margin:0 0 8px}
+.wk-goal{margin:0 0 10px;color:var(--ink)}.wk-goal b{font:700 .7rem var(--script);letter-spacing:.16em;color:#9aa1ab;margin-right:6px}.wk-goal span{color:#9aa1ab}
+.wk-list{list-style:none;margin:0;padding:0;display:grid;gap:2px}.wk-list a{display:block;padding:8px 0;border-bottom:1px solid var(--rule);color:var(--ink);text-decoration:none;line-height:1.4}.wk-list a:hover,.wk-list a:focus-visible{color:var(--tungsten)}
+.wk-none,.wk-more{color:#9aa1ab;margin:0 0 6px}
+.wk-edit{background:none;border:0;padding:8px 0;color:var(--tungsten);font:700 .7rem var(--script);letter-spacing:.16em;cursor:pointer;min-height:36px}
+.wk-form{display:grid;gap:6px;margin:0 0 10px}.wk-form label{font:700 .68rem var(--script);letter-spacing:.16em;color:#9aa1ab}.wk-form input{background:var(--stock);border:1px solid var(--rule);color:var(--ink);padding:10px 12px;font:inherit;min-height:44px}
 footer .viewrow{margin:18px 0 4px;padding:0}
 </style>
 </head>
@@ -870,6 +878,7 @@ footer .viewrow{margin:18px 0 4px;padding:0}
       </div>
     </div>
     <div>
+      <div class="week" id="week" hidden aria-live="polite"></div>
       <p class="you-lede">Put your material in once: your sides, the self-tape request, your rep's email, scripts, your résumé, headshots, footage. It's kept on your device and used wherever it fits, so you're never filling in the same details twice.</p>
       <div class="tools3">
         <button class="t3" id="stcam"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="5" y="14" width="38" height="26" rx="3"/><path d="M17 14l3-5h8l3 5"/><circle cx="24" cy="27" r="8"/><circle cx="24" cy="27" r="3"/></svg><b>CAMERA</b><span>a self-tape, a take, a headshot</span></button>
@@ -1257,6 +1266,11 @@ footer .viewrow{margin:18px 0 4px;padding:0}
 <script src="actor-os/pdf.js"></script>
 <script src="hub/request.js"></script>
 <script src="shared/intake.js"></script>
+<script src="shared/offices.js"></script>
+<script src="shared/contacts.js"></script>
+<script src="shared/footage.js"></script>
+<script src="shared/press.js"></script>
+<script src="shared/week.js"></script>
 <script src="shared/home.js"></script>
 <script src="shared/rooms.js"></script>
 <script src="shared/spark.js"></script>

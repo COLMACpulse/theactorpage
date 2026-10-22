@@ -50,9 +50,16 @@
   }
   function allView() {
     const list = C.everyone(SRC).filter(x => (!S.role || (S.role === 'reps' ? (x.role === 'agent' || x.role === 'manager') : x.role === S.role)) && C.match(x, S.q));
-    let h = '<div class="row"><input class="field" id="q" type="search" placeholder="Find: a name, an office, a city" value="' + esc(S.q) + '" aria-label="Find a contact" style="flex:1 1 240px"><button class="btn" id="add">ADD A PERSON</button></div>'
+    let h = '<div class="row"><input class="field" id="q" type="search" placeholder="Find: a name, an office, a city" value="' + esc(S.q) + '" aria-label="Find a contact" style="flex:1 1 240px"><button class="btn" id="add">ADD A PERSON</button><label class="btn ghost" id="listbtn">BRING IN A LIST<input type="file" id="listfile" accept=".csv,.tsv,.txt,.xlsx,text/csv" hidden></label></div>'
       + '<div class="chips" role="group" aria-label="Show">' + FILTERS.map(([v, l]) => '<button type="button" class="chip' + (S.role === v ? ' on' : '') + '" data-role="' + v + '">' + l.toUpperCase() + '</button>').join('') + '</div>';
     if (S.msg) h += '<p class="msg" id="msg">' + esc(S.msg) + '</p>';
+    if (S.list) { const L = S.list, nw = L.people.filter(x => !C.find(x.name)).length, by = {}; L.people.forEach(x => { by[x.role] = (by[x.role] || 0) + 1; });
+      h += '<div class="card" id="listbox"><p class="kick">FROM ' + esc(L.file.toUpperCase()) + '</p>' + (L.people.length ? '<p class="small" style="margin:0">' + L.people.length + ' ' + (L.people.length === 1 ? 'person' : 'people') + ': ' + nw + ' new, ' + (L.people.length - nw) + ' already here (only their blanks get filled in).' + (L.blank ? ' ' + L.blank + ' row' + (L.blank === 1 ? '' : 's') + ' had no name and stay out.' : '') + '</p>'
+        + '<p class="mut small" style="margin:4px 0 0">' + esc(Object.keys(by).map(r => by[r] + ' ' + C.roleName(r).toLowerCase()).join(', ')) + '</p>'
+        + '<label class="lab" for="l_role">ANYONE THE LIST DOESN\u2019T SAY</label><select class="field" id="l_role"><option value="">Other</option>' + opts(C.ROLES.filter(r => r[0] !== 'other'), L.role || '') + '</select>'
+        + '<p class="mut small" style="margin:8px 0 4px">' + esc(L.people.slice(0, 8).map(x => x.name + (x.company && C.key(x.company) !== C.key(x.name) ? ' (' + x.company + ')' : '')).join(', ')) + (L.people.length > 8 ? ', and ' + (L.people.length - 8) + ' more' : '') + '</p>'
+        + '<p class="mut small" style="margin:0">They come in as from your list, not confirmed. Nothing is sent to anyone.</p><div class="row" style="margin-top:10px"><button class="btn" id="listin">BRING THEM IN</button><button class="btn quiet" id="listno">CANCEL</button></div>'
+        : '<p class="small" style="margin:0">No names found. The list needs a column called Name, or First and Last name.</p><div class="row" style="margin-top:10px"><button class="btn quiet" id="listno">OK</button></div>') + '</div>'; }
     if (S.adding) h += '<div class="card" id="detail"><p class="kick">ADD A PERSON</p>' + personForm(null) + '<div class="row" style="margin-top:12px"><button class="btn" id="keepnew">ADD</button><button class="btn quiet" data-close>CANCEL</button></div></div>';
     if (S.open) h += detail(S.open);
     h += list.length ? list.map(row).join('') : '<p class="empty">' + (S.q || S.role ? 'Nobody here for that.' : 'Nobody yet. Add a person, or they show up here when your tools meet them: a guest in NOTES, a casting office on an audition in the Hub, casting on something you spotted.') + '</p>';
@@ -101,6 +108,12 @@
     V.querySelectorAll('[data-open]').forEach(b => b.onclick = e => { e.preventDefault(); S.open = b.dataset.open; S.adding = false; if (b.dataset.gotab) S.tab = b.dataset.gotab; render(); const d = $('detail'); if (d) d.scrollIntoView({ block: 'nearest' }); });
     V.querySelectorAll('[data-gotab]:not([data-open])').forEach(b => b.onclick = e => { e.preventDefault(); S.tab = b.dataset.gotab; S.open = ''; render(); });
     V.querySelectorAll('[data-close]').forEach(b => b.onclick = () => { S.open = ''; S.adding = false; S.pre = null; render(); });
+    const lf = $('listfile'); if (lf) lf.onchange = async () => { const f = lf.files && lf.files[0]; lf.value = ''; if (!f) return; let rows = [];
+      try { if (/\.xlsx$/i.test(f.name) && window.XLSX) { const sh = await XLSX.read(await f.arrayBuffer()); rows = (sh[0] && sh[0].rows) || []; } else rows = window.XLSX ? XLSX.csv(await f.text()) : (await f.text()).split(/\r?\n/).map(l => l.split(',')); } catch (e) { S.msg = 'Couldn\u2019t read ' + f.name + '. A CSV or an Excel file works.'; render(); return; }
+      S.list = Object.assign(C.fromRows(rows), { file: f.name, rows }); S.adding = false; S.open = ''; render(); };
+    if ($('l_role')) $('l_role').onchange = () => { const L = S.list; S.list = Object.assign(C.fromRows(L.rows, $('l_role').value), { file: L.file, rows: L.rows, role: $('l_role').value }); render(); };
+    if ($('listno')) $('listno').onclick = () => { S.list = null; render(); };
+    if ($('listin')) $('listin').onclick = () => { const L = S.list, r = C.bringIn(L.people, L.file); S.list = null; S.msg = r.added + ' added from ' + L.file + (r.filled ? ', ' + r.filled + ' already here got their blanks filled in' : '') + '.'; render(); };
     if ($('add')) $('add').onclick = () => { S.adding = true; S.open = ''; render(); $('f_name').focus(); };
     const fr = $('f_role'); if (fr) fr.onchange = () => { const pb = $('pressbits'); if (pb) pb.hidden = fr.value !== 'press'; };
     if (S.pre && S.adding) { const pr = S.pre; $('f_role').value = 'press'; $('pressbits').hidden = false; $('f_company').value = pr.outlet || ''; $('f_site').value = pr.link || ''; $('f_note').value = pr.story ? 'Saw: ' + pr.story : ''; $('f_name').placeholder = 'The writer, once you know who'; }
