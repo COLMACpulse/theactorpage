@@ -12,7 +12,9 @@
   'use strict';
   const C = {}, KEY = 'theactorpage_contacts_v1';
   C.KEY = KEY;
-  C.ROLES = [['casting', 'Casting'], ['agent', 'Agent'], ['manager', 'Manager'], ['director', 'Director'], ['producer', 'Producer'], ['coach', 'Coach'], ['actor', 'Actor'], ['crew', 'Crew'], ['other', 'Other']];
+  C.ROLES = [['casting', 'Casting'], ['agent', 'Agent'], ['manager', 'Manager'], ['director', 'Director'], ['producer', 'Producer'], ['coach', 'Coach'], ['actor', 'Actor'], ['press', 'Press'], ['crew', 'Crew'], ['other', 'Other']];
+  /* PRESS: the outlet (company), the writer (name, once you've confirmed them from their own work), their beat, and the piece you saw (site). checked: you confirmed it. */
+  C.press = () => read().people.filter(p => p.role === 'press' && !p.dnc);
   C.REPKINDS = [['theatrical', 'Theatrical'], ['commercial', 'Commercial'], ['voice', 'Voice over'], ['print', 'Print'], ['youth', 'Youth'], ['other', 'Other']];
   C.STEPS = [['researching', 'Researching'], ['submitted', 'Submitted'], ['meeting', 'Meeting'], ['signed', 'Signed'], ['passed', 'Passed']];
   C.HOW = [['referral', 'By referral'], ['email', 'Email'], ['online', 'Online form'], ['mail', 'By mail'], ['closed', 'Not taking submissions'], ['unknown', 'Not sure yet']];
@@ -29,7 +31,7 @@
   C.add = function (p) {
     const d = read(), name = clean(p && p.name); if (!name) return null;
     const had = d.people.find(x => C.key(x.name) === C.key(name)); if (had) { const q = Object.assign({}, p); delete q.name; return C.set(had.id, q); }
-    const it = Object.assign({ id: uid(), name, role: 'other', company: '', email: '', phone: '', city: '', site: '', note: '', dnc: false, rep: null, added: now(), updated: now() }, p, { name });
+    const it = Object.assign({ id: uid(), name, role: 'other', company: '', email: '', phone: '', city: '', site: '', note: '', beat: '', checked: false, dnc: false, rep: null, added: now(), updated: now() }, p, { name });
     d.people.push(it); write(d); return it;
   };
   C.set = function (id, patch) {

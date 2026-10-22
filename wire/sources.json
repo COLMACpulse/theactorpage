@@ -54,5 +54,26 @@
     "kind": "rss",
     "home": "https://variety.com/",
     "url": "https://variety.com/v/tv/feed/"
+  },
+  {
+    "id": "indiewire",
+    "label": "IndieWire",
+    "kind": "rss",
+    "home": "https://www.indiewire.com/",
+    "url": "https://www.indiewire.com/feed/"
+  },
+  {
+    "id": "nofilmschool",
+    "label": "No Film School",
+    "kind": "rss",
+    "home": "https://nofilmschool.com/",
+    "url": "https://nofilmschool.com/rss.xml"
+  },
+  {
+    "id": "filmindependent",
+    "label": "Film Independent",
+    "kind": "rss",
+    "home": "https://www.filmindependent.org/",
+    "url": "https://www.filmindependent.org/feed/"
   }
 ]

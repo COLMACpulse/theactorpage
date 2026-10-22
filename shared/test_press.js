@@ -1,0 +1,24 @@
+/* PRESS, the pure parts. Made-up news only.  node shared/test_press.js */
+const mem={}; global.localStorage={getItem:k=>mem[k]==null?null:mem[k],setItem:(k,v)=>{mem[k]=String(v);},removeItem:k=>{delete mem[k];}};
+const P=require('./press.js'); let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,400))); if(!x) ok=false; };
+want('no project, no campaign', P.add({title:''})===null);
+const c=P.add({title:'Low Tide',milestone:'festival',date:'2026-11-14',where:'Made Up Film Festival'});
+want('a campaign starts empty: nobody on the list, and it says what is not done', P.tallyLine(c)==='Nobody on the list yet.'&&P.notYet(c).length===7, P.notYet(c));
+P.addOutlet(c.id,'c1'); P.addOutlet(c.id,'c2'); P.addOutlet(c.id,'c3'); P.addOutlet(c.id,'c1');
+want('who covers it: each person once', P.get(c.id).outlets.length===3);
+P.setOutlet(c.id,'c1',{reached:'2026-10-20',reply:'covering'}); P.setOutlet(c.id,'c2',{reached:'2026-10-21'});
+want('where it stands, in counts, no score', P.tallyLine(P.get(c.id))==='3 on the list, 2 reached, 1 covering it.', P.tallyLine(P.get(c.id)));
+P.dropOutlet(c.id,'c3'); want('take one off', P.get(c.id).outlets.length===2);
+P.set(c.id,{hook:'Low Tide plays its first festival.\nTwo shows.',bio:'Riley Hart is a made-up actor.',links:{page:'https://example.com/riley',reel:'https://example.com/reel',more:''},photos:[{id:'h1',credit:'Made Up Photo'}],checks:{facts:true,rights:true,credits:true,reel:true}});
+want('your words are kept as you wrote them, line breaks and all', P.get(c.id).hook==='Low Tide plays its first festival.\nTwo shows.');
+want('all done: nothing left', P.notYet(P.get(c.id)).length===0);
+const you={name:'Riley Hart',union:'SAG-AFTRA',email:'riley@example.com',rep:'Morgan Lee'}, cr=[{title:'Harbor Lights',role:'Deckhand',by:'Made Up TV'}];
+const f=P.facts(P.get(c.id),you,cr);
+want('your facts: the news, your name, credits, links, rep, contact; nothing else', f[0]==='A festival: Low Tide, Made Up Film Festival, November 14, 2026'&&f.includes('Name: Riley Hart (SAG-AFTRA)')&&f.includes('Credits: Harbor Lights, Deckhand (Made Up TV)')&&f.includes('Reel: https://example.com/reel')&&f.includes('Contact: riley@example.com'), f);
+const k=P.kitText(P.get(c.id),you,cr);
+want('the kit: only what you entered, the photo credit, no checklist in it', /^RILEY HART: PRESS KIT/.test(k)&&/THE NEWS\nLow Tide plays its first festival\./.test(k)&&/BIO\nRiley Hart is a made-up actor\./.test(k)&&/- Harbor Lights, Deckhand \(Made Up TV\)/.test(k)&&/Low_Tide_photo_1\.jpg, photo by Made Up Photo/.test(k)&&!/rights|checked/i.test(k), k);
+const empty=P.kitText(P.add({title:'Dust Road'}),{},[]);
+want('nothing entered: it says what goes there, never invents it', /\[The news, in your words\]/.test(empty)&&/\[A short bio, in your words\]/.test(empty)&&/\[YOUR NAME\]/.test(empty));
+want('EMAIL IT opens your own mail with your words, nothing sent from here', P.mailto('a@example.com','Low Tide','Hi & hello')==='mailto:a%40example.com?subject=Low%20Tide&body=Hi%20%26%20hello');
+want('no em dashes', !/—/.test(require('fs').readFileSync(__dirname+'/press.js','utf8')+require('fs').readFileSync(__dirname+'/../press/app.js','utf8')));
+console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1);

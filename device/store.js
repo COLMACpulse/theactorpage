@@ -34,6 +34,7 @@ D.TOOLS=[
  {id:'backlot', name:'Backlot', href:'../backlot/', ls:[/^backlot_/], db:[]},
  {id:'contacts', name:'Contacts', href:'../contacts/', ls:[/^theactorpage_contacts/,/^contacts_ui/], db:[]},
  {id:'footage', name:'Footage', href:'../footage/', ls:[/^theactorpage_footage/], db:[]},
+ {id:'press', name:'Press', href:'../press/', ls:[/^theactorpage_press/], db:[]},
  {id:'expenses', name:'Expenses', href:'../expenses/', ls:[/^theactorpage_expenses/], db:[/^theactorpage_receipts$/]}
 ];
 D.OWN_KEY='theactorpage_device_v1';

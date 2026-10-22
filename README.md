@@ -10,6 +10,7 @@ Tools for actors, live at https://colmacpulse.github.io/theactorpage/. ACT is th
 | `contacts/` | CONTACTS | The who: one list every tool shares. REPS: your reps, and rep search with steps and follow-ups. |
 | `footage/` | FOOTAGE | Every job and where its footage stands; trim your own file into a clip. |
 | `expenses/` | EXPENSES | What the work costs, for tax time: receipts, miles, one file for your tax preparer. |
+| `press/` | PRESS | Real news, who covers your beat (press in CONTACTS, PRESS on a JUICE story), your pitch in your words, a press kit from your facts. |
 | `memorizer/` | MEMORIZER | Off book: say the line, it checks you. |
 | `breakdown/` | BREAKDOWN | The role on the page. |
 | `notes/` | NOTES | What they told you in the room, and who was there. |

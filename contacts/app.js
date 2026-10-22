@@ -10,7 +10,7 @@
   let SRC = { notes: [], projects: [], spotted: {} };
   const today = () => new Date().toISOString().slice(0, 10);
   const opts = (list, cur) => list.map(([v, l]) => '<option value="' + v + '"' + (v === cur ? ' selected' : '') + '>' + esc(l) + '</option>').join('');
-  const FILTERS = [['', 'All'], ['casting', 'Casting'], ['reps', 'Reps'], ['director', 'Directors'], ['producer', 'Producers'], ['coach', 'Coaches'], ['actor', 'Actors'], ['other', 'Other']];
+  const FILTERS = [['', 'All'], ['casting', 'Casting'], ['reps', 'Reps'], ['director', 'Directors'], ['producer', 'Producers'], ['coach', 'Coaches'], ['actor', 'Actors'], ['press', 'Press'], ['other', 'Other']];
 
   function personForm(p, x) {
     const v = k => esc(p ? p[k] || '' : '');
@@ -20,17 +20,19 @@
       + '<div><label class="lab" for="f_city">CITY</label><input class="field" id="f_city" value="' + v('city') + '"></div>'
       + '<div><label class="lab" for="f_email">EMAIL</label><input class="field" id="f_email" inputmode="email" value="' + v('email') + '"></div>'
       + '<div><label class="lab" for="f_phone">PHONE</label><input class="field" id="f_phone" inputmode="tel" value="' + v('phone') + '"></div></div>'
+      + '<div id="pressbits"' + ((p ? p.role : (x ? x.role : 'casting')) === 'press' ? '' : ' hidden') + '><label class="lab" for="f_beat">THEIR BEAT</label><input class="field" id="f_beat" value="' + v('beat') + '" placeholder="Indie film, festivals, local theater">'
+      + '<label class="row small" style="margin-top:10px;gap:8px"><input type="checkbox" id="f_checked"' + (p && p.checked ? ' checked' : '') + '> I confirmed who they are and what they cover from their own work, not from a list.</label></div>'
       + '<label class="lab" for="f_site">WEBSITE OR IMDB</label><input class="field" id="f_site" inputmode="url" value="' + v('site') + '" placeholder="https://">'
       + '<label class="lab" for="f_note">YOUR NOTE</label><textarea class="field" id="f_note" rows="2" placeholder="How you met, what they liked, what to remember">' + v('note') + '</textarea>';
   }
-  const formVals = () => ({ name: $('f_name').value, role: $('f_role').value, company: $('f_company').value, city: $('f_city').value, email: $('f_email').value, phone: $('f_phone').value, site: $('f_site').value, note: $('f_note').value });
+  const formVals = () => ({ beat: $('f_beat') ? $('f_beat').value : '', checked: !!($('f_checked') && $('f_checked').checked), name: $('f_name').value, role: $('f_role').value, company: $('f_company').value, city: $('f_city').value, email: $('f_email').value, phone: $('f_phone').value, site: $('f_site').value, note: $('f_note').value });
 
   function row(x) {
     const p = x.p, due = p && p.rep && p.rep.next && p.rep.next <= today() && p.rep.step !== 'signed' && p.rep.step !== 'passed';
     const key = p ? p.id : 'k:' + C.key(x.name);
-    return '<button type="button" class="person' + (p && p.dnc ? ' dnc' : '') + (due ? ' due' : '') + '" data-open="' + esc(key) + '"><span class="tag">' + (p ? (p.dnc ? 'DO NOT CONTACT' : 'KEPT') : 'FROM YOUR TOOLS') + '</span>'
+    return '<button type="button" class="person' + (p && p.dnc ? ' dnc' : '') + (due ? ' due' : '') + '" data-open="' + esc(key) + '"><span class="tag">' + (p ? (p.dnc ? 'DO NOT CONTACT' : (p.role === 'press' && !p.checked ? 'NOT CONFIRMED YET' : 'KEPT')) : 'FROM YOUR TOOLS') + '</span>'
       + '<b>' + esc(x.name) + '</b><span class="rl">' + esc(C.roleName(x.role).toUpperCase()) + '</span>'
-      + (x.company && C.key(x.company) !== C.key(x.name) ? '<span class="from">' + esc(x.company) + '</span>' : '')
+      + (x.company && C.key(x.company) !== C.key(x.name) ? '<span class="from">' + esc(x.company) + (p && p.beat ? ' · ' + esc(p.beat) : '') + '</span>' : '')
       + (x.from.length ? '<span class="from">' + esc(x.from.join(' · ')) + '</span>' : '')
       + (due ? '<span class="from" style="color:var(--gold)">Follow up: ' + esc(p.rep.next) + '</span>' : '') + '</button>';
   }
@@ -98,10 +100,12 @@
     V.querySelectorAll('[data-role]').forEach(b => b.onclick = () => { S.role = b.dataset.role; render(); });
     V.querySelectorAll('[data-open]').forEach(b => b.onclick = e => { e.preventDefault(); S.open = b.dataset.open; S.adding = false; if (b.dataset.gotab) S.tab = b.dataset.gotab; render(); const d = $('detail'); if (d) d.scrollIntoView({ block: 'nearest' }); });
     V.querySelectorAll('[data-gotab]:not([data-open])').forEach(b => b.onclick = e => { e.preventDefault(); S.tab = b.dataset.gotab; S.open = ''; render(); });
-    V.querySelectorAll('[data-close]').forEach(b => b.onclick = () => { S.open = ''; S.adding = false; render(); });
+    V.querySelectorAll('[data-close]').forEach(b => b.onclick = () => { S.open = ''; S.adding = false; S.pre = null; render(); });
     if ($('add')) $('add').onclick = () => { S.adding = true; S.open = ''; render(); $('f_name').focus(); };
+    const fr = $('f_role'); if (fr) fr.onchange = () => { const pb = $('pressbits'); if (pb) pb.hidden = fr.value !== 'press'; };
+    if (S.pre && S.adding) { const pr = S.pre; $('f_role').value = 'press'; $('pressbits').hidden = false; $('f_company').value = pr.outlet || ''; $('f_site').value = pr.link || ''; $('f_note').value = pr.story ? 'Saw: ' + pr.story : ''; $('f_name').placeholder = 'The writer, once you know who'; }
     if ($('addrep')) $('addrep').onclick = () => { S.adding = true; render(); $('r_name').focus(); };
-    if ($('keepnew')) $('keepnew').onclick = () => { const v = formVals(); if (!v.name.trim()) { $('f_name').focus(); return; } const p = C.add(v); S.adding = false; S.msg = p.name + ' added.'; render(); };
+    if ($('keepnew')) $('keepnew').onclick = () => { const v = formVals(); if (!v.name.trim() && v.role === 'press' && v.company.trim()) v.name = v.company; if (!v.name.trim()) { $('f_name').focus(); return; } const p = C.add(v); S.adding = false; S.pre = null; S.msg = p.name + ' added.'; render(); };
     if ($('keep')) $('keep').onclick = () => { const v = formVals(); if (!v.name.trim()) return; const p = C.add(v); S.open = p.id; S.msg = p.name + ' kept.'; render(); };
     if ($('save')) $('save').onclick = () => { const p = C.set(S.open, Object.assign(formVals(), { dnc: $('f_dnc').checked })); S.msg = 'Saved.'; if (p && C.isRep(p) && !p.rep) C.setRep(p.id, {}); render(); };
     if ($('del')) $('del').onclick = () => { const p = C.get(S.open); if (!p) return; C.remove(p.id); S.open = ''; S.msg = p.name + ' removed from your list. If a tool knows them, they still show up as from your tools.'; render(); };
@@ -115,6 +119,7 @@
   document.querySelectorAll('.tabs [data-tab]').forEach(b => b.onclick = () => { S.tab = b.dataset.tab; S.open = ''; S.adding = false; render(); });
   const m = location.search.match(/[?&]tab=(all|reps)/); if (m) S.tab = m[1];
   const nm = location.search.match(/[?&]who=([^&]+)/);
+  const pm = new URLSearchParams(location.search); if (pm.get('press') != null) { S.tab = 'all'; S.adding = true; S.pre = { outlet: pm.get('press') || '', link: /^https:\/\//.test(pm.get('link') || '') ? pm.get('link') : '', story: pm.get('story') || '' }; }
   render();
   C.sources().then(s => { SRC = s; if (nm) { const w = decodeURIComponent(nm[1].replace(/\+/g, ' ')), x = C.everyone(SRC).find(y => C.key(y.name) === C.key(w)); if (x) { S.tab = 'all'; S.open = x.p ? x.p.id : 'k:' + C.key(x.name); } } render(); });
   window.CONTACTS = { render, src: () => SRC };

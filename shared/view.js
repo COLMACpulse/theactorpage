@@ -6,7 +6,7 @@
 (function(g){
 const V={}, KEY='theactorpage_view', D=['act','write','film'];
 V.DEPTS=D; V.NAMES={act:'ACT',write:'WRITE',film:'FILM'};
-V.MAP={act:['actor-os','breakdown','memorizer','cps','booth','notes','spotted','headshots','slate','archbook','resume','hub','contacts','footage','expenses'],write:['write','papertrail','setlist'],film:['film','filmhub','backlot']};
+V.MAP={act:['actor-os','breakdown','memorizer','cps','booth','notes','spotted','headshots','slate','archbook','resume','hub','contacts','footage','expenses','press'],write:['write','papertrail','setlist'],film:['film','filmhub','backlot']};
 const FOLDER={}; D.forEach(d=>V.MAP[d].forEach(f=>FOLDER[f]=d));
 const LS=g.localStorage;
 V.get=function(){ const o={act:true,write:true,film:true}; let v=null; try{ v=JSON.parse(LS.getItem(KEY)||'null'); }catch(e){}
