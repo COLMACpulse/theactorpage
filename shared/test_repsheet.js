@@ -48,4 +48,10 @@ want('no em dashes anywhere', !/—/.test(R.text(m2,ch)+h+e.full));
   want('spotted news: counts toward due when you send on change', R.due(T0,'change',chA,T0+10000000).due); }
 { const T0=Date.parse('2026-10-20T12:00:00Z'), s1=src(); s1.spotted=Object.assign({},s1.spotted||{},{news:[{project:'Dust Road',at:T0+60000,t:'Built a 1:28 cut in Archbook.'}]});
   const mC=R.build(s1); want('a cut you built: in your voice on the reps sheet', R.changes(R.snapshot(Object.assign({},mC,{at:T0})),mC).lines.includes('Dust Road: I built a 1:28 cut for it.')); }
+{ const sA=Object.assign(src(),{after:[{title:'Ferro',kind:'show',note:'the cop drama I watch every week'},{title:'Dana Wolfe',kind:'person',note:''},{title:'  ',kind:'show'}]});
+  const mA=R.build(sA), tA=R.text(mA,null), hA=R.html(mA,null);
+  want('WHAT I\'M AFTER: the ones you picked, in your words, on the sheet and the page', /WHAT I'M AFTER\n- Ferro: the cop drama I watch every week\n- Dana Wolfe \(to work with\)/.test(tA)&&/What I&#39;m after/.test(hA)&&mA.after.length===2, tA);
+  const prevA=R.snapshot(Object.assign({},R.build(src()),{at:Date.parse('2026-10-01')}));
+  want('what\'s new: a show you\'re after now', R.changes(prevA,mA).lines.includes('Now after: Ferro, Dana Wolfe.'), R.changes(prevA,mA).lines);
+  want('none picked: no section', !/WHAT I'M AFTER/.test(R.text(R.build(src()),null))); }
 console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1);

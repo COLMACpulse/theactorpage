@@ -6,6 +6,7 @@
      ON MY RADAR        offices you want to reach and why; offices casting now (from SPOTTED) that have never had you in
      RIGHT FOR / WANT   your types and the roles you're called in for; what you want more of and want to be seen for
      CASTING THAT FITS  what you spotted that has your words in it, with links
+     WHAT I'M AFTER     the shows, films, people and roles on your GET SOME wall that you picked for your reps
    WHAT'S NEW: compared with what you last sent (a small snapshot kept when you tap I SENT IT), only the changes.
    When to send: you pick (when something changes, or every week, two weeks or month). Nothing sends itself.
    Rules: counts and your own words, no scores; other people's phone numbers and emails never go on it; offices you
@@ -49,6 +50,7 @@
       rightFor: uniq((src.rightFor || []).map(clean)), wantMore: uniq((src.wantMore || []).map(clean)), wantSeen: uniq((src.wantSeen || []).map(clean)),
       typed: src.typed !== false,
       news: (sp.news || []).filter(n => n && n.at && clean(n.t)).map(n => ({ project: clean(n.project) || '(no title)', at: n.at, t: clean(n.t).replace(/^You marked it /, 'I marked it ').replace(/^Built a (\S+) cut in Archbook\.?$/, 'I built a $1 cut for it.') })),
+      after: (src.after || []).filter(a => a && clean(a.title)).map(a => ({ title: clean(a.title), kind: a.kind || 'show', note: clean(a.note) })),
       fits: (sp.fits || []).map(f => ({ id: f.id, project: clean(f.project) || '(no title)', network: clean(f.network), role: clean(f.role), casting: (f.casting || []).map(clean).filter(Boolean), url: safeUrl(f.url), mine: uniq((f.mine || []).map(clean)) })),
       offices
     };
@@ -57,7 +59,7 @@
   /* what you last sent, small: per office the counts and the group; the lists; the casting ids */
   R.snapshot = function (m) {
     const o = {}; (m.offices || []).forEach(x => { o[key(x.name)] = { n: clean(x.name), g: x.gate, r: x.reads || 0, i: x.inroom || 0, c: x.callbacks || 0, b: x.booked || 0 }; });
-    return { at: m.at, offices: o, want: m.want.map(w => w.name), rightFor: m.rightFor, wantMore: m.wantMore, wantSeen: m.wantSeen, fits: m.fits.map(f => f.id || f.project), nets: m.networks.map(n => n.name) };
+    return { at: m.at, offices: o, want: m.want.map(w => w.name), rightFor: m.rightFor, wantMore: m.wantMore, wantSeen: m.wantSeen, fits: m.fits.map(f => f.id || f.project), nets: m.networks.map(n => n.name), after: (m.after || []).map(a => a.title) };
   };
   const GW = { worked_with: 'Worked with', warm: 'Warm', seen_you: 'Has seen me', want: 'Want to reach', rep_only: 'Through you only', cold: 'Cold' };
   /* only what changed since the snapshot, in plain lines */
@@ -76,6 +78,7 @@
     add('I want more of: ', prev.wantMore, now.wantMore);
     add('Also right for: ', prev.rightFor, now.rightFor);
     add('Want to be seen for: ', prev.wantSeen, now.wantSeen);
+    add('Now after: ', prev.after, now.after);
     const pf = new Set((prev.fits || []).map(String)), nf = m.fits.filter(f => !pf.has(String(f.id || f.project)));
     if (nf.length) L.push(pl(nf.length, 'project') + ' casting' + (m.typed ? ' that fit' + (nf.length === 1 ? 's' : '') + ' me' : ' now') + ': ' + nf.map(f => f.project).join(', ') + '.');
     /* on things you spotted: your calls and new stories since the last one, one line per project */
@@ -96,6 +99,7 @@
   const offLine = o => { const b = []; if (o.reads) b.push(o.inroom ? o.inroom + ' in the room, ' + pl(o.reads, 'read') + ' in all' : pl(o.reads, 'read')); if (o.callbacks) b.push(pl(o.callbacks, 'callback')); if (o.booked) b.push(o.booked + ' booked');
     if (!b.length && o.gate === 'seen_you') b.push('seen me work in a class or workshop');
     return o.name + (b.length ? ': ' + b.join(', ') : '') + (o.last && o.last.title ? '. Last: ' + [o.last.title, o.last.role].filter(Boolean).join(' / ') : '') + ((o.people || []).length ? '. ' + o.people.slice(0, 3).join(', ') : '') + (o.why ? '. Why: ' + o.why : '') + '.'; };
+  const afterLine = a => a.title + (a.kind === 'person' ? ' (to work with)' : a.kind === 'role' ? ' (a part like this)' : '') + (a.note ? ': ' + a.note : '');
   /* the sheet as plain text, for an email body or a paste */
   R.text = function (m, ch) {
     const L = ['FOR MY REPS' + (m.name ? ' · ' + m.name : ''), day(m.at), ''];
@@ -107,6 +111,7 @@
     if (m.want.length || m.fresh.length) { L.push('ON MY RADAR'); m.want.forEach(w => L.push('- ' + w.name + (w.why ? ': ' + w.why : ''))); m.fresh.forEach(o => L.push('- ' + o.name + ': casting ' + o.projects.join(', ') + '. Never had me in.')); L.push(''); }
     if (m.rightFor.length) L.push('WHAT I\'M RIGHT FOR', m.rightFor.join(', '), '');
     if (m.wantMore.length || m.wantSeen.length) { L.push('WHAT I WANT MORE OF'); if (m.wantMore.length) L.push(m.wantMore.join(', ')); if (m.wantSeen.length) L.push('Roles I want to be seen for: ' + m.wantSeen.join(', ')); L.push(''); }
+    if ((m.after || []).length) { L.push('WHAT I\'M AFTER'); m.after.forEach(a => L.push('- ' + afterLine(a))); L.push(''); }
     if (m.fits.length) { L.push(m.typed ? 'CASTING NOW THAT FITS ME' : 'CASTING NOW'); m.fits.forEach(f => { L.push('- ' + f.project + (f.network ? ' (' + f.network + ')' : '') + (f.casting.length ? '. ' + f.casting.join(' & ') + ' casting' : '') + (f.role ? '. Role: ' + f.role : '') + (f.mine.length ? '. My words: ' + f.mine.join(', ') : '') + '.'); if (f.url) L.push('  ' + f.url); }); L.push(''); }
     L.push(m.name || '');
     return L.join('\n').replace(/\n{3,}/g, '\n\n').trim();
@@ -137,6 +142,7 @@
       + sec('Networks I\'ve worked for', ul(m.networks.map(n => '<b>' + esc(n.name) + '</b>: ' + esc(n.titles.join(', ')))))
       + sec('People I\'ve worked with', ul(m.people.map(p => '<b>' + esc(p.name) + '</b>, ' + esc(p.how))))
       + sec('On my radar', radar)
+      + sec('What I\'m after', ul((m.after || []).map(a => esc(afterLine(a)))))
       + sec('What I\'m right for', m.rightFor.length ? '<p>' + esc(m.rightFor.join(', ')) + '</p>' : '')
       + sec('What I want more of', (m.wantMore.length ? '<p>' + esc(m.wantMore.join(', ')) + '</p>' : '') + (m.wantSeen.length ? '<p class="dim">Roles I want to be seen for: ' + esc(m.wantSeen.join(', ')) + '</p>' : ''))
       + sec(m.typed ? 'Casting now that fits me' : 'Casting now', fits)
