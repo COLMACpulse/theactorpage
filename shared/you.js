@@ -44,20 +44,24 @@ Y.shrink=async function(file,max){
   const c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(bm,0,0,w,h);
   const b=await new Promise(r=>c.toBlob(r,'image/jpeg',0.9)); return b?{blob:b,w,h,ow:bm.width,oh:bm.height}:null; }catch(e){ return null; }
 };
-/* a headshot in: kept once (same size and name = same photo); the first one is your main one */
-Y.addPhoto=async function(file){ keepAsk();
+/* a headshot in: kept once (same size and name = same photo); the first one is your main one.
+   opts.kind 'still': a still from your own footage (FOOTAGE), kept with your photos for a press kit or your page, never your main headshot. opts.from: {title, role, t} */
+Y.addPhoto=async function(file,opts){ keepAsk(); opts=opts||{};
  const sig=String(file.name||'')+'|'+(file.size||0), d=Y.get(); const dup=d.photos.find(p=>p.sig===sig); if(dup) return {photo:dup,dup:true};
  const s=await Y.shrink(file); if(!s) return {error:/heic|heif/i.test(file.name||file.type||'')?'this browser can\'t open HEIC photos; export it as JPEG from Photos':'not a photo this browser can open'};
  const id='h'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
  if(!(await op('readwrite',st=>st.put(s.blob,id)))) return {error:'this phone would not keep the photo'};
  const p={id,sig,name:file.name||'headshot.jpg',w:s.w,h:s.h,ow:s.ow||s.w,oh:s.oh||s.h,added:Date.now(),roles:[],status:'',note:''};
- const e=Y.get(); e.photos.push(p); if(!e.primary) e.primary=id; put(e); return {photo:p,primary:e.primary===id};
+ if(opts.kind==='still'){ p.kind='still'; if(opts.from) p.from=opts.from; }
+ const e=Y.get(); e.photos.push(p); if(!e.primary&&p.kind!=='still') e.primary=id; put(e); return {photo:p,primary:e.primary===id};
 };
 Y.photoBlob=id=>op('readonly',st=>st.get(id));
+Y.headshots=()=>Y.get().photos.filter(p=>p.kind!=='still');
+Y.stills=()=>Y.get().photos.filter(p=>p.kind==='still');
 /* your words on a headshot: the roles it's for, keep / retest / retire, a note; and its photo check (HEADSHOTS) */
 Y.setPhoto=function(id,patch){ const d=Y.get(), p=d.photos.find(x=>x.id===id); if(!p) return null; Object.assign(p,patch); put(d); return p; };
 Y.setPrimary=function(id){ const d=Y.get(); if(d.photos.some(p=>p.id===id)){ d.primary=id; put(d); } return d; };
-Y.removePhoto=async function(id){ const d=Y.get(); d.photos=d.photos.filter(p=>p.id!==id); if(d.primary===id) d.primary=d.photos[0]?d.photos[0].id:''; put(d); await op('readwrite',st=>st.delete(id)); return d; };
+Y.removePhoto=async function(id){ const d=Y.get(); d.photos=d.photos.filter(p=>p.id!==id); if(d.primary===id){ const h=d.photos.find(p=>p.kind!=='still'); d.primary=h?h.id:''; } put(d); await op('readwrite',st=>st.delete(id)); return d; };
 /* ---------- your résumé, the file itself: kept so it's here when someone asks for it ---------- */
 Y.setResume=async function(file,source){ keepAsk();
  if(!file) return null;

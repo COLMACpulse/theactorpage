@@ -116,7 +116,7 @@ function showYou(){
   +'<div class="yres">'+(y.resume?'<span><b>Your résumé</b> '+esc(y.resume.name)+' <small>· added '+esc(new Date(y.resume.added).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}))+'</small></span><span class="yact"><button class="pastego sm" id="yresopen">OPEN</button><label class="pastego sm">REPLACE<input type="file" id="yresfile" accept=".pdf,.docx,.doc,.txt,.rtf,.pages" hidden></label><button class="yx" id="yresx" aria-label="Remove your résumé">✕</button></span>'
      :'<span><b>Have a résumé?</b> Add it and it fills this in. The file is kept here too, for when someone asks for it.</span><span class="yact"><label class="pastego sm">ADD YOUR RÉSUMÉ<input type="file" id="yresfile" accept=".pdf,.docx,.doc,.txt,.rtf,.pages" hidden></label></span>')
   +'</div>'+(y.resume?'':'<p class="why" style="margin-top:-4px">No résumé yet? <a href="resume/" style="color:var(--tungsten)">VIRTUAL RÉSUMÉ</a> makes one from this profile.</p>')
-  +'<div class="yres"><span><b>Headshots</b> '+(y.photos.length?y.photos.length+' here':'none yet')+'</span><span class="yact"><label class="pastego sm">ADD A HEADSHOT<input type="file" id="yphfile" accept="image/*" multiple hidden></label></span></div>'
+  +'<div class="yres"><span><b>Headshots</b> '+(()=>{ const n=y.photos.filter(p=>p.kind!=='still').length, st=y.photos.length-n; return (n?n+' here':'none yet')+(st?' · '+st+' still'+(st===1?'':'s')+' from your footage':''); })()+'</span><span class="yact"><label class="pastego sm">ADD A HEADSHOT<input type="file" id="yphfile" accept="image/*" multiple hidden></label></span></div>'
   +Y.FIELDS.map(([k,l])=>'<label class="yf"><span>'+esc(l)+'</span><input data-yf="'+k+'" value="'+esc(y[k]||'')+'"></label>').join('')
   +[['skills','Skills'],['accents','Accents'],['training','Training'],['types','Your types']].map(([k,l])=>'<label class="yf"><span>'+l+'</span><textarea data-yl="'+k+'" rows="2"'+(k==='types'?' placeholder="Your words for what you\'re right for: cop, dad, rancher"':'')+'>'+esc((y[k]||[]).join(', '))+'</textarea></label>').join('')
   +(y.credits.length?'<div class="why" style="margin-top:8px">Credits: '+esc(Object.entries(by).map(([k,n])=>n+' '+k).join(', '))+'</div><ul class="ycr">'+y.credits.map((c,i)=>'<li><b>'+esc(c.title)+'</b> · '+esc(c.role||c.character)+(c.by?' · '+esc(c.by):'')+' <small>'+esc(c.section)+'</small> <button data-ycx="'+i+'" aria-label="Remove">×</button></li>').join('')+'</ul>':'')
@@ -154,7 +154,7 @@ function keepLine(){
 let LENSID=null;
 async function drawLens(){
  const L=$('lens'), im=$('lensimg'), why=$('lenswhy'); if(!L||!im||!Y) return;
- const y=Y.get(), id=y.primary&&y.photos.some(p=>p.id===y.primary)?y.primary:(y.photos[0]&&y.photos[0].id)||'';
+ const y=Y.get(), hs=y.photos.filter(p=>p.kind!=='still'), id=y.primary&&hs.some(p=>p.id===y.primary)?y.primary:(hs[0]&&hs[0].id)||'';
  if(why) why.hidden=!!id; try{ drawStarters(); }catch(e){}
  const nm=$('lensname'); if(nm){ nm.textContent=y.name||'Your name'; nm.classList.toggle('none',!y.name); }
  L.setAttribute('aria-label',id?'Your profile'+(y.name?', '+y.name:''):'Your profile. No headshot yet.');
@@ -167,7 +167,7 @@ async function drawLens(){
 }
 /* STARTERS: on a first visit, the three ways in. Each one goes once you have it. */
 function drawStarters(){ const box=$('starters'); if(!box||!Y) return; const y=Y.get();
- const has={head:!!(y.photos&&y.photos.length),res:!!y.resume,sides:!!(Sh&&Sh.all().length)};
+ const has={head:!!(y.photos&&y.photos.some(p=>p.kind!=='still')),res:!!y.resume,sides:!!(Sh&&Sh.all().length)};
  $('st_head').hidden=has.head; $('st_res').hidden=has.res; $('st_sides').hidden=has.sides; box.hidden=has.head&&has.res&&has.sides;
  const w=$('lenswhy'); if(w) w.hidden=has.head; }
 (function(){ const h=$('st_headfile'), r=$('st_resfile'), sd=$('st_sides'); if(!h) return;

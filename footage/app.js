@@ -34,6 +34,8 @@
       h += '<video class="vid" id="tr_vid" src="' + TR.url + '" controls playsinline preload="metadata" style="margin-top:10px"></video>'
         + '<div class="row" style="margin-top:10px"><button class="btn quiet" id="tr_in">SET IN · <span id="tr_inv">' + F.time(TR.inS) + '</span></button><button class="btn quiet" id="tr_out">SET OUT · <span id="tr_outv">' + F.time(TR.outS) + '</span></button><button class="btn quiet" id="tr_play">&#9654; PLAY THE CLIP</button></div>'
         + '<p class="small dim" id="tr_len">Clip: ' + F.trim(TR.inS, TR.outS, TR.dur).secs + ' seconds.</p>'
+        + '<div class="card" style="margin:10px 0" id="stillbox"><p class="kick">A STILL FROM YOUR FOOTAGE</p><p class="dim small" style="margin:0 0 8px">Stills from a job are hard to get. Pause on a frame you like and keep it: it goes with your photos, ready for a press kit, your page or key art. Never your main headshot.</p><div class="row"><button class="btn ghost" id="tr_still">GRAB THIS FRAME</button></div>'
+          + (TR.stills && TR.stills.length ? '<div class="row" style="margin-top:8px">' + TR.stills.map(x => '<a href="' + x.url + '" download="' + esc(x.name) + '" title="Save to phone" style="display:inline-block;width:96px"><img src="' + x.url + '" alt="Still at ' + esc(x.at) + '" style="width:96px;border-radius:6px;display:block"><span class="mut small">' + esc(x.at) + '</span></a>').join('') + '</div><p class="mut small" style="margin:6px 0 0">Tap one to save it to your phone too.</p>' : '') + '</div>'
         + '<div class="row"><button class="btn" id="tr_make"' + (TR.busy ? ' disabled' : '') + '>' + (TR.busy ? 'MAKING IT…' : 'MAKE THE CLIP') + '</button></div>'
         + '<div class="prog" id="tr_prog"' + (TR.busy ? '' : ' hidden') + '><i id="tr_bar"></i></div><p class="mut small" id="tr_wait"' + (TR.busy ? '' : ' hidden') + '>It plays the clip through once to make it, so it takes as long as the clip runs.</p>';
     }
@@ -85,6 +87,16 @@
       $('tr_in').onclick = () => { TR.inS = v.currentTime; if (TR.outS && TR.outS <= TR.inS) TR.outS = Math.min(TR.dur || v.duration, TR.inS + 1); upd(); };
       $('tr_out').onclick = () => { TR.outS = Math.max(v.currentTime, TR.inS + 0.2); upd(); };
       $('tr_play').onclick = () => { v.currentTime = TR.inS; v.play().catch(() => { }); const stop = () => { if (v.currentTime >= TR.outS) { v.pause(); v.removeEventListener('timeupdate', stop); } }; v.addEventListener('timeupdate', stop); };
+      $('tr_still').onclick = async () => {
+        const j = F.get(S.trim); if (!j || !v.videoWidth) { S.msg = 'Play the video to a frame first.'; render(); return; }
+        try { v.pause(); } catch (e) { }
+        const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight; c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+        const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.92)); if (!blob) { S.msg = 'This browser couldn\u2019t grab that frame.'; render(); return; }
+        const at = F.time(v.currentTime), name = F.clipName(j, 'jpg').replace(/_clip\.jpg$/, '_still_' + at.replace(/[:.]/g, '-') + '.jpg');
+        let kept = false; try { if (window.You) { const r = await You.addPhoto(new File([blob], name, { type: 'image/jpeg' }), { kind: 'still', from: { title: j.title, role: j.role, t: Math.round(v.currentTime * 10) / 10 } }); kept = !!(r && r.photo); } } catch (e) { }
+        TR.stills = (TR.stills || []).concat([{ name, at, url: URL.createObjectURL(blob) }]);
+        S.msg = kept ? 'Still kept with your photos (' + at + '). Pick it for a press kit, your page or key art.' : 'Grabbed. Tap it to save it to your phone.';
+        const t = v.currentTime; render(); const nv = $('tr_vid'); if (nv) { nv.addEventListener('loadedmetadata', () => { try { nv.currentTime = t; } catch (e) { } }, { once: true }); } };
       $('tr_make').onclick = async () => {
         const j = F.get(S.trim); if (!j || TR.busy || !window.ActorCompress) return;
         const dur = TR.dur || v.duration, t = F.trim(TR.inS, TR.outS, dur); TR.busy = true; render();
