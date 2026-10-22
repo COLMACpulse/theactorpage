@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script src="../shared/hot.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0c0b0a">
+<title>Record the tour · THEACTORPAGE</title>
+<style>
+:root{--bg:#0c0b0a;--panel:#161412;--line:#2c2823;--ink:#f1ece2;--dim:#b8ae9e;--faint:#8d8476;--act:#e0a23c;--bad:#e0785f;--good:#8fbf8a;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--act);outline-offset:2px}
+main{max-width:720px;margin:0 auto;padding:max(24px,env(safe-area-inset-top)) 16px 120px}
+.kick{font:800 12px var(--mono);letter-spacing:.18em;color:var(--act);margin:0 0 8px}
+.kick a{color:var(--act);text-decoration:none}
+h1{font:800 clamp(28px,7vw,40px)/1.1 system-ui,sans-serif;margin:0 0 12px}
+p{margin:0 0 12px}.dim{color:var(--dim)}.faint{color:var(--faint);font-size:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:0 0 14px}
+ol.how{margin:0;padding-left:20px}ol.how li{margin:4px 0;color:var(--dim)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{min-height:48px;padding:0 18px;border-radius:10px;border:1px solid var(--act);background:var(--act);color:#111;font:800 13px var(--mono);letter-spacing:.12em;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.btn.ghost{background:none;color:var(--act)}
+.btn.quiet{background:none;color:var(--dim);border-color:var(--line)}
+.btn.rec{background:var(--bad);border-color:var(--bad);color:#111}
+.btn.big{width:100%;min-height:60px;font-size:15px}
+.btn:disabled{opacity:.45;cursor:default}
+.file{position:relative;overflow:hidden}.file input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.live{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;display:none}
+.live.on{display:block}
+.meter{height:10px;border-radius:5px;background:var(--line);overflow:hidden;margin:8px 0 0}
+.meter i{display:block;height:100%;width:0;background:var(--good);transition:width .08s}
+.clock{font:800 22px var(--mono);letter-spacing:.08em}
+.script{counter-reset:n}
+.ln{display:grid;grid-template-columns:44px 1fr;gap:4px 12px;padding:16px 0;border-top:1px solid var(--line)}
+.ln .n{font:800 13px var(--mono);color:var(--act);padding-top:4px}
+.ln .t{font-size:clamp(19px,4.6vw,23px);line-height:1.5}
+.ln .ch{grid-column:2;font:800 11px var(--mono);letter-spacing:.16em;color:var(--faint)}
+.cut{display:grid;grid-template-columns:44px 1fr;gap:4px 12px;padding:12px 0;border-top:1px solid var(--line)}
+.cut .n{font:800 13px var(--mono);color:var(--act);padding-top:2px}
+.cut .t{color:var(--dim);font-size:15px}
+.cut .tag{font:800 11px var(--mono);letter-spacing:.14em;margin-left:6px}
+.cut .tag.check{color:var(--act)}.cut .tag.missing{color:var(--bad)}.cut .tag.redo{color:var(--good)}
+.cut .row{grid-column:2;margin-top:6px}
+.cut .row .btn{min-height:40px;padding:0 12px;font-size:12px}
+.msg{color:var(--act);margin:10px 0}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <p class="kick"><a href="./">THE TOUR</a> · RECORD THE VOICE</p>
+  <h1>Read the whole tour, once.</h1>
+  <p class="dim">One take, top to bottom. When you stop, it cuts the reading into the <span id="nStops">27</span> clips the tour plays, one per stop. You check them here, redo any line on its own, and save them for the site.</p>
+
+  <div class="card">
+    <p class="kick">BEFORE YOU START</p>
+    <ol class="how">
+      <li>A quiet room. Phone about a hand's width from your mouth, and keep it there.</li>
+      <li>Read the lines in order, at your natural pace. Sentences inside a line read normally.</li>
+      <li><b>Between lines, a slow two-count.</b> One... two. That gap is how it finds where each clip starts.</li>
+      <li>Stumble? Keep going. You can redo any single line after.</li>
+    </ol>
+  </div>
+
+  <div id="startBox">
+    <button class="btn rec big" type="button" id="recBtn">RECORD THE TOUR</button>
+    <div class="row" style="margin-top:10px">
+      <label class="btn quiet file">USE A RECORDING YOU ALREADY HAVE<input type="file" id="fileIn" accept="audio/*,video/*,.wav,.m4a,.mp3,.aac,.webm"></label>
+    </div>
+    <p class="faint" style="margin-top:8px">Recorded in another app, or on a better mic? Bring the file in and it cuts that the same way.</p>
+  </div>
+
+  <div class="live" id="live">
+    <div class="row"><span class="clock" id="clock">0:00</span><span class="faint">● RECORDING · read straight through</span><button class="btn" type="button" id="stopBtn" style="margin-left:auto">STOP</button></div>
+    <div class="meter"><i id="lvl"></i></div>
+  </div>
+
+  <p class="msg" id="msg" role="status"></p>
+
+  <section id="cutsBox" class="hide">
+    <div class="card">
+      <p class="kick">YOUR CLIPS</p>
+      <p class="dim" id="sum"></p>
+      <div class="row">
+        <a class="btn" href="./" id="watch">WATCH THE TOUR IN YOUR VOICE</a>
+        <button class="btn ghost" type="button" id="saveBtn">SAVE FOR THE SITE</button>
+        <button class="btn quiet" type="button" id="againBtn">START OVER</button>
+      </div>
+      <p class="faint" style="margin-top:8px">The tour on this device plays your clips right away. SAVE FOR THE SITE makes one zip: send it over and it goes up for everyone.</p>
+    </div>
+    <div id="cuts"></div>
+  </section>
+
+  <section id="scriptBox">
+    <p class="kick" style="margin-top:22px">THE SCRIPT</p>
+    <div class="script" id="script"></div>
+  </section>
+</main>
+<script src="stops.js"></script>
+<script src="../actor-os/oneread.js"></script>
+<script src="../shared/zipw.js"></script>
+<script src="myvoice.js"></script>
+<script src="record.js"></script>
+</body>
+</html>

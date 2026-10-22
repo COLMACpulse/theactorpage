@@ -11,6 +11,7 @@
   const D = { on, SUF };
   const realLS = (() => { try { return g.localStorage; } catch (e) { return null; } })();
   const idb = g.indexedDB, open0 = idb && idb.open.bind(idb), del0 = idb && idb.deleteDatabase.bind(idb), list0 = idb && idb.databases && idb.databases.bind(idb);
+  D.openReal = open0;
   D.realGet = k => { try { return realLS && realLS.getItem(k); } catch (e) { return null; } };
 
   function keys() { const out = []; for (let i = 0; i < ss.length; i++) { const k = ss.key(i); if (k && k.indexOf(PFX) === 0) out.push(k.slice(PFX.length)); } return out; }

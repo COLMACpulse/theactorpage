@@ -12,6 +12,8 @@
   function shown() { let o = null; try { o = JSON.parse(D.realGet('theactorpage_view') || 'null'); } catch (e) { }
     const has = d => !(o && o[d] === false), s = [];
     if (has('act')) s.push('act'); if (has('write') || has('film')) s.push('own'); return s.length ? s : CHS.slice(); }
+  /* your own clips from record.html, on this device, before the site's */
+  const MINE = {}; if (window.MyVoice) MyVoice.clips().then(c => { Object.keys(c).forEach(k => { MINE[k] = URL.createObjectURL(c[k]); }); window.__tour && (window.__tour.mine = Object.keys(MINE).length); }).catch(() => { });
   let pickD = shown(), LIST = [], I = 0, PAUSED = false, RUN = 0, timer = 0, utter = null;
   const chips = [...document.querySelectorAll('#chips [data-d]')];
   function paintChips() { chips.forEach(b => b.setAttribute('aria-pressed', String(pickD.includes(b.dataset.d))));
@@ -72,7 +74,7 @@
         try { utter = new SpeechSynthesisUtterance(s.line.replace(/THEACTORPAGE/g, 'the actor page').replace(/\bINT\. or EXT\./, 'int or ext')); const v = voice(); if (v) utter.voice = v; utter.rate = 1; utter.onend = fin; utter.onerror = () => { if (!ended) clock(); };
           speechSynthesis.speak(utter); timer = setTimeout(fin, T.secs(s) * 1000 + 6000); } catch (e) { clock(); } };
       vo.onended = fin; vo.onerror = () => { if (run === RUN && !ended) tts(); };
-      vo.muted = false; vo.src = 'vo/' + s.id + '.mp3';
+      vo.muted = false; vo.src = MINE[s.id] || ('vo/' + s.id + '.mp3');
       const p = vo.play(); if (p && p.catch) p.catch(() => { if (run === RUN && !ended && !vo.error) tts(); });
     });
   }
