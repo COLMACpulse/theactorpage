@@ -1,7 +1,7 @@
 /* THE TOUR, IN YOUR VOICE, ON THIS DEVICE. The clips made on record.html are kept here (IndexedDB
    "theactorpage_tourvo") and the tour player plays them before the site's own clips.
    Kept outside the demo sandbox on purpose: the sandbox gives every database a twin, and the player runs inside it.
-   MyVoice.get(k) / put(k, v) / del(k) / clear() / clips() -> {O01: Blob, ...} */
+   MyVoice.get(k) / put(k, v) / del(k) / clear() / clips() -> {O01: Blob, ...} / edits() -> {O01: 'your words'} */
 (function (g) {
   'use strict';
   const NAME = 'theactorpage_tourvo', ST = 'k';
@@ -26,6 +26,8 @@
   V.put = (k, v) => tx('readwrite', s => { s.put(v, k); });
   V.del = k => tx('readwrite', s => { s.delete(k); });
   V.clear = () => tx('readwrite', s => { s.clear(); });
+  /* the words you changed: {O01: 'new line'} */
+  V.edits = () => V.get('edits').then(x => x || {}).catch(() => ({}));
   V.clips = () => open().then(db => new Promise(res => {
     const out = {}, t = db.transaction(ST, 'readonly'), c = t.objectStore(ST).openCursor();
     c.onsuccess = () => { const k = c.result; if (!k) return; if (String(k.key).indexOf('clip:') === 0 && k.value) out[String(k.key).slice(5)] = k.value; k.continue(); };

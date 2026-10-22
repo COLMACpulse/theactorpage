@@ -27,6 +27,14 @@ want('says what it is: one take, cut into one clip per stop, the two-count', /Re
 want('the whole script is there, in order, numbered', (await p.$$eval('.ln',x=>x.length))===L.length&&/^1/.test(await p.innerText('.ln')));
 want('nobody gets here from the site, and search engines are told to skip it', /noindex/.test(await p.getAttribute('meta[name=robots]','content')));
 
+/* change the words on a line, before reading */
+const NEW=L[0].line.replace(/^If you're an actor, you know the drill\./,"Actors, you know the drill.");
+await p.click('.ln[data-id="O01"] [data-a="words"]'); await p.fill('.ln[data-id="O01"] textarea',NEW); await p.click('.ln[data-id="O01"] [data-e="save"]'); await p.waitForTimeout(300);
+want('CHANGE THE WORDS: the line shows your words, marked CHANGED', (await p.innerText('.ln[data-id="O01"] .t'))===NEW&&/CHANGED/.test(await p.innerText('.ln[data-id="O01"]')));
+await p.reload(); await p.waitForTimeout(500);
+want('your words are kept after a reload', (await p.innerText('.ln[data-id="O01"] .t'))===NEW);
+await p.click('.ln[data-id="A00"] [data-a="words"]'); await p.fill('.ln[data-id="A00"] textarea','Changed my mind.'); await p.click('.ln[data-id="A00"] [data-e="cancel"]'); await p.waitForTimeout(200);
+want('CANCEL leaves the line as it was', (await p.innerText('.ln[data-id="A00"] .t'))===L.find(x=>x.id==='A00').line);
 /* the whole read, brought in as a file */
 await p.setInputFiles('#fileIn',FULL);
 await p.waitForFunction(()=>!document.getElementById('cutsBox').classList.contains('hide'),null,{timeout:60000}).catch(()=>{});
@@ -61,6 +69,8 @@ const [dl]=await Promise.all([p.waitForEvent('download'),p.click('#saveBtn')]);
 const zf=path.join(T,'z.zip'); await dl.saveAs(zf);
 const names=require('child_process').execSync('unzip -Z1 '+zf).toString().trim().split('\n');
 want('SAVE FOR THE SITE: one zip, a WAV per stop, cuts.json and the full read', dl.suggestedFilename()==='tour-voice.zip'&&names.filter(n=>/^vo\/[A-Z]\d\d\.wav$/.test(n)).length===27&&names.includes('cuts.json')&&names.some(n=>/^full-read\./.test(n)), names.slice(0,5));
+const wj=JSON.parse(require('child_process').execSync('unzip -p '+zf+' words.json').toString());
+want('the zip says which lines are in your words, what they were and what you said', Object.keys(wj).join()==='O01'&&wj.O01.was===L[0].line&&wj.O01.now===NEW);
 const probe=require('child_process').execSync('unzip -p '+zf+' vo/O01.wav | ffprobe -v error -show_entries stream=sample_rate,channels -of csv=p=0 -i pipe:0').toString().trim();
 want('the clips are mono, 32 kHz', probe==='32000,1', probe);
 
@@ -72,8 +82,10 @@ want('the tour on this device has your 27 clips', await q.evaluate(()=>window.__
 await q.click('#go'); await q.waitForFunction(()=>window.__tour.at==='O01',null,{timeout:30000}).catch(()=>{}); await q.waitForTimeout(1200);
 want('and plays yours, not the stand-in voice', /^blob:/.test(await q.evaluate(()=>document.getElementById('vo').src))&&!(await q.evaluate(()=>window.__said.filter(s=>s.trim()).length)), await q.evaluate(()=>document.getElementById('vo').src));
 
+want('the caption on the tour is your words', (await q.innerText('#cap'))===NEW, await q.innerText('#cap'));
 /* start over */
 await p.bringToFront(); await p.click('#againBtn'); await p.waitForTimeout(500);
+want('START OVER puts the script back too', (await p.innerText('.ln[data-id="O01"] .t'))===L[0].line);
 want('START OVER clears it, back to the start', !(await p.isHidden('#recBtn'))&&Object.keys(await p.evaluate(()=>MyVoice.clips())).length===0);
 await p.click('#recBtn'); await p.waitForTimeout(400);
 want('RECORD THE TOUR: the clock runs, the bar says recording', await p.isVisible('#live')&&/RECORDING/.test(await p.evaluate(()=>(document.getElementById('hotbar')||{}).innerText||'')));

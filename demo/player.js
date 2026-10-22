@@ -14,6 +14,8 @@
     if (has('act')) s.push('act'); if (has('write') || has('film')) s.push('own'); return s.length ? s : CHS.slice(); }
   /* your own clips from record.html, on this device, before the site's */
   const MINE = {}; if (window.MyVoice) MyVoice.clips().then(c => { Object.keys(c).forEach(k => { MINE[k] = URL.createObjectURL(c[k]); }); window.__tour && (window.__tour.mine = Object.keys(MINE).length); }).catch(() => { });
+  /* and the words you changed while recording: the caption follows what you said */
+  if (window.MyVoice) MyVoice.edits().then(e => { Object.keys(e).forEach(id => { const s = T.S.find(x => x.id === id); if (s && e[id]) s.line = e[id]; }); }).catch(() => { });
   let pickD = shown(), LIST = [], I = 0, PAUSED = false, RUN = 0, timer = 0, utter = null;
   const chips = [...document.querySelectorAll('#chips [data-d]')];
   function paintChips() { chips.forEach(b => b.setAttribute('aria-pressed', String(pickD.includes(b.dataset.d))));

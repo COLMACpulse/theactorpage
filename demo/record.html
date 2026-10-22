@@ -11,7 +11,7 @@
 :root{--bg:#0c0b0a;--panel:#161412;--line:#2c2823;--ink:#f1ece2;--dim:#b8ae9e;--faint:#8d8476;--act:#e0a23c;--bad:#e0785f;--good:#8fbf8a;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-button,input{font:inherit;color:inherit}
+button,input,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--act);outline-offset:2px}
 main{max-width:720px;margin:0 auto;padding:max(24px,env(safe-area-inset-top)) 16px 120px}
 .kick{font:800 12px var(--mono);letter-spacing:.18em;color:var(--act);margin:0 0 8px}
@@ -46,6 +46,10 @@ ol.how{margin:0;padding-left:20px}ol.how li{margin:4px 0;color:var(--dim)}
 .cut .row{grid-column:2;margin-top:6px}
 .cut .row .btn{min-height:40px;padding:0 12px;font-size:12px}
 .msg{color:var(--act);margin:10px 0}
+.lnk{background:none;border:0;padding:6px 0;color:var(--act);font:800 11px var(--mono);letter-spacing:.16em;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.chg{color:var(--good)}.cut .tag.chg{color:var(--good)}
+.ed{grid-column:2;margin-top:8px}.ed .row{margin:8px 0}
+.field{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:17px;line-height:1.45;resize:vertical}
 .hide{display:none!important}
 </style>
 </head>
@@ -62,6 +66,7 @@ ol.how{margin:0;padding-left:20px}ol.how li{margin:4px 0;color:var(--dim)}
       <li>Read the lines in order, at your natural pace. Sentences inside a line read normally.</li>
       <li><b>Between lines, a slow two-count.</b> One... two. That gap is how it finds where each clip starts.</li>
       <li>Stumble? Keep going. You can redo any single line after.</li>
+      <li>Saying it differently? Fine. Keep the lines in this order with the two-count between them. Tap CHANGE THE WORDS on a line, before or after, so the caption matches what you said.</li>
     </ol>
   </div>
 
