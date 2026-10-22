@@ -9,7 +9,7 @@ await p.goto('http://localhost:8811/'); await p.waitForTimeout(800);
 const hero=await p.innerText('header.titlecard');
 want('the front says what it is, for actors, in one line', /FOR ACTORS/.test(hero)&&/Everything an audition takes, from the sides to the send\./.test(hero)&&/No account\. No card\. Nothing uploaded\./.test(hero));
 want('one main button: try it on a sample scene', /Try it on a sample scene/.test(await p.innerText('#trygo'))&&(await p.getAttribute('#trygo','href'))==='demo/?try');
-want('where it fits: alongside the casting sites', /Works alongside Actors Access, Casting Networks and Backstage\. They get you the audition\. This is where you do it\./.test(await p.innerText('.band.fits')));
+want('where it fits: the audition comes in, the work happens here', /The audition comes in\. Do the work here: learn it, run it, tape it, send it\./.test(await p.innerText('body')));
 const tabs=await p.$$eval('.steptab',x=>x.map(t=>t.textContent.replace(/^\d/,'')));
 want('six steps, in order', tabs.join('|')==='GET IT|LEARN IT|RUN IT|TAPE IT|SEND IT|STAY ON THEIR RADAR', tabs);
 want('one step shows at a time, with a real screen', (await p.$$eval('.steppanel',x=>x.filter(e=>!e.hidden).length))===1&&await p.$eval('#sp-get img',i=>i.complete&&i.naturalWidth>100));
