@@ -14,16 +14,16 @@ await p.goto(H); await p.evaluate(()=>{ localStorage.clear(); Shelf.put({text:'R
 const realBefore=await p.evaluate(()=>localStorage.getItem('theactorpage_shelf_v1'));
 want('home has the tour, up top, and TRY IT next to it', /5-minute tour/.test(await p.innerText('#demogo'))&&/demo\/$/.test(await p.getAttribute('#demogo','href'))&&/demo\/\?try$/.test(await p.getAttribute('#trygo','href')));
 await p.click('#demogo'); await p.waitForURL(/\/demo\/$/); await p.waitForTimeout(300);
-want('the start: about 5 minutes, ACT and MAKE YOUR OWN on', /about 5 minutes/.test(await p.innerText('#start'))&&(await p.$$eval('#chips [aria-pressed="true"]',x=>x.map(y=>y.dataset.d).join()))==='act,own', await p.innerText('#mins'));
+want('the start: about 6 minutes, ACT and MAKE YOUR OWN on', /about 6 minutes/.test(await p.innerText('#start'))&&(await p.$$eval('#chips [aria-pressed="true"]',x=>x.map(y=>y.dataset.d).join()))==='act,own', await p.innerText('#mins'));
 await p.click('#go');
 const t0=Date.now(); const fe=[]; 
 await p.waitForFunction(()=>window.__tour.done,null,{timeout:240000,polling:500}).catch(()=>{});
 const log=await p.evaluate(()=>window.__tour.log), list=await p.evaluate(()=>window.__tour.list());
 console.log(log.map((x,i)=>x.id+':'+(i?Math.round((x.t-log[i-1].t)/100)/10:0)).join(' ')); console.log('ran '+log.length+' stops in '+Math.round((Date.now()-t0)/1000)+' s');
-want('every stop played, in order ('+list.length+')', log.map(x=>x.id).join()===list.join()&&list.length===27, log.map(x=>x.id).join());
+want('every stop played, in order ('+list.length+')', log.map(x=>x.id).join()===list.join()&&list.length===28, log.map(x=>x.id).join());
 const dark=log.filter(x=>!x.lit); want('every stop lit up its part', !dark.length, dark);
 const said=await p.evaluate(()=>window.__said.filter(s=>s.trim()));
-want('the voice said each line once (no clips yet, so the stand-in)', said.length===27&&/you know the drill/.test(said[0]), said.length);
+want('the voice said each line once (no clips yet, so the stand-in)', said.length===28&&/you know the drill/.test(said[0]), said.length);
 const pages=[...new Set(log.map(x=>x.path))]; want('it went through the tools ('+pages.length+' pages)', ['/actor-os/','/breakdown/','/memorizer/','/cps/','/write/writers-blockage.html','/papertrail/','/film/','/filmhub/'].every(x=>pages.includes(x)), pages);
 const fr=p.frame({url:/\/(index\.html)?$/})||p.frames()[1];
 want('the end: keep playing, again, or end', await p.isVisible('#done')&&/KEEP PLAYING/.test(await p.innerText('#done')));
@@ -43,7 +43,7 @@ want('turn one off: ACT alone', (await p.$$eval('#chips [aria-pressed="true"]',x
 await p.click('#chips [data-d="act"]');
 want('one always stays on', (await p.$$eval('#chips [aria-pressed="true"]',x=>x.map(y=>y.dataset.d).join()))==='act');
 await p.evaluate(()=>{ window.__said=[]; }); await p.click('#go'); await p.waitForFunction(()=>window.__tour.at==='O02',null,{timeout:20000});
-want('ACT only: open, ACT, close (19 stops)', (await p.evaluate(()=>window.__tour.list())).every(id=>/^[OAC]/.test(id))&&(await p.evaluate(()=>window.__tour.list().length))===19);
+want('ACT only: open, ACT, close (20 stops)', (await p.evaluate(()=>window.__tour.list())).every(id=>/^[OAC]/.test(id))&&(await p.evaluate(()=>window.__tour.list().length))===20);
 await p.click('#pp'); const atP=await p.evaluate(()=>window.__tour.at); await p.waitForTimeout(1500);
 want('PAUSE holds the stop', (await p.evaluate(()=>window.__tour.at))===atP&&/PLAY/.test(await p.innerText('#pp')));
 await p.click('#sk'); await p.waitForFunction(()=>window.__tour.at==='A00',null,{timeout:20000}).catch(()=>{});

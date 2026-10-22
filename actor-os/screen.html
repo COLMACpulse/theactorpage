@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d0f12">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>Actor OS · The other screen</title>
+<style>
+:root{--bg:#0d0f12;--panel:#14171b;--panel2:#1b1f25;--ink:#ece7dc;--dim:#c3c8d0;--faint:#9aa1ab;--line:#272d36;--gold:#e0a23c;--blue:#2a5fa8;--red:#d9694e;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;--tap:48px;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:max(14px,env(safe-area-inset-top)) 14px 40px}
+.kick{font:700 12px var(--mono);letter-spacing:.2em;color:#8fb6ec;margin:0 0 8px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin:0 0 12px}
+.btn{min-height:var(--tap);padding:0 18px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font:700 13px var(--mono);letter-spacing:.12em;cursor:pointer}
+.btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.roll{background:var(--red);border-color:var(--red);color:#fff;min-width:150px;font-size:16px}
+.btn.cut{background:#fff;border-color:#fff;color:#111;min-width:150px;font-size:16px}
+.btn.keep{background:var(--gold);border-color:var(--gold);color:#17110a}
+.btn:disabled{opacity:.4;cursor:default}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+.dim{color:var(--dim)}.faint{color:var(--faint);font-size:14px}
+.qr{display:block;width:min(100%,380px);height:auto;margin:8px auto;border-radius:8px;background:#fff}
+textarea{width:100%;min-height:80px;background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;font:12px var(--mono)}
+.grid{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:900px){.grid.two{grid-template-columns:1fr 1fr}}
+.screen{position:relative;background:#000;border-radius:10px;overflow:hidden;aspect-ratio:16/9}
+.screen video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.screen.mirror #v{transform:scaleX(-1)}
+.state{position:absolute;left:10px;top:10px;font:700 12px var(--mono);letter-spacing:.16em;padding:5px 9px;border-radius:6px;background:rgba(13,15,18,.8);color:var(--dim)}
+.state.rec{background:var(--red);color:#fff}
+.sensor{font:700 12px var(--mono);letter-spacing:.14em;color:#8fb6ec;margin:0 0 8px}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;width:0;background:var(--gold)}
+</style>
+</head>
+<body>
+<main>
+  <p class="kick">ACTOR OS · THE OTHER SCREEN</p>
+  <div id="app"></div>
+</main>
+<script src="../film/vendor/qrcode.min.js"></script>
+<script src="../film/monitor-link.js"></script>
+<script>
+(function(){
+'use strict';
+const L=window.MonitorLink, $=id=>document.getElementById(id), app=$('app');
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const M={pc:null,dc:null,stream:null,answer:'',up:false,mirror:false,st:{},take:null,url:'',got:0,lock:null};
+window.__screen=M;
+/* the offer rides in the part of the link after #, which the browser never sends to any server */
+const hash=new URLSearchParams(location.hash.slice(1)), offer=hash.get('o');
+if(offer){ try{ history.replaceState(null,'',location.pathname); }catch(e){} }
+function ask(msg){
+ app.innerHTML='<div class="card">'+(msg?'<p>'+esc(msg)+'</p>':'')+'<p class="dim">Open this page from the code on the phone that\'s taping: in Actor OS, open the camera to tape, tap SCREEN, then LINK A SCREEN. Point this device\'s camera at that code, or open the link it sends.</p>'
+  +'<p class="faint">Or paste the link or code here:</p><textarea id="paste" placeholder="Paste here"></textarea><div class="row"><button class="btn pri" id="go">CONNECT</button></div></div>';
+ $('go').onclick=()=>{ const t=$('paste').value.trim(), m=t.match(/[#&]o=([A-Za-z0-9_-]+)/); start(m?m[1]:t); };
+}
+async function start(code){
+ if(!code) return ask('');
+ app.innerHTML='<div class="card"><p class="dim">Making the code for the phone…</p></div>';
+ try{
+  const r=await L.answer(code,s=>{ M.stream=s; if(M.up) live(); },dc=>{ M.dc=dc; L.receive(dc,onMsg,onFile,onProg); dc.onopen=()=>{ M.up=true; live(); }; dc.onclose=()=>lost(); });
+  M.pc=r.pc; M.answer=r.code; M.mirror=r.meta&&r.meta.facing==='user';
+  M.pc.addEventListener('connectionstatechange',()=>{ const s=M.pc.connectionState; if(M.up&&(s==='failed'||s==='closed')) lost(); });
+  showAnswer();
+ }catch(e){ ask(e&&e.message&&/Story Studio/.test(e.message)?'That code isn\'t from Actor OS.':'That code didn\'t work. Make a new one on the phone.'); }
+}
+function showAnswer(){
+ app.innerHTML='<div class="card"><p><b>Now show this to the phone that\'s taping.</b> Hold this screen up to its camera until it says LINKED.</p><div id="qrbox">'+L.qrSvg(M.answer)+'</div>'
+  +'<p class="faint">Can\'t hold it up? Copy the code and send it to the phone, then paste it there.</p><div class="row"><button class="btn" id="copy">COPY CODE</button></div><p class="faint" id="wait">Waiting for the phone…</p></div>';
+ $('copy').onclick=async()=>{ try{ await navigator.clipboard.writeText(M.answer); $('copy').textContent='COPIED'; }catch(e){ prompt('Copy this code:',M.answer); } };
+}
+const send=m=>{ try{ M.dc&&M.dc.readyState==='open'&&M.dc.send(JSON.stringify(m)); }catch(e){} };
+function live(){
+ if(!M.up) return;
+ try{ if(navigator.wakeLock&&!M.lock) navigator.wakeLock.request('screen').then(l=>M.lock=l).catch(()=>{}); }catch(e){}
+ app.innerHTML='<div class="grid two"><div class="card"><p class="sensor">MONITOR · THE PHONE\'S CAMERA · NO SOUND</p>'
+  +'<div class="screen'+(M.mirror?' mirror':'')+'" id="scr"><video id="v" playsinline muted autoplay></video><span class="state" id="st">LINKED</span></div>'
+  +'<div class="row"><button class="btn roll" id="roll">● ROLL</button><button class="btn" id="mir">MIRROR</button><button class="btn" id="full">FULL SCREEN</button></div>'
+  +'<p class="faint">ROLL counts you in on the phone, then records there. Space bar or a clicker paired to this device works too.</p></div>'
+  +'<div class="card"><p class="sensor">PLAYBACK</p><div id="pb"><p class="faint">Each take comes over here when you cut.</p></div></div></div>';
+ const v=$('v'); if(M.stream){ v.srcObject=M.stream; v.play&&v.play().catch(()=>{}); }
+ $('roll').onclick=()=>send({t:M.st.rec||M.st.count?'cut':'roll'});
+ $('mir').onclick=()=>{ M.mirror=!M.mirror; $('scr').classList.toggle('mirror',M.mirror); };
+ $('full').onclick=()=>{ const s=$('scr'); if(document.fullscreenElement) document.exitFullscreen(); else if(s.requestFullscreen) s.requestFullscreen().catch(()=>{}); };
+ paintState(); paintTake();
+}
+function paintState(){
+ const s=M.st, el=$('st'), b=$('roll'); if(!el||!b) return;
+ el.textContent=s.rec?'● RECORDING '+(s.tc||''):s.count?'COUNTING IN':s.review?'TAKE '+(s.take?s.take.n:'')+' · WAITING FOR YOU':'LINKED · READY';
+ el.classList.toggle('rec',!!s.rec);
+ b.textContent=s.rec||s.count?'■ CUT':'● ROLL'; b.className='btn '+(s.rec||s.count?'cut':'roll'); b.disabled=!!s.review&&!s.rec;
+ const k=$('pbbtns'); if(k) k.hidden=!s.review;
+}
+function paintTake(){
+ const pb=$('pb'); if(!pb) return;
+ if(M.take&&M.take.loading){ pb.innerHTML='<p class="dim">Take '+esc(M.take.n||'')+' coming over…</p><div class="bar"><i id="pbar" style="width:'+Math.round((M.got||0)*100)+'%"></i></div>'; return; }
+ if(!M.take||!M.url){ pb.innerHTML='<p class="faint">Each take comes over here when you cut.</p>'; return; }
+ const t=M.take;
+ pb.innerHTML='<video id="pv" src="'+M.url+'" controls playsinline autoplay style="width:100%;border-radius:10px;background:#000"></video>'
+  +'<p class="dim"><b>Take '+esc(t.n)+'</b>'+(t.scene?' · '+esc(t.scene):'')+' · '+esc(t.secs)+'s</p>'
+  +'<div class="row" id="pbbtns"'+(M.st.review?'':' hidden')+'><button class="btn keep" id="keep">KEEP</button><button class="btn" id="again">GO AGAIN</button><button class="btn" id="erase" style="color:var(--red);border-color:var(--red)">ERASE</button></div>'
+  +'<p class="faint">The take is kept on the phone. This screen only shows it.</p>';
+ $('keep').onclick=()=>send({t:'keep',id:t.id}); $('again').onclick=()=>send({t:'again'}); $('erase').onclick=()=>{ if(confirm('Erase take '+t.n+' on the phone?')) send({t:'erase',id:t.id}); };
+}
+function onMsg(m){ if(m.t==='state'){ const had=!!M.st.review; M.st=m; paintState(); if(had!==!!m.review) paintTake(); } }
+function onProg(f,meta){ if(!M.take||!M.take.loading){ M.take={loading:true,n:meta&&meta.n}; M.got=0; paintTake(); } M.got=f; const b=$('pbar'); if(b) b.style.width=Math.round(f*100)+'%'; }
+function onFile(blob,meta){ if(M.url) URL.revokeObjectURL(M.url); M.url=URL.createObjectURL(blob); M.take=Object.assign({},meta,{loading:false}); M.got=1; paintTake(); }
+function lost(){ if(!M.up) return; M.up=false; try{ M.pc&&M.pc.close(); }catch(e){} try{ M.lock&&M.lock.release(); }catch(e){}
+ app.innerHTML='<div class="card"><p><b>Unlinked.</b> The phone let go, or the two lost the Wi-Fi.</p>'+(M.url?'<p class="dim">The last take is still here to watch:</p><video src="'+M.url+'" controls playsinline style="width:100%;border-radius:10px"></video>':'')+'<p class="faint">To link again, make a new code on the phone.</p></div>'; }
+document.addEventListener('keydown',e=>{ if(!M.up) return; const t=e.target&&e.target.tagName; if(t==='INPUT'||t==='TEXTAREA') return;
+ if([' ','Enter','PageDown','PageUp','AudioVolumeUp','AudioVolumeDown','MediaPlayPause'].includes(e.key)){ e.preventDefault(); if(!M.st.review) send({t:M.st.rec||M.st.count?'cut':'roll'}); } });
+if(!window.RTCPeerConnection||!window.CompressionStream) app.innerHTML='<div class="card"><p>This browser can\'t be the other screen. Try Safari or Chrome, up to date.</p></div>';
+else if(offer) start(offer); else ask('');
+})();
+</script>
+</body>
+</html>

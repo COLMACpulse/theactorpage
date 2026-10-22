@@ -48,20 +48,23 @@
   };
 
   /* camera side: an offer for the stream's video, as a link to the monitor page */
-  L.offer = async function (stream, meta, base) {
+  /* opts.data: also a channel for messages and files (Actor OS: the other screen runs the take and plays it back) */
+  L.offer = async function (stream, meta, base, opts) {
     const pc = L.peer(); stream.getVideoTracks().forEach(t => pc.addTrack(t, stream));
+    const dc = opts && opts.data ? pc.createDataChannel('ctl', { ordered: true }) : null;
     await pc.setLocalDescription(await pc.createOffer()); await L.gathered(pc);
     const code = await L.pack(Object.assign({ sdp: L.slim(pc.localDescription.sdp) }, meta || {}));
-    return { pc, url: (base || '') + '#o=' + code, code };
+    return { pc, dc, url: (base || '') + '#o=' + code, code };
   };
   L.accept = async function (pc, text) {
     const t = String(text || '').trim(), i = t.indexOf(L.ANSWER); if (i < 0) throw Error('That isn\'t the code from the other phone.');
     const o = await L.unpack(t.slice(i + L.ANSWER.length)); await pc.setRemoteDescription({ type: 'answer', sdp: o.sdp }); return o;
   };
   /* monitor side: take the offer, make the answer */
-  L.answer = async function (code, onTrack) {
+  L.answer = async function (code, onTrack, onData) {
     const o = await L.unpack(code), pc = L.peer();
     pc.ontrack = e => onTrack && onTrack(e.streams[0] || new MediaStream([e.track]));
+    pc.ondatachannel = e => onData && onData(e.channel);
     await pc.setRemoteDescription({ type: 'offer', sdp: o.sdp }); await pc.setLocalDescription(await pc.createAnswer()); await L.gathered(pc);
     return { pc, meta: o, code: L.ANSWER + await L.pack({ sdp: L.slim(pc.localDescription.sdp) }) };
   };
@@ -84,6 +87,28 @@
     return reader;
   };
   L.readImage = async function (imgData) { if (!g.jsQR) throw Error('no reader'); const r = g.jsQR(imgData.data, imgData.width, imgData.height); return r ? r.data : ''; };
+  /* a file over the channel, in pieces, without flooding it: {t:'file', ...meta, bytes} then the pieces, then {t:'end'} */
+  L.sendFile = async function (dc, blob, meta, onProgress) {
+    const CH = 64 * 1024; dc.bufferedAmountLowThreshold = 1 << 20;
+    dc.send(JSON.stringify(Object.assign({ t: 'file', bytes: blob.size, type: blob.type }, meta || {})));
+    for (let o = 0; o < blob.size; o += CH) {
+      if (dc.readyState !== 'open') throw Error('closed');
+      if (dc.bufferedAmount > 4 << 20) await new Promise(r => { const f = () => { dc.removeEventListener('bufferedamountlow', f); r(); }; dc.addEventListener('bufferedamountlow', f); });
+      dc.send(await blob.slice(o, o + CH).arrayBuffer()); onProgress && onProgress(Math.min(1, (o + CH) / blob.size));
+    }
+    dc.send(JSON.stringify({ t: 'end' }));
+  };
+  /* the other end: messages to onMsg, a whole file to onFile(blob, meta), progress to onProgress */
+  L.receive = function (dc, onMsg, onFile, onProgress) {
+    let cur = null; dc.binaryType = 'arraybuffer';
+    dc.onmessage = e => {
+      if (typeof e.data !== 'string') { if (cur) { cur.parts.push(e.data); cur.got += e.data.byteLength; onProgress && onProgress(cur.got / (cur.meta.bytes || 1), cur.meta); } return; }
+      let m; try { m = JSON.parse(e.data); } catch (x) { return; }
+      if (m.t === 'file') { cur = { meta: m, parts: [], got: 0 }; onProgress && onProgress(0, m); return; }
+      if (m.t === 'end' && cur) { const b = new Blob(cur.parts, { type: cur.meta.type || '' }), meta = cur.meta; cur = null; onFile && onFile(b, meta); return; }
+      onMsg && onMsg(m);
+    };
+  };
   g.MonitorLink = L;
   if (typeof module !== 'undefined') module.exports = L;
 })(typeof window !== 'undefined' ? window : globalThis);
