@@ -79,7 +79,7 @@ want('the wall: GOT IT, with BOOKED on it', /GOT IT/.test(await p.innerText('mai
 await p.goto('http://localhost:8811/'); await p.waitForTimeout(1200);
 want('home, in YOU: your wall, small, booked marked', (await p.$$eval('#viz .gs-wall a',x=>x.length))===3&&/BOOKED/.test(await p.innerText('#viz')));
 want('home, in YOU: SHAMELESS PLUG, one tap', await p.getAttribute('#st_plug','href')==='viz/?plugs');
-want('THIS WEEK: the tape for a show on your wall says so', /Tape due tomorrow: HARBOR LIGHTS, Deckhand\. It’s on your wall\./.test(await p.innerText('#week')), await p.innerText('#week'));
+want('YOUR AGENDA: the tape for a show on your wall says so', /Tape due tomorrow: HARBOR LIGHTS, Deckhand\. It’s on your wall\./.test(await p.innerText('#week')), await p.innerText('#week'));
 /* lock screen */
 await p.goto('http://localhost:8811/viz/?lock'); await p.waitForTimeout(300);
 await p.click('#l_go'); await p.waitForSelector('#l_img:not(.hide)',{timeout:10000}).catch(()=>{});

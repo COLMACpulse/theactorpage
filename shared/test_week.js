@@ -29,4 +29,8 @@ const pl=[{id:'q1',kind:'airing',title:'Ferro',date:'2026-10-27',time:'22:00',wh
 const gw=W.list({requests:[{title:'HARBOR LIGHTS',role:'Deckhand',due:'2026-10-23'},{title:'Night Shift',due:'2026-10-23'}],wishes:wl,plugs:pl},D).lines.map(l=>l.line);
 want('a tape for a show on your wall says so; another does not', gw.includes('Tape due Friday: HARBOR LIGHTS, Deckhand. It’s on your wall.')&&gw.includes('Tape due Friday: Night Shift.'), gw);
 want('a plug for something airing this week: the plug line, said the way you would', gw.includes('Ferro airs next Tuesday night at 10:00 PM on the Harbor Network. Your plug is ready when you are.')&&!gw.some(l=>/Gone By/.test(l)), gw);
+const ag=W.agenda({lines:[{date:'2026-10-19',line:'a'},{date:'2026-10-23',line:'b'},{date:'2026-10-21',line:'c'},{date:'2026-10-23',line:'d'},{date:'',line:'e'}]},D);
+want('agenda: still open first, then each day once, in order; undated is active', ag.coming.map(g=>g.label+':'+g.lines.map(l=>l.line).join('')).join('|')==='STILL OPEN:a|TODAY:c|FRIDAY:bd'&&ag.active.map(l=>l.line).join()==='e', ag);
+const vz=W.list({wishes:[{id:'w9',title:'Night Ferry',kind:'film',trail:{wanted:'2026-01-01',room:'2026-10-14'}}]},D).lines.map(l=>l.line);
+want('in the room, on your wall: active, waiting to hear', vz.includes('Night Ferry: in the room Oct 14. On your wall, waiting to hear.'), vz);
 console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1);

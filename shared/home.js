@@ -293,17 +293,19 @@ async function showViz(){ const box=$('viz'); if(!box||!window.Viz) return; cons
  for(const w of all.slice(0,6)){ let u=''; if(w.pic){ if(!GSURLS[w.pic]){ const b=await Viz.picBlob(w.pic); if(b) GSURLS[w.pic]=URL.createObjectURL(b); } u=GSURLS[w.pic]||''; }
   h+='<a href="viz/?w='+encodeURIComponent(w.id)+'" title="'+esc(w.title)+'">'+(u?'<img src="'+u+'" alt="'+esc(w.title)+'">':'<span>'+esc(w.title)+'</span>')+(Viz.got(w)?'<i>'+esc(Viz.at(w).label.toUpperCase())+'</i>':'')+'</a>'; }
  box.innerHTML=h+'</div>'+(all.length>6?'<span class="gs-why">and '+(all.length-6)+' more on your wall.</span>':'')+'<a class="starter gs-plug" href="viz/?plugs" id="st_plug">SHAMELESS PLUG</a>'; }
-/* THIS WEEK: what needs you, from every tool (shared/week.js). Hidden on a first visit; your goal, if you set one, on top. */
+/* YOUR AGENDA: COMING UP on a timeline, then ACTIVE, from every tool (shared/week.js). Hidden on a first visit; your goal, if you set one, on top. */
 var WEEKGOAL=false;
 async function showWeek(){ const box=$('week'); if(!box||!window.Week) return;
  const src=await Week.gather(), w=Week.list(src), has=document.body.classList.contains('has')||w.lines.length||w.goal;
  if(!has){ box.innerHTML=''; box.hidden=true; return; } box.hidden=false;
  const y=Y?Y.get():{};
- let h='<p class="wk-h">THIS WEEK</p>';
+ let h='<p class="wk-h">YOUR AGENDA</p>';
  if(w.goal&&!WEEKGOAL) h+='<p class="wk-goal"><b>Your goal</b> '+esc(w.goal.text)+(w.goal.by?' <span>· by '+esc(Week.when(w.goal.by,Week.iso(new Date())))+'</span>':'')+' <button type="button" class="wk-edit" id="wkgoal">CHANGE</button></p>';
  if(WEEKGOAL) h+='<div class="wk-form"><label for="wk_g">YOUR GOAL, IN YOUR WORDS</label><input id="wk_g" value="'+esc(y.goal||'')+'" placeholder="Book a co-star"><label for="wk_d">BY</label><input type="date" id="wk_d" value="'+esc(y.goalBy||'')+'"><div><button type="button" class="pastego sm" id="wk_save">SAVE</button> <button type="button" class="wk-edit" id="wk_cancel">CANCEL</button></div></div>';
- h+=w.lines.length?'<ul class="wk-list">'+w.lines.slice(0,10).map(l=>'<li><a href="'+esc(l.href)+'">'+esc(l.line)+'</a></li>').join('')+'</ul>'+(w.lines.length>10?'<p class="wk-more">and '+(w.lines.length-10)+' more in the tools.</p>':'')
-  :'<p class="wk-none">Nothing needs you this week.</p>';
+ const ag=Week.agenda(w), li=l=>'<li><a href="'+esc(l.href)+'">'+esc(l.line)+'</a></li>';
+ if(ag.coming.length) h+='<p class="wk-sub">COMING UP</p><div class="ag">'+ag.coming.slice(0,8).map(gp=>'<div class="ag-day"><b>'+esc(gp.label)+'</b><ul class="wk-list">'+gp.lines.map(li).join('')+'</ul></div>').join('')+'</div>';
+ if(ag.active.length) h+='<p class="wk-sub">ACTIVE</p><ul class="wk-list">'+ag.active.slice(0,8).map(li).join('')+'</ul>'+(ag.active.length>8?'<p class="wk-more">and '+(ag.active.length-8)+' more in the tools.</p>':'');
+ if(!w.lines.length) h+='<p class="wk-none">Clear for now. A tape due, a follow-up, a plug about to air: it lands here, in date order.</p>';
  if(!w.goal&&!WEEKGOAL) h+='<button type="button" class="wk-edit" id="wkgoal">SET A GOAL</button>';
  box.innerHTML=h;
  const g=$('wkgoal'); if(g) g.onclick=()=>{ WEEKGOAL=true; showWeek(); setTimeout(()=>{ const i=$('wk_g'); if(i) i.focus(); },50); };

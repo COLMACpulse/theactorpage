@@ -1,4 +1,4 @@
-/* THEACTORPAGE THIS WEEK: what needs you, from every tool, in one list on home. Nothing to fill in: it reads what
+/* THEACTORPAGE YOUR AGENDA (home): what's coming up, on a timeline, and what's active, from every tool. Nothing to fill in: it reads what
    the tools already know.
      tapes due (requests on home and in the Hub), follow-ups (CONTACTS, rep search), footage that's out or a
      follow-up due (FOOTAGE), press (PRESS: news coming up, people not reached yet, no reply in a week),
@@ -47,9 +47,19 @@
       if (!R.last) L.push({ date: '', kind: 'reps', href: 'hub/?tab=reps', line: 'Your reps haven’t had a sheet from you yet.' });
       else if (per) { const days = Math.floor((Date.parse(day + 'T12:00:00') - R.last) / 864e5); if (days >= per) L.push({ date: '', kind: 'reps', href: 'hub/?tab=reps', line: 'Your reps sheet: it’s been ' + days + ' days.' }); }
     }
+    /* THE VIZ: in the room, waiting to hear */
+    if (g.Viz && src.wishes) src.wishes.forEach(w => { const at = g.Viz.at(w); if (at.step === 'room' && at.date) L.push({ date: '', kind: 'viz', href: 'viz/?w=' + encodeURIComponent(w.id), line: w.title + ': in the room ' + W.when(at.date, day) + '. On your wall, waiting to hear.' }); });
     L.sort((a, b) => (a.date ? 0 : 1) - (b.date ? 0 : 1) || String(a.date).localeCompare(String(b.date)));
     const goal = src.goal && String(src.goal.text || '').trim() ? { text: String(src.goal.text).trim(), by: src.goal.by || '', left: src.goal.by ? diff(day, src.goal.by) : null } : null;
     return { goal, lines: L };
+  };
+  /* the agenda: dated lines on a timeline, a group per day (anything from before today first); the rest is active */
+  W.agenda = function (w, day) {
+    day = day || iso(new Date()); const groups = [], at = {};
+    (w.lines || []).filter(l => l.date).forEach(l => { const n = diff(day, l.date), label = n < 0 ? 'STILL OPEN' : W.when(l.date, day).toUpperCase(), k = n < 0 ? '0' : l.date;
+      if (!at[k]) { at[k] = { label, date: n < 0 ? '' : l.date, lines: [] }; groups.push(at[k]); } at[k].lines.push(l); });
+    groups.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    return { coming: groups, active: (w.lines || []).filter(l => !l.date) };
   };
   /* gather it on home, from the tools on this device */
   W.gather = async function () {
