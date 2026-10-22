@@ -37,6 +37,15 @@ D.read=function(text){
  else if(out.slate==='last') out.mode='SLATE_LAST';
  return out;
 };
+/* where it's going: each site's own limit, from its own help page, with the day it was checked. Recheck these.
+   The office's own words (Delivery.read) always win over a site's limit. */
+D.SITES={
+ ACTORS_ACCESS:{name:'Actors Access (Eco Cast)',maxMB:100,files:5,words:'Up to 100 MB a clip, 5 clips',checked:'2026-10-22',src:'https://casting.breakdownexpress.com/help/ecocast/Responding_to_a_self-taped_invitation.htm'},
+ CASTING_NETWORKS:{name:'Casting Networks',maxMB:300,words:'Up to 300 MB a video: MP4, MOV or M4V',checked:'2026-10-22',src:'https://support.castingnetworks.com/en/articles/11240769'},
+ BACKSTAGE:{name:'Backstage',maxMB:2048,files:1,words:'Up to 2 GB, one tape per request',checked:'2026-10-22',src:'https://help.backstage.com/en/articles/12633191'},
+ REPRESENTATION:{name:'Email to your rep',maxMB:0,emailMB:25,words:'Gmail attaches up to 25 MB; bigger goes as a link',checked:'',src:''}
+};
+D.capFor=k=>(D.SITES[k]&&D.SITES[k].maxMB)||0;
 D.MODEWORDS={SEPARATE:'Separate files',SLATE_FIRST:'One file, slate first',SLATE_LAST:'One file, slate last'};
 D.words=function(d){
  if(!d) return ''; const L=[];

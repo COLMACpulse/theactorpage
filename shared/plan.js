@@ -173,6 +173,16 @@
     return out;
   };
 
+  /* for your calendar (shared/ics.js): each step on its day, the send at its time, the deadline at its time */
+  P.events = function (p, link) {
+    const h = p.heard, t = h.title || 'Your audition', ev = [];
+    (p.plan.steps || []).forEach((s, i) => { if (p.done && p.done[i]) return;
+      const timed = s.kind === 'send' && p.plan.sendBy;
+      ev.push({ uid: 'plan-' + p.id + '-' + s.kind + '-' + i, date: s.date, time: timed ? p.plan.sendBy : '', mins: 30, title: t + ': ' + s.what.split('.')[0], notes: s.what, url: link || '' }); });
+    if (h.due) ev.push({ uid: 'plan-' + p.id + '-due', date: h.due, time: h.dueTime || '', mins: 15, title: 'DUE: ' + t + (h.role ? ' (' + h.role + ')' : ''), notes: [h.office, h.via ? (h.direct ? 'Direct submit on ' : '') + h.via : ''].filter(Boolean).join(' · '), url: link || '' });
+    return ev;
+  };
+
   /* ---------- your voice note ---------- */
   let dbp = null;
   function db() { if (dbp) return dbp; dbp = new Promise(res => { try { const r = indexedDB.open(DB, 1); r.onupgradeneeded = () => r.result.createObjectStore('voice'); r.onsuccess = () => res(r.result); r.onerror = () => res(null); } catch (e) { res(null); } }); return dbp; }

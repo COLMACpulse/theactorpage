@@ -11,8 +11,9 @@
    - Audio is carried through from the source track.
    - Nothing is upscaled. If you ask for a size larger than the source it clamps.
 
-   Actors Access accepts up to 1 GB and asks for under 500 MB. The targets here are
-   built around landing well under that without visible damage. */
+   Where it's going sets the size to land under (shared/delivery.js SITES): Eco Cast on Actors Access takes up
+   to 100 MB a clip, Casting Networks 300 MB, Backstage 2 GB. A 2-minute take at 8 Mbps is about 120 MB, so for
+   Eco Cast it has to come down. */
 (function(g){
 const A={};
 

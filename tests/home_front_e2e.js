@@ -29,7 +29,7 @@ await p.click('#st-tape'); await p.waitForTimeout(150);
 want('TAPE IT: one studio, every step, every time', /One studio, every step, every time\./.test(await p.innerText('#sp-tape')));
 await p.click('#st-send'); await p.waitForTimeout(150);
 const send=await p.innerText('#sp-send');
-want('SEND IT: every step it takes care of: name, compression, size, trim, one file or several, where it goes, on the record', ['File name','Compression','Size limit','Trim','One file or several','Where it.s going','On the record'].every(w=>new RegExp(w).test(send))&&/under 500 MB/.test(send)&&/Nothing uploads by itself/.test(send), send.slice(0,300));
+want('SEND IT: every step it takes care of: name, compression, size, trim, one file or several, where it goes, on the record', ['File name','Compression','Size limit','Trim','One file or several','Where it.s going','On the record'].every(w=>new RegExp(w).test(send))&&/up to 100 MB a clip/.test(send)&&/Nothing uploads by itself/.test(send), send.slice(0,300));
 await p.click('#st-radar'); await p.waitForTimeout(150);
 want('RADAR: stay on casting\'s radar, pointing to FOR YOUR REPS', /Stay on casting.s radar\./.test(await p.innerText('#sp-radar'))&&(await p.getAttribute('#sp-radar .sp-tool a','href'))==='#reps');
 const reps=await p.innerText('#reps');

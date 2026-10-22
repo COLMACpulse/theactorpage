@@ -26,4 +26,5 @@ ok('nothing about delivery: nothing set, nothing guessed', !d.mode&&!d.files&&!d
 d=D.read('The role is a 2 minute walk from the station. Rate is $1,000.');
 ok('a number that is not a limit is not read as one', !d.maxSecs&&!d.maxMB, d);
 ok('no em dashes in the words', !/—/.test(D.words(D.read('one file, slate at the end, under 50 MB'))));
+ok('where it goes: each site\'s own limit, with its help page and the day it was checked', D.capFor('ACTORS_ACCESS')===100&&D.SITES.ACTORS_ACCESS.files===5&&D.capFor('CASTING_NETWORKS')===300&&D.capFor('BACKSTAGE')===2048&&D.capFor('REPRESENTATION')===0&&Object.values(D.SITES).filter(x=>x.maxMB).every(x=>/^https:\/\//.test(x.src)&&x.checked==='2026-10-22'));
 console.log(pass+' passed, '+fail+' failed'); process.exit(fail?1:0);

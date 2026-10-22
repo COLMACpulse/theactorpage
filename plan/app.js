@@ -132,7 +132,7 @@
     let vurl = ''; if (p.voice) { const b = await P.voiceBlob(p.voice); if (b) vurl = URL.createObjectURL(b); }
     V.innerHTML = '<p><a href="./" id="back">← YOUR PLANS</a></p><p class="msg" id="msg" role="status">' + esc(MSG) + '</p>' +
       '<h2 style="margin-top:6px">THE PLAN · ' + esc((h.title || 'YOUR AUDITION').toUpperCase()) + '</h2>' + dueBar(h) + planHTML(p.plan, p.done, id) +
-      '<div class="row" style="margin:16px 0">' + (p.agenda ? '<button class="btn quiet" type="button" id="agenda">TAKE IT OFF MY AGENDA</button>' : '<button class="btn" type="button" id="agenda">PUT IT ON MY AGENDA</button>') + '</div>' +
+      '<div class="row" style="margin:16px 0">' + (p.agenda ? '<button class="btn quiet" type="button" id="agenda">TAKE IT OFF MY AGENDA</button>' : '<button class="btn" type="button" id="agenda">PUT IT ON MY AGENDA</button>') + '<button class="btn ghost" type="button" id="cal">ADD TO MY CALENDAR</button></div><p class="mut small">ADD TO MY CALENDAR makes one file your phone\'s calendar opens: each step on its day with a reminder, and the deadline at its time. Your calendar does the reminding.</p>' +
       ((h.character.length || h.notes.length || h.officeHistory) ? '<h2>YOUR WORDS</h2>' + (h.character.length ? '<p><span class="kick">THE CHARACTER</span><br>' + h.character.map(esc).join('<br>') + '</p>' : '') +
         (h.officeHistory ? '<p><span class="kick">YOU AND ' + esc((h.office || 'THE OFFICE').toUpperCase()) + '</span><br>' + esc((HIST.find(x => x[0] === h.officeHistory) || ['', ''])[1]) + '</p>' : '') +
         (h.notes.length ? '<p><span class="kick">EVERYTHING ELSE</span><br>' + h.notes.map(esc).join('<br>') + '</p>' : '') : '') +
@@ -145,6 +145,7 @@
     $('agenda').onclick = () => { const on = !p.agenda; P.set(id, { agenda: on }); if (on) toContacts(h); say(on ? 'On your agenda. Each step shows up on its day.' : 'Off your agenda. The plan is still here.'); one(id); };
     $('redo').onclick = () => { const hh = readForm(h); const done = p.done; P.rebuild(id, hh, today()); P.set(id, { done: {} }); say(Object.keys(done || {}).length ? 'Plan redone. Tick off what you\'ve already done.' : 'Plan redone.'); one(id); };
     $('del').onclick = async () => { if (!confirm('Delete this plan?')) return; await P.remove(id); say(''); go(''); };
+    $('cal').onclick = () => { const n = Ics.save(Ics.make(P.events(P.get(id), location.origin + location.pathname + '?p=' + id), { name: 'THE PLAN · ' + (h.title || 'Audition') }), 'the plan ' + (h.title || 'audition')); say('Made ' + n + '. Open it and your calendar adds the steps.'); };
   }
 
   window.__plan = { route };

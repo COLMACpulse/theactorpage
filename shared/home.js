@@ -305,12 +305,16 @@ async function showWeek(){ const box=$('week'); if(!box||!window.Week) return;
  const ag=Week.agenda(w), li=l=>'<li><a href="'+esc(l.href)+'">'+esc(l.line)+'</a></li>';
  if(ag.coming.length) h+='<p class="wk-sub">COMING UP</p><div class="ag">'+ag.coming.slice(0,8).map(gp=>'<div class="ag-day"><b>'+esc(gp.label)+'</b><ul class="wk-list">'+gp.lines.map(li).join('')+'</ul></div>').join('')+'</div>';
  if(ag.active.length) h+='<p class="wk-sub">ACTIVE</p><ul class="wk-list">'+ag.active.slice(0,8).map(li).join('')+'</ul>'+(ag.active.length>8?'<p class="wk-more">and '+(ag.active.length-8)+' more in the tools.</p>':'');
+ if(ag.coming.length&&window.Ics) h+='<button type="button" class="wk-edit" id="wkcal">ADD TO MY CALENDAR</button>';
  if(!w.lines.length) h+='<p class="wk-none">Clear for now. A tape due, a follow-up, a plug about to air: it lands here, in date order.</p>';
  if(!w.goal&&!WEEKGOAL) h+='<button type="button" class="wk-edit" id="wkgoal">SET A GOAL</button>';
  box.innerHTML=h;
  const g=$('wkgoal'); if(g) g.onclick=()=>{ WEEKGOAL=true; showWeek(); setTimeout(()=>{ const i=$('wk_g'); if(i) i.focus(); },50); };
  const sv=$('wk_save'); if(sv) sv.onclick=()=>{ Y.set('goal',$('wk_g').value); Y.set('goalBy',$('wk_d').value); WEEKGOAL=false; showWeek(); };
  const cc=$('wk_cancel'); if(cc) cc.onclick=()=>{ WEEKGOAL=false; showWeek(); };
+ const wc=$('wkcal'); if(wc) wc.onclick=()=>{ const hsh=t=>{ let x=0; for(let i=0;i<t.length;i++) x=(x*31+t.charCodeAt(i))|0; return (x>>>0).toString(36); };
+  const ev=[]; ag.coming.forEach(gp=>gp.lines.forEach(l=>{ if(!l.date) return; ev.push({uid:'agenda-'+l.kind+'-'+hsh(l.line+l.date),date:l.date<Week.iso(new Date())?Week.iso(new Date()):l.date,title:l.line,url:new URL(l.href,location.href).href}); }));
+  const n=Ics.save(Ics.make(ev,{name:'YOUR AGENDA'}),'your agenda'); wc.textContent='MADE '+n.toUpperCase()+'. OPEN IT TO ADD'; };
 }
 })();
 

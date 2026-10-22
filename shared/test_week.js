@@ -33,4 +33,8 @@ const ag=W.agenda({lines:[{date:'2026-10-19',line:'a'},{date:'2026-10-23',line:'
 want('agenda: still open first, then each day once, in order; undated is active', ag.coming.map(g=>g.label+':'+g.lines.map(l=>l.line).join('')).join('|')==='STILL OPEN:a|TODAY:c|FRIDAY:bd'&&ag.active.map(l=>l.line).join()==='e', ag);
 const vz=W.list({wishes:[{id:'w9',title:'Night Ferry',kind:'film',trail:{wanted:'2026-01-01',room:'2026-10-14'}}]},D).lines.map(l=>l.line);
 want('in the room, on your wall: active, waiting to hear', vz.includes('Night Ferry: in the room Oct 14. On your wall, waiting to hear.'), vz);
+const bk=s=>W.list({backup:s},D).lines.filter(l=>l.kind==='backup').map(l=>l.line);
+want('backup: never, after 3 days with work here, says so; not on day one; not with nothing here', bk({have:true,last:0,since:'2026-10-18'})[0]==='Your work lives only on this phone. Make a backup: one file, two taps.'&&!bk({have:true,last:0,since:'2026-10-20'}).length&&!bk({have:false,last:0,since:'2026-10-01'}).length);
+want('backup: two weeks since the last one, says how long; one week, nothing', bk({have:true,last:Date.parse('2026-10-05T12:00:00')})[0]==='Back up your work: it’s been 16 days.'&&!bk({have:true,last:Date.parse('2026-10-14T12:00:00')}).length);
+want('backup goes to On This Device, under ACTIVE', W.list({backup:{have:true,last:0,since:'2026-10-01'}},D).lines[0].href==='device/'&&W.agenda(W.list({backup:{have:true,last:0,since:'2026-10-01'}},D),D).active.length===1);
 console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1);

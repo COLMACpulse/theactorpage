@@ -552,7 +552,9 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
 </div></div>
 </section>
 <section id="send" class="panel">
-<div class="am">Nothing gets uploaded from here. These are your files, named the way casting expects, sitting on your <span class="dvn">phone</span>. Open Actors Access, pick them, upload, press send.</div>
+<div class="am">Nothing gets uploaded from here. These are your files, named the way casting expects, sitting on your <span class="dvn">phone</span>. Open the site it's going to, pick them, upload, press send.</div>
+
+<div class="section"><h3>Where is it going?</h3><div class="inside"><div class="modes" id="destBox"></div><div class="am" id="destWhy" style="margin-top:9px"></div></div></div>
 
 <div class="section"><h3>How does this office want it?</h3><div class="inside">
  <div id="offBox"></div>
@@ -678,7 +680,7 @@ function renderCut(){
 }
 function applyTrim(){let t=state.takes.find(t=>t.status==='SURVIVOR');if(!t)return alert('Pick the take you\'re keeping first.');t.trimIn=+$('trimIn').value||0;t.trimOut=+$('trimOut').value||0;localStorage.setItem(KEY,JSON.stringify(state));renderCut()}function addSlate(){state.sequence.push('SLATE');$('timeline').insertAdjacentHTML('beforeend','<div class=clip><b>SLATE</b><small>office-specific / actor-selected</small></div>')}
 function slatePreview(){const pts=[];for(let i=0;i<=10;i++){let u=i/10;let y=u<.4?.2+(.75-.2)*(3*(u/.4)**2-2*(u/.4)**3):u<.55?.75:.75+(.25-.75)*(3*((u-.55)/.45)**2-2*((u-.55)/.45)**3);pts.push(y.toFixed(2))}$('slateState').textContent='PAN Y · '+pts.join(' → ')}
-const profiles={ACTORS_ACCESS:['Actors Access','You upload it there'],REPRESENTATION:['Agent or manager','Share it with them'],SOCIAL_VERTICAL:['Social, vertical','A 9:16 copy'],SOCIAL_LANDSCAPE:['Social, landscape','A 16:9 copy'],SAVE_MASTER:['Keep the original','Full quality']};
+const profiles={ACTORS_ACCESS:['Actors Access','Eco Cast: up to 100 MB a clip, 5 clips'],CASTING_NETWORKS:['Casting Networks','Up to 300 MB: MP4, MOV, M4V'],BACKSTAGE:['Backstage','Up to 2 GB, one tape'],REPRESENTATION:['Agent or manager','Email takes about 25 MB; bigger as a link'],SOCIAL_VERTICAL:['Social, vertical','A 9:16 copy'],SOCIAL_LANDSCAPE:['Social, landscape','A 16:9 copy'],SAVE_MASTER:['Keep the original','Full quality']};
 function renderSend(){$('destinations').innerHTML=Object.entries(profiles).map(([k,v])=>`<button class="${state.destination===k?'active':''}" onclick="chooseDest('${k}')">${v[0]}<br><small>${v[1]}</small></button>`).join('');let n=state.takes.filter(t=>t.status==='SURVIVOR').length;$('sendCheck').innerHTML=`<div><b>${n?'A TAKE IS KEPT':'KEEP A TAKE FIRST'}</b><small>${n} selected scene(s) · the original stays as it is · going to ${profiles[state.destination][0]}</small></div><span class="pill">${n?'READY TO PACKAGE':'FIX'}</span>`}function chooseDest(k){state.destination=k;localStorage.setItem(KEY,JSON.stringify(state));renderSend()}window.chooseDest=chooseDest;
 function preparePackage(){let surv=state.takes.filter(t=>t.status==='SURVIVOR');if(!surv.length)return alert('Keep at least one take first.');state.package={id:'PKG-'+Date.now().toString(36).toUpperCase(),project:state.job.project,role:state.job.role,destination:state.destination,profile:profiles[state.destination][0],sequence:surv.map(t=>({scene:t.scene,take:t.n,sourceId:t.id,trimIn:t.trimIn||0,trimOut:t.trimOut||0})),masterPolicy:'IMMUTABLE',derivativePolicy:'FROM_MASTER_ONLY',preparedAt:new Date().toISOString(),deliveryStatus:'PREPARED',nativeRender:'REQUIRED_FOR_TRUE_COMPOSITION_AND_TCE'};localStorage.setItem(KEY,JSON.stringify(state));$('receipt').textContent=JSON.stringify(state.package,null,2)}
 async function sharePackage(){if(!state.package)return alert('Prepare package first.');let text=`ACTOR OS package ${state.package.id} · ${state.package.project} · ${profiles[state.destination][0]}`;if(navigator.share){try{await navigator.share({title:'ACTOR OS Package',text})}catch(e){}}else navigator.clipboard?.writeText(text);state.package.deliveryStatus='HANDOFF_INITIATED';localStorage.setItem(KEY,JSON.stringify(state));$('receipt').textContent=JSON.stringify(state.package,null,2)}
@@ -1522,7 +1524,11 @@ function cleanToggleHtml(){
  return `<label class="cleanbox"><input type="checkbox" ${cleanOn()?'checked':''} onchange="setClean(this.checked)">
   <span><b>Clean up the sound</b><small>Cuts the low rumble (air conditioning, traffic) and brings the take to a normal level. One fixed amount for the whole take, so your quiet moments stay quiet.</small></span></label>`;
 }
-function fitCap(){ if(state.job&&state.job.fitMB) return String(state.job.fitMB); try{ return localStorage.getItem('actor_os_fitmb')||''; }catch(e){ return ''; } }
+/* the size to land under: the office's own words first, then what you typed, then where it's going */
+function fitCap(){ if(state.job&&state.job.fitMB) return String(state.job.fitMB); let v=''; try{ v=localStorage.getItem('actor_os_fitmb')||''; }catch(e){} if(v) return v; const c=window.Delivery&&Delivery.capFor(state.destination); return c?String(c):''; }
+function siteCap(){ const c=window.Delivery&&Delivery.capFor(state.destination); return c?{mb:c,name:(profiles[state.destination]||['it'])[0]}:null; }
+function sizePill(bytes){ const sc=siteCap(), cap=parseFloat(fitCap())||(sc?sc.mb:0); if(!cap) return '<span class="pill">'+(bytes/1048576).toFixed(0)+' MB</span>';
+ const ok=bytes<=cap*1048576; return '<span class="pill" style="'+(ok?'color:#5cae7e;border-color:#5cae7e':'color:#d9694e;border-color:#d9694e')+'">'+(ok?'UNDER '+cap+' MB':'OVER '+cap+' MB')+(sc&&cap===sc.mb?' · '+esc2(sc.name.toUpperCase()):'')+'</span>'; }
 function setFitCap(v){ try{ localStorage.setItem('actor_os_fitmb',String(v||'').trim()); }catch(e){} }
 function capLine(bytes,cap){
  if(!cap) return '';
@@ -1559,7 +1565,7 @@ async function cutRun(presetId){
      <b>${r.width}&times;${r.height} &middot; ${r.seconds}s</b>
      <small>${(r.from/1048576).toFixed(1)} MB &rarr; <span style="color:#5cae7e">${(r.to/1048576).toFixed(1)} MB</span>
      ${r.saved>0?'&middot; '+r.saved+'% smaller':''}</small></div>
-     <span class="pill">${r.to<500*1048576?'UNDER 500 MB':'STILL LARGE'}</span></div>${capLine(r.to,cap)}${r.sound?'<div class="soundline">Sound: '+esc2(r.sound)+'</div>':''}${fmtWarn(r.blob.type)}
+     ${sizePill(r.to)}</div>${capLine(r.to,cap)}${r.sound?'<div class="soundline">Sound: '+esc2(r.sound)+'</div>':''}${fmtWarn(r.blob.type)}
    <div class="row" style="gap:8px;margin-top:9px;flex-wrap:wrap">
      <button onclick="cutSave()">&#8681; SAVE THIS TO ${DEVICE.toUpperCase()}</button>
      <button class="ghost" onclick="renderCutWork()">START OVER</button></div><div id="cutCheck"><div class="sendcheck"><div class="schs">Checking the file&hellip;</div></div></div>`;
@@ -2025,6 +2031,11 @@ function offBoxHtml(){
 }
 function renderSend(){
  try{ const ob=$('offBox'); if(ob&&ob.innerHTML!==undefined&&document.activeElement!==$('offText')) ob.innerHTML=offBoxHtml(); }catch(e){}
+ const db=$('destBox');
+ if(db&&db.innerHTML!==undefined){ const D2=window.Delivery&&Delivery.SITES||{};
+  db.innerHTML=['ACTORS_ACCESS','CASTING_NETWORKS','BACKSTAGE','REPRESENTATION'].map(k=>`<button class="mode${state.destination===k?' picked':''}" data-dest="${k}" onclick="chooseDest('${k}')"><b>${esc2(profiles[k][0])}</b><span>${esc2(profiles[k][1])}</span></button>`).join('');
+  const st=D2[state.destination], w=$('destWhy');
+  if(w&&w.innerHTML!==undefined) w.innerHTML=st&&st.maxMB?'Takes are fit under '+st.maxMB+' MB in CUT for '+esc2(profiles[state.destination][0])+', unless the office asks for less. From '+esc2(st.name)+'\u2019s own help page, checked '+esc2(st.checked)+'.':'Email takes about 25 MB (Gmail). Bigger goes as a link, or fit it in CUT.'; }
  const modes=$('sendModes');
  if(modes&&modes.innerHTML!==undefined){
   modes.innerHTML=SEND_MODES.map(m=>`<button class="mode${sendMode()===m.id?' picked':''}" onclick="setSendMode('${m.id}')">
@@ -2053,6 +2064,9 @@ function renderSend(){
    </div>`;
   });
   h+='</div>';
+  { const cap=parseFloat(fitCap())||0, over=cap?files.filter(t=>t.bytes>cap*1048576).length:0, st=window.Delivery&&Delivery.SITES[state.destination];
+    if(over) h+=`<div class="am" style="margin-top:11px;border-color:#d9694e">${over} file${over===1?' is':'s are'} over ${cap} MB. Fit ${over===1?'it':'them'} in CUT first, or ${esc2(profiles[state.destination]?profiles[state.destination][0]:'the site')} may turn ${over===1?'it':'them'} away.</div>`;
+    if(st&&st.files&&files.length>st.files) h+=`<div class="am" style="margin-top:11px;border-color:#d9694e">${esc2(st.name)} takes ${st.files} file${st.files===1?'':'s'}. You have ${files.length}: join some, or keep fewer.</div>`; }
   if(missing)h+=`<div class="row" style="margin-top:11px"><button onclick="saveAllTakes()">SAVE THE REST TO MY PHONE</button></div>`;
   h+=`<div class="row" style="margin-top:11px"><button class="ghost" onclick="checkSendFiles()">CHECK THE FILES BEFORE YOU SEND</button></div><div id="sendFilesCheck"></div>`;
   el.innerHTML=h;
@@ -2128,7 +2142,7 @@ async function buildJoined(){
   out.innerHTML=`<video src="${url}" controls playsinline style="width:100%;border-radius:10px;background:#000"></video>
    <div class="take" style="margin-top:9px"><div><b>${esc2(joinedName())}</b>
      <small>${r.width}&times;${r.height} &middot; ${r.seconds}s &middot; ${(r.blob.size/1048576).toFixed(1)} MB</small></div>
-     <span class="pill" style="${r.blob.size<500*1048576?'color:#5cae7e;border-color:#5cae7e':''}">${r.blob.size<500*1048576?'UNDER 500 MB':'LARGE'}</span></div>${capLine(r.blob.size,cap)}${r.sound?'<div class="soundline">'+r.sound.map(x=>'<div>'+esc2(x.name)+': '+esc2(x.line)+'</div>').join('')+'</div>':''}${fmtWarn(r.blob.type)}
+     ${sizePill(r.blob.size)}</div>${capLine(r.blob.size,cap)}${r.sound?'<div class="soundline">'+r.sound.map(x=>'<div>'+esc2(x.name)+': '+esc2(x.line)+'</div>').join('')+'</div>':''}${fmtWarn(r.blob.type)}
    <div class="row" style="gap:8px;margin-top:9px;flex-wrap:wrap">
      <button onclick="saveJoined()">&#8681; SAVE TO MY PHONE</button>
      <button class="ghost" onclick="buildJoined()">REBUILD</button></div><div id="joinCheck"><div class="sendcheck"><div class="schs">Checking the file&hellip;</div></div></div>`;
