@@ -1,18 +1,18 @@
-/* GET SOME: the wall, one wish, the lock screen. Data and rules in shared/getsome.js. */
+/* THE VIZ: the wall, one wish, SHAMELESS PLUG, the lock screen. Data and rules in shared/viz.js. */
 (function () {
   'use strict';
-  const G = window.GetSome, $ = id => document.getElementById(id), V = $('view');
+  const G = window.Viz, $ = id => document.getElementById(id), V = $('view');
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const day = d => { const m = String(d || '').match(/^(\d{4})-(\d\d)-(\d\d)/); return m ? MON[+m[2] - 1] + ' ' + (+m[3]) + ', ' + m[1] : ''; };
   const URLS = {};
-  let MSG = '', KIND = 'show';
+  let MSG = '', KIND = 'show', KIND_Q = '';
   const say = t => { MSG = t || ''; const m = $('msg'); if (m) m.textContent = MSG; };
   async function picURL(w) { if (!w.pic) return ''; if (URLS[w.pic]) return URLS[w.pic]; const b = await G.picBlob(w.pic); if (!b) return ''; return (URLS[w.pic] = URL.createObjectURL(b)); }
   const isWork = w => w.kind === 'show' || w.kind === 'film';
   function requestsFor(w) { try { return window.Inbox ? Inbox.all('request').filter(r => G.forRequest(r.data && r.data.title, [w])) : []; } catch (e) { return []; } }
   function go(q) { history.replaceState(null, '', location.pathname + (q ? '?' + q : '')); route(); }
-  function route() { const p = new URLSearchParams(location.search); if (p.get('w') && G.get(p.get('w'))) return one(p.get('w')); if (p.get('lock') !== null) return lock(); wall(); }
+  function route() { const p = new URLSearchParams(location.search); if (p.get('plug') && G.plugGet(p.get('plug'))) return plugOne(p.get('plug')); if (p.get('plugs') !== null || p.get('plug') === 'new') return plugs(); if (p.get('w') && G.get(p.get('w'))) return one(p.get('w')); if (p.get('lock') !== null) return lock(); wall(); }
 
   /* ---------- the wall ---------- */
   function poster(w, url) {
@@ -27,7 +27,7 @@
   }
   async function wall() {
     const want = G.wanted(), got = G.gotten();
-    let h = '<div class="row"><button class="btn" type="button" id="addOpen">ADD WHAT YOU WANT</button>' +
+    let h = tabs('wall') + '<div class="row"><button class="btn" type="button" id="addOpen">ADD WHAT YOU WANT</button>' +
       (G.all().some(w => w.kind !== 'milestone' && w.kind !== 'role' && w.kind !== 'other') ? '<button class="btn ghost" type="button" id="news">CHECK THE NEWS</button>' : '') +
       (G.all().length ? '<button class="btn ghost" type="button" id="lockGo">MAKE IT MY LOCK SCREEN</button>' : '') + '</div><p class="msg" id="msg" role="status">' + esc(MSG) + '</p>';
     h += '<div class="card hide" id="addBox"><p class="kick">ADD WHAT YOU WANT</p><label class="lab" for="a_t">WHAT IS IT</label><input class="field" id="a_t" placeholder="The show, the film, the person, the role, the milestone" autocomplete="off">' +
@@ -37,7 +37,7 @@
     if (!want.length && !got.length) h += '<div class="card"><p class="kick">YOUR WALL IS EMPTY</p><p class="dim">The show you want to be on. The director you want to work with. Your union card. Put it up here, with a picture, and keep it where you see it every day. When it happens, it stays up, with the date.</p></div>';
     if (want.length) { h += '<h2>WANT IT</h2><div class="wall">'; for (const w of want) h += await tile(w); h += '</div>'; }
     if (got.length) { h += '<h2>GOT IT</h2><div class="wall">'; for (const w of got) h += await tile(w); h += '</div>'; }
-    V.innerHTML = h;
+    V.innerHTML = h; wireTabs();
     V.querySelectorAll('[data-w]').forEach(b => b.onclick = () => go('w=' + b.dataset.w));
     let file = null;
     $('addOpen').onclick = () => { $('addBox').classList.remove('hide'); $('a_t').focus(); };
@@ -66,7 +66,7 @@
   async function one(id) {
     const w = G.get(id); if (!w) return go('');
     const steps = G.steps(w.kind), url = await picURL(w), reqs = isWork(w) ? requestsFor(w) : [], news = G.newsFor(w.id);
-    const got = G.got(w), shape = w.plug || G.plugShape();
+    const got = G.got(w);
     let castings = []; try { castings = window.Contacts ? Contacts.mine().filter(p => p.role === 'casting' && !p.dnc) : []; } catch (e) { }
     const cast = w.cid && window.Contacts ? Contacts.get(w.cid) : null;
     let h = '<p><a href="./" id="back">← BACK TO THE WALL</a></p><p class="msg" id="msg" role="status">' + esc(MSG) + '</p>';
@@ -91,20 +91,10 @@
         '<div class="row"><button class="btn ghost" type="button" id="o_news">CHECK THE NEWS</button></div><p class="mut small">One-word titles only count when the story puts them in quotes, the way the trades do. Add other names for it above to catch more.</p>';
     }
     if (!got && w.kind !== 'milestone' && w.kind !== 'other') h += '<h2>YOUR REPS</h2><label class="row"><input type="checkbox" id="o_reps"' + (w.reps ? ' checked' : '') + '> <span>Put it on my reps sheet, under what I\'m after</span></label>';
-    /* the plug */
-    if (isWork(w) && got) {
-      h += '<h2>SHAMELESS PLUG</h2><div class="card"><p class="dim small">It\'s going to air. Put in when and where, write the plug your way, and the facts drop in.</p>' +
-        '<div class="grid2"><div><label class="lab" for="p_d">AIRS</label><input class="field" type="date" id="p_d" value="' + esc(w.air.date) + '"></div><div><label class="lab" for="p_t">AT</label><input class="field" type="time" id="p_t" value="' + esc(w.air.time) + '"></div>' +
-        '<div><label class="lab" for="p_w">ON</label><input class="field" id="p_w" value="' + esc(w.air.where) + '" placeholder="The network or the app"></div><div><label class="lab" for="p_r">YOUR ROLE</label><input class="field" id="p_r" value="' + esc(w.role) + '"></div></div>' +
-        '<label class="lab" for="p_s">YOUR PLUG</label><textarea class="field" id="p_s" rows="3" placeholder="Check out [SHOW] [WHEN] on [WHERE].">' + esc(shape) + '</textarea>' +
-        '<div class="chips" id="p_tok">' + G.TOKENS.map(t => '<button type="button" class="chip" data-tok="' + t[0] + '" title="' + esc(t[1]) + '">' + t[0] + '</button>').join('') + '</div>' +
-        '<p class="mut small">Tap a blank to drop it in. [WHEN] says it the way you would: tonight, tomorrow night, this Friday, next Friday night at 10:00 PM.</p>' +
-        '<div class="prev" id="p_prev"></div><p class="mut small" id="p_miss"></p>' +
-        '<div class="row"><button class="btn" type="button" id="p_copy">COPY IT</button>' + (navigator.share ? '<button class="btn ghost" type="button" id="p_share">SHARE IT' + (w.pic ? ' WITH THE PICTURE' : '') + '</button>' : '') +
-        '<button class="btn quiet" type="button" id="p_keep">USE THIS WAY OF SAYING IT EVERY TIME</button></div>' +
-        '<div class="row" style="margin-top:8px">' + (window.Press ? (w.pressId && Press.get(w.pressId) ? '<a class="btn quiet" href="../press/?c=' + esc(w.pressId) + '">OPEN IT IN PRESS</a>' : '<button class="btn quiet" type="button" id="p_press">TELL THE PRESS TOO</button>') : '') +
-        (window.You ? '<button class="btn quiet" type="button" id="p_cred">ADD IT TO MY CREDITS</button>' : '') + '</div></div>';
-    }
+    /* plug it, any time */
+    const mine = G.plugsFor(w.id);
+    h += '<h2>SHAMELESS PLUG</h2>' + (mine.length ? '<ul class="news">' + mine.map(q => '<li><a href="?plug=' + esc(q.id) + '" data-plug="' + esc(q.id) + '">' + esc(G.plugKindName(q.kind)) + '</a> <span class="mut">' + esc(day(G.iso(new Date(q.made)))) + '</span></li>').join('') + '</ul>' : '') +
+      '<div class="row"><button class="btn ghost" type="button" id="o_plug">PLUG IT</button></div>';
     h += '<div class="row" style="margin-top:28px"><button class="btn quiet" type="button" id="o_del">TAKE IT OFF THE WALL</button></div>';
     V.innerHTML = h;
     $('back').onclick = e => { e.preventDefault(); say(''); go(''); };
@@ -121,27 +111,74 @@
     if ($('o_news')) $('o_news').onclick = checkNews;
     if ($('o_reps')) $('o_reps').onchange = e => { G.set(id, { reps: e.target.checked }); say(e.target.checked ? 'On your reps sheet next time you send it.' : 'Off your reps sheet.'); };
     $('o_del').onclick = async () => { if (!confirm('Take "' + w.title + '" off your wall?')) return; await G.removeAll(id); say(''); go(''); };
-    if ($('p_s')) plugWire(id);
+    $('o_plug').onclick = () => { const q = G.plugAdd(G.plugFrom(G.get(id))); go('plug=' + q.id); };
+    V.querySelectorAll('[data-plug]').forEach(a => a.onclick = e => { e.preventDefault(); go('plug=' + a.dataset.plug); });
   }
-  function plugWire(id) {
-    const keep = () => { const w = G.get(id); G.set(id, { role: $('p_r').value.trim(), plug: $('p_s').value, air: { date: $('p_d').value, time: $('p_t').value, where: $('p_w').value.trim() } }); return G.get(id); };
-    const paint = () => { const w = keep(), r = G.plug($('p_s').value, w);
-      $('p_prev').textContent = r.text || 'Your plug shows here as you write it.';
-      const nm = { '[SHOW]': 'the title', '[ROLE]': 'your role', '[WHEN]': 'when it airs (a date still to come)', '[DATE]': 'the date', '[TIME]': 'the time', '[WHERE]': 'where it airs' };
-      $('p_miss').textContent = r.missing.length ? 'Still blank: ' + r.missing.map(k => nm[k] || k).join(', ') + '.' : ''; return r; };
-    ['p_d', 'p_t', 'p_w', 'p_r', 'p_s'].forEach(k => $(k).addEventListener('input', paint));
-    $('p_tok').onclick = e => { const b = e.target.closest('[data-tok]'); if (!b) return; const t = $('p_s'), a = t.selectionStart == null ? t.value.length : t.selectionStart, z = t.selectionEnd == null ? a : t.selectionEnd;
+  /* ---------- SHAMELESS PLUG: any time, any news ---------- */
+  function tabs(on) { return '<div class="row tabsrow"><a class="btn' + (on === 'wall' ? '' : ' quiet') + '" href="./" data-go="">THE WALL</a><a class="btn' + (on === 'plug' ? '' : ' quiet') + '" href="?plugs" data-go="plugs">SHAMELESS PLUG</a></div>'; }
+  function wireTabs() { V.querySelectorAll('[data-go]').forEach(a => a.onclick = e => { e.preventDefault(); say(''); go(a.dataset.go); }); }
+  async function plugBlobURL(q) { const b = await G.plugBlob(q); if (!b) return ''; const k = 'q:' + q.id + ':' + (q.pic || q.you || q.wid); return URLS[k] || (URLS[k] = URL.createObjectURL(b)); }
+  function plugs() {
+    const list = G.plugs();
+    let h = tabs('plug') + '<p class="msg" id="msg" role="status">' + esc(MSG) + '</p><div class="card"><p class="kick">NEW PLUG</p><p class="dim small">Something to tell people about. Pick what it is, write it your way, and the facts drop in.</p><div class="chips">' +
+      G.PLUGKINDS.map(k => '<button type="button" class="chip" data-new="' + k[0] + '">' + esc(k[1].toUpperCase()) + '</button>').join('') + '</div></div>';
+    h += list.length ? '<h2>YOUR PLUGS</h2>' + list.map(q => { const r = G.plug(q.text, q); return '<button class="plugrow" type="button" data-plug="' + q.id + '"><span class="kick">' + esc(G.plugKindName(q.kind).toUpperCase()) + ' · ' + esc(day(G.iso(new Date(q.made)))) + '</span><span class="dim" style="display:block">' + esc(r.text || q.title || 'Not written yet') + '</span></button>'; }).join('') : '';
+    V.innerHTML = h; wireTabs();
+    V.querySelectorAll('[data-new]').forEach(b => b.onclick = () => { const q = G.plugAdd({ kind: b.dataset.new }); go('plug=' + q.id); });
+    V.querySelectorAll('[data-plug]').forEach(b => b.onclick = () => go('plug=' + b.dataset.plug));
+  }
+  const FIELD = {
+    title: q => '<div><label class="lab" for="q_title">' + (q.kind === 'news' ? 'WHAT IT IS' : 'THE TITLE') + '</label><input class="field" id="q_title" value="' + esc(q.title) + '"></div>',
+    role: q => '<div><label class="lab" for="q_role">YOUR ROLE</label><input class="field" id="q_role" value="' + esc(q.role) + '"></div>',
+    date: q => '<div><label class="lab" for="q_date">' + (q.kind === 'airing' ? 'AIRS' : 'WHEN') + '</label><input class="field" type="date" id="q_date" value="' + esc(q.date) + '"></div>',
+    time: q => '<div><label class="lab" for="q_time">AT</label><input class="field" type="time" id="q_time" value="' + esc(q.time) + '"></div>',
+    where: q => '<div><label class="lab" for="q_where">' + (q.kind === 'airing' ? 'ON' : 'WHERE') + '</label><input class="field" id="q_where" value="' + esc(q.where) + '" placeholder="' + (q.kind === 'airing' ? 'The network or the app' : 'The network, the app, the theater') + '"></div>',
+    by: q => '<div><label class="lab" for="q_by">SHOT BY</label><input class="field" id="q_by" value="' + esc(q.by) + '" placeholder="Your photographer"></div>'
+  };
+  const NM = { '[TITLE]': 'the title', '[SHOW]': 'the title', '[ROLE]': 'your role', '[WHEN]': 'when (a date still to come)', '[DATE]': 'the date', '[TIME]': 'the time', '[WHERE]': 'where', '[BY]': 'who shot it' };
+  const PH = { airing: 'Check out [TITLE] [WHEN] on [WHERE].', headshot: 'New headshots! Shot by [BY].', worked: 'Had a blast playing [ROLE] on [TITLE].', news: '' };
+  async function plugOne(id) {
+    const q = G.plugGet(id); if (!q) return go('plugs'); KIND_Q = q.kind;
+    const f = G.PLUGFIELDS[q.kind] || G.PLUGFIELDS.news, url = await plugBlobURL(q), wish = q.wid ? G.get(q.wid) : null;
+    let heads = []; try { heads = window.You ? You.headshots() : []; } catch (e) { }
+    let h = tabs('plug') + '<p><a href="?plugs" data-go="plugs">← YOUR PLUGS</a></p><p class="msg" id="msg" role="status">' + esc(MSG) + '</p>';
+    h += '<div class="card"><p class="kick">SHAMELESS PLUG' + (wish ? ' · FROM YOUR WALL: ' + esc(wish.title.toUpperCase()) : '') + '</p><div class="chips" id="q_kind">' + G.PLUGKINDS.map(k => '<button type="button" class="chip' + (k[0] === q.kind ? ' on' : '') + '" data-k="' + k[0] + '">' + esc(k[1].toUpperCase()) + '</button>').join('') + '</div>' +
+      '<div class="grid2">' + f.map(k => FIELD[k](q)).join('') + '</div>' +
+      '<label class="lab">THE PICTURE</label><div class="row" style="align-items:flex-start">' + (url ? '<img src="' + url + '" alt="" style="width:96px;border-radius:8px;border:1px solid var(--line)">' : '') +
+      '<div class="row"><label class="btn quiet">' + (url ? 'A DIFFERENT PICTURE' : 'ADD A PICTURE') + '<input type="file" id="q_pic" accept="image/*"></label>' + (url ? '<button class="btn quiet" type="button" id="q_nopic">NO PICTURE</button>' : '') + '</div></div>' +
+      (heads.length ? '<p class="mut small" style="margin:8px 0 4px">Or one of your headshots:</p><div class="row" id="q_heads">' + heads.slice(0, 8).map(p => '<button type="button" class="chip' + (q.you === p.id && !q.pic ? ' on' : '') + '" data-you="' + esc(p.id) + '" style="padding:2px;min-height:0;border-radius:6px"><img data-h="' + esc(p.id) + '" alt="headshot" style="width:56px;height:70px;object-fit:cover;border-radius:4px;display:block"></button>').join('') + '</div>' : '') +
+      '<label class="lab" for="q_text">YOUR PLUG</label><textarea class="field" id="q_text" rows="4" placeholder="' + esc(PH[q.kind] || '') + '">' + esc(q.text) + '</textarea>' +
+      '<div class="chips" id="q_tok">' + G.tokensFor(q.kind).map(t => '<button type="button" class="chip" data-tok="' + t[0] + '" title="' + esc(t[1]) + '">' + t[0] + '</button>').join('') + '</div>' +
+      '<p class="mut small">Tap a blank to drop it in.' + (f.includes('date') ? ' [WHEN] says it the way you would: tonight, tomorrow night, this Friday, next Friday night at 10:00 PM.' : '') + '</p>' +
+      '<div class="prev" id="q_prev"></div><p class="mut small" id="q_miss"></p>' +
+      '<div class="row"><button class="btn" type="button" id="q_copy">COPY IT</button>' + (navigator.share ? '<button class="btn ghost" type="button" id="q_share">SHARE IT</button>' : '') +
+      '<button class="btn quiet" type="button" id="q_keep">SAY IT THIS WAY EVERY TIME</button></div>' +
+      ((q.kind === 'airing' || q.kind === 'worked') ? '<div class="row" style="margin-top:8px">' + (window.Press ? (q.press && Press.get(q.press) ? '<a class="btn quiet" href="../press/?c=' + esc(q.press) + '">OPEN IT IN PRESS</a>' : '<button class="btn quiet" type="button" id="q_press">TELL THE PRESS TOO</button>') : '') +
+        (window.You ? '<button class="btn quiet" type="button" id="q_cred">ADD IT TO MY CREDITS</button>' : '') + '</div>' : '') +
+      '</div><div class="row" style="margin-top:20px"><button class="btn quiet" type="button" id="q_del">DELETE THIS PLUG</button></div>';
+    V.innerHTML = h; wireTabs();
+    V.querySelectorAll('img[data-h]').forEach(async im => { const k = 'h:' + im.dataset.h; if (!URLS[k]) { const b = await You.photoBlob(im.dataset.h); if (b) URLS[k] = URL.createObjectURL(b); } if (URLS[k]) im.src = URLS[k]; });
+    const read = () => { const p = {}; ['title', 'role', 'date', 'time', 'where', 'by'].forEach(k => { const el = $('q_' + k); if (el) p[k] = el.type === 'date' || el.type === 'time' ? el.value : el.value.trim(); }); p.text = $('q_text').value; return G.plugSet(id, p); };
+    const paint = () => { const x = read(), r = G.plug($('q_text').value, x);
+      $('q_prev').textContent = r.text || 'Your plug shows here as you write it.';
+      $('q_miss').textContent = r.missing.length ? 'Still blank: ' + r.missing.map(k => NM[k] || k).join(', ') + '.' : ''; return r; };
+    V.querySelectorAll('#q_kind [data-k]').forEach(b => b.onclick = () => { read(); const x = G.plugGet(id); const patch = { kind: b.dataset.k }; if (!x.text.trim()) patch.text = G.shapeFor(b.dataset.k); G.plugSet(id, patch); plugOne(id); });
+    ['q_title', 'q_role', 'q_date', 'q_time', 'q_where', 'q_by', 'q_text'].forEach(k => { const el = $(k); if (el) el.addEventListener('input', paint); });
+    $('q_tok').onclick = e => { const b = e.target.closest('[data-tok]'); if (!b) return; const t = $('q_text'), a = t.selectionStart == null ? t.value.length : t.selectionStart, z = t.selectionEnd == null ? a : t.selectionEnd;
       const pre = t.value.slice(0, a), ins = (pre && !/\s$/.test(pre) ? ' ' : '') + b.dataset.tok; t.value = pre + ins + t.value.slice(z); t.focus(); const c = (pre + ins).length; t.setSelectionRange(c, c); paint(); };
-    $('p_copy').onclick = async () => { const r = paint(); if (!r.text) { say('Write the plug first.'); return; } try { await navigator.clipboard.writeText(r.text); say('Copied. Paste it wherever you post.'); } catch (e) { $('p_prev').focus(); say('Copy didn\'t work here. Press and hold the words above to copy them.'); } };
-    if ($('p_share')) $('p_share').onclick = async () => { const r = paint(), w = G.get(id); if (!r.text) { say('Write the plug first.'); return; }
-      const data = { text: r.text }; try { const b = w.pic ? await G.picBlob(w.pic) : null; if (b) { const f = new File([b], (w.title.replace(/[^\p{L}\p{N}]+/gu, '_') || 'plug') + '.jpg', { type: 'image/jpeg' }); if (!navigator.canShare || navigator.canShare({ files: [f] })) data.files = [f]; } } catch (e) { }
+    $('q_pic').onchange = async e => { const fl = e.target.files && e.target.files[0]; if (!fl) return; read(); const r = await G.plugPic(id, fl); say(r.error ? 'That picture didn\'t take: ' + r.error + '.' : ''); plugOne(id); };
+    if ($('q_nopic')) $('q_nopic').onclick = async () => { read(); await G.plugNoPic(id); plugOne(id); };
+    V.querySelectorAll('[data-you]').forEach(b => b.onclick = () => { read(); G.plugSet(id, { you: b.dataset.you, pic: '', nopic: false }); plugOne(id); });
+    $('q_copy').onclick = async () => { const r = paint(); if (!r.text) { say('Write the plug first.'); return; } try { await navigator.clipboard.writeText(r.text); say('Copied. Paste it wherever you post.'); } catch (e) { say('Copy didn\'t work here. Press and hold the words above to copy them.'); } };
+    if ($('q_share')) $('q_share').onclick = async () => { const r = paint(), x = G.plugGet(id); if (!r.text) { say('Write the plug first.'); return; }
+      const data = { text: r.text }; try { const b = x.nopic ? null : await G.plugBlob(x); if (b) { const fl = new File([b], 'plug.jpg', { type: 'image/jpeg' }); if (!navigator.canShare || navigator.canShare({ files: [fl] })) data.files = [fl]; } } catch (e) { }
       try { await navigator.share(data); } catch (e) { } };
-    $('p_keep').onclick = () => { const v = $('p_s').value.trim(); if (!v) return; G.setPlug(v); say('Kept. Every plug starts from this now.'); };
-    if ($('p_press')) $('p_press').onclick = () => { const w = keep(); const c = Press.add({ title: w.title, milestone: 'release', date: w.air.date, where: w.air.where }); if (c) { G.set(id, { pressId: c.id }); location.href = '../press/?c=' + encodeURIComponent(c.id); } };
-    if ($('p_cred')) $('p_cred').onclick = () => { const w = keep(); const ch = You.fill({ credits: [G.credit(w)] }, 'GET SOME'); say(ch.length ? 'Added to your credits. Every tool that uses your résumé has it.' : 'It\'s already in your credits.'); };
+    $('q_keep').onclick = () => { const v = $('q_text').value.trim(); if (!v) { say('Write it first.'); return; } const k = G.plugGet(id).kind; G.keepShape(k, v); say('Kept. Your next ' + G.plugKindName(k).toUpperCase() + ' plug starts from this.'); };
+    if ($('q_press')) $('q_press').onclick = () => { const x = read(); const c = Press.add({ title: x.title || 'News', milestone: x.kind === 'airing' ? 'release' : 'other', date: x.date || '', where: x.where }); if (c) { G.plugSet(id, { press: c.id }); location.href = '../press/?c=' + encodeURIComponent(c.id); } };
+    if ($('q_cred')) $('q_cred').onclick = () => { const x = read(); if (!x.title) { say('Put in the title first.'); return; } const ch = You.fill({ credits: [G.credit(x, wish && wish.kind === 'film')] }, 'THE VIZ'); say(ch.length ? 'Added to your credits. Every tool that uses your résumé has it.' : 'It\'s already in your credits.'); };
+    $('q_del').onclick = async () => { if (!confirm('Delete this plug?')) return; await G.plugRemove(id); say(''); go('plugs'); };
     paint();
   }
-
   /* ---------- the lock screen: your wall, phone-sized, made here ---------- */
   async function lock() {
     const wl = G.wall();
@@ -149,14 +186,14 @@
       '<label class="lab" for="l_h">ACROSS THE TOP (OR NOTHING)</label><input class="field" id="l_h" value="' + esc(wl.head) + '">' +
       '<label class="row" style="margin-top:10px"><input type="checkbox" id="l_g"' + (wl.got !== false ? ' checked' : '') + '> <span>Show what I\'ve already got, too</span></label>' +
       '<div class="row" style="margin-top:12px"><button class="btn" type="button" id="l_go">MAKE IT</button></div><img id="l_img" alt="Your lock screen" class="hide">' +
-      '<div class="row hide" id="l_out"><a class="btn" id="l_save" download="get-some-lock-screen.png">SAVE IT</a>' + (navigator.share ? '<button class="btn ghost" type="button" id="l_share">SHARE IT</button>' : '') + '</div>' +
+      '<div class="row hide" id="l_out"><a class="btn" id="l_save" download="the-viz-lock-screen.png">SAVE IT</a>' + (navigator.share ? '<button class="btn ghost" type="button" id="l_share">SHARE IT</button>' : '') + '</div>' +
       '<p class="mut small hide" id="l_how">iPhone: save it to Photos, open it, tap Share, then Use as Wallpaper. Android: open it in Photos, then Use as, Wallpaper, Lock screen.</p></div><p class="msg" id="msg" role="status"></p>';
     $('back').onclick = e => { e.preventDefault(); go(''); };
     let blob = null;
     $('l_go').onclick = async () => { G.setWall({ head: $('l_h').value.trim(), got: $('l_g').checked }); say('Making it...');
       blob = await drawLock(G.wall()); if (!blob) { say('This phone wouldn\'t make the picture.'); return; }
       const u = URL.createObjectURL(blob); $('l_img').src = u; $('l_img').classList.remove('hide'); $('l_save').href = u; $('l_out').classList.remove('hide'); $('l_how').classList.remove('hide'); say(''); };
-    if ($('l_share')) $('l_share').onclick = async () => { if (!blob) return; const f = new File([blob], 'get-some-lock-screen.png', { type: 'image/png' }); try { await navigator.share({ files: [f] }); } catch (e) { } };
+    if ($('l_share')) $('l_share').onclick = async () => { if (!blob) return; const f = new File([blob], 'the-viz-lock-screen.png', { type: 'image/png' }); try { await navigator.share({ files: [f] }); } catch (e) { } };
   }
   async function drawLock(wl) {
     const W = 1179, H = 2556, c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
@@ -181,6 +218,6 @@
   }
   function wrap(x, t, cx, cy, mw, lh) { const ws = t.split(/\s+/), L = []; let l = ''; ws.forEach(w => { const s = l ? l + ' ' + w : w; if (x.measureText(s).width > mw && l) { L.push(l); l = w; } else l = s; }); if (l) L.push(l); const y0 = cy - (L.length - 1) * lh / 2; L.forEach((s, i) => x.fillText(s, cx, y0 + i * lh)); }
 
-  window.__getsome = { route, drawLock };
+  window.__viz = { route, drawLock };
   route();
 })();

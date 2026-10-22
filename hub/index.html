@@ -172,7 +172,7 @@ small.note{display:block;padding:0 15px 13px;color:var(--faint);font-size:10.5px
 <script src="../shared/takes.js"></script>
 <script src="../resume/engine.js"></script>
 <script src="../shared/madeby.js"></script>
-<script src="../shared/getsome.js"></script>
+<script src="../shared/viz.js"></script>
 <script src="../shared/repsheet.js"></script>
 <script>
 var restoreReport=null;
@@ -1800,7 +1800,7 @@ function repsSource(){
  let people=[]; try{ if(window.Notes) people=Notes.people(); }catch(e){}
  return {name:profile.name||y.name||'',page:(online().live&&online().url)||pkgSel.site||'',at:Date.now(),offices,
   credits:credits.filter(c=>c.kind==='credit').map(c=>({title:c.title,net:c.net,director:c.director,role:c.role})),people,
-  rightFor:(y.types||[]).concat(hp.called||[]),wantMore:y.wantMore||[],wantSeen:hp.want||[],spotted,after:window.GetSome?GetSome.forReps():[],typed:!!(y.types||[]).filter(Boolean).length};
+  rightFor:(y.types||[]).concat(hp.called||[]),wantMore:y.wantMore||[],wantSeen:hp.want||[],spotted,after:window.Viz?Viz.forReps():[],typed:!!(y.types||[]).filter(Boolean).length};
 }
 function repsNow(){ const st=repsState(), m=RepSheet.build(repsSource()), ch=RepSheet.changes(st.last&&st.last.snap,m); return {st,m,ch,due:RepSheet.due(st.last&&st.last.at,st.rhythm,ch)}; }
 function repsEmails(){ return ((spottedData().me||{}).reps||[]).map(r=>r.email).filter(Boolean); }

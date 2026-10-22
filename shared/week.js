@@ -2,7 +2,7 @@
    the tools already know.
      tapes due (requests on home and in the Hub), follow-ups (CONTACTS, rep search), footage that's out or a
      follow-up due (FOOTAGE), press (PRESS: news coming up, people not reached yet, no reply in a week),
-     your reps sheet when its rhythm says so (the Hub), a tape for a show on your GET SOME wall, a booking airing this week.
+     your reps sheet when its rhythm says so (the Hub), a tape for a show on your wall in THE VIZ, a plug for something airing this week.
    And your goal, if you set one, in your words, with its date.
    Each line links to the tool it came from. No counts of how you're doing, no streaks, no score.
    Week.list(src, day) is pure, for the tests. */
@@ -26,11 +26,11 @@
     src = src || {}; day = day || iso(new Date());
     const L = [], soon = d => d && diff(day, d) <= 7;
     (src.requests || []).forEach(r => { const d = String(r.due || '').slice(0, 10); if (!d || diff(day, d) < 0 || !soon(d)) return;
-      const on = g.GetSome && src.wishes && g.GetSome.forRequest(r.title, src.wishes);
+      const on = g.Viz && src.wishes && g.Viz.forRequest(r.title, src.wishes);
       L.push({ date: d, kind: 'tape', href: 'actor-os/', line: 'Tape due ' + W.when(d, day) + ': ' + [r.title, r.role].filter(Boolean).join(', ') + '.' + (on ? ' It’s on your wall.' : '') }); });
-    /* GET SOME: a booking airing this week, with your plug */
-    if (g.GetSome && src.wishes) g.GetSome.airing(day, src.wishes).forEach(w => { const a = w.air;
-      L.push({ date: a.date, kind: 'plug', href: 'getsome/?w=' + encodeURIComponent(w.id), line: w.title + ' airs ' + (g.GetSome.when(a.date, a.time, day) || W.when(a.date, day)) + (a.where ? ' on ' + a.where : '') + '. Your plug is ready when you are.' }); });
+    /* THE VIZ: a plug for something airing this week */
+    if (g.Viz && src.plugs) g.Viz.airing(day, src.plugs).forEach(p => {
+      L.push({ date: p.date, kind: 'plug', href: 'viz/?plug=' + encodeURIComponent(p.id), line: (p.title || 'Your plug') + ' airs ' + (g.Viz.when(p.date, p.time, day) || W.when(p.date, day)) + (p.where ? ' on ' + p.where : '') + '. Your plug is ready when you are.' }); });
     (src.contacts || []).forEach(p => { const d = p.rep && p.rep.next; if (!d || d > day) return;
       L.push({ date: d, kind: 'follow', href: 'contacts/?tab=reps', line: 'Follow up with ' + p.name + (d < day ? ' (it was ' + W.when(d, day) + ')' : '') + '.' }); });
     (src.footage || []).forEach(f => L.push({ date: '', kind: 'footage', href: 'footage/', line: f.line }));
@@ -58,7 +58,7 @@
     try { if (g.Contacts) src.contacts = g.Contacts.mine().filter(p => p.rep && p.rep.next && p.rep.step !== 'signed' && p.rep.step !== 'passed' && !p.dnc); } catch (e) { }
     try { if (g.Footage) src.footage = g.Footage.alerts(); } catch (e) { }
     try { if (g.Press && g.Contacts) src.press = g.Press.all().map(c => ({ id: c.id, title: c.title, date: c.date, outlets: c.outlets.map(o => { const p = g.Contacts.get(o.cid); return { name: p ? p.name : 'someone', reached: o.reached, reply: o.reply }; }) })); } catch (e) { }
-    try { if (g.GetSome) src.wishes = g.GetSome.all(); } catch (e) { }
+    try { if (g.Viz) { src.wishes = g.Viz.all(); src.plugs = g.Viz.plugs(); } } catch (e) { }
     try { const y = g.You && g.You.get(); if (y) src.goal = { text: y.goal || '', by: y.goalBy || '' }; } catch (e) { }
     try {
       const hp = await hubProfile(); const reps = hp && hp.reps;

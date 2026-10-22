@@ -1,6 +1,6 @@
-/* GET SOME, the pure parts. Made-up shows only. node shared/test_getsome.js */
+/* THE VIZ, the pure parts. Made-up shows only. node shared/test_viz.js */
 const mem = {}; globalThis.localStorage = { getItem: k => mem[k] || null, setItem: (k, v) => { mem[k] = String(v); }, removeItem: k => { delete mem[k]; } };
-const G = require('./getsome.js');
+const G = require('./viz.js');
 let ok = true; const want = (n, x, y) => { console.log((x ? 'PASS ' : 'FAIL ') + n + (x || y === undefined ? '' : ' ' + JSON.stringify(y))); if (!x) ok = false; };
 const a = G.add({ title: 'Harbor Lights', kind: 'show' }), b = G.add({ title: 'Ferro', kind: 'show', aka: ['Ferro: Legacy'] }), c = G.add({ title: 'Union card', kind: 'milestone' }), d = G.add({ title: 'Dana Wolfe', kind: 'person' });
 want('add: four on the wall, each with today as WANT IT', G.all().length === 4 && G.all().every(w => w.trail.wanted === G.iso(new Date())));
@@ -52,12 +52,22 @@ want('the plug: your words with the facts in', p.text === 'Check out Harbor Ligh
 const p2 = G.plug('[SHOW] on [WHERE], [DATE].', G.get(b.id), day);
 want('the plug: a fact not filled in stays as the blank, and says so', p2.text === 'Ferro on [WHERE], [DATE].' && p2.missing.join() === '[WHERE],[DATE]', p2);
 want('the plug: no shape, no words of ours', G.plug('', G.get(a.id), day).text === '');
-want('airing: booked, airing in the next 7 days', G.airing('2026-10-24').map(w => w.id).join() === a.id && G.airing('2026-11-10').length === 0);
+const q1 = G.plugAdd({ kind: 'airing', title: 'Harbor Lights', role: 'Deckhand', date: '2026-10-30', time: '22:00', where: 'the Harbor Network' });
+want('a plug: its own record, any time, nothing written for you', q1.kind === 'airing' && q1.text === '' && G.plugs().length === 1);
+want('airing: a plug for something airing in the next 7 days', G.airing('2026-10-24').map(x => x.id).join() === q1.id && G.airing('2026-11-10').length === 0);
+const q2 = G.plugAdd({ kind: 'headshot', by: 'Sam Ortiz' });
+want('a new headshot: the photographer, and only the blanks that fit', G.plug('New headshots! Photo by [BY].', q2).text === 'New headshots! Photo by Sam Ortiz.' && G.tokensFor('headshot').map(t => t[0]).join() === '[BY]');
+want('airing gets every blank, [WHEN] before [DATE]', G.tokensFor('airing').map(t => t[0]).join() === '[TITLE],[ROLE],[WHEN],[DATE],[TIME],[WHERE]');
+want('something I worked on: no dates asked', G.tokensFor('worked').map(t => t[0]).join() === '[TITLE],[ROLE],[WHERE]');
+want('[SHOW] still works as [TITLE]', G.plug('[SHOW] / [TITLE]', q1, day).text === 'Harbor Lights / Harbor Lights');
+G.keepShape('headshot', 'Fresh headshots, shot by [BY].');
+want('your way of saying it, kept per kind: the next headshot plug starts from it', G.plugAdd({ kind: 'headshot' }).text === 'Fresh headshots, shot by [BY].' && G.plugAdd({ kind: 'worked' }).text === '');
+want('a plug made from the wall', JSON.stringify(G.plugFrom(G.get(a.id))) === JSON.stringify({ kind: 'airing', title: 'Harbor Lights', role: 'Deckhand', wid: a.id }) && G.plugFrom(G.get(b.id)).kind === 'news');
+want('plugs for one wish', G.plugAdd(G.plugFrom(G.get(a.id))) && G.plugsFor(a.id).length === 1);
 /* reps */
 G.set(b.id, { reps: true, note: 'the cop drama I watch every week' }); G.set(a.id, { reps: true }); G.set(c.id, { reps: true });
 const r = G.forReps();
 want('reps: only the ones you picked, still wanted, no milestones', r.length === 1 && r[0].title === 'Ferro' && r[0].note === 'the cop drama I watch every week', r);
 want('a booking as a credit', JSON.stringify(G.credit(G.get(a.id))) === JSON.stringify({ section: 'Television', title: 'Harbor Lights', role: 'Deckhand' }));
-G.setPlug('Catch [SHOW] [WHEN].'); want('your plug shape is kept for next time', G.plugShape() === 'Catch [SHOW] [WHEN].');
 G.remove(d.id); want('remove', G.all().length === 3);
 console.log(ok ? 'ALL PASS' : 'SOME FAILED'); process.exit(ok ? 0 : 1);

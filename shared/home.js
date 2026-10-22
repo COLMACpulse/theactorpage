@@ -246,7 +246,7 @@ async function take(files,pasted,fromFolder,opts){
  LAST=items.sort((a,b)=>(a.kind==='request'?0:1)-(b.kind==='request'?0:1));
  // a résumé or headshot just landed: open your profile so you see it
  if(items.some(x=>(x.kind==='image'&&x.photo&&!x.dup)||(x.kind==='resume'&&x.changed&&x.changed.length))) YOPEN=true;
- showTook(); showPlay(); showYou(); showWeek(); showGetSome();
+ showTook(); showPlay(); showYou(); showWeek(); showViz();
  $('took').scrollIntoView({block:'nearest',behavior:'smooth'});
 }
 
@@ -284,15 +284,15 @@ document.querySelectorAll('.deptopen').forEach(b=>b.onclick=()=>{ const d=docume
 document.querySelectorAll('a[href="#write"],a[href="#film"]').forEach(a=>a.addEventListener('click',()=>openDept(a.getAttribute('href').slice(1),false)));
 if(/^#(write|film)$/.test(location.hash)) openDept(location.hash.slice(1),true);
 window.addEventListener('storage',e=>{ if(e.key&&/shelf|inbox/.test(e.key)) showPlay(); });
-showPlay(); showYou(); showWeek(); showGetSome();
-window.__home={take,route,readOne,showWeek,showGetSome};
-/* GET SOME in YOU: your wall, small, or the way in */
-async function showGetSome(){ const box=$('gs'); if(!box||!window.GetSome) return; const GSURLS=showGetSome.urls||(showGetSome.urls={});
- const all=GetSome.wanted().concat(GetSome.gotten()); if(!all.length){ box.innerHTML='<a class="starter" href="getsome/" id="st_gs">GET SOME</a><span class="gs-why">The show you want to be on, the director, your union card. Put it up where you see it.</span>'; return; }
- let h='<p class="gs-h"><a href="getsome/">GET SOME</a><a href="getsome/">YOUR WALL →</a></p><div class="gs-wall">';
- for(const w of all.slice(0,6)){ let u=''; if(w.pic){ if(!GSURLS[w.pic]){ const b=await GetSome.picBlob(w.pic); if(b) GSURLS[w.pic]=URL.createObjectURL(b); } u=GSURLS[w.pic]||''; }
-  h+='<a href="getsome/?w='+encodeURIComponent(w.id)+'" title="'+esc(w.title)+'">'+(u?'<img src="'+u+'" alt="'+esc(w.title)+'">':'<span>'+esc(w.title)+'</span>')+(GetSome.got(w)?'<i>'+esc(GetSome.at(w).label.toUpperCase())+'</i>':'')+'</a>'; }
- box.innerHTML=h+'</div>'+(all.length>6?'<span class="gs-why">and '+(all.length-6)+' more on your wall.</span>':''); }
+showPlay(); showYou(); showWeek(); showViz();
+window.__home={take,route,readOne,showWeek,showViz};
+/* THE VIZ in YOU: your wall, small, or the way in */
+async function showViz(){ const box=$('viz'); if(!box||!window.Viz) return; const GSURLS=showViz.urls||(showViz.urls={});
+ const all=Viz.wanted().concat(Viz.gotten()); if(!all.length){ box.innerHTML='<a class="starter" href="viz/" id="st_viz">THE VIZ</a><span class="gs-why">The show you want to be on, the director, your union card. Put it up where you see it.</span>'+'<a class="starter gs-plug" href="viz/?plugs" id="st_plug">SHAMELESS PLUG</a><span class="gs-why">News to share? A new headshot, a show about to air. Your words, the facts dropped in.</span>'; return; }
+ let h='<p class="gs-h"><a href="viz/">THE VIZ</a><a href="viz/">YOUR WALL →</a></p><div class="gs-wall">';
+ for(const w of all.slice(0,6)){ let u=''; if(w.pic){ if(!GSURLS[w.pic]){ const b=await Viz.picBlob(w.pic); if(b) GSURLS[w.pic]=URL.createObjectURL(b); } u=GSURLS[w.pic]||''; }
+  h+='<a href="viz/?w='+encodeURIComponent(w.id)+'" title="'+esc(w.title)+'">'+(u?'<img src="'+u+'" alt="'+esc(w.title)+'">':'<span>'+esc(w.title)+'</span>')+(Viz.got(w)?'<i>'+esc(Viz.at(w).label.toUpperCase())+'</i>':'')+'</a>'; }
+ box.innerHTML=h+'</div>'+(all.length>6?'<span class="gs-why">and '+(all.length-6)+' more on your wall.</span>':'')+'<a class="starter gs-plug" href="viz/?plugs" id="st_plug">SHAMELESS PLUG</a>'; }
 /* THIS WEEK: what needs you, from every tool (shared/week.js). Hidden on a first visit; your goal, if you set one, on top. */
 var WEEKGOAL=false;
 async function showWeek(){ const box=$('week'); if(!box||!window.Week) return;

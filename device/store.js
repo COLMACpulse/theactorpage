@@ -36,7 +36,7 @@ D.TOOLS=[
  {id:'footage', name:'Footage', href:'../footage/', ls:[/^theactorpage_footage/], db:[]},
  {id:'press', name:'Press', href:'../press/', ls:[/^theactorpage_press/], db:[]},
  {id:'expenses', name:'Expenses', href:'../expenses/', ls:[/^theactorpage_expenses/], db:[/^theactorpage_receipts$/]},
- {id:'getsome', name:'Get Some', href:'../getsome/', ls:[/^theactorpage_getsome/], db:[/^theactorpage_getsome$/]}
+ {id:'viz', name:'The Viz', href:'../viz/', ls:[/^theactorpage_viz/], db:[/^theactorpage_viz$/]}
 ];
 D.OWN_KEY='theactorpage_device_v1';
 /* passing notes between tools (gone in minutes) and things that can't go in a file */
