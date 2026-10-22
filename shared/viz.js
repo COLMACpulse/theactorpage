@@ -1,4 +1,4 @@
-/* THEACTORPAGE THE VIZ: what you want, where you can see it. A show, a film, someone to work with, a kind of role, a
+/* THEACTORPAGE PICTURE IT: what you want, where you can see it. A show, a film, someone to work with, a kind of role, a
    milestone: in your words, with your own picture (a screenshot, a photo). Nothing is fetched, nothing ships with the site.
    The wall keeps the trail as it happens, with dates: want it, in the room, booked. Booked stays up, with its date.
    It talks to the rest: an audition request for a show on your wall says so (THIS WEEK), the news that names it is
@@ -40,7 +40,7 @@
   const diff = (a, b) => Math.round((Date.parse(b + 'T12:00:00') - Date.parse(a + 'T12:00:00')) / 864e5);
 
   /* ---------- storage ---------- */
-  const blank = () => ({ wishes: [], plugs: [], shapes: {}, wall: { head: 'THE VIZ', got: true }, news: {}, at: 0 });
+  const blank = () => ({ wishes: [], plugs: [], shapes: {}, wall: { head: 'PICTURE IT', got: true }, news: {}, at: 0 });
   function read() { try { const d = JSON.parse(localStorage.getItem(KEY) || 'null'); if (d && Array.isArray(d.wishes)) return Object.assign(blank(), d); } catch (e) { } return blank(); }
   function write(d) { d.at = now(); try { localStorage.setItem(KEY, JSON.stringify(d)); return true; } catch (e) { return false; } }
   G.read = read;
@@ -73,7 +73,7 @@
   G.plugRemove = async function (id) { const p = G.plugGet(id); if (p && p.pic) await op('readwrite', st => st.delete(p.pic)); const d = read(); d.plugs = d.plugs.filter(x => x.id !== id); write(d); };
   G.plugsFor = wid => G.plugs().filter(p => p.wid === wid);
   G.setWall = patch => { const d = read(); d.wall = Object.assign({}, d.wall, patch); write(d); return d.wall; };
-  G.wall = () => read().wall;
+  G.wall = () => { const w = Object.assign({}, read().wall); if (/^(THE VIZ|GET SOME)$/.test(w.head || '')) w.head = 'PICTURE IT'; return w; };
   G.setNews = function (id, items) { const d = read(); d.news[id] = items; write(d); };
   G.newsFor = id => read().news[id] || [];
 

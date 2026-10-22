@@ -36,7 +36,7 @@ D.TOOLS=[
  {id:'footage', name:'Footage', href:'../footage/', ls:[/^theactorpage_footage/], db:[]},
  {id:'press', name:'Press', href:'../press/', ls:[/^theactorpage_press/], db:[]},
  {id:'expenses', name:'Expenses', href:'../expenses/', ls:[/^theactorpage_expenses/], db:[/^theactorpage_receipts$/]},
- {id:'viz', name:'The Viz', href:'../viz/', ls:[/^theactorpage_viz/], db:[/^theactorpage_viz$/]},
+ {id:'picture', name:'Picture It', href:'../picture/', ls:[/^theactorpage_viz/], db:[/^theactorpage_viz$/]},
  {id:'plan', name:'The Plan', href:'../plan/', ls:[/^theactorpage_plan/], db:[/^theactorpage_plan$/]}
 ];
 D.OWN_KEY='theactorpage_device_v1';

@@ -1,4 +1,4 @@
-/* THE VIZ: the wall, one wish, SHAMELESS PLUG, the lock screen. Data and rules in shared/viz.js. */
+/* PICTURE IT: the wall, one wish, SHAMELESS PLUG, the lock screen. Data and rules in shared/viz.js. */
 (function () {
   'use strict';
   const G = window.Viz, $ = id => document.getElementById(id), V = $('view');
@@ -175,7 +175,7 @@
       try { await navigator.share(data); } catch (e) { } };
     $('q_keep').onclick = () => { const v = $('q_text').value.trim(); if (!v) { say('Write it first.'); return; } const k = G.plugGet(id).kind; G.keepShape(k, v); say('Kept. Your next ' + G.plugKindName(k).toUpperCase() + ' plug starts from this.'); };
     if ($('q_press')) $('q_press').onclick = () => { const x = read(); const c = Press.add({ title: x.title || 'News', milestone: x.kind === 'airing' ? 'release' : 'other', date: x.date || '', where: x.where }); if (c) { G.plugSet(id, { press: c.id }); location.href = '../press/?c=' + encodeURIComponent(c.id); } };
-    if ($('q_cred')) $('q_cred').onclick = () => { const x = read(); if (!x.title) { say('Put in the title first.'); return; } const ch = You.fill({ credits: [G.credit(x, wish && wish.kind === 'film')] }, 'THE VIZ'); say(ch.length ? 'Added to your credits. Every tool that uses your résumé has it.' : 'It\'s already in your credits.'); };
+    if ($('q_cred')) $('q_cred').onclick = () => { const x = read(); if (!x.title) { say('Put in the title first.'); return; } const ch = You.fill({ credits: [G.credit(x, wish && wish.kind === 'film')] }, 'PICTURE IT'); say(ch.length ? 'Added to your credits. Every tool that uses your résumé has it.' : 'It\'s already in your credits.'); };
     $('q_del').onclick = async () => { if (!confirm('Delete this plug?')) return; await G.plugRemove(id); say(''); go('plugs'); };
     paint();
   }
@@ -186,14 +186,14 @@
       '<label class="lab" for="l_h">ACROSS THE TOP (OR NOTHING)</label><input class="field" id="l_h" value="' + esc(wl.head) + '">' +
       '<label class="row" style="margin-top:10px"><input type="checkbox" id="l_g"' + (wl.got !== false ? ' checked' : '') + '> <span>Show what I\'ve already got, too</span></label>' +
       '<div class="row" style="margin-top:12px"><button class="btn" type="button" id="l_go">MAKE IT</button></div><img id="l_img" alt="Your lock screen" class="hide">' +
-      '<div class="row hide" id="l_out"><a class="btn" id="l_save" download="the-viz-lock-screen.png">SAVE IT</a>' + (navigator.share ? '<button class="btn ghost" type="button" id="l_share">SHARE IT</button>' : '') + '</div>' +
+      '<div class="row hide" id="l_out"><a class="btn" id="l_save" download="picture-it-lock-screen.png">SAVE IT</a>' + (navigator.share ? '<button class="btn ghost" type="button" id="l_share">SHARE IT</button>' : '') + '</div>' +
       '<p class="mut small hide" id="l_how">iPhone: save it to Photos, open it, tap Share, then Use as Wallpaper. Android: open it in Photos, then Use as, Wallpaper, Lock screen.</p></div><p class="msg" id="msg" role="status"></p>';
     $('back').onclick = e => { e.preventDefault(); go(''); };
     let blob = null;
     $('l_go').onclick = async () => { G.setWall({ head: $('l_h').value.trim(), got: $('l_g').checked }); say('Making it...');
       blob = await drawLock(G.wall()); if (!blob) { say('This phone wouldn\'t make the picture.'); return; }
       const u = URL.createObjectURL(blob); $('l_img').src = u; $('l_img').classList.remove('hide'); $('l_save').href = u; $('l_out').classList.remove('hide'); $('l_how').classList.remove('hide'); say(''); };
-    if ($('l_share')) $('l_share').onclick = async () => { if (!blob) return; const f = new File([blob], 'the-viz-lock-screen.png', { type: 'image/png' }); try { await navigator.share({ files: [f] }); } catch (e) { } };
+    if ($('l_share')) $('l_share').onclick = async () => { if (!blob) return; const f = new File([blob], 'picture-it-lock-screen.png', { type: 'image/png' }); try { await navigator.share({ files: [f] }); } catch (e) { } };
   }
   async function drawLock(wl) {
     const W = 1179, H = 2556, c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');

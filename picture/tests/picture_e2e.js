@@ -1,4 +1,4 @@
-/* THE VIZ in the browser: add to the wall with a picture, the trail, a request for a show on it, who casts it,
+/* PICTURE IT in the browser: add to the wall with a picture, the trail, a request for a show on it, who casts it,
    the news (a made-up wire), the reps sheet, the shameless plug, press and credits, the lock screen.
    Made-up shows and pictures only. Server on :8811. */
 const {chromium}=require('playwright'); const path=require('path');
@@ -11,7 +11,7 @@ let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===und
 const c=await b.newContext({viewport:{width:390,height:844}}); await c.grantPermissions(['clipboard-read','clipboard-write'],{origin:'http://localhost:8811'});
 await c.route('https://raw.githubusercontent.com/**',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify(WIRE)}));
 const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
-await p.goto('http://localhost:8811/viz/'); await p.evaluate(()=>{ localStorage.clear(); indexedDB.deleteDatabase('theactorpage_viz'); }); await p.reload(); await p.waitForTimeout(400);
+await p.goto('http://localhost:8811/picture/'); await p.evaluate(()=>{ localStorage.clear(); indexedDB.deleteDatabase('theactorpage_viz'); }); await p.reload(); await p.waitForTimeout(400);
 const t0=await p.innerText('main');
 want('empty wall: says what it is for, one way in', /YOUR WALL IS EMPTY/.test(t0)&&/ADD WHAT YOU WANT/.test(t0)&&!/LOCK SCREEN/.test(t0));
 await p.click('#addOpen'); await p.fill('#a_t','Harbor Lights'); await p.setInputFiles('#a_p',A); await p.click('#a_go'); await p.waitForTimeout(500);
@@ -58,7 +58,7 @@ want('ADD IT TO MY CREDITS', await p.evaluate(()=>You.get().credits.some(c=>c.ti
 await p.click('#q_press'); await p.waitForURL(/press\/\?c=/); await p.waitForTimeout(400);
 want('TELL THE PRESS TOO: a Press campaign, with the air date', await p.evaluate(d=>Press.all().some(c=>c.title==='Harbor Lights'&&c.date===d),iso));
 /* a plug with nothing on the wall: a new headshot */
-await p.goto('http://localhost:8811/viz/'); await p.waitForTimeout(300);
+await p.goto('http://localhost:8811/picture/'); await p.waitForTimeout(300);
 await p.evaluate(async()=>{ const r=await fetch('tests/poster_b.jpg'); const b=await r.blob(); await You.addPhoto(new File([b],'new_headshot.jpg',{type:'image/jpeg'})); });
 await p.click('a[data-go="plugs"]'); await p.waitForTimeout(300);
 let pl=await p.innerText('main');
@@ -73,21 +73,21 @@ want('change the kind: the fields follow, your words stay', await p.$('#q_title'
 await p.click('#q_del'); await p.waitForTimeout(300);
 want('delete a plug', await p.evaluate(()=>Viz.plugs().length)===1);
 await p.click('a[data-go=""]'); await p.waitForTimeout(300);
-await p.goto('http://localhost:8811/viz/'); await p.waitForTimeout(400);
+await p.goto('http://localhost:8811/picture/'); await p.waitForTimeout(400);
 want('the wall: GOT IT, with BOOKED on it', /GOT IT/.test(await p.innerText('main'))&&/BOOKED/.test(await p.innerText('.wall:last-of-type')));
 /* week */
 await p.goto('http://localhost:8811/'); await p.waitForTimeout(1200);
 want('home, in YOU: your wall, small, booked marked', (await p.$$eval('#viz .gs-wall a',x=>x.length))===3&&/BOOKED/.test(await p.innerText('#viz')));
-want('home, in YOU: SHAMELESS PLUG, one tap', await p.getAttribute('#st_plug','href')==='viz/?plugs');
+want('home, in YOU: SHAMELESS PLUG, one tap', await p.getAttribute('#st_plug','href')==='picture/?plugs');
 want('YOUR AGENDA: the tape for a show on your wall says so', /Tape due tomorrow: HARBOR LIGHTS, Deckhand\. It’s on your wall\./.test(await p.innerText('#week')), await p.innerText('#week'));
 /* lock screen */
-await p.goto('http://localhost:8811/viz/?lock'); await p.waitForTimeout(300);
+await p.goto('http://localhost:8811/picture/?lock'); await p.waitForTimeout(300);
 await p.click('#l_go'); await p.waitForSelector('#l_img:not(.hide)',{timeout:10000}).catch(()=>{});
 const dim=await p.evaluate(()=>{ const i=document.getElementById('l_img'); return [i.naturalWidth,i.naturalHeight]; });
-want('MAKE IT MY LOCK SCREEN: a phone-sized picture, saved as a file, how to set it', dim[0]===1179&&dim[1]===2556&&(await p.getAttribute('#l_save','download'))==='the-viz-lock-screen.png'&&/Use as Wallpaper/.test(await p.innerText('main')), dim);
-await p.screenshot({path:path.join(require('os').tmpdir(),'viz_lock_page.png')});
+want('MAKE IT MY LOCK SCREEN: a phone-sized picture, saved as a file, how to set it', dim[0]===1179&&dim[1]===2556&&(await p.getAttribute('#l_save','download'))==='picture-it-lock-screen.png'&&/Use as Wallpaper/.test(await p.innerText('main')), dim);
+await p.screenshot({path:path.join(require('os').tmpdir(),'picture_lock_page.png')});
 /* remove */
-await p.goto('http://localhost:8811/viz/'); await p.waitForTimeout(300);
+await p.goto('http://localhost:8811/picture/'); await p.waitForTimeout(300);
 await p.click('.wish:has-text("Dana Wolfe")'); await p.waitForTimeout(300); await p.click('#o_del'); await p.waitForTimeout(300);
 want('take it off the wall', !(await p.innerText('main')).includes('Dana Wolfe'));
 want('no page errors', errs.length===0, errs);

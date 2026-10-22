@@ -6,7 +6,7 @@
      ON MY RADAR        offices you want to reach and why; offices casting now (from SPOTTED) that have never had you in
      RIGHT FOR / WANT   your types and the roles you're called in for; what you want more of and want to be seen for
      CASTING THAT FITS  what you spotted that has your words in it, with links
-     WHAT I'M AFTER     the shows, films, people and roles on your wall in THE VIZ that you picked for your reps
+     WHAT I'M AFTER     the shows, films, people and roles on your wall in PICTURE IT that you picked for your reps
    WHAT'S NEW: compared with what you last sent (a small snapshot kept when you tap I SENT IT), only the changes.
    When to send: you pick (when something changes, or every week, two weeks or month). Nothing sends itself.
    Rules: counts and your own words, no scores; other people's phone numbers and emails never go on it; offices you

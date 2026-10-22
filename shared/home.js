@@ -286,13 +286,13 @@ if(/^#(write|film)$/.test(location.hash)) openDept(location.hash.slice(1),true);
 window.addEventListener('storage',e=>{ if(e.key&&/shelf|inbox/.test(e.key)) showPlay(); });
 showPlay(); showYou(); showWeek(); showViz();
 window.__home={take,route,readOne,showWeek,showViz};
-/* THE VIZ in YOU: your wall, small, or the way in */
+/* PICTURE IT in YOU: your wall, small, or the way in */
 async function showViz(){ const box=$('viz'); if(!box||!window.Viz) return; const GSURLS=showViz.urls||(showViz.urls={});
- const all=Viz.wanted().concat(Viz.gotten()); if(!all.length){ box.innerHTML='<a class="starter" href="viz/" id="st_viz">THE VIZ</a><span class="gs-why">The show you want to be on, the director, your union card. Put it up where you see it.</span>'+'<a class="starter gs-plug" href="viz/?plugs" id="st_plug">SHAMELESS PLUG</a><span class="gs-why">News to share? A new headshot, a show about to air. Your words, the facts dropped in.</span>'; return; }
- let h='<p class="gs-h"><a href="viz/">THE VIZ</a><a href="viz/">YOUR WALL →</a></p><div class="gs-wall">';
+ const all=Viz.wanted().concat(Viz.gotten()); if(!all.length){ box.innerHTML='<a class="starter" href="picture/" id="st_viz">PICTURE IT</a><span class="gs-why">The show you want to be on, the director, your union card. Put it up where you see it.</span>'+'<a class="starter gs-plug" href="picture/?plugs" id="st_plug">SHAMELESS PLUG</a><span class="gs-why">News to share? A new headshot, a show about to air. Your words, the facts dropped in.</span>'; return; }
+ let h='<p class="gs-h"><a href="picture/">PICTURE IT</a><a href="picture/">YOUR WALL →</a></p><div class="gs-wall">';
  for(const w of all.slice(0,6)){ let u=''; if(w.pic){ if(!GSURLS[w.pic]){ const b=await Viz.picBlob(w.pic); if(b) GSURLS[w.pic]=URL.createObjectURL(b); } u=GSURLS[w.pic]||''; }
-  h+='<a href="viz/?w='+encodeURIComponent(w.id)+'" title="'+esc(w.title)+'">'+(u?'<img src="'+u+'" alt="'+esc(w.title)+'">':'<span>'+esc(w.title)+'</span>')+(Viz.got(w)?'<i>'+esc(Viz.at(w).label.toUpperCase())+'</i>':'')+'</a>'; }
- box.innerHTML=h+'</div>'+(all.length>6?'<span class="gs-why">and '+(all.length-6)+' more on your wall.</span>':'')+'<a class="starter gs-plug" href="viz/?plugs" id="st_plug">SHAMELESS PLUG</a>'; }
+  h+='<a href="picture/?w='+encodeURIComponent(w.id)+'" title="'+esc(w.title)+'">'+(u?'<img src="'+u+'" alt="'+esc(w.title)+'">':'<span>'+esc(w.title)+'</span>')+(Viz.got(w)?'<i>'+esc(Viz.at(w).label.toUpperCase())+'</i>':'')+'</a>'; }
+ box.innerHTML=h+'</div>'+(all.length>6?'<span class="gs-why">and '+(all.length-6)+' more on your wall.</span>':'')+'<a class="starter gs-plug" href="picture/?plugs" id="st_plug">SHAMELESS PLUG</a>'; }
 /* YOUR AGENDA: COMING UP on a timeline, then ACTIVE, from every tool (shared/week.js). Hidden on a first visit; your goal, if you set one, on top. */
 var WEEKGOAL=false;
 async function showWeek(){ const box=$('week'); if(!box||!window.Week) return;

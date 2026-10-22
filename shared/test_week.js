@@ -22,7 +22,7 @@ const q=W.list({reps:{have:true,last:null,rhythm:'change'}},D);
 want('reps but never sent: says so, once', q.lines.length===1&&q.lines[0].line==='Your reps haven’t had a sheet from you yet.');
 want('nothing at all: nothing, and no goal', W.list({},D).lines.length===0&&W.list({},D).goal===null);
 want('no score, no counts of how you are doing, no "thing", no em dashes', !/score|streak|%|\bthings?\b|—/.test(t.join(' '))&&!/—/.test(require('fs').readFileSync(__dirname+'/week.js','utf8')));
-/* THE VIZ */
+/* PICTURE IT */
 globalThis.Viz=require('./viz.js');
 const wl=[{id:'w1',title:'Harbor Lights',kind:'show',trail:{wanted:'2026-01-01'},air:{date:'',time:'',where:''}},{id:'w2',title:'Ferro',kind:'show',trail:{wanted:'2026-01-01',booked:'2026-05-01'},air:{date:'2026-10-27',time:'22:00',where:'the Harbor Network'}},{id:'w3',title:'Gone By',kind:'show',trail:{wanted:'2026-01-01',booked:'2026-05-01'},air:{date:'2026-10-02',time:'22:00',where:''}}];
 const pl=[{id:'q1',kind:'airing',title:'Ferro',date:'2026-10-27',time:'22:00',where:'the Harbor Network'},{id:'q2',kind:'airing',title:'Gone By',date:'2026-10-02',time:'22:00',where:''},{id:'q3',kind:'headshot',title:'',date:'2026-10-23'}];

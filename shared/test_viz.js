@@ -1,4 +1,4 @@
-/* THE VIZ, the pure parts. Made-up shows only. node shared/test_viz.js */
+/* PICTURE IT, the pure parts. Made-up shows only. node shared/test_viz.js */
 const mem = {}; globalThis.localStorage = { getItem: k => mem[k] || null, setItem: (k, v) => { mem[k] = String(v); }, removeItem: k => { delete mem[k]; } };
 const G = require('./viz.js');
 let ok = true; const want = (n, x, y) => { console.log((x ? 'PASS ' : 'FAIL ') + n + (x || y === undefined ? '' : ' ' + JSON.stringify(y))); if (!x) ok = false; };
