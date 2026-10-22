@@ -1993,7 +1993,7 @@ function offRead(text){
 function offBoxHtml(){
  const j=state.job||{}, d=j.delivery, R=offRequests();
  let h=`<div class="offbox"><b>THEIR WORDS</b><span>Paste the office's instructions, the notice or the email, and this sets how it goes out. Every setting shows the line it came from.</span>`;
- if(R.length) h+=`<div class="row" style="gap:6px;margin-top:9px">${R.map(it=>`<button class="mini ghost" data-offreq="${it.id}" onclick="offUse('${it.id}')">USE: ${esc2(String(it.data.title||it.data.raw).replace(/\s+/g,' ').slice(0,34))}${it.data.role?' &middot; '+esc2(it.data.role):''}</button>`).join('')}</div>`;
+ if(R.length) h+=`<div class="row" style="gap:6px;margin-top:9px">${R.map(it=>`<button class="mini ghost" data-offreq="${it.id}" onclick="offUse('${it.id}')">USE: ${esc2(String(it.data.title||it.data.raw).replace(/\s+/g,' ').slice(0,34))}${it.data.role?' &middot; '+esc2(it.data.role):''}</button><a class="mini ghost" href="../plan/?req=${encodeURIComponent(it.id)}">MAKE THE PLAN</a>`).join('')}</div>`;
  h+=`<textarea id="offText" rows="3" placeholder="e.g. Both scenes in one file, slate at the end, under 100 MB." style="margin-top:9px">${esc2(j.instructions||'')}</textarea>
   <div class="row" style="margin-top:7px"><button class="mini" id="offGo" onclick="offRead()">READ IT</button></div>`;
  if(d){

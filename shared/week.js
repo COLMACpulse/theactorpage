@@ -47,6 +47,8 @@
       if (!R.last) L.push({ date: '', kind: 'reps', href: 'hub/?tab=reps', line: 'Your reps haven’t had a sheet from you yet.' });
       else if (per) { const days = Math.floor((Date.parse(day + 'T12:00:00') - R.last) / 864e5); if (days >= per) L.push({ date: '', kind: 'reps', href: 'hub/?tab=reps', line: 'Your reps sheet: it’s been ' + days + ' days.' }); }
     }
+    /* THE PLAN: the steps of plans you put on your agenda, on their days */
+    if (g.Plan && src.plans) g.Plan.agenda(src.plans, day).forEach(l => L.push(l));
     /* THE VIZ: in the room, waiting to hear */
     if (g.Viz && src.wishes) src.wishes.forEach(w => { const at = g.Viz.at(w); if (at.step === 'room' && at.date) L.push({ date: '', kind: 'viz', href: 'viz/?w=' + encodeURIComponent(w.id), line: w.title + ': in the room ' + W.when(at.date, day) + '. On your wall, waiting to hear.' }); });
     L.sort((a, b) => (a.date ? 0 : 1) - (b.date ? 0 : 1) || String(a.date).localeCompare(String(b.date)));
@@ -69,6 +71,7 @@
     try { if (g.Footage) src.footage = g.Footage.alerts(); } catch (e) { }
     try { if (g.Press && g.Contacts) src.press = g.Press.all().map(c => ({ id: c.id, title: c.title, date: c.date, outlets: c.outlets.map(o => { const p = g.Contacts.get(o.cid); return { name: p ? p.name : 'someone', reached: o.reached, reply: o.reply }; }) })); } catch (e) { }
     try { if (g.Viz) { src.wishes = g.Viz.all(); src.plugs = g.Viz.plugs(); } } catch (e) { }
+    try { if (g.Plan) src.plans = g.Plan.all(); } catch (e) { }
     try { const y = g.You && g.You.get(); if (y) src.goal = { text: y.goal || '', by: y.goalBy || '' }; } catch (e) { }
     try {
       const hp = await hubProfile(); const reps = hp && hp.reps;

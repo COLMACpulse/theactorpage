@@ -1373,6 +1373,7 @@ function toggleDir(id,i){const p=projects.find(x=>x.id===id);if(!p)return;p.dirD
 function reqCardBlock(a){if(!a.request)return '';const r=a.request,items=reqChecklist(a),done=a.dirDone||{};
  const n=items.filter((x,i)=>done[i]).length;
  return `<details class="reqcard" ${audIsLive(a)?'open':''}><summary>The request · due ${esc(HubReq.dueWords(r.due,myTZ()))}${items.length?` · ${n} of ${items.length} done`:''}</summary>
+  <p style="margin:6px 0"><a class="btn sm" href="../plan/?t=${encodeURIComponent(r.show||r.title||a.title||'')}&amp;r=${encodeURIComponent(r.role||'')}&amp;cd=${encodeURIComponent((r.castingDirectors||[]).join(' & '))}&amp;due=${encodeURIComponent(r.due?(r.due.utc||r.due.local||''):'')}">MAKE THE PLAN</a></p>
   ${r.otherDates.map(x=>`<div class="reqother">${esc(x.text)}: ${esc(x.what)}</div>`).join('')}
   ${items.length?`<div class="reqdir"><b>Their directions</b>${items.map((d,i)=>`<label class="reqchk"><input type="checkbox" ${done[i]?'checked':''} onchange="toggleDir('${a.id}',${i})"> ${esc(d)}</label>`).join('')}</div>`:''}
   ${r.delivery&&window.Delivery&&Delivery.words(r.delivery)?`<div class="reqother"><b>How they want it sent:</b> ${esc(Delivery.words(r.delivery))} Actor OS sets this in SEND when you paste or pick this request there.</div>`:''}
