@@ -173,6 +173,7 @@ small.note{display:block;padding:0 15px 13px;color:var(--faint);font-size:10.5px
 <script src="../resume/engine.js"></script>
 <script src="../shared/madeby.js"></script>
 <script src="../shared/viz.js"></script>
+<script src="../shared/siteimport.js"></script>
 <script src="../shared/repsheet.js"></script>
 <script>
 var restoreReport=null;
@@ -1493,6 +1494,67 @@ function setupBar(){
    <button class="act sm" onclick="go('intake')">Finish setup</button>
  </div>`;}
 
+/* BRING IN MY SITE (shared/siteimport.js): an actor site you already have, into the Hub, once. Fills blanks; never
+   replaces what you've already typed; a credit already here (same title and character) is left alone. */
+var SITEIN={src:null,plan:null,busy:false,done:0,total:0,msg:'',report:''};
+function siteImportPanel(){
+ const S=SITEIN, P=S.plan, c=P&&P.counts;
+ let h=`<div class="panel" id="siteImport"><h2>Bring in my site</h2><small class="note">Already have an actor site? Bring its credits, clips, posters, headshots, photos, reel, films and writing in here, once. Pick the site's folder, or the zip GitHub gives you (Code, then Download ZIP). It reads the site's own data; your site itself isn't touched, and nothing leaves this device.</small>
+  <div class="row" style="gap:8px;margin:10px 13px;flex-wrap:wrap"><label class="ghost act sm" style="position:relative;overflow:hidden">PICK THE FOLDER<input type="file" id="sifolder" webkitdirectory multiple style="position:absolute;inset:0;opacity:0" onchange="siteImportPick(this.files,'folder')"></label>
+  <label class="ghost act sm" style="position:relative;overflow:hidden">PICK THE ZIP<input type="file" id="sizip" accept=".zip,application/zip" style="position:absolute;inset:0;opacity:0" onchange="siteImportPick(this.files,'zip')"></label></div>`;
+ if(S.msg) h+=`<small class="note" id="simsg" style="display:block;margin:0 13px 10px;color:var(--tung)">${esc(S.msg)}</small>`;
+ if(P){ h+=`<div style="margin:0 13px 12px"><b>${esc(P.profile.name||'Your site')}</b>: ${c.credits} credits (${c.clips} clips, ${c.posters} posters), ${c.headshots} headshots, ${c.stills} photos, ${c.reel?'a reel, ':''}${c.films} films, ${c.writing} pieces of writing.`
+   +(c.moved?` <span class="note">${c.moved} file${c.moved===1?' wasn\'t':'s weren\'t'} where the page says (in media/), found at the top of the site instead. On your live site, those may not play.</span>`:'')
+   +(c.missing?` <span style="color:var(--bad)">${c.missing} file${c.missing===1?'':'s'} the page names ${c.missing===1?'isn\'t':'aren\'t'} there, so ${c.missing===1?'it stays':'they stay'} out.</span>`:'')
+   +`</div><div class="row" style="margin:0 13px 12px"><button class="act" id="sigo" onclick="siteImportGo()" ${S.busy?'disabled':''}>${S.busy?'BRINGING IT IN… '+S.done+' OF '+S.total:'BRING IT IN'}</button></div>`; }
+ if(S.report) h+=`<small class="note" id="sireport" style="display:block;margin:0 13px 12px">${esc(S.report)}</small>`;
+ return h+`</div>`;
+}
+async function siteImportPick(files,kind){
+ const S=SITEIN; S.plan=null; S.report=''; S.msg='Reading it…'; render();
+ try{ const src=kind==='zip'?await SiteImport.fromZip(files[0]):await SiteImport.fromFolder(files);
+  const site=SiteImport.extract(src.html);
+  if(!site){ S.msg='No site data found in that '+(kind==='zip'?'zip':'folder')+'. This reads sites that keep their data in one block (const SITE = …), like the ones made with the COLMAC site builder.'; render(); return; }
+  S.src=src; S.plan=SiteImport.plan(site,src.has); S.msg=''; }
+ catch(e){ S.msg=e&&e.message?e.message:'That didn\'t open.'; }
+ render();
+}
+async function siteImportGo(){
+ const S=SITEIN, P=S.plan, src=S.src; if(!P||!src||S.busy) return;
+ S.busy=true; S.done=0; const jobs=[]; const n={credits:0,clips:0,posters:0,headshots:0,photos:0,reel:0,films:0,writing:0,skipped:0};
+ const have=new Set(ARTS.map(a=>(a.filename||'')+'|'+(a.size||0)));
+ const put=async(path,rec)=>{ const b=await src.get(path); if(!b||!b.size) return null; const fn=String(path).split('/').pop();
+  if(have.has(fn+'|'+b.size)){ n.skipped++; return null; } have.add(fn+'|'+b.size);
+  const r=Object.assign({id:'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),filename:fn,type:b.type||SiteImport.typeOf(path),size:b.size,added:new Date().toISOString(),blob:b,tag:'',from:'site'},rec);
+  await DB.put(r); ARTS.push(r); if((r.type||'').startsWith('video/')) try{ ensureThumb(r); }catch(e){} return r; };
+ S.total=P.credits.reduce((k,c)=>k+c.clips.length+(c.poster?1:0),0)+P.headshots.length+P.stills.length+(P.reel?1:0)+P.films.filter(f=>f.poster).length+P.writing.filter(w=>w.poster).length;
+ const tick=()=>{ S.done++; const b=$('sigo'); if(b) b.textContent='BRINGING IT IN… '+S.done+' OF '+S.total; };
+ try{
+  /* you: only blanks */
+  ['name','lane','union','rep','email','imdb'].forEach(k=>{ if(!profile[k]&&P.profile[k]) profile[k]=P.profile[k]; });
+  for(const pth of P.headshots){ const r=await put(pth,{scope:'library',category:'headshot',label:pth.split('/').pop().replace(/\.[^.]+$/,'')}); tick(); if(r){ n.headshots++; if(!profile.primaryHeadshot&&pth===P.primary) profile.primaryHeadshot=r.id; } }
+  for(const pth of P.stills){ const r=await put(pth,{scope:'library',category:'still',label:pth.split('/').pop().replace(/\.[^.]+$/,'')}); tick(); if(r) n.photos++; }
+  if(P.reel){ const r=await put(P.reel,{scope:'library',category:'reel',label:'Reel',tag:'reel'}); tick(); if(r){ n.reel++; if(!pkgSel.reel) pkgSel.reel=r.id; } }
+  for(const c of P.credits){
+   const ex=credits.find(x=>normTitle(x.title)===normTitle(c.title)&&String(x.character||'').toLowerCase()===c.character.toLowerCase());
+   const cred=ex||{cid:newCid(),title:c.title,role:c.role,net:c.net,medium:c.medium,character:c.character,charNote:c.note,director:c.director,kind:'credit',state:'archived',billing:'',from:'site'};
+   if(!ex){ credits.push(cred); n.credits++; }
+   if(c.poster){ const hasPo=ARTS.some(a=>String(a.scope)==='credit:'+cred.cid&&a.category==='poster'); if(!hasPo){ const r=await put(c.poster,{scope:'credit:'+cred.cid,category:'poster',label:c.title+' key art'}); if(r){ n.posters++; cred.posterId=r.id; } } tick(); }
+   for(const cl of c.clips){ const r=await put(cl,{scope:'credit:'+cred.cid,category:'clip',label:c.title,tag:c.character}); tick(); if(r) n.clips++; }
+  }
+  profile.madeHub=profile.madeHub||{films:[],writing:[]};
+  for(const f of P.films){ if(profile.madeHub.films.some(x=>normTitle(x.title)===normTitle(f.title))) continue; let pid=''; if(f.poster){ const r=await put(f.poster,{scope:'made',category:'poster',label:f.title+' poster'}); tick(); if(r) pid=r.id; }
+   profile.madeHub.films.push({id:'h:'+newCid(),from:'Your site',title:f.title,credit:f.credit,links:f.links,posterId:pid}); n.films++; }
+  for(const w of P.writing){ if(profile.madeHub.writing.some(x=>normTitle(x.title)===normTitle(w.title))) continue; let pid=''; if(w.poster){ const r=await put(w.poster,{scope:'made',category:'poster',label:w.title+' poster'}); tick(); if(r) pid=r.id; }
+   profile.madeHub.writing.push({id:'h:'+newCid(),from:'Your site',title:w.title,logline:w.logline,genre:w.genre,kind:w.kind,status:w.status,links:w.links,posterId:pid}); n.writing++; }
+  if(pkgSel.credits) credits.filter(c=>c.from==='site'&&!pkgSel.credits.includes(c.cid)).forEach(c=>pkgSel.credits.push(c.cid));
+  saveProfile(); saveCredits();
+  S.report='Brought in: '+[n.credits+' credits',n.clips+' clips',n.posters+' posters',n.headshots+' headshots',n.photos+' photos',n.reel?'your reel':'',n.films+' films',n.writing+' pieces of writing'].filter(Boolean).join(', ')+'.'+(n.skipped?' '+n.skipped+' already here, left alone.':'')+' Open SEND and build your page to see it.';
+  S.plan=null; S.src=null;
+ }catch(e){ S.report='Stopped partway: '+(e&&e.message||'this device ran out of room')+'. What came in is kept; run it again to bring in the rest.'; saveProfile(); saveCredits(); }
+ S.busy=false; render();
+}
+window.__siteIn=SITEIN;
 function intakeView(){
  const st=setupSteps();
  const doneN=st.filter(x=>x.done).length;
@@ -1509,6 +1571,7 @@ function intakeView(){
     </div></div>`;});
  h+=`</div></div>`;
 
+ h+=siteImportPanel();
  h+=`<div id="qs-block">`+quicksheetPanel()+`</div>`;
  h+=`<div id="imdb-block">`+imdbPanel()+`</div>`;
  h+=vaultPanel();   /* the record now, so it leads rather than hiding in a drawer */
@@ -2733,6 +2796,12 @@ function pkgInit(){
   const ab=ARTS.filter(a=>a.category==='about_me');pkgSel.about=(ab[0]&&ab[0].id)||'';
   pkgSel.credits=credits.filter(c=>c.kind==='credit').map(c=>c.cid);
  }
+ /* your files and credits load a moment after the tab opens: fill what's still empty, unless you've picked yourself */
+ if(!pkgSel._picked){
+  if(!pkgSel.reel){ const rl=ARTS.filter(a=>a.category==='reel'||a.category==='master'); if(rl[0]) pkgSel.reel=rl[0].id; }
+  if(!pkgSel.resume){ const rs=ARTS.filter(a=>a.category==='resume'); if(rs[0]) pkgSel.resume=rs[0].id; }
+  if(!pkgSel.credits||!pkgSel.credits.length) pkgSel.credits=credits.filter(c=>c.kind==='credit').map(c=>c.cid);
+ }
 }
 /* MADE BY ME (films from Film Hub, writing from Paper Trail) and video links: kept with your profile, so they stay put */
 var MADE=null;
@@ -2747,20 +2816,28 @@ function linkDel(i){ pageLinks().splice(i,1); saveProfile(); render(); }
 /* what the page gets from them. mode 'file' (the website zip): videos and photos go in media/ as files; otherwise inside the page */
 async function pkgExtras(mode,entries){
  const off=new Set(pageOff()), M=Object.assign({films:[],writing:[],clips:[],headshots:[]},MADE||{});
+ /* what came in from your old site (BRING IN MY SITE): its films and writing, with their posters */
+ const HM=profile.madeHub||{}, art=id=>{ const a=id&&ARTS.find(x=>x.id===id); return a&&a.blob?a.blob:null; };
+ M.films=M.films.concat((HM.films||[]).map(f=>Object.assign({},f,{poster:art(f.posterId)})));
+ M.writing=M.writing.concat((HM.writing||[]).map(w=>Object.assign({},w,{posterBlob:art(w.posterId)})));
  const media=async(b,name)=>{ if(!b) return null; if(mode==='file'&&entries){ const ext=String((b.type||'').split('/')[1]||'bin').replace(/;.*/,'').replace('quicktime','mov').replace('jpeg','jpg'); const nm='media/'+safeName(name)+'.'+ext; entries.push({name:nm,data:new Uint8Array(await b.arrayBuffer())}); return {u:nm,t:b.type||''}; } return {u:await blobToDataURL(b),t:b.type||''}; };
  const films=[]; for(const f of M.films){ if(off.has(f.id)) continue; const v=f.video?await media(f.video,'made_'+f.title):null;
   films.push(Object.assign({},f,{poster:f.poster?{u:await blobToDataURL(f.poster),t:f.poster.type||'image/jpeg'}:null,video:v?Object.assign(v,{n:f.title}):null})); }
- const writing=M.writing.filter(w=>!off.has(w.id));
+ const writing=[]; for(const w of M.writing){ if(off.has(w.id)) continue; writing.push(Object.assign({},w,{poster:w.posterBlob?{u:await blobToDataURL(w.posterBlob),t:w.posterBlob.type||'image/jpeg'}:null,posterBlob:undefined})); }
+ /* PHOTOGRAPHS: your stills, from your credits and your library */
+ const photos=[]; for(const a of ARTS.filter(x=>x.category==='still'&&(x.type||'').startsWith('image/')&&!off.has(x.id))){ const m=await media(a.blob,'photo_'+(a.label||a.filename||a.id)); if(m) photos.push(Object.assign(m,{n:a.label||''})); }
  const xclips=[]; for(const c of M.clips){ if(off.has(c.id)) continue; if(c.video){ const v=await media(c.video,'clip_'+c.title); if(v) xclips.push(Object.assign(v,{n:c.title})); } else if(c.link) xclips.push({link:c.link,n:c.title}); }
  const heads=[]; for(const h of M.headshots){ if(off.has(h.id)||h.name===primaryName()) continue; const m=await media(h.blob,'headshot_'+h.name.replace(/\.[^.]+$/,'')); if(m) heads.push(Object.assign(m,{roles:h.roles})); }
+ /* headshots brought in from your site (BRING IN MY SITE), beside the ones you kept in HEADSHOTS */
+ for(const a of ARTS.filter(x=>x.category==='headshot'&&x.from==='site'&&(x.type||'').startsWith('image/')&&x.id!==(pkgSel.headshot||profile.primaryHeadshot)&&!off.has(x.id))){ const nm0=String(a.filename||a.label||''), base=x=>String(x||'').replace(/\.[^.]+$/,'').toLowerCase(); if(heads.some(h=>h.n===nm0)||(M.headshots||[]).some(h=>base(h.name)===base(nm0))||(entries&&entries.some(e=>e.name==='media/'+safeName('headshot_'+String(a.label||a.filename||a.id).replace(/\.[^.]+$/,''))+'.'+String((a.blob.type||'').split('/')[1]||'bin').replace('jpeg','jpg')))) continue; const m=await media(a.blob,'headshot_'+String(a.label||a.filename||a.id).replace(/\.[^.]+$/,'')); if(m) heads.push(Object.assign(m,{n:a.filename||a.label,roles:[]})); }
  const links=pageLinks().concat(xclips.filter(x=>x.link).map(x=>({url:x.link,label:x.n,as:'clip'})));
  const vlinks=links.map(x=>Object.assign({},window.MadeBy?MadeBy.video(x.url):{kind:'link',url:x.url},{label:x.label,as:x.as})).filter(x=>x&&x.url);
- return {made:{films,writing},vlinks,xclips:xclips.filter(x=>x.u),heads,showRoles:!!profile.pageRoles};
+ return {made:{films,writing},vlinks,xclips:xclips.filter(x=>x.u),heads,photos,showRoles:!!profile.pageRoles};
 }
 function primaryName(){ const a=ARTS.find(x=>x.id===(pkgSel.headshot||profile.primaryHeadshot)); return a?(a.filename||a.label||''):''; }
 function madePanel(){
  if(!MADE){ loadMade(); return `<div class="panel"><h2>Made by me</h2><small class="note">Looking for your films, scripts and headshots&hellip;</small></div>`; }
- const off=new Set(pageOff()), F=MADE.films||[], W=MADE.writing||[], C=MADE.clips||[], H=(MADE.headshots||[]).filter(h=>h.name!==primaryName());
+ const HM=profile.madeHub||{}, off=new Set(pageOff()), F=(MADE.films||[]).concat(HM.films||[]), W=(MADE.writing||[]).concat(HM.writing||[]), C=MADE.clips||[], H=(MADE.headshots||[]).filter(h=>h.name!==primaryName());
  const row=(x,sub)=>{ const on=!off.has(x.id); return `<div class="reelrow" style="cursor:pointer;align-items:center" onclick="madeToggle('${esc(x.id)}')"><span class="num" style="${on?'color:var(--tung);border-color:var(--tung)':''}">${on?'&#10003;':''}</span><span class="rl">${esc(x.title||x.name)}</span><span class="tag">${esc(sub)}</span></div>`; };
  const n=F.length+W.length+C.length+H.length;
  let h=`<div class="panel"><h2>From your other tools &middot; ${n}</h2><small class="note">What you made and kept elsewhere goes on your page too. Films: Film Hub (the ones you added, and Story Studio films you marked done) and your own shorts and stage work from Virtual Résumé. Scripts: Paper Trail, once you've written a logline. Clips: Virtual Résumé. More headshots: the ones you marked Keep in Headshots. Tap one to leave it off.</small>`;
@@ -2782,10 +2859,10 @@ function linksPanel(){
    <div class="row" style="padding:0;gap:8px;flex-wrap:wrap"><input id="vllabel" placeholder="What it is: Cold Creek, the barn scene" style="flex:1 1 220px"><select id="vlas"><option value="clip">a clip</option><option value="reel">my reel</option></select><button class="act sm" onclick="linkAdd()">Add</button></div>
   </div></div>`;
 }
-function pkgToggleCredit(cid){const i=pkgSel.credits.indexOf(cid);if(i<0)pkgSel.credits.push(cid);else pkgSel.credits.splice(i,1);render();}
-function pkgToggleClip(id){const i=pkgSel.clips.indexOf(id);if(i<0)pkgSel.clips.push(id);else pkgSel.clips.splice(i,1);render();}
+function pkgToggleCredit(cid){pkgSel._picked=true;const i=pkgSel.credits.indexOf(cid);if(i<0)pkgSel.credits.push(cid);else pkgSel.credits.splice(i,1);render();}
+function pkgToggleClip(id){pkgSel._picked=true;const i=pkgSel.clips.indexOf(id);if(i<0)pkgSel.clips.push(id);else pkgSel.clips.splice(i,1);render();}
 function pkgToggleIn(list,id){const L=pkgSel[list];const i=L.indexOf(id);if(i<0)L.push(id);else L.splice(i,1);render();}
-function pkgSet(k,v){pkgSel[k]=v;render();}
+function pkgSet(k,v){pkgSel._picked=true;pkgSel[k]=v;render();}
 function pkgBytes(){let n=0;const add=id=>{const a=ARTS.find(x=>x.id===id);if(a&&a.blob)n+=a.blob.size;};
  add(pkgSel.headshot);add(pkgSel.resume);add(pkgSel.reel);add(pkgSel.about);pkgSel.clips.forEach(add);pkgSel.auditions.forEach(add);pkgSel.monologues.forEach(add);
  pkgSel.credits.forEach(cid=>{const c=credits.find(x=>x.cid===cid);if(c&&c.posterId)add(c.posterId);});
@@ -2811,7 +2888,7 @@ function pkgVideoPicker(title,cat,key,single){
    </div></div>`).join('')+`</div></div>`;
  return h;}
 function pkgPreset(k){
- pkgInit();
+ pkgInit(); pkgSel._picked=true;
  const one=c=>{const x=ARTS.filter(a=>a.category===c&&(a.type||'').startsWith(c==='headshot'?'image/':'video/'));return x[0]?x[0].id:'';};
  if(k==='submission'){                      // what a rep actually attaches
   pkgSel.preset=k; pkgSel.reel=one('reel')||one('master'); pkgSel.about='';
@@ -2951,14 +3028,16 @@ async function siteEntries(site){
   const res =await asData(pkgSel.resume);
   const reel=pkgSel.reel?await asFile(pkgSel.reel,'media'):null;
   const about=pkgSel.about?await asFile(pkgSel.about,'media'):null;
-  const clips=[];for(const id of pkgSel.clips){const g=await asFile(id,'media');if(g)clips.push(g);}
+  const underCredit=new Set(ARTS.filter(a=>a.category==='clip'&&pkgSel.credits.some(cid=>String(a.scope)==='credit:'+cid)).map(a=>a.id));
+  const clips=[];for(const id of pkgSel.clips){ if(underCredit.has(id)) continue; const g=await asFile(id,'media');if(g)clips.push(g);}
   const auds=[];for(const id of pkgSel.auditions){const g=await asFile(id,'media');if(g){const a=ARTS.find(x=>x.id===id);g.who=(a&&a.tag)||'';auds.push(g);}}
   const monos=[];for(const id of pkgSel.monologues){const g=await asFile(id,'media');if(g){const a=ARTS.find(x=>x.id===id);g.kind=(a&&a.category==='standup_vid')?'Stand-Up':'Monologue';monos.push(g);}}
   const cr=[];
   for(const cid of pkgSel.credits){const c=credits.find(x=>x.cid===cid);if(!c)continue;
    const po=ARTS.find(a=>String(a.scope)==='credit:'+cid&&a.category==='poster');
+   const cc=[]; for(const a of ARTS.filter(a=>String(a.scope)==='credit:'+cid&&a.category==='clip'&&(a.type||'').startsWith('video/'))){ const g=await asFile(a.id,'media'); if(g) cc.push(g); }
    cr.push({title:c.title,role:c.role,net:c.net,character:c.character||'',director:c.director||'',
-            charNote:c.charNote||'',poster:po?await asData(po.id):null});}
+            charNote:c.charNote||'',poster:po?await asData(po.id):null,clips:cc});}
   const doc=packageHTML(Object.assign(await pkgExtras('file',entries),{profile,note:pkgSel.note,contact:pkgSel.contact,head,res,reel,about,
     clips,auds,monos,credits:cr,site:site,ogfile:'share.jpg',
     showLane:!!pkgSel.showLane,showSkills:!!pkgSel.showSkills}));
@@ -3203,8 +3282,15 @@ function packageHTML(d){
  const rule=(label,count)=>`<div class="rule"><span class="lbl">${E(label)}</span>${count?`<span class="ct">${count}</span>`:''}<i></i></div>`;
  const emb=v=>v.embed?`<figure class="well"><iframe src="${E(v.embed)}" title="${E(v.label||'Video')}" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>${v.label?`<figcaption>${E(v.label)}</figcaption>`:''}</figure>`
    :`<figure class="well vl"><a href="${E(v.url)}" target="_blank" rel="noopener">${E(v.label||'Watch')} &rarr;</a></figure>`;
- const grid=(items,cls,links)=>`<div class="grid ${cls||''}">${items.map(m=>vid(m)).join('')}${(links||[]).map(emb).join('')}</div>`;
+ /* clips as cards: a still, the title, a play button; the player opens on top (a link to it, so it works with no script) */
+ const LB=[]; let LBn=0;
+ const lbVid=(list,cap)=>{ const id='v'+(++LBn); LB.push(`<div class="lbx" id="${id}" role="dialog" aria-label="${E(cap||'Clip')}"><a class="lbclose" href="#close" aria-label="Close">&times;</a>${list.map(m=>`<video src="${m.u}" controls preload="none" playsinline${m.poster?` poster="${m.poster}"`:''}></video>`).join('')}<p class="lbcap">${E(cap||'')}</p></div>`); return id; };
+ const lbImg=(m,cap)=>{ const id='p'+(++LBn); LB.push(`<div class="lbx" id="${id}" role="dialog" aria-label="${E(cap||'Photo')}"><a class="lbclose" href="#close" aria-label="Close">&times;</a><img src="${m.u}" alt="${E(cap||'')}"></div>`); return id; };
+ const tile=m=>{ const id=lbVid([m],[m.n,m.who?'as '+m.who:'',m.kind].filter(Boolean).join(' · '));
+   return `<figure class="tile"><a class="tl" href="#${id}">${m.poster?`<img src="${m.poster}" alt="" loading="lazy">`:`<video src="${m.u}" muted preload="metadata" playsinline></video>`}<span class="play" aria-hidden="true">&#9654;</span></a><figcaption>${E(m.n||'')}${m.who?` <span class="as">as ${E(m.who)}</span>`:''}${m.kind?` <span class="as">${E(m.kind)}</span>`:''}</figcaption></figure>`; };
+ const grid=(items,cls,links)=>`<div class="grid tiles ${cls||''}">${items.map(m=>tile(m)).join('')}${(links||[]).map(emb).join('')}</div>`;
  const VL=(d.vlinks||[]).filter(v=>v&&v.url), reelL=VL.filter(v=>v.as==='reel'), clipL=VL.filter(v=>v.as!=='reel');
+ const photos=(d.photos||[]).filter(has);
  const made=d.made||{}, mFilms=(made.films||[]), mWrite=(made.writing||[]), xclips=(d.xclips||[]).filter(has), heads=(d.heads||[]).filter(has), mVids=mFilms.filter(f=>f.video&&f.video.u).map(f=>f.video);
 
  const credits=d.credits||[];
@@ -3285,6 +3371,22 @@ section:last-of-type{border-bottom:0}
 .well.vl a,.mlinks a{font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:#F2F0EA;text-decoration:none;border-bottom:1px solid var(--salmon)}
 .mlinks{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px}.mlinks a{color:var(--blue)}
 .hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:16px}.hgrid figure{margin:0}.hgrid img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;background:var(--black);box-shadow:0 1px 5px rgba(20,18,14,.2)}.hgrid figcaption{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--grey);margin-top:6px}
+/* clips as cards; the player and photos open on top */
+.tiles{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.tile{margin:0}.tile .tl{position:relative;display:block;aspect-ratio:16/9;background:var(--black);overflow:hidden}
+.tile .tl img,.tile .tl video{width:100%;height:100%;object-fit:cover;display:block}
+.tile .play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:54px;height:54px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;padding-left:4px}
+.tile .tl:hover .play,.tile .tl:focus-visible .play{background:var(--salmon)}
+.tile figcaption{font-size:14px;margin-top:7px}
+.cplay{display:inline-block;margin-top:8px;font:600 11px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.14em;color:var(--ink);text-decoration:none;border:1px solid var(--ink);padding:5px 10px}
+.cplay:hover{background:var(--ink);color:var(--bond)}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}.pgrid a{display:block}.pgrid img{width:100%;aspect-ratio:3/2;object-fit:cover;display:block;background:var(--black)}
+.lbx{display:none;position:fixed;inset:0;z-index:60;background:rgb(10,10,10);padding:56px 4vw 4vh;flex-direction:column;align-items:center;justify-content:center;gap:12px;overflow:auto}
+.lbx:target{display:flex}.lbx video,.lbx img{width:min(1100px,100%);max-height:80vh;background:#000;object-fit:contain}
+.lbclose{position:absolute;top:10px;right:18px;color:#fff;font-size:38px;line-height:1;text-decoration:none}
+.lbcap{color:#ddd;margin:0;font-size:14px;text-align:center}
+.wrow.wposter{display:grid;grid-template-columns:86px 1fr;gap:14px;align-items:start}.wart{width:86px;aspect-ratio:2/3;object-fit:cover;display:block;background:var(--black)}
+@media print{.lbx,.tile .play,.cplay{display:none!important}}
 .mvids{margin-top:22px}
 .wlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px 26px;margin-top:22px}
 .wrow b{display:block;font-size:15px;line-height:1.25;color:var(--ink)}.wrow .cbits{font-family:var(--mono);font-size:11px;color:var(--grey);margin-top:5px;line-height:1.6}
@@ -3338,6 +3440,7 @@ footer .sp{flex:1}
    ${p.union?`<dt>Union</dt><dd>${E(p.union)}</dd>`:''}
    ${d.contact&&p.rep?`<dt>Rep</dt><dd>${E(p.rep)}</dd>`:''}
    ${d.contact&&p.phone?`<dt>Contact</dt><dd>${E(p.phone)}</dd>`:''}
+   ${/^https:\/\/(www\.|m\.)?imdb\.com\//.test(p.imdb||'')?`<dt>IMDb</dt><dd><a href="${E(p.imdb)}" target="_blank" rel="noopener">imdb.com</a></dd>`:''}
    ${p.locals?`<dt>Local</dt><dd>${E(p.locals)}</dd>`:''}
    ${(p.height||p.weight)?`<dt>Stats</dt><dd>${[p.height,p.weight].filter(Boolean).map(E).join(' &middot; ')}</dd>`:''}
   </dl>
@@ -3349,6 +3452,7 @@ footer .sp{flex:1}
 ${d.note?`<p class="note">${E(d.note)}</p>`:''}
 
 ${heads.length?`<section class="heads">${rule('More headshots',heads.length)}<div class="hgrid">${heads.map(h=>`<figure><img src="${h.u}" alt="${E(p.name||'')} headshot" loading="lazy">${d.showRoles&&(h.roles||[]).length?`<figcaption>${(h.roles||[]).map(E).join(' &middot; ')}</figcaption>`:''}</figure>`).join('')}</div></section>`:''}
+${photos.length?`<section class="photos">${rule('Photographs',photos.length)}<div class="pgrid">${photos.map(ph=>`<a href="#${lbImg(ph,ph.n)}"><img src="${ph.u}" alt="${E(ph.n||'Photo')}" loading="lazy"></a>`).join('')}</div></section>`:''}
 
 ${has(d.about)?`<section>${rule('About me')}${vid(d.about,'solo')}</section>`:''}
 ${(has(d.reel)||reelL.length)?`<section>${rule('Reel')}${has(d.reel)?vid(d.reel,'solo'):''}${reelL.map(emb).join('')}</section>`:''}
@@ -3365,6 +3469,7 @@ ${credits.length?`<section>${rule('Credits',credits.length)}
      ${c.character?`<div class="cn">${E(c.character)}</div>`:''}
      <div class="cbits">${[c.role,c.net,c.director?'dir. '+c.director:''].filter(Boolean).map(E).join(' &middot; ')}</div>
      ${c.charNote?`<p class="cbrk">${E(c.charNote)}</p>`:''}
+     ${(c.clips||[]).length?`<a class="cplay" href="#${lbVid(c.clips,[c.title,c.character].filter(Boolean).join(' · '))}">&#9654; PLAY${c.clips.length>1?' '+c.clips.length+' CLIPS':''}</a>`:''}
    </div>
   </article>`).join('')}
  </div>
@@ -3380,7 +3485,7 @@ ${(mFilms.length||mWrite.length)?`<section class="made">${rule('Made by me',mFil
      ${(f.links||[]).length?`<div class="mlinks">${f.links.map(l=>`<a href="${E(l.url)}" target="_blank" rel="noopener">${E(l.label||'Watch')} &rarr;</a>`).join('')}</div>`:''}
    </div></article>`).join('')}</div>`:''}
  ${mVids.length?`<div class="grid mvids">${mVids.map(v=>vid(v)).join('')}</div>`:''}
- ${mWrite.length?`<div class="wlist">${mWrite.map(w=>`<article class="wrow"><b>${E(w.title)}</b><div class="cbits">${[w.kind||'Script',w.genre].filter(Boolean).map(E).join(' &middot; ')}</div>${w.logline?`<p class="cbrk">${E(w.logline)}</p>`:''}</article>`).join('')}</div>`:''}
+ ${mWrite.length?`<div class="wlist">${mWrite.map(w=>`<article class="wrow${w.poster&&w.poster.u?' wposter':''}">${w.poster&&w.poster.u?`<img class="wart" src="${w.poster.u}" alt="${E(w.title)}" loading="lazy">`:''}<div><b>${E(w.title)}</b><div class="cbits">${[w.kind||'Script',w.genre,w.status].filter(Boolean).map(E).join(' &middot; ')}</div>${w.logline?`<p class="cbrk">${E(w.logline)}</p>`:''}${(w.links||[]).length?`<div class="mlinks">${w.links.map(l=>`<a href="${E(l.url)}" target="_blank" rel="noopener">${E(l.label||'Read more')} &rarr;</a>`).join('')}</div>`:''}</div></article>`).join('')}</div>`:''}
 </section>`:''}
 
 ${has(d.res)?`<section>${rule('Resume')}
@@ -3409,7 +3514,7 @@ ${(d.contact&&(p.email||p.phone))?`<section class="reach">${rule('Get in touch')
  <span class="sp"></span>
  <span style="opacity:.55">theactorpage.com</span>
 </footer>
-</main></body></html>`;
+</main>${LB.join('')}<script>addEventListener('hashchange',function(){document.querySelectorAll('.lbx video').forEach(function(v){if(!v.closest(':target'))v.pause();});});<\/script></body></html>`;
 }
 /* ===== DEMO DATA =====
    A hub with nothing in it teaches nobody what 27 panels are for, so a first run
