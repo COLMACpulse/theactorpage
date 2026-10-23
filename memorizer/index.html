@@ -137,14 +137,14 @@ nav.tabs button.on{color:var(--tung-text)}
 .hico{width:52px;height:65px;flex:none}
 .hico .pg{fill:var(--panel2);stroke:var(--line)}.hico .rl{stroke:var(--line);stroke-width:2;stroke-linecap:round}
 .hico .who{font:700 10px var(--mono,monospace);letter-spacing:.1em;fill:var(--dim)}
-.hico .ln{font:700 13px var(--mono,monospace);fill:var(--tung-text)}.hico .ln.on{font:500 12.5px var(--sans,sans-serif);fill:var(--ink)}
+.hico .ln{font:700 13px var(--mono,monospace);fill:var(--tung-text)}.hico .ln.on{font:500 11px var(--sans,sans-serif);fill:var(--ink)}
 .hico .dot{fill:var(--tung)}
 .hico .a,.hico .b{animation:memA 5s ease-in-out infinite}.hico .b{animation-name:memB}
 @keyframes memA{0%,40%{opacity:1}50%,90%{opacity:0}100%{opacity:1}}
 @keyframes memB{0%,40%{opacity:0}50%,90%{opacity:1}100%{opacity:0}}
 @media (prefers-reduced-motion:reduce){.hico .a{animation:none;opacity:0}.hico .b{animation:none;opacity:1}}
 .hsig{width:46px;height:46px;flex:none;object-fit:contain}
-.hstk{display:block;height:5px;background:repeating-linear-gradient(115deg,#2b3038 0 14px,#1f8a5c 14px 28px,#d9b23a 28px 42px,#2a5fa8 42px 56px,#c0392b 56px 70px,#e8e6e0 70px 84px,#9aa0a8 84px 98px,#5c636d 98px 112px,#2b3038 112px 126px)}
+.hstk{display:block;height:26px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='176' height='30' viewBox='0 0 176 30'%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232b3038' transform='translate%28-22%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%231f8a5c' transform='translate%280%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23d9b23a' transform='translate%2822%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232a5fa8' transform='translate%2844%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23c0392b' transform='translate%2866%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23e8e6e0' transform='translate%2888%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%239aa0a8' transform='translate%28110%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%235c636d' transform='translate%28132%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232b3038' transform='translate%28154%29'/%3E%3C/svg%3E") repeat-x 0 50%/auto 100%;box-shadow:inset 0 0 0 1px #00000055;opacity:.92}
 .heard.live{font-size:22px;line-height:1.45;min-height:3.2em;color:var(--ink);font-style:normal}
 .heard .hw{display:inline-block;margin-right:.28em;animation:hwIn .18s ease-out}.heard .hw.ok{color:var(--tung-text)}.heard .hw.off{color:var(--dim)}
 @keyframes hwIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
@@ -160,6 +160,12 @@ nav.tabs button.on{color:var(--tung-text)}
 @media (min-width:760px){ .top{padding-left:max(16px,calc((100vw - 720px)/2 + 16px));padding-right:max(16px,calc((100vw - 720px)/2 + 16px))} }
 @media (min-width:1000px){ main{max-width:920px} .top{padding-left:calc((100vw - 920px)/2 + 16px);padding-right:calc((100vw - 920px)/2 + 16px)} .hico{width:66px;height:82px}.hsig{width:64px;height:64px}.top b{font-size:22px} }
 body:has(#hotbar) .top{padding-top:calc(env(safe-area-inset-top) + 50px)}
+.recyou{display:flex;align-items:center;gap:10px;margin:12px 0 0;flex-wrap:wrap}
+.recyou .rw{flex:1;min-width:120px}.recyou .wv{display:block;width:100%;height:28px}
+.recyou canvas.live{flex:1;min-width:140px;height:48px;--wv:var(--tung);--wv-top:#f0846e}
+.recyou .rt2{font:700 14px var(--mono);color:#e0574a}
+.recyou.on .btn.pri{background:#e0574a;border-color:#e0574a;color:#fff}
+.li.playing{background:var(--tung-soft);border-radius:10px;padding-left:10px;padding-right:10px}
 </style>
 </head>
 <body>
@@ -186,6 +192,8 @@ body:has(#hotbar) .top{padding-top:calc(env(safe-area-inset-top) + 50px)}
 </nav>
 <div class="toast" id="toast"></div>
 <input type="file" id="file" accept=".pdf,.txt,.fountain,.fdx,.srt,.vtt,text/plain,application/pdf" class="hide">
+<script src="../shared/capture.js"></script>
+<script src="../shared/wave.js"></script>
 <script src="../shared/shelf.js"></script>
 <script src="../shared/scenes.js"></script>
 <script src="../actor-os/sides.js"></script>

@@ -87,6 +87,7 @@ function paintTop(){
 
 /* ---------- tabs ---------- */
 function tab(t){
+ if(RREC) recStop(); hush();
  DB.tab=t; save(); stopListening();
  document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
  render(); window.scrollTo(0,0);
@@ -170,13 +171,14 @@ function renderDrill(){
   h+=`<div class="saybar">${Rec?`<button class="btn big ${LIS?'':'pri'}" id="sayBtn" onclick="MEM.listen()">${LIS?'STOP':'SAY IT'}</button>`:''}
    <button class="btn big ${Rec?'':'pri'}" onclick="MEM.reveal()" ${Rec?'':'style="grid-column:1/-1"'}>${Rec?'SHOW THE LINE':'SAID IT. SHOW THE LINE'}</button></div>`;
   h+=`<div class="heard ${LIS?'listening live':''}" id="heard" aria-live="polite">${LIS?(D.heard?liveWords(D.heard,target):'<span class="lis" aria-hidden="true"></span>Listening… say it.'):(Rec?'':'Say it out loud, then check.')}</div>`;
+  h+=recBlock(it.key);
   if(Rec) h+=`<p class="faint" style="font-size:12px;margin:6px 0 0">SAY IT uses the browser's speech service: Chrome sends what you say to Google, Safari to Apple. SHOW THE LINE never listens.</p>`;
   h+=D.typing?`<div class="typebox"><textarea class="field" id="typed" rows="3" placeholder="Type what you said"></textarea>
      <div class="row" style="margin-top:8px"><button class="btn" onclick="MEM.checkTyped()">CHECK</button></div></div>`
     :`<div style="margin-top:10px"><button class="btn ghost sm" onclick="MEM.typing()">Type it instead</button></div>`;
  } else {
   const c=D.heard?E.compare(target,D.heard):null;
-  h+=`<div class="reveal"><div class="full">${c?diffHtml(target,c):esc(target)}</div>`;
+  h+=`<div class="reveal"><div class="full">${c?diffHtml(target,c):esc(target)}</div>`+recBlock(it.key);
   if(c) h+=`<div class="result">${esc(c.say)}${D.heard?` <span class="faint">Heard: “${esc(D.heard)}”</span>`:''}</div>`;
   if(D.beat!=null){
    const nx=D.beat+1<beats.length?D.beat+1:-1;
@@ -231,6 +233,57 @@ function anyway(){ D.anyway=true; D.key=''; renderDrill(); }
 function liveWords(heard,target){
  const t=E.words(target||''), said=String(heard||'').split(/\s+/).filter(Boolean);
  let i=0; return '<span class="lis" aria-hidden="true"></span>'+said.map(w=>{ const k=E.words(w)[0]||''; const ok=k&&t[i]===k; if(k) i++; return '<span class="hw '+(ok?'ok':'off')+'">'+esc(w)+'</span>'; }).join('');
+}
+/* ---------- record yourself, hear it back: one recording a line, kept on this device ---------- */
+const CAP=window.Capture, WV=window.Wave;
+let MDBP=null;
+function mdb(){ return MDBP||(MDBP=new Promise(res=>{ try{ const r=indexedDB.open('memorizer_media',1); r.onupgradeneeded=()=>r.result.createObjectStore('b'); r.onsuccess=()=>res(r.result); r.onerror=()=>res(null); }catch(e){ res(null); } })); }
+async function mput(id,blob){ const d=await mdb(); if(!d) return false; return new Promise(res=>{ const t=d.transaction('b','readwrite'); t.objectStore('b').put(blob,id); t.oncomplete=()=>res(true); t.onerror=()=>res(false); }); }
+async function mget(id){ const d=await mdb(); if(!d) return null; return new Promise(res=>{ const q=d.transaction('b','readonly').objectStore('b').get(id); q.onsuccess=()=>res(q.result||null); q.onerror=()=>res(null); }); }
+async function mdel(id){ const d=await mdb(); if(!d||!id) return; return new Promise(res=>{ const t=d.transaction('b','readwrite'); t.objectStore('b').delete(id); t.oncomplete=()=>res(); t.onerror=()=>res(); }); }
+let RMIC=null, RREC=null, RKEY='', RT0=0, RTICK=null, RPLAY=null, RALL=null;
+const recOf=key=>SC&&SC.recs&&SC.recs[key]||null;
+async function recYou(key){
+ if(RREC&&RKEY===key) return recStop();
+ if(RREC) await recStop();
+ stopListening(); hush();
+ if(!CAP){ toast('This browser can\'t record here.'); return; }
+ try{ RMIC=await CAP.open({video:false,audio:true}); }catch(e){ toast(CAP.errorWords(e,'audio')); return; }
+ RREC=CAP.record(RMIC,'audio'); RKEY=key; RT0=Date.now(); render();
+ if(WV) WV.live.start(RMIC);
+ RTICK=setInterval(()=>{ const v=((Date.now()-RT0)/1000).toFixed(1)+' s'; document.querySelectorAll('[data-rt2]').forEach(el=>{ el.textContent=v; }); },100);
+}
+async function recStop(){
+ const r=RREC, key=RKEY; RREC=null; RKEY=''; clearInterval(RTICK); if(WV) WV.live.stop(); if(!r) return;
+ const out=await r.stop(); try{ CAP.stop(RMIC); }catch(e){} RMIC=null;
+ let wave=null, secs=out.secs;
+ try{ const AC=window.AudioContext||window.webkitAudioContext, ac=new AC(), ab=await out.blob.arrayBuffer();
+  const b=await new Promise((res,rej)=>{ const pr=ac.decodeAudioData(ab,res,rej); if(pr&&pr.then) pr.then(res,rej); });
+  wave=WV?WV.peaks(b.getChannelData(0),56):null; secs=Math.round(b.duration*10)/10; try{ ac.close(); }catch(e){} }catch(e){}
+ const id='r-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+ if(!(await mput(id,out.blob))){ toast('This phone would not keep the recording.'); render(); return; }
+ SC.recs=SC.recs||{}; const old=SC.recs[key]; if(old) mdel(old.id);
+ SC.recs[key]={id,at:Date.now(),secs,wave}; save(); render(); toast('Kept. Tap HEAR YOURSELF.');
+}
+function hush(){ if(RPLAY){ try{ RPLAY.pause(); URL.revokeObjectURL(RPLAY.src); }catch(e){} RPLAY=null; } if(RALL){ RALL.stop=true; RALL=null; } document.querySelectorAll('.li.playing').forEach(e=>e.classList.remove('playing')); }
+function playBlob(b){ return new Promise(res=>{ hush(); RPLAY=new Audio(URL.createObjectURL(b)); RPLAY.onended=()=>res(true); RPLAY.onerror=()=>res(false); RPLAY.play().catch(()=>res(false)); }); }
+async function hear(key){ const r=recOf(key); if(!r) return; const b=await mget(r.id); if(!b){ toast('That recording is gone.'); return; } playBlob(b); }
+/* every line you recorded, in order, a beat between: listen like a tape */
+async function hearAll(){
+ if(RALL){ hush(); renderLines(); return; }
+ const L=ITEMS.filter(it=>recOf(it.key)); if(!L.length){ toast('Record a line first: RECORD YOURSELF on DRILL.'); return; }
+ const run={stop:false}; RALL=run; renderLines();
+ for(const it of L){ if(run.stop) break; const b=await mget(recOf(it.key).id); if(!b) continue;
+  document.querySelectorAll('.li').forEach(e=>e.classList.toggle('playing',e.dataset.k===it.key)); const el=document.querySelector('.li[data-k="'+it.key+'"]'); if(el&&el.scrollIntoView) el.scrollIntoView({block:'center',behavior:'smooth'});
+  RPLAY=new Audio(URL.createObjectURL(b)); await new Promise(res=>{ RPLAY.onended=res; RPLAY.onerror=res; RPLAY.play().catch(res); }); if(run.stop) break; await new Promise(r=>setTimeout(r,700)); }
+ if(RALL===run) RALL=null; document.querySelectorAll('.li.playing').forEach(e=>e.classList.remove('playing')); renderLines();
+}
+function recBlock(key){
+ const r=recOf(key), on=RKEY===key;
+ return `<div class="recyou${on?' on':''}"><button class="btn ${on?'pri':''}" onclick="MEM.recYou('${key}')">${on?'■ STOP':'● RECORD YOURSELF'}</button>`
+  +(on?`<canvas class="live" data-live role="img" aria-label="What the mic hears"></canvas><span class="rt2" data-rt2>0.0 s</span>`
+   :r?`<button class="btn" onclick="MEM.hear('${key}')">▶ HEAR YOURSELF</button><span class="rw">${WV&&r.wave?WV.svg(r.wave,{cls:'sm',label:'Your recording of this line'}):''}</span><span class="faint" style="font-size:12px">${r.secs} s</span>`:'')
+  +`</div>`;
 }
 /* ---------- listening (where the phone can) ---------- */
 let LIS=null, lisT=null;
@@ -348,15 +401,16 @@ function sceneRetry(){ delete R.done[R.pos]; R.shown=false; renderScene(); }
 
 /* ================= LINES ================= */
 function renderLines(){
- const now=Date.now();
- let h=`<p class="dim" style="margin-top:0">${ITEMS.length} speech${ITEMS.length===1?'':'es'} for ${esc(SC.me)}${SC.range?' in the marked scene':''}. The action word is optional: one verb you play on that line, shown when you drill it.</p>`;
+ const now=Date.now(), nrec=ITEMS.filter(it=>recOf(it.key)).length;
+ let h=(nrec?`<div class="row" style="margin:0 0 12px"><button class="btn ${RALL?'':'pri'}" onclick="MEM.hearAll()">${RALL?'■ STOP':'▶ HEAR ALL YOUR LINES'}</button><span class="faint" style="font-size:13px">${nrec} of ${ITEMS.length} recorded, in order</span></div>`:'')+`<p class="dim" style="margin-top:0">${ITEMS.length} speech${ITEMS.length===1?'':'es'} for ${esc(SC.me)}${SC.range?' in the marked scene':''}. The action word is optional: one verb you play on that line, shown when you drill it.</p>`;
  ITEMS.forEach(it=>{
   const st=SC.states[it.key], s=E.status(st);
   const when=!st||!st.seen?'':(st.due<=now?'due now':'back in '+E.inWords(st.due-now));
   const v=SC.verbs[it.key]||'';
   const verbs=E.VERBS.concat((DB.myVerbs||[]).filter(x=>E.VERBS.indexOf(x)<0)).sort();
-  h+=`<div class="li"><div class="h"><span>LINE ${it.n}${when?' · '+when:''}</span><span class="pill ${s}">${({work:'needs work',new:'not drilled',getting:'getting there',solid:'solid'})[s]}</span></div>
-   <div class="t">${esc(it.text)}</div><div class="fl">${esc(E.letters(it.text))}</div>
+  const rc=recOf(it.key);
+  h+=`<div class="li" data-k="${it.key}"><div class="h"><span>LINE ${it.n}${when?' · '+when:''}</span><span class="pill ${s}">${({work:'needs work',new:'not drilled',getting:'getting there',solid:'solid'})[s]}</span></div>
+   <div class="t">${esc(it.text)}</div><div class="fl">${esc(E.letters(it.text))}</div>${rc?`<div class="recyou"><button class="btn sm" onclick="MEM.hear('${it.key}')" aria-label="Hear yourself say line ${it.n}">▶</button><span class="rw">${WV&&rc.wave?WV.svg(rc.wave,{cls:'sm'}):''}</span><span class="faint" style="font-size:12px">${rc.secs} s</span></div>`:''}
    <select class="field" onchange="MEM.verb('${it.key}',this.value)"><option value="">action word</option>${verbs.map(x=>`<option ${x===v?'selected':''}>${esc(x)}</option>`).join('')}<option value="__own">+ your own word</option></select></div>`;
  });
  h+=`<div class="row" style="margin-top:18px"><button class="btn ghost sm" onclick="MEM.resetProgress()">Start this script over</button></div>`;
@@ -367,7 +421,7 @@ function setVerb(key,v){
  if(v) SC.verbs[key]=v; else delete SC.verbs[key];
  save(); renderLines();
 }
-function resetProgress(){ if(!confirm('Forget every mark on this script and start over?'))return; SC.states={}; save(); resetDrill(); render(); }
+function resetProgress(){ if(!confirm('Forget every mark on this script and start over? Your recordings stay.'))return; SC.states={}; save(); resetDrill(); render(); }
 
 /* ================= SIDES ================= */
 let PENDING=null, PDFMSG='', SHELFALL=false;
@@ -466,7 +520,8 @@ function fromShelf(id){
  PENDING={text:x.text,file:x.file,shelf:x.id}; renderSides(); window.scrollTo(0,0);
 }
 function removeScript(id){
- if(!confirm('Remove this script and its marks from this phone?')) return;
+ if(!confirm('Remove this script, its marks and your recordings of it from this phone?')) return;
+ try{ const x=DB.scripts[id]; if(x&&x.recs) Object.values(x.recs).forEach(r=>mdel(r.id)); }catch(e){}
  delete DB.scripts[id]; if(DB.cur===id){ DB.cur=Object.keys(DB.scripts)[0]||''; build(); resetDrill(); R.on=false; }
  save(); render();
 }
@@ -474,7 +529,7 @@ function removeScript(id){
 /* ---------- boot ---------- */
 window.MEM={tab:tab,level:setLevel,beat:setBeat,again:again,reveal:reveal,typing:typing,checkTyped:checkTyped,mark:mark,anyway:anyway,
  listen:listen,scene:sceneStart,sceneShow:sceneShow,sceneMark:sceneMark,sceneRetry:sceneRetry,verb:setVerb,resetProgress:resetProgress,
- pickMe:pickMe,takeAO:takeAO,shelfAll:()=>{ SHELFALL=true; renderSides(); },sayAll:sayAll,sayKeep:sayKeep,sayClear:sayClear,paste:pasteIt,open:openScript,remove:removeScript,fromShelf:fromShelf,
+ pickMe:pickMe,takeAO:takeAO,recYou:recYou,hear:hear,hearAll:hearAll,shelfAll:()=>{ SHELFALL=true; renderSides(); },sayAll:sayAll,sayKeep:sayKeep,sayClear:sayClear,paste:pasteIt,open:openScript,remove:removeScript,fromShelf:fromShelf,
  _db:()=>DB,_items:()=>ITEMS,_script:()=>SCRIPT,_state:()=>({D:D,R:R})};
 /* a practice scene is only for when you ask for it: opening Memorizer again goes back to your own sides */
 try{ const c=DB.scripts&&DB.scripts[DB.cur]; if(c&&window.DailyScenes&&(c.from==='Practice scene'||DailyScenes.isPractice(c.file))){ const own=Object.keys(DB.scripts).filter(k=>{ const x=DB.scripts[k]; return x&&x.from!=='Practice scene'&&!DailyScenes.isPractice(x.file); }); DB.cur=own[own.length-1]||''; save(); } }catch(e){}
