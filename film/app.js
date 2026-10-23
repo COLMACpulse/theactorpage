@@ -505,7 +505,8 @@ function clickBox(){ if(!CLICK) return '';
 function vWrap(){ const c=cur(), S=setOf(), t=F.wrapText({title:String(c.file||'Script').replace(/\.(pdf|txt|fountain|fdx)$/i,'').replace(/_/g,' '),date:c.dayDate||ymd(new Date()),shots:dayList(),log:S.log,delays:kitOf().delays,tones:kitOf().tones,reads:kitOf().read});
  return '<div class="row" style="margin-bottom:10px"><button class="lnk" id="wrapback">‹ Back to the day</button></div><div class="card"><p class="kicker">Wrap report</p><pre class="wrap">'+esc(t)+'</pre>'
   +'<div class="row"><button class="btn" id="wrapcopy">COPY</button><a class="btn" id="wrapmail" href="mailto:?subject='+encodeURIComponent('Wrap: '+t.split('\n')[0])+'&body='+encodeURIComponent(t)+'">EMAIL IT</a><button class="btn" id="wrapsave">SAVE AS TEXT</button></div>'
-  +'<p class="faint" style="font-size:13px;margin:10px 0 0">For the editor and the crew. The circled takes and every note, scene by scene, and what\'s still to shoot.</p></div>'; }
+  +'<p class="faint" style="font-size:13px;margin:10px 0 0">For the editor and the crew. The circled takes and every note, scene by scene, and what\'s still to shoot.</p>'
+  +'<p class="faint" style="font-size:13px;margin:10px 0 0">Before you erase a card: <a href="../footage/check.html" id="wrapcheck">CHECK THE COPY</a>. Every file on your copies, matched to the card.</p></div>'; }
 function wireSet(){
  setLines(); const S=setOf();
  document.querySelectorAll('[data-allway]').forEach(b=>b.onclick=()=>{ SCENES.forEach(sc=>{ if(!wayOf(sc.n)) st(sc.n).way=b.dataset.allway; }); save(); render(); });

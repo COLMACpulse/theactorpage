@@ -53,7 +53,7 @@
     let h = '';
     if (S.msg) h += '<p class="msg" id="msg">' + esc(S.msg) + '</p>';
     if (al.length) h += '<div class="card" id="needs"><p class="kick">WHAT NEEDS YOU</p>' + al.map(a => '<p class="small" style="margin:4px 0"><a href="#" data-open="' + a.id + '">' + esc(a.line) + '</a></p>').join('') + '</div>';
-    h += '<div class="row"><button class="btn" id="add">ADD A JOB</button></div>';
+    h += '<div class="row"><button class="btn" id="add">ADD A JOB</button><a class="btn quiet" href="check.html" id="tocheck">CHECK THE COPY</a><span class="mut small">before you erase a camera card</span></div>';
     h += '<div class="chips" role="group" aria-label="Show">' + [['', 'All', F.jobs().length]].concat(F.STATUS.map(([k, l]) => [k, l, c[k]])).map(([k, l, n]) => '<button type="button" class="chip' + (S.filter === k ? ' on' : '') + '" data-f="' + k + '">' + esc(l.toUpperCase()) + ' ' + n + '</button>').join('') + '</div>';
     if (S.adding) h += '<div class="card" id="detail"><p class="kick">ADD A JOB</p>' + form(null) + '<div class="row" style="margin-top:12px"><button class="btn" id="keepnew">ADD</button><button class="btn quiet" data-close>CANCEL</button></div></div>';
     if (S.open && !S.trim) { const j = F.get(S.open); if (j) h += '<div class="card" id="detail"><p class="kick">' + esc(F.statusName(F.status(j, day)).toUpperCase()) + '</p>' + form(j)
