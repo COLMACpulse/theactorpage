@@ -1,6 +1,6 @@
 /* PRACTICE SCENE: a quiet link, only when you tap it. Says it's AI-written prompts, not plays. Its own lane:
    never on the sides shelf, never replaces your real sides. TAPE IT -> Actor OS for that session; LEARN -> Memorizer;
-   REWRITE -> Writer's Blockage. Made-up sides only. Server on :8811.  NODE_PATH=... node tests/practice_e2e.js */
+   REWRITE -> THEACTORPAGES. Made-up sides only. Server on :8811.  NODE_PATH=... node tests/practice_e2e.js */
 const {chromium}=require('playwright');
 (async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,400))); if(!x) ok=false; };
@@ -58,7 +58,7 @@ want('LEARN: Memorizer has it, your part, not on the shelf', await p.evaluate(([
 await p.goto('http://localhost:8811/index.html'); await p.waitForTimeout(600); await p.click('[data-practice] .spark-btn'); await p.waitForTimeout(100);
 await p.click('[data-pgo="write"]'); await p.waitForURL(/writers-blockage/); await p.waitForTimeout(2000);
 const wb=await p.evaluate(()=>document.body.innerText);
-want('REWRITE: Writer\'s Blockage opens it, note says AI practice prompt', /Written by AI as a practice prompt/.test(wb), wb.slice(0,300));
+want('REWRITE: THEACTORPAGES opens it, note says AI practice prompt', /Written by AI as a practice prompt/.test(wb), wb.slice(0,300));
 want('no em dashes in the card copy', !/—/.test(card));
 want('no page errors', !errs.length, errs);
 await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();

@@ -21,7 +21,7 @@ Tools for actors, live at https://colmacpulse.github.io/theactorpage/. ACT is th
 | `resume/` | VIRTUAL RÉSUMÉ | Work you shot yourself, as honest credits. |
 | `slate/` | SLATE MAKER | The solo slate, opened from Actor OS. |
 | `gsd/` | GSD | What you need to get done. |
-| `write/` | WRITER'S BLOCKAGE | Write the script. |
+| `write/` | THEACTORPAGES | Write the script. |
 | `papertrail/` | PAPER TRAIL | Every draft, kept. |
 | `setlist/` | SET LIST | Funny, in order. |
 | `film/` | STORY STUDIO | Crew or solo, script to cut. |

@@ -1,5 +1,5 @@
 /*
-  SignalScript — a panel for Writers Blockage.
+  SignalScript — a panel for THEACTORPAGES.
 
   Turns raw speech into readable writing without flattening the voice.
   Ported from SignalScript v2. The doctrine is unchanged:

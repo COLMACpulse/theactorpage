@@ -209,7 +209,7 @@
     /* best matches first, then the rest of the library, so "Another" never runs dry */
     return { matched: hits > 0, hits, list: scored.map(x => x.p).slice(0, n || S.length) };
   }
-  /* The starting page for Writer's Blockage: the premise as notes, the place, the first image. No dialogue. */
+  /* The starting page for THEACTORPAGES: the premise as notes, the place, the first image. No dialogue. */
   /* Make it yours: the premise starts something, you add to it. One line each, all optional. */
   const ADDS = [
     { k: 'secret', label: 'A secret', q: 'What does your character know that the other one does not?' },

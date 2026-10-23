@@ -780,7 +780,7 @@
         try { localStorage.setItem('theactorpage_handoff_premise', JSON.stringify({ from: 'archbook', title: p.title, fountain: window.ArchScenes.fountain(p, w ? w.text : '', adds), at: Date.now() })); }
         catch (e) { toast('Could not hand it over: ' + e.message); break; }
         if (/^https?:$/.test(location.protocol)) location.href = '../write/writers-blockage.html';
-        else toast('Opened from a file, so Writer\'s Blockage is not next door. Open it on theactorpage.com.');
+        else toast('Opened from a file, so THEACTORPAGES is not next door. Open it on theactorpage.com.');
         break;
       }
       case 'unwant': L.wants = L.wants.filter(w => w.key !== ds.k); touch(); render(); break;

@@ -1,4 +1,4 @@
-/* WRITER'S BLOCKAGE · TOOLS: counts from the blocks, nothing written. Made-up script.  node write/tests/tools_tests.js */
+/* THEACTORPAGES · TOOLS: counts from the blocks, nothing written. Made-up script.  node write/tests/tools_tests.js */
 const WT=require('../panel-tools.js'), T=require('../../papertrail/trail.js');
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,500))); if(!x) ok=false; };
 let id=0; const B=(type,text)=>({id:'b'+(++id),type,text});

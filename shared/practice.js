@@ -6,7 +6,7 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;'
 P.WORKS={secret:'playing a secret',comedy:'comedy',listening:'listening',objective:'going after what you want',relationship:'a relationship',
  reversal:'a turn in the middle',silence:'what nobody says',status:'who has the upper hand',tactic:'changing tactics',circumstance:'where you are and what just happened'};
 P.works=s=>P.WORKS[s&&s.trains]||String((s&&s.trains)||'');
-/* the hand-off to Writer's Blockage: the scene as a script, with a note at the top that it's yours to change */
+/* the hand-off to THEACTORPAGES: the scene as a script, with a note at the top that it's yours to change */
 P.premise=s=>({from:'daily',title:s.title,fountain:'[[Practice scene: '+s.title+'. Works on '+P.works(s)+'. '+s.setup+' Written by AI as a practice prompt, not from anything real. Change anything you like.]]\n\n'+s.text,at:Date.now()});
 let ME='', MODE='';
 P.NOTE='Practice prompts, not plays. Written by AI, not by me, and not from anything real. Short and random, there to get you moving when you\'ve got nothing to tape. Change anything.';

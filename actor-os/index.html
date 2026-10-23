@@ -1011,7 +1011,7 @@ async function fromHomeTakes(){
 }
 window.addEventListener('load',()=>{ setTimeout(fromHomeTakes,700); });
 window.addEventListener('load',()=>{ setTimeout(rehydrateTakes,300); setTimeout(()=>{try{navState();}catch(e){}},420); });
-/* Sides sent from Writer's Blockage on the same site. Taken once, then cleared. */
+/* Sides sent from THEACTORPAGES on the same site. Taken once, then cleared. */
 window.addEventListener('load',()=>{ setTimeout(()=>{
  try{
   const h=JSON.parse(localStorage.getItem('theactorpage_handoff_sides')||'null');
@@ -1023,7 +1023,7 @@ window.addEventListener('load',()=>{ setTimeout(()=>{
   loadSides(h.text, h.file||'script.fountain');
   if(h.title) setJobName(h.title);
   try{ goTab('prep'); }catch(e){}
-  stageToast('Sides from Writer\u2019s Blockage. Pick your character.');
+  stageToast('Sides from THEACTORPAGES. Pick your character.');
  }catch(e){}
  },380); });
 /* Bring the last sides back, with the role and the scene marks that were on them. */

@@ -588,7 +588,7 @@ function vDrafts(p){
     +(r.added.length?'<br><span class="note">Added: '+esc(r.added.slice(0,4).map(x=>x.heading).join(' · '))+'</span>':'')
     +(r.removed.length?'<br><span class="note">Cut: '+esc(r.removed.slice(0,4).map(x=>x.heading).join(' · '))+'</span>':''); }
   h+='<div class="li"><div class="w"><b>'+esc(d.label)+'</b> <span class="tag">'+d.kind+'</span>'+(c&&d.id===c.id?' <span class="tag cur">current</span>':'')+(d.retired?' <span class="tag red">retired</span>':'')
-   +'<small>'+esc(filesOf(d))+' · '+esc(d.source)+' · added '+esc(day(d.added))+' · '+d.scenes+' scenes · '+d.words+' words'+(/^[0-9a-f]{64}$/.test(d.hash||'')?' · fingerprint '+d.hash.slice(0,8)+'…'+d.hash.slice(-4):'')+'</small>'+(cmp?'<small style="color:var(--ink-2)">'+cmp+'</small>':'')+'</div>'
+   +'<small>'+esc(filesOf(d))+' · '+esc(/^Writer.s Blockage$/.test(d.source||'')?'THEACTORPAGES':d.source)+' · added '+esc(day(d.added))+' · '+d.scenes+' scenes · '+d.words+' words'+(/^[0-9a-f]{64}$/.test(d.hash||'')?' · fingerprint '+d.hash.slice(0,8)+'…'+d.hash.slice(-4):'')+'</small>'+(cmp?'<small style="color:var(--ink-2)">'+cmp+'</small>':'')+'</div>'
    +'<div class="row">'+(d.kind==='script'&&!(c&&d.id===c.id)&&!d.retired?'<button class="btn sm" data-cur="'+d.id+'">MAKE CURRENT</button>':'')
    +'<button class="btn sm ghost" data-move="'+d.id+'">MOVE</button><button class="btn sm ghost" data-ret="'+d.id+'">'+(d.retired?'BRING BACK':'RETIRE')+'</button></div></div>';
   if(d.kind==='script'&&!d.retired) prev=d;
@@ -678,12 +678,12 @@ function vPackage(p){
  const pk=pkOf(p), X=pkCtx(p), F=X.facts;
  let h='<p class="note">What this script needs to go out, in one place. Each piece: write it yourself, or DRAFT FROM MY PAGES and rewrite what it pulls from your script. Nothing is sent from here.</p>';
  h+='<div class="panel"><div class="eyebrow" style="margin-top:0">The script</div><div class="row" style="gap:8px;margin-bottom:8px"><select class="field" id="pkkind" style="flex:1 1 140px">'+T.PK_KINDS.map(k=>'<option value="'+k[0]+'"'+(pk.kind===k[0]?' selected':'')+'>'+k[1]+'</option>').join('')+'</select><input class="field" id="pkgenre" placeholder="Genre (your words)" value="'+esc(pk.genre||'')+'" style="flex:1 1 140px"><input class="field" id="pkby" placeholder="Written by" value="'+esc(pk.by||X.you.name||'')+'" style="flex:1 1 140px"></div>'
-  +'<p class="note" style="margin:0" id="pkfacts">'+esc(c.label)+' · '+F.scenes+' scenes · '+F.speakers+' speaking parts'+(F.lead?' · the most lines: '+esc(F.lead):'')+'<br>'+esc(F.pageWords)+' Writer\u2019s Blockage gives the exact count.<br>'+esc(F.titleWords)+'</p></div>';
+  +'<p class="note" style="margin:0" id="pkfacts">'+esc(c.label)+' · '+F.scenes+' scenes · '+F.speakers+' speaking parts'+(F.lead?' · the most lines: '+esc(F.lead):'')+'<br>'+esc(F.pageWords)+' THEACTORPAGES gives the exact count.<br>'+esc(F.titleWords)+'</p></div>';
  T.PK_PIECES.forEach(([k,label,say])=>{ const v=pk[k]||'';
   h+='<div class="panel" data-pkcard="'+k+'"><div class="row" style="justify-content:space-between"><div class="eyebrow" style="margin:0">'+label+'</div><button class="btn sm ghost" data-pkdraft="'+k+'">DRAFT FROM MY PAGES</button></div>'
    +'<p class="note" style="margin:4px 0 8px">'+esc(say)+'</p><textarea class="field" data-pk="'+k+'" style="min-height:'+(k==='treatment'||k==='synopsis'?'180':k==='query'?'200':'80')+'px">'+esc(v)+'</textarea><p class="note" id="pkc_'+k+'" style="margin:6px 0 0">'+esc(T.pkCheck(k,v))+'</p></div>'; });
  h+='<div class="eyebrow">Send it out</div><div class="panel"><div class="row"><button class="btn pri" id="pkpdf">SAVE THE PACKAGE (.pdf)</button><button class="btn" id="pkscript">SCRIPT PDF</button><button class="btn ghost" id="pkq">COPY THE QUERY</button><button class="btn ghost" data-tab="drafts">PROOF OF DRAFT</button><button class="btn ghost" data-tab="sent">SENT OUT</button></div>'
-  +'<p class="note" style="margin:8px 0 0">The package: a title page, the one-sheet (logline, short synopsis, characters, the facts), the synopsis and the treatment, in Courier. Pieces you leave empty stay out. SCRIPT PDF opens this draft in Writer\u2019s Blockage for the formatted screenplay with its title page.</p></div>';
+  +'<p class="note" style="margin:8px 0 0">The package: a title page, the one-sheet (logline, short synopsis, characters, the facts), the synopsis and the treatment, in Courier. Pieces you leave empty stay out. SCRIPT PDF opens this draft in THEACTORPAGES for the formatted screenplay with its title page.</p></div>';
  return h;
 }
 function pkSections(p){ const pk=pkOf(p), X=pkCtx(p), F=X.facts, by=pk.by||X.you.name||'', y=X.you||{}, K=(T.PK_KINDS.find(k=>k[0]===pk.kind)||T.PK_KINDS[0])[1];
@@ -989,13 +989,13 @@ $('imp').addEventListener('change',async e=>{
  }catch(err){ toast('Could not read that: '+err.message); }
 });
 
-/* Writer's Blockage hands a draft over: "keep this draft" */
+/* THEACTORPAGES hands a draft over: "keep this draft" */
 async function handoff(){
  let h=null; try{ h=JSON.parse(localStorage.getItem(HAND)||'null'); }catch(e){}
  if(!h||!h.text) return;
  localStorage.removeItem(HAND);
  if(Date.now()-(h.at||0)>10*60*1000) return;
- const r=await addDraft(h.text,h.file||((h.title||'Untitled')+'.fountain'),'Writer\'s Blockage',{title:h.title||undefined,label:h.draft||undefined});
+ const r=await addDraft(h.text,h.file||((h.title||'Untitled')+'.fountain'),'THEACTORPAGES',{title:h.title||undefined,label:h.draft||undefined});
  ADDED=[r]; VIEW.tab='add';
  if(r.ok) toast('Kept: '+r.p.title+', '+r.d.label+'.');
 }

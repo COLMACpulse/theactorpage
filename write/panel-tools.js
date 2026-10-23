@@ -1,4 +1,4 @@
-/* WRITER'S BLOCKAGE · TOOLS: what's on your pages, counted. Mined from WRITERKNIFE and fixed for a writer:
+/* THEACTORPAGES · TOOLS: what's on your pages, counted. Mined from WRITERKNIFE and fixed for a writer:
    WHO TALKS    each scene's speakers by share of the words spoken (whole script, or the scene you're in)
    REPEATS      words and phrases that come back and bunch up (Paper Trail's, on the script you're writing)
    NAME DRIFT   one character or place spelled two ways (JON / JOHN, MAE'S HOUSE / MAES HOUSE)
@@ -95,7 +95,7 @@ function mountTools(){ if(!g.WB||!g.WB.register) return setTimeout(mountTools,10
   let tab='talk', scope='scene', speaking=null, sit=null;
   const LS={get:k=>{ try{ return JSON.parse(localStorage.getItem(k)||'null'); }catch(e){ return null; } },set:(k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }};
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  const scriptId=()=>{ try{ return currentId||''; }catch(e){ return ''; } };   // Writer's Blockage's own id for the open script
+  const scriptId=()=>{ try{ return currentId||''; }catch(e){ return ''; } };   // THEACTORPAGES's own id for the open script
   const todayKey=()=>'wb_tools_today:'+(scriptId()||api.meta().title||'script');
   const count=()=>({words:api.blocks().filter(b=>!['Section','Synopsis','Page Break'].includes(b.type)).reduce((a,b)=>a+WT.words(b.text),0),pages:api.pageCount(),date:new Date()});
   let sitFor='';

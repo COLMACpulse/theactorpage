@@ -1,4 +1,4 @@
-/* WRITER'S BLOCKAGE VOICE: the words you say, turned into screenplay elements.
+/* THEACTORPAGES VOICE: the words you say, turned into screenplay elements.
    Pure: no page, no microphone. Runs in the browser (window.WBVoice) and in Node.
 
    Rules, carried from Screenwriter v0.2-v0.4 and fixed where they broke:

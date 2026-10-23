@@ -1,4 +1,4 @@
-/* WRITER'S BLOCKAGE GO: get it down first, decide what it is later.
+/* THEACTORPAGES GO: get it down first, decide what it is later.
    What you put in (typed, said, pasted) is kept as written, in order, and never changed.
    Every other way of seeing it (clean, a script, a letter, a deck) is made from that, fresh, each time.
    Seeing it as a script doesn't touch the raw. Nothing is guessed: it lays out the words you put in.
@@ -74,7 +74,7 @@ G.script=function(cap){
  const merged=[]; out.forEach(b=>{ const L=merged[merged.length-1]; if(L&&b.type==='Dialogue'&&L.type==='Dialogue') L.text+=' '+b.text; else merged.push(Object.assign({},b)); });
  return merged;
 };
-/* the script as Fountain, which Writer's Blockage opens */
+/* the script as Fountain, which THEACTORPAGES opens */
 G.fountain=function(blocks,title){
  const L=[]; if(title) L.push('Title: '+title,'');
  blocks.forEach((b,i)=>{ const prev=blocks[i-1];

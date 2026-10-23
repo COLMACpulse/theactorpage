@@ -142,7 +142,7 @@ async function render(){
  const none=inv.filter(x=>!x.items).map(x=>x.tool.name);
  if(used.length&&none.length) h+='<p class="note">Nothing here yet from: '+esc(none.join(', '))+'.</p>';
  const skips=s.dbs.filter(d=>d.skipped);
- if(skips.length) h+='<p class="note">Not in the backup: Writer\'s Blockage links to files on this computer. They only work here; the scripts themselves are in the backup.</p>';
+ if(skips.length) h+='<p class="note">Not in the backup: THEACTORPAGES links to files on this computer. They only work here; the scripts themselves are in the backup.</p>';
  h+='<div class="eyebrow">Keep it here</div><div class="panel">'
   +(kept===true?'<p style="margin:0">Kept. This browser was asked to keep THEACTORPAGE\'s data and said yes.</p>'
    :'<p style="margin-top:0">'+(kept===false?'Not kept yet. The browser may clear this when the device runs low on space.':'This browser doesn\'t say whether it keeps site data.')+'</p><div class="row"><button class="btn" id="keep">ASK THE BROWSER TO KEEP IT</button></div>')

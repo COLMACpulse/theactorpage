@@ -159,12 +159,12 @@ Mined from READER VOICE LIBRARY. You read every other part yourself; now each ch
 - Real filters on your own recording. Speed and pitch never change. Measured with test tones (100 Hz / 1.2 kHz / 8 kHz, as recorded -15/-15/-15 dB): Phone -52/-8/-46, Radio -65/-8/-46, Next room -21/-37/-109, Far -36/-17/-33, Close -10/-14/-14.
 
 ## New in 5.26 (2026-10-14): today's scene
-- **Today's scene** in PREP: an original two-hander a day (30 to start, written for this site). Pick your part, TAPE IT, and it's loaded with your character picked. MAKE IT YOURS opens it in Writer's Blockage. ANOTHER ONE moves on. Keeping a take marks it done. It leans toward the choice you've tried least.
+- **Today's scene** in PREP: an original two-hander a day (30 to start, written for this site). Pick your part, TAPE IT, and it's loaded with your character picked. MAKE IT YOURS opens it in THEACTORPAGES. ANOTHER ONE moves on. Keeping a take marks it done. It leans toward the choice you've tried least.
 - It goes on the sides shelf, so MEMORIZER and BREAKDOWN have it too. Also on the landing page.
 See `../shared/README.md`.
 
 ## New in 5.25 (2026-10-14): the sides shelf
-- Sides you drop, paste or get from Writer's Blockage go on the site's sides shelf, with your character and the scene you mark. BREAKDOWN, MEMORIZER and CPS have them without another upload.
+- Sides you drop, paste or get from THEACTORPAGES go on the site's sides shelf, with your character and the scene you mark. BREAKDOWN, MEMORIZER and CPS have them without another upload.
 - Sides dropped in BREAKDOWN or MEMORIZER open here next time, with the character picked: "New sides: RENNIE, LAST BUS sides."
 - Pasted sides are named "Pasted sides" instead of keeping the last file's name.
 See `../shared/README.md`.
@@ -198,7 +198,7 @@ Mined from RIFF WORKBENCH, with the take as the test instead of a tick box.
 
 ## New in 5.21 (2026-10-14)
 - **Next time.** Under the why on the review screen: what you will change. It shows on the stage before your next take in that scene and disappears the moment you roll.
-- **Sides from Writer's Blockage.** Export, then "Actor OS: tape this scene" opens the script here as your sides. Notes, sections and the title page stay behind.
+- **Sides from THEACTORPAGES.** Export, then "Actor OS: tape this scene" opens the script here as your sides. Notes, sections and the title page stay behind.
 - The CAMERA ON badge no longer sits on LISTEN FOR MY CUE.
 
 ## New in 5.20 (2026-10-14): picking the take

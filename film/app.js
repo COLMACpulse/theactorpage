@@ -122,7 +122,7 @@ function vScript(){
  h+='<textarea class="field" id="paste" placeholder="Or paste it here"></textarea><button class="btn block" id="readit" style="margin-top:8px">READ IT</button>';
  const list=SH?SH.all():[];
  if(list.length){
-  h+='<p class="kicker" style="margin-top:20px">On your shelf</p><p class="faint" style="font-size:13px;margin:-4px 0 6px">Anything you dropped in an ACT tool or Writer\'s Blockage.</p>';
+  h+='<p class="kicker" style="margin-top:20px">On your shelf</p><p class="faint" style="font-size:13px;margin:-4px 0 6px">Anything you dropped in an ACT tool or THEACTORPAGES.</p>';
   h+=list.map(it=>'<div class="scriptrow"><div><b>'+esc(SH.label(it))+'</b><small>'+esc(it.from||'')+' · '+F.scenes(it.text).length+' scenes</small></div><button class="btn sm'+(it.id===DB.cur?' pri':'')+'" data-shelf="'+esc(it.id)+'">'+(it.id===DB.cur?'OPEN':'USE')+'</button></div>').join('');
  }
  return h;

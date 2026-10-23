@@ -126,7 +126,7 @@ function groundView(){
 }
 function dealCard(d,live,i){ return '<div class="card deal"><p class="kicker">'+(live?'Dealt':'Kept')+'</p><p class="dl">'+esc(d.line)+'</p><pre class="hds">'+d.headings.map(esc).join('\n')+'</pre>'+(d.notes.length?'<p class="faint small">What it takes: '+d.notes.map(esc).join('; ')+'</p>':'')+(()=>{ const P=B.pins(B.fromOwned(owned()).spots), r=B.route(P,d.spots,d.spots[0]); return r.stops.length>1?'<p class="faint small">Between them: '+B.far(r.m)+', '+B.walk(r.m)+'.</p>':''; })()
  +'<div class="row" style="margin-top:10px">'+(live?'<button class="btn" id="again">ANOTHER</button><button class="btn" id="keep">KEEP IT</button>':'')+'<a class="btn" href="../write/writers-blockage.html" data-hw="'+(live?'live':i)+'">WRITE IT</a><a class="btn" href="../film/" data-hf="'+(live?'live':i)+'">PLAN THE SHOOT</a>'+(live?'':'<button class="lnk faint" data-kdel="'+i+'">remove</button>')+'</div>'
- +(live?'<p class="faint small" style="margin:8px 0 0">Write it: Writer\'s Blockage opens with the headings and your line as a note. Plan the shoot: Story Studio opens it as a new script.</p>':'')+'</div>'; }
+ +(live?'<p class="faint small" style="margin:8px 0 0">Write it: THEACTORPAGES opens with the headings and your line as a note. Plan the shoot: Story Studio opens it as a new script.</p>':'')+'</div>'; }
 function keptView(){ return (M.kept||[]).length?'<p class="kicker" style="margin-top:18px">Kept · '+M.kept.length+'</p>'+M.kept.map((d,i)=>dealCard(d,false,i)).join(''):''; }
 function doDeal(){ const G=B.fromOwned(owned()), P=M.pick||{}; DEAL=B.deal(G,{spots:P.spots,thing:P.thing,people:+P.people||0,time:P.time,situation:P.situation},M.seed=(M.seed||1)+1); saveM(); render(); }
 function handoff(d,to){ const title=d.names.join(', ');

@@ -1,4 +1,4 @@
-/* WRITER'S BLOCKAGE · TOOLS in the app: a made-up script open; each tool reads it, GO takes you to the spot, nothing
+/* THEACTORPAGES · TOOLS in the app: a made-up script open; each tool reads it, GO takes you to the spot, nothing
    in the script changes; HEAR IT queues a voice per character (the speech service is a stand-in here).
    Server on :8811.  NODE_PATH=... node write/tests/tools_e2e.js */
 const {chromium}=require('playwright');

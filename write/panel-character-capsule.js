@@ -1,5 +1,5 @@
 /*
-  Character Capsule — a panel for Writers Blockage.
+  Character Capsule — a panel for THEACTORPAGES.
 
   A character is not a file. It is a stateful object you keep consistent.
 

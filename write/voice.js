@@ -1,4 +1,4 @@
-/* WRITER'S BLOCKAGE VOICE: write by talking. Phone first.
+/* THEACTORPAGES VOICE: write by talking. Phone first.
    Everything goes through WB.api, the same seam panels use: every line lands through the
    editor's own undo and is saved with the script. What you said, word for word, goes to the
    change trail. The browser's speech service turns sound into words; this file only ever
@@ -65,7 +65,7 @@ $('vwCard').innerHTML='<p style="margin-top:0">Say it like this. Capitals and pu
  +V.SAY.map(([a,b])=>'<div><span>"'+esc(a)+'"</span><i>'+esc(b)+'</i></div>').join('')
  +'<p>A name only starts a speech when you say <b>says</b> (or asks, whispers, yells). "Rennie walks to the bench" is action.</p>'
  +'<p>The mic only stops on <b>stop listening</b>. "Stop." is a line.</p>'
- +'<p class="note">Your phone or browser turns the sound into words (that can go through Apple or Google, the same as the keyboard mic). Writer\'s Blockage only gets the words, keeps them with your script on this device, and keeps exactly what you said in the change trail.</p>'
+ +'<p class="note">Your phone or browser turns the sound into words (that can go through Apple or Google, the same as the keyboard mic). THEACTORPAGES only gets the words, keeps them with your script on this device, and keeps exactly what you said in the change trail.</p>'
  +'<button id="vwCardClose">Got it</button>';
 
 /* ---------- where we are in the script ---------- */

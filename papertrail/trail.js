@@ -500,7 +500,7 @@ T.pkFacts=function(scenes,text,kind){
  const inRange=pages>=K[2]&&pages<=K[3];
  return {pages,scenes:(scenes||[]).length,speakers:C.length,lead:C[0]?C[0].name:'',chars:C.map(c=>({name:c.name,lines:c.by.d})),words:(scenes||[]).reduce((n,s)=>n+(s.words||0),0),titlePage,kind:K[0],
   pageWords:'About '+pages+' page'+(pages===1?'':'s')+'. '+K[1]+'s usually run '+K[2]+' to '+K[3]+'.'+(inRange?'':pages<K[2]?' This one is shorter.':' This one is longer.'),
-  titleWords:titlePage?'Title page: there.':'No title page in this draft. Writer’s Blockage puts one on the PDF.'};
+  titleWords:titlePage?'Title page: there.':'No title page in this draft. THEACTORPAGES puts one on the PDF.'};
 };
 T.pkDraft=function(piece,c){
  const sc=c.scenes||[], F=c.facts||T.pkFacts(sc,c.text,c.kind), lead=F.lead, n=sc.length, title=c.title||'Untitled';

@@ -1,4 +1,4 @@
-/* Writer's Blockage GO in a browser, phone size. Type, paste, say (a stand-in speech service), see it every way,
+/* THEACTORPAGES GO in a browser, phone size. Type, paste, say (a stand-in speech service), see it every way,
    open the script, send a draft to Paper Trail, freeze, and nothing lost when you close. Made-up words. Server on :8811.
    NODE_PATH=... node write/tests/go_e2e.js */
 const {chromium}=require('playwright');

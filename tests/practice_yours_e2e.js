@@ -1,5 +1,5 @@
 /* PRACTICE FROM YOUR MATERIAL, end to end. Made-up scripts in every place material lives: sides on the shelf,
-   Writer's Blockage, Paper Trail (IndexedDB), Memorizer, Story Studio. Server on :8811.
+   THEACTORPAGES, Paper Trail (IndexedDB), Memorizer, Story Studio. Server on :8811.
    NODE_PATH=... node tests/practice_yours_e2e.js */
 const {chromium}=require('playwright');
 (async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
@@ -25,7 +25,7 @@ await p.evaluate(([s1,wb,pt,mz,ai])=>{
   two('OWEN','PRIYA','INT. MINE OFFICE - NIGHT','Copper'), two('IVY','SAUL','INT. BUS - NIGHT','Bus'),
   '[[Practice scene: Spare Key. Written by AI as a practice prompt, not from anything real.]]\n\nCASEY\nHi.']);
 const src=await p.evaluate(async()=>{ const s=await YourScenes.gather(); const all=await YourScenes.load(); return {s:s.map(x=>x.from+':'+x.title), cuts:all.map(x=>x.src)}; });
-want('found in every place: shelf, Writer\'s Blockage, Paper Trail, Memorizer', ['Glass Harbor sides','Low Tide','Copper Hill','Night Bus'].every(t=>src.cuts.includes(t)), src);
+want('found in every place: shelf, THEACTORPAGES, Paper Trail, Memorizer', ['Glass Harbor sides','Low Tide','Copper Hill','Night Bus'].every(t=>src.cuts.includes(t)), src);
 want('the AI practice scene you rewrote is not "your material"', !src.s.some(x=>/Spare Key/.test(x)), src.s);
 await p.reload(); await p.waitForTimeout(600);
 await p.click('[data-practice] .spark-btn'); await p.waitForTimeout(600);
@@ -46,12 +46,12 @@ await p.click('[data-pgo="tape"]'); await p.waitForURL(/actor-os/); await p.wait
 const st=await p.evaluate(()=>({file:SIDES.file,me:SIDES.me,shelf:Shelf.all().map(x=>x.file),last:localStorage.getItem('actor_os_sides_last')}));
 want('TAPE IT: Actor OS has the cut, you as TOBIAS', st.file==='Practice scene - Glass Harbor sides, scene 1'&&st.me==='TOBIAS', st);
 want('the shelf still has just your real sides, nothing saved as last sides', st.shelf.join()==='Glass Harbor sides.pdf'&&!st.last, st);
-// learn one from Writer's Blockage in Memorizer
+// learn one from THEACTORPAGES in Memorizer
 await p.goto('http://localhost:8811/index.html'); await p.waitForTimeout(600); await p.click('[data-practice] .spark-btn'); await p.waitForTimeout(600);
 t=''; for(let i=0;i<20&&!/Low Tide/.test(t);i++){ await p.click('[data-pnext]'); await p.waitForTimeout(60); t=await p.$eval('.practice-card b',x=>x.textContent); }
 await p.click('[data-pgo="learn"]'); await p.waitForURL(/memorizer/); await p.waitForTimeout(1500);
 const mz=await p.evaluate(()=>{ const D=JSON.parse(localStorage.getItem('memorizer_v1')); return D.scripts[D.cur]; });
-want('LEARN: Memorizer has the Writer\'s Blockage cut, word for word', mz&&mz.file==='Practice scene - Low Tide, scene 1'&&/EXT\. PIER - DAWN/.test(mz.text)&&/Tide line 5\./.test(mz.text)&&['RAFE','NELL'].includes(mz.me), mz);
+want('LEARN: Memorizer has the THEACTORPAGES cut, word for word', mz&&mz.file==='Practice scene - Low Tide, scene 1'&&/EXT\. PIER - DAWN/.test(mz.text)&&/Tide line 5\./.test(mz.text)&&['RAFE','NELL'].includes(mz.me), mz);
 // rewrite
 await p.goto('http://localhost:8811/index.html'); await p.waitForTimeout(600); await p.click('[data-practice] .spark-btn'); await p.waitForTimeout(600);
 await p.click('[data-pgo="write"]'); await p.waitForURL(/writers-blockage/); await p.waitForTimeout(2000);

@@ -11,7 +11,7 @@ ok('facts: scenes, the lead, who speaks', F.scenes===3&&F.lead==='VALE'&&F.speak
 ok('pages, said against the usual range', F.pages===1&&/^About 1 page\. Features usually run 90 to 120\. This one is shorter\.$/.test(F.pageWords), F.pageWords);
 ok('a short in range says nothing extra', /Shorts usually run 5 to 40\. This one is shorter\./.test(T.pkFacts(sc,RIDGE,'short').pageWords));
 ok('title page found', F.titlePage&&/Title page: there\./.test(F.titleWords));
-ok('no title page: says Writer\'s Blockage puts one on the PDF', !T.pkFacts(sc,'EXT. RIDGE - DAY\n\nVale climbs.','feature').titlePage);
+ok('no title page: says THEACTORPAGES puts one on the PDF', !T.pkFacts(sc,'EXT. RIDGE - DAY\n\nVale climbs.','feature').titlePage);
 const many=Array.from({length:120},(_,i)=>'INT. ROOM '+i+' - DAY\n\nVale paces the room and looks out the window at the long road home again.\n\nVALE\nWe wait here until morning, and then we go, whatever happens out there tonight.\n\nHALE\nFine.\n').join('\n');
 ok('a long script: about 13 lines a scene, 55 to a page', (p=>p>=24&&p<=34)(T.pkPages(T.scenes(many,'script'))), T.pkPages(T.scenes(many,'script')));
 ok('the lead\'s introduction, from the action', T.pkIntro('VALE',sc)==='VALE (40s), a wiry guide with a bad knee, climbs the ridge alone.', T.pkIntro('VALE',sc));

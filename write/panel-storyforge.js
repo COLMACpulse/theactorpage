@@ -1,5 +1,5 @@
 /*
-  StoryForge — a panel for Writers Blockage.
+  StoryForge — a panel for THEACTORPAGES.
 
   Treatment-first. One character, one ethos, one genre, one world, plus cast
   pressure, compressed into a Treatment Genome that the season expands from.

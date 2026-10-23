@@ -1,6 +1,6 @@
-/* WRITER'S BLOCKAGE GO: one screen, no choices. Type it, say it, paste it. It's kept as you put it in,
+/* THEACTORPAGES GO: one screen, no choices. Type it, say it, paste it. It's kept as you put it in,
    in order, and never changed. Then SEE IT AS: raw, clean, a script, a letter, a deck. Each one is
-   made from the raw, fresh; none of them changes it. A script opens in Writer's Blockage; anything can
+   made from the raw, fresh; none of them changes it. A script opens in THEACTORPAGES; anything can
    go to Paper Trail as a draft. FREEZE: nothing more goes in.
    localStorage 'wb_go_v1'. Nothing uploaded. SAY IT uses the browser's speech service (Chrome: Google,
    Safari: Apple), the same as Voice. */

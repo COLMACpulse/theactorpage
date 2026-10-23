@@ -1,4 +1,4 @@
-/* WRITER'S BLOCKAGE on a phone: the side rail (Outline, Cast, Stats, Tools) comes in with TOOLS, goes with CLOSE,
+/* THEACTORPAGES on a phone: the side rail (Outline, Cast, Stats, Tools) comes in with TOOLS, goes with CLOSE,
    a tap outside, or GO. Made-up script. Server on :8811.  NODE_PATH=... node write/tests/tools_phone_e2e.js */
 const {chromium}=require('playwright');
 (async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});

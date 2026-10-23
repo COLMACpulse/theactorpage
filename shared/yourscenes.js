@@ -1,5 +1,5 @@
 /* THEACTORPAGE PRACTICE FROM YOUR MATERIAL. Practice scenes cut from what's already on this phone: sides on the
-   shelf, anything uploaded to Actor OS or Memorizer, Story Studio scripts, Paper Trail drafts, Writer's Blockage
+   shelf, anything uploaded to Actor OS or Memorizer, Story Studio scripts, Paper Trail drafts, THEACTORPAGES
    scripts. A cut is a stretch where exactly two people talk, word for word. Nothing is written, nothing changed:
    if a third person speaks, the stretch ends there. Page numbers, CONTINUED and watermarks are left out (they're
    not the scene). Nothing leaves the phone. Needs ../actor-os/sides.js (ActorSides) for names. */
@@ -109,7 +109,7 @@ Y.gather=async function(){
  const ao=LS('actor_os_sides_last'); if(ao) add(ao.file,ao.text,'Actor OS');
  const mz=LS('memorizer_v1'); if(mz&&mz.scripts) Object.values(mz.scripts).forEach(c=>{ if(!/^(?:Practice scene|Today's scene) - /.test(c.file||'')) add(c.file,c.text,'Memorizer',c.me); });
  const fo=LS('film_os_v1'); if(fo&&fo.scripts) Object.values(fo.scripts).forEach(c=>add(c.file,c.text,'Story Studio',c.me));
- try{ const idx=LS('writers-blockage-index')||[]; idx.forEach(p=>{ const w=wbText(localStorage.getItem('wb-proj:'+p.id)||''); if(w) add(w.title||p.title,w.text,"Writer's Blockage"); }); }catch(e){}
+ try{ const idx=LS('writers-blockage-index')||[]; idx.forEach(p=>{ const w=wbText(localStorage.getItem('wb-proj:'+p.id)||''); if(w) add(w.title||p.title,w.text,"THEACTORPAGES"); }); }catch(e){}
  const pt=LS('paper_trail_v1');
  if(pt&&pt.drafts&&g.indexedDB){ const latest={}; Object.values(pt.drafts).forEach(d=>{ if(d.kind==='script'&&!d.retired&&(!latest[d.project]||d.added>latest[d.project].added)) latest[d.project]=d; });
   const ds=Object.values(latest); if(ds.length){ const T=await ptTexts(ds.map(d=>d.id)); ds.forEach(d=>{ const p=pt.projects&&pt.projects[d.project]; add((p&&p.title)||d.file,T[d.id],'Paper Trail'); }); } }

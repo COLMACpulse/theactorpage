@@ -66,7 +66,7 @@ const scr=await p.evaluate(()=>{ const d=JSON.parse(localStorage.getItem('film_o
 want('no dialogue in it, your line as a note', scr&&/\[\[From the ground: Red barn, at dusk: a debt comes due\./.test(scr.text)&&!/\n[A-Z ]+\n[^\n]/.test(scr.text.replace(/^Title:.*\n/,'').replace(/\[\[[\s\S]*?\]\]/,'').replace(/(INT|EXT)\.[^\n]*/g,'')), scr&&scr.text);
 await p.goto('http://localhost:8811/backlot/?tab=ground'); await p.waitForTimeout(400);
 await p.click('[data-hw="0"]'); await p.waitForTimeout(1500);
-want('WRITE IT: Writer\'s Blockage opens it', /writers-blockage/.test(p.url())&&/RED BARN - DUSK/.test(await p.evaluate(()=>document.body.innerText+' '+[...document.querySelectorAll('textarea')].map(t=>t.value).join(' '))));
+want('WRITE IT: THEACTORPAGES opens it', /writers-blockage/.test(p.url())&&/RED BARN - DUSK/.test(await p.evaluate(()=>document.body.innerText+' '+[...document.querySelectorAll('textarea')].map(t=>t.value).join(' '))));
 await p.goto('http://localhost:8811/backlot/?tab=list'); await p.waitForTimeout(400); m=await p.innerText('#main');
 want('the list: every spot, a line each; the things by kind', /Red barn · inside and out · passes for stable, jail, saloon back room · light: morning, dusk · no power · mine · yes, i can use it · to make it pass: hang a lantern, sweep the hay/.test(m)&&/Vehicles · 1/i.test(m)&&/People you can get · 3/i.test(m), m.slice(0,600));
 const [dl]=await Promise.all([p.waitForEvent('download'),p.click('#savecsv')]); const csv=fs.readFileSync(await dl.path(),'utf8');

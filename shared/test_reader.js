@@ -1,5 +1,5 @@
 /* node shared/test_reader.js : the one script reader (actor-os/sides.js + pdf.js, used by ACTOR OS,
-   MEMORIZER, STORY STUDIO, PAPER TRAIL, and Writer's Blockage for PDFs) on one made-up script, LOW TIDE,
+   MEMORIZER, STORY STUDIO, PAPER TRAIL, and THEACTORPAGES for PDFs) on one made-up script, LOW TIDE,
    in eight forms. Truth: shared/fixtures/low_tide_truth.json (3 scenes, 12 speeches, COP #2, V.O., O.S.,
    a speech split by a page break, an all-caps action line, a shouted "NO."). Made up; no real scripts here. */
 const fs=require('fs'), path=require('path');

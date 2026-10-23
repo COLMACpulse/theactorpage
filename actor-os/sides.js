@@ -1,6 +1,6 @@
 /* ===== SIDES =====
    The fuel. Everything else reads from this: ACTOR OS, MEMORIZER, STORY STUDIO, PAPER TRAIL,
-   and Writer's Blockage when it opens a PDF.
+   and THEACTORPAGES when it opens a PDF.
    Handles plain sides (CHARACTER on its own line, or CHARACTER: line), Fountain, and Final Draft
    files through A.fromFdx. Checked against a made-up script in five forms and a real feature .fdx
    and real sides: shared/test_reader.js. */

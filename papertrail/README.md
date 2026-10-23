@@ -6,7 +6,7 @@
 **The rule:** it reads, you decide. No scores. A scene card says what is on file and what is missing, in words.
 
 ## The flow
-1. **ADD DRAFTS.** Drop several at once: scripts (PDF, Final Draft .fdx, Fountain, text) and storyboards (Word .docx or PDF). Paste one. Keep anything on the sides shelf. Or from Writers Blockage: Export > "Paper Trail: keep this draft".
+1. **ADD DRAFTS.** Drop several at once: scripts (PDF, Final Draft .fdx, Fountain, text) and storyboards (Word .docx or PDF). Paste one. Keep anything on the sides shelf. Or from THEACTORPAGES: Export > "Paper Trail: keep this draft".
    - The project comes from the title: a Fountain `Title:` line, a title-page line, or the file name ("Last Bus - draft 2.fountain" is LAST BUS, Draft 2; "SALT FLATS STORYBOARD6_19_17.docx" is SALT FLATS, 6-19-17). Never from the first character name.
    - An exact copy is kept once ("the same draft is already here"). A grocery list is not a draft.
 2. **PROJECTS.** One card per project: drafts, the current draft, scenes, words.
@@ -21,7 +21,7 @@
 Scenes come from Story Studio's reader (`../film/film.js`), which reads speeches with Actor OS's reader (`../actor-os/sides.js`, `../actor-os/pdf.js`). A script reads the same in WRITE, ACT and FILM. A storyboard is read as `SCENE 15 INT. ... CAST: ... PROPS: ... FX: ... NOTES: ...` and matched to the script's scenes by heading.
 
 ## Proven vs not
-**Proven (Node 23/23, headless Chromium 29/29):** empty start; six files dropped at once (LAST BUS draft 1 .txt, draft 2 .fountain, the sides PDF, an exact copy, a grocery list, a storyboard .docx) give one project LAST BUS with 3 script drafts and 1 storyboard; the copy kept once; the grocery list refused; labels from file names; storyboard matched to all 3 scenes (FX "Rain on the tin roof (hose)" and its notes on scene 1); Mom voice only; purpose, your own prop and a logged decision kept; draft compare names the changed scenes; make current; characters per draft; retire keeps the text; everything kept after reopening (texts in IndexedDB); export into a fresh browser gives 1 project and 4 drafts, importing again adds nothing, and never wipes a draft added there; Writers Blockage hand-off kept as Draft 3; Story Studio round trip shows "Compress it · 1 of N shots done"; no sideways scroll on a phone; no page errors.
+**Proven (Node 23/23, headless Chromium 29/29):** empty start; six files dropped at once (LAST BUS draft 1 .txt, draft 2 .fountain, the sides PDF, an exact copy, a grocery list, a storyboard .docx) give one project LAST BUS with 3 script drafts and 1 storyboard; the copy kept once; the grocery list refused; labels from file names; storyboard matched to all 3 scenes (FX "Rain on the tin roof (hose)" and its notes on scene 1); Mom voice only; purpose, your own prop and a logged decision kept; draft compare names the changed scenes; make current; characters per draft; retire keeps the text; everything kept after reopening (texts in IndexedDB); export into a fresh browser gives 1 project and 4 drafts, importing again adds nothing, and never wipes a draft added there; THEACTORPAGES hand-off kept as Draft 3; Story Studio round trip shows "Compress it · 1 of N shots done"; no sideways scroll on a phone; no page errors.
 
 **Not proven yet:** a real feature-length draft set (three drafts of a real feature), real storyboards laid out in Word tables, .fdx files from the wild, Safari.
 

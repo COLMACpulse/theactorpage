@@ -1,5 +1,5 @@
 /* PAPER TRAIL: PACKAGE. The facts from the pages; each piece drafted from your own lines or written by you, its length
-   said; the package saved as a PDF; the query copied; SCRIPT PDF opens the draft in Writer's Blockage. Made-up script.
+   said; the package saved as a PDF; the query copied; SCRIPT PDF opens the draft in THEACTORPAGES. Made-up script.
    Server on :8811.  NODE_PATH=... node papertrail/tests/package_e2e.js */
 const {chromium}=require('playwright'); const fs=require('fs');
 const tabGo=async(pg,t)=>{ const sel='#tabs [data-tab="'+t+'"]'; if(!(await pg.$(sel))){ const g=await pg.$('#tabs [data-tabs~="'+t+'"]'); if(g){ await g.click(); await pg.waitForTimeout(150); } } await pg.click(sel); };
@@ -42,7 +42,7 @@ await p.click('#pkq'); await p.waitForTimeout(300);
 want('COPY THE QUERY', /read Ridge Line/.test(await p.evaluate(()=>navigator.clipboard.readText())));
 await p.click('#pkscript'); await p.waitForURL(/writers-blockage/); await p.waitForTimeout(2200);
 const wb=await p.evaluate(()=>document.body.innerText);
-want('SCRIPT PDF: the draft opens in Writer\'s Blockage, which says to export it', /From Paper Trail\. Export, then PDF/.test(wb)&&/RIDGE/.test(wb)&&/wiry guide/.test(wb), wb.slice(0,300));
+want('SCRIPT PDF: the draft opens in THEACTORPAGES, which says to export it', /From Paper Trail\. Export, then PDF/.test(wb)&&/RIDGE/.test(wb)&&/wiry guide/.test(wb), wb.slice(0,300));
 want('no em dashes', !/—/.test(m+q));
 want('no page errors', !errs.length, errs);
 await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();

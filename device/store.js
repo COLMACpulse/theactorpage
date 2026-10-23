@@ -15,7 +15,7 @@ D.TOOLS=[
  {id:'slate', name:'Slate Maker', href:'../slate/', ls:[/^slate_/], db:[/^slate_/]},
  {id:'resume', name:'Virtual Resume', href:'../resume/', ls:[/^resume_/], db:[/^vresume_/]},
  {id:'gsd', name:'GSD', href:'../gsd/', ls:[/^gsd_/], db:[]},
- {id:'wb', name:'Writer\'s Blockage', href:'../write/writers-blockage.html', ls:[/^writers-blockage/,/^wb_go_v1$/], db:[/^writers-blockage$/]},
+ {id:'wb', name:'THEACTORPAGES', href:'../write/writers-blockage.html', ls:[/^writers-blockage/,/^wb_go_v1$/], db:[/^writers-blockage$/]},
  {id:'papertrail', name:'Paper Trail', href:'../papertrail/', ls:[/^paper_trail/], db:[/^paper_trail$/]},
  {id:'archbook', name:'ArchBook', href:'../archbook/', ls:[/^archbook_/], db:[/^archbook_/]},
  {id:'film', name:'Story Studio', href:'../film/', ls:[/^film_os/], db:[/^film_os/]},
