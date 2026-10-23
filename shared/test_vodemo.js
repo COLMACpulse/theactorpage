@@ -1,0 +1,24 @@
+/* VOICE DEMO, the pure parts. Made-up voices only. node shared/test_vodemo.js */
+const mem = {}; globalThis.localStorage = { getItem: k => mem[k] || null, setItem: (k, v) => { mem[k] = String(v); }, removeItem: k => { delete mem[k]; } };
+const VD = require('./vodemo.js');
+let ok = true; const want = (n, x, y) => { console.log((x ? 'PASS ' : 'FAIL ') + n + (x || y === undefined ? '' : ' ' + JSON.stringify(y))); if (!x) ok = false; };
+want('no demo without a name', VD.add('  ') === null && VD.all().length === 0);
+const d = VD.add(' Animation ');
+want('a demo: your name, a 1:00 target, nothing else filled in', d.name === 'Animation' && d.target === 60 && !d.clips.length && !d.made);
+VD.addClip(d.id, { label: 'Rusk', secs: 11, from: 'cps', media: 'm1' }); VD.addClip(d.id, { label: 'Dottie', secs: 8, from: 'file', media: 'm2' });
+want('running time: the clips plus one gap', VD.runTime(VD.get(d.id)) === 19.3);
+VD.setClip(d.id, VD.get(d.id).clips[0].id, { trimIn: 1, trimOut: 0.5 });
+want('trims come off', VD.runTime(VD.get(d.id)) === 17.8);
+want('against the target, in plain words', VD.targetWords(17.8, 60) === '0:18 of 1:00 · 42 s to spare' && VD.targetWords(62, 60) === '1:02 of 1:00 · 2 s over' && VD.targetWords(58, 60) === '0:58 of 1:00 · on time' && VD.targetWords(40, 0) === '0:40');
+VD.set(d.id, { made: { media: 'mm', secs: 18, fn: 'x.mp3' } }); VD.moveClip(d.id, VD.get(d.id).clips[1].id, -1);
+want('reorder: Dottie first, and the made file is marked as made before the change', VD.get(d.id).clips[0].label === 'Dottie' && VD.get(d.id).made.stale === true);
+want('the file name: you, then the demo', VD.fileName('Riley Hart', 'Animation') === 'Riley Hart - Animation Demo.mp3' && VD.fileName('Riley Hart', 'Games demo') === 'Riley Hart - Games demo.mp3');
+const chars = [{ id: 'me', me: true, name: 'Me', takes: [{ id: 'x', kind: 'lines' }], looks: [] }, { id: 'c1', name: 'Captain Rusk', takes: [{ id: 't1', kind: 'voice' }, { id: 't2', kind: 'note' }, { id: 't3', kind: 'return' }], looks: [{ id: 'v', kind: 'video' }, { id: 'l1', kind: 'photo' }] }, { id: 'c2', name: 'Dottie', takes: [{ id: 'u1', kind: 'voice' }], looks: [] }];
+want('nothing goes on the page until you put it there', VD.pagePlan(chars).voices.length === 0 && VD.pagePlan(chars).demos.length === 0);
+VD.setVoice('c1', { onPage: true }); VD.setVoice('me', { onPage: true }); VD.set(d.id, { made: { media: 'mm', secs: 18, fn: 'x.mp3' } });
+let P = VD.pagePlan(chars);
+want('on the page: the voice, its newest take (not a note), its first photo; never you as yourself', P.voices.length === 1 && P.voices[0].take === 't3' && P.voices[0].look === 'l1', P);
+want('a made demo goes on; one made before a change does not', P.demos.length === 1 && (VD.set(d.id, { made: { media: 'mm', secs: 18, stale: true } }), VD.pagePlan(chars).demos.length === 0));
+VD.setVoice('c1', { take: 't1', line: 'gruff' }); P = VD.pagePlan(chars);
+want('the take you pick, the line in your words', P.voices[0].take === 't1' && P.voices[0].line === 'gruff');
+console.log(ok ? 'ALL PASS' : 'SOME FAILED'); process.exit(ok ? 0 : 1);

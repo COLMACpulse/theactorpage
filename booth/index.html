@@ -113,7 +113,7 @@ details.card summary{cursor:pointer;margin:0}
 .bad{color:var(--bad)}
 .toast{position:fixed;left:50%;bottom:calc(var(--nav) + 18px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(10px);background:var(--panel2);border:1px solid var(--tung);color:var(--ink);padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;transition:.2s;pointer-events:none;z-index:70;max-width:calc(100vw - 32px)}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
-nav.tabs{grid-template-columns:repeat(4,1fr)!important}
+nav.tabs{grid-template-columns:repeat(5,1fr)!important}
 a{color:var(--tung-text)}
 body:has(#hotbar) .top{padding-top:calc(env(safe-area-inset-top) + 50px)}
 </style>
@@ -132,6 +132,7 @@ body:has(#hotbar) .top{padding-top:calc(env(safe-area-inset-top) + 50px)}
   <button data-t="room"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V8l8-5 8 5v12"/><path d="M9 20v-6h6v6"/></svg><span>ROOM</span></button>
   <button data-t="read"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>READ</span></button>
   <button data-t="send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l16-8-6 16-3-7z"/></svg><span>SEND</span></button>
+  <button data-t="demo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v-4M8 18V6M12 15V9M16 20V4M20 13v-2"/></svg><span>DEMO</span></button>
 </nav>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="../shared/capture.js"></script>
@@ -145,7 +146,9 @@ body:has(#hotbar) .top{padding-top:calc(env(safe-area-inset-top) + 50px)}
 <script src="../shared/vocopy.js"></script>
 <script src="../shared/voaudio.js"></script>
 <script src="../shared/vendor/lame.min.js"></script>
+<script src="../shared/vodemo.js"></script>
 <script src="app.js"></script>
+<script src="demo.js"></script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
 <script src="../shared/view.js"></script>
 </body>

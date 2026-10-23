@@ -191,7 +191,7 @@ async function checkFile(f){
 }
 
 /* ---------- show it ---------- */
-const TABS=['copy','room','read','send'];
+const TABS=['copy','room','read','send','demo'];
 function render(){
  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===S.tab));
  const J=job(); $('title').textContent=S.job.client||(J.spots[0]&&J.spots[0].title)||'Voice over';
@@ -200,6 +200,7 @@ function render(){
  if(S.tab==='copy') m.innerHTML=copyView(J);
  else if(S.tab==='room') m.innerHTML=roomView();
  else if(S.tab==='read') m.innerHTML=readView(J);
+ else if(S.tab==='demo'){ if(window.BoothDemo) BoothDemo.render(m); }
  else m.innerHTML=sendView(J);
  wire(J);
 }
@@ -321,6 +322,6 @@ function goTab(t){ S.tab=t;
  save(); render(); window.scrollTo(0,0); }
 $('tabs').addEventListener('click',e=>{ const b=e.target.closest('button[data-t]'); if(b) goTab(b.dataset.t); });
 window.addEventListener('pagehide',()=>{ C.stop(MIC); });
-window.__booth={get S(){return S;},job,plan,addText,make,checkFile,render};
+window.__booth={get S(){return S;},job,plan,addText,make,checkFile,render,decode,to441,get,keptOf,name};
 render();
 })();

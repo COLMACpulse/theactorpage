@@ -167,6 +167,8 @@ small.note{display:block;padding:0 15px 13px;color:var(--faint);font-size:10.5px
 <script src="request.js"></script>
 <script src="../shared/inbox.js"></script>
 <script src="../shared/you.js"></script>
+<script src="../shared/looks.js"></script>
+<script src="../shared/vodemo.js"></script>
 <script src="../shared/offices.js"></script>
 <script src="../shared/notes.js"></script>
 <script src="../shared/spotted.js"></script>
@@ -2842,7 +2844,7 @@ async function pkgExtras(mode,entries){
  const HM=profile.madeHub||{}, art=id=>{ const a=id&&ARTS.find(x=>x.id===id); return a&&a.blob?a.blob:null; };
  M.films=M.films.concat((HM.films||[]).map(f=>Object.assign({},f,{poster:art(f.posterId)})));
  M.writing=M.writing.concat((HM.writing||[]).map(w=>Object.assign({},w,{posterBlob:art(w.posterId)})));
- const media=async(b,name)=>{ if(!b) return null; if(mode==='file'&&entries){ const ext=String((b.type||'').split('/')[1]||'bin').replace(/;.*/,'').replace('quicktime','mov').replace('jpeg','jpg'); const nm='media/'+safeName(name)+'.'+ext; entries.push({name:nm,data:new Uint8Array(await b.arrayBuffer())}); return {u:nm,t:b.type||''}; } return {u:await blobToDataURL(b),t:b.type||''}; };
+ const media=async(b,name)=>{ if(!b) return null; if(mode==='file'&&entries){ const ext=String((b.type||'').split('/')[1]||'bin').replace(/;.*/,'').replace('quicktime','mov').replace('jpeg','jpg').replace('mpeg','mp3'); const nm='media/'+safeName(name)+'.'+ext; entries.push({name:nm,data:new Uint8Array(await b.arrayBuffer())}); return {u:nm,t:b.type||''}; } return {u:await blobToDataURL(b),t:b.type||''}; };
  const films=[]; for(const f of M.films){ if(off.has(f.id)) continue; const v=f.video?await media(f.video,'made_'+f.title):null;
   films.push(Object.assign({},f,{poster:f.poster?{u:await blobToDataURL(f.poster),t:f.poster.type||'image/jpeg'}:null,video:v?Object.assign(v,{n:f.title}):null})); }
  const writing=[]; for(const w of M.writing){ if(off.has(w.id)) continue; writing.push(Object.assign({},w,{poster:w.posterBlob?{u:await blobToDataURL(w.posterBlob),t:w.posterBlob.type||'image/jpeg'}:null,posterBlob:undefined})); }
@@ -2854,9 +2856,29 @@ async function pkgExtras(mode,entries){
  for(const a of ARTS.filter(x=>x.category==='headshot'&&x.from==='site'&&(x.type||'').startsWith('image/')&&x.id!==(pkgSel.headshot||profile.primaryHeadshot)&&!off.has(x.id))){ const nm0=String(a.filename||a.label||''), base=x=>String(x||'').replace(/\.[^.]+$/,'').toLowerCase(); if(heads.some(h=>h.n===nm0)||(M.headshots||[]).some(h=>base(h.name)===base(nm0))||(entries&&entries.some(e=>e.name==='media/'+safeName('headshot_'+String(a.label||a.filename||a.id).replace(/\.[^.]+$/,''))+'.'+String((a.blob.type||'').split('/')[1]||'bin').replace('jpeg','jpg')))) continue; const m=await media(a.blob,'headshot_'+String(a.label||a.filename||a.id).replace(/\.[^.]+$/,'')); if(m) heads.push(Object.assign(m,{n:a.filename||a.label,roles:[]})); }
  const links=pageLinks().concat(xclips.filter(x=>x.link).map(x=>({url:x.link,label:x.n,as:'clip'})));
  const vlinks=links.map(x=>Object.assign({},window.MadeBy?MadeBy.video(x.url):{kind:'link',url:x.url},{label:x.label,as:x.as})).filter(x=>x&&x.url);
- return {made:{films,writing},vlinks,xclips:xclips.filter(x=>x.u),heads,photos,showRoles:!!profile.pageRoles};
+ /* VOICE OVER: your demos (VO BOOTH, DEMO) and the voices you put on the page (Character Bank) */
+ const voice={demos:[],voices:[]};
+ if(window.VODemo&&!off.has('voice')){ try{ const P=VODemo.pagePlan(await VODemo.chars());
+  for(const x of P.demos){ const m=await media(await VODemo.blob(x.media),'demo_'+x.name); if(m) voice.demos.push(Object.assign(m,{n:x.name,secs:x.secs,fn:x.fn})); }
+  for(const v of P.voices){ const a=await media(await VODemo.cpsMedia(v.take),'voice_'+v.name); if(!a) continue; const pb=v.look?await VODemo.cpsMedia(v.look):null; voice.voices.push({n:v.name,line:v.line,a,pic:pb?await media(pb,'voice_pic_'+v.name):null}); } }catch(e){} }
+ /* COMMERCIAL: the look book (LOOKS): the looks you have in it, your order; the facts only if you switched them on */
+ const looks={items:[],stats:[]};
+ if(window.Looks&&!off.has('looks')){ try{ for(const l of Looks.inBook()){ const ph=[]; for(const r of l.photos.slice(0,3)){ const m=await media(await Looks.blob(r),'look_'+l.name+'_'+ph.length); if(m) ph.push(m); }
+   const sk=[]; for(const s of l.skills){ sk.push({n:s.name,clip:s.clip?await media(await Looks.blob(s.clip),'look_'+l.name+'_'+s.name):null}); }
+   looks.items.push({n:l.name,spots:l.spots,photos:ph,skills:sk}); }
+  looks.stats=Looks.stats(window.You?You.get():{},Looks.book()); }catch(e){} }
+ return {made:{films,writing},vlinks,xclips:xclips.filter(x=>x.u),heads,photos,showRoles:!!profile.pageRoles,voice,looks};
 }
 function primaryName(){ const a=ARTS.find(x=>x.id===(pkgSel.headshot||profile.primaryHeadshot)); return a?(a.filename||a.label||''):''; }
+/* VOICE OVER and COMMERCIAL on your page: only when you've made them, each one off with a tap */
+let VOLK=null;
+async function loadVoLooks(){ const o={demos:0,voices:0,looks:0}; try{ if(window.VODemo){ const P=VODemo.pagePlan(await VODemo.chars()); o.demos=P.demos.length; o.voices=P.voices.length; } }catch(e){} try{ if(window.Looks) o.looks=Looks.inBook().length; }catch(e){} VOLK=o; render(); }
+function voLooksPanel(){ if(!VOLK){ loadVoLooks(); return ''; } const off=new Set(pageOff()), o=VOLK;
+ if(!o.demos&&!o.voices&&!o.looks) return '';
+ const row=(id,label,sub,href)=>{ const on=!off.has(id); return `<div class="reelrow" style="cursor:pointer;align-items:center" onclick="madeToggle('${id}')"><span class="num" style="${on?'color:var(--tung);border-color:var(--tung)':''}">${on?'&#10003;':''}</span><span class="rl">${label}</span><span class="tag">${sub}</span><a class="ghost act sm" href="${href}" onclick="event.stopPropagation()">change it</a></div>`; };
+ return `<div class="panel"><h2>Voice over and commercial</h2><small class="note">Your demos and voices from VO BOOTH (DEMO), and your look book from LOOKS. Tap one to leave it off.</small><div style="display:grid;gap:6px;padding:11px 13px">`
+  +((o.demos||o.voices)?row('voice','Voice over',[o.demos?o.demos+' demo'+(o.demos===1?'':'s'):'',o.voices?o.voices+' voice'+(o.voices===1?'':'s'):''].filter(Boolean).join(' · '),'../booth/'):'')
+  +(o.looks?row('looks','Commercial · looks',o.looks+' look'+(o.looks===1?'':'s'),'../looks/'):'')+`</div></div>`; }
 function madePanel(){
  if(!MADE){ loadMade(); return `<div class="panel"><h2>Made by me</h2><small class="note">Looking for your films, scripts and headshots&hellip;</small></div>`; }
  const HM=profile.madeHub||{}, off=new Set(pageOff()), F=(MADE.films||[]).concat(HM.films||[]), W=(MADE.writing||[]).concat(HM.writing||[]), C=MADE.clips||[], H=(MADE.headshots||[]).filter(h=>h.name!==primaryName());
@@ -3233,6 +3255,7 @@ function packageView(){
 
  h+=linksPanel();
  h+=madePanel();
+ h+=voLooksPanel();
  h+=`<div class="panel"><h2>Resume</h2><div style="padding:11px 13px">`;
  h+=rs.length?`<select onchange="pkgSet('resume',this.value)" style="max-width:420px"><option value="">none</option>`+rs.map(a=>`<option value="${a.id}"${pkgSel.resume===a.id?' selected':''}>${esc(a.label||a.filename)}</option>`).join('')+`</select>`:`<span class="note">No resume on file.</span>`;
  h+=`</div></div>`;
@@ -3318,6 +3341,8 @@ function packageHTML(d){
  const credits=d.credits||[];
  const posters=credits.filter(c=>c.poster&&c.poster.u).slice(0,8);
  const clips=(d.clips||[]).filter(has), auds=(d.auds||[]).filter(has), monos=(d.monos||[]).filter(has);
+ const VO=d.voice||{demos:[],voices:[]}, LK=d.looks||{items:[],stats:[]}; VO.demos=(VO.demos||[]).filter(has); VO.voices=(VO.voices||[]).filter(v=>v.a&&v.a.u); LK.items=LK.items||[]; LK.stats=LK.stats||[];
+ const mm=s=>{ s=Math.round(+s||0); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); };
 
  return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -3409,6 +3434,13 @@ section:last-of-type{border-bottom:0}
 .lbcap{color:#ddd;margin:0;font-size:14px;text-align:center}
 .wrow.wposter{display:grid;grid-template-columns:86px 1fr;gap:14px;align-items:start}.wart{width:86px;aspect-ratio:2/3;object-fit:cover;display:block;background:var(--black)}
 @media print{.lbx,.tile .play,.cplay{display:none!important}}
+.vdemos{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:22px}.vdemo{margin:0;background:var(--black);color:#F2F0EA;padding:14px 16px}.vdemo figcaption{display:flex;gap:10px;align-items:baseline;margin-bottom:8px}.vdemo .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:#B9B4A8;text-transform:uppercase}.vdemo b{font-family:var(--disp);font-size:20px}.vdemo .vs{font-family:var(--mono);font-size:12px;color:#B9B4A8;margin-left:auto}.vdemo audio{width:100%}.vdemo .cplay{color:#F2F0EA;border-color:#F2F0EA}
+.vtog{display:flex;gap:6px;margin:0 0 12px}.vtog a{font-family:var(--mono);font-size:11px;letter-spacing:.14em;padding:6px 12px;border:1px solid var(--ink);color:var(--ink);text-decoration:none;border-radius:999px}.vwrap .vg{background:var(--ink);color:var(--bond)}.vwrap:target .vg{background:none;color:var(--ink)}.vwrap:target .vl{background:var(--ink);color:var(--bond)}
+.vgal{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:18px}.vtile{margin:0}.vtile img,.vnopic{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:#E4E0D6}.vtile figcaption{margin:8px 0 6px}.vtile b{display:block;font-family:var(--disp);font-size:17px}.vtile figcaption span,.vrow span{font-size:13px;color:var(--grey)}.vtile audio{width:100%;height:36px}
+.vlist{display:none}.vwrap:target .vlist{display:block}.vwrap:target .vgal{display:none}.vrow{display:grid;grid-template-columns:200px 1fr 260px;gap:14px;align-items:center;padding:8px 0;border-top:1px solid var(--hair)}.vrow audio{width:100%;height:34px}@media(max-width:640px){.vrow{grid-template-columns:1fr}}
+.vnote{font-family:var(--mono);font-size:11.5px;color:var(--grey);margin:16px 0 0}
+.lkdl{margin:0 0 16px}.lkgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:22px}.looks article{display:flex;flex-direction:column;gap:8px}.lkmain{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;background:var(--black)}.lkblank{background:#E4E0D6}.lkmore{display:grid;grid-template-columns:1fr 1fr;gap:6px}.lkmore img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.looks h3{margin:2px 0 0;font-family:var(--disp);font-size:19px}.lkspots{margin:0;font-family:var(--mono);font-size:12px;color:var(--grey)}.lksk{list-style:none;margin:0;padding:0;display:grid;gap:6px}.lksk a{display:flex;gap:8px;align-items:center;color:var(--ink);text-decoration:none;font-size:14px}.lksk .none{display:flex;gap:8px;align-items:center;color:var(--grey);font-size:14px}.lksk .dot{display:inline-flex;width:24px;height:24px;border-radius:50%;background:var(--ink);color:var(--bond);align-items:center;justify-content:center;font-size:9px;flex:none}.lksk .none .dot{background:none;border:1px solid #B9B4A8}
 .mvids{margin-top:22px}
 .wlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px 26px;margin-top:22px}
 .wrow b{display:block;font-size:15px;line-height:1.25;color:var(--ink)}.wrow .cbits{font-family:var(--mono);font-size:11px;color:var(--grey);margin-top:5px;line-height:1.6}
@@ -3480,6 +3512,18 @@ ${has(d.about)?`<section>${rule('About me')}${vid(d.about,'solo')}</section>`:''
 ${(has(d.reel)||reelL.length)?`<section>${rule('Reel')}${has(d.reel)?vid(d.reel,'solo'):''}${reelL.map(emb).join('')}</section>`:''}
 ${(clips.length||xclips.length||clipL.length)?`<section>${rule('Selected work',clips.length+xclips.length+clipL.length)}${grid(clips.concat(xclips),'',clipL)}</section>`:''}
 ${auds.length?`<section>${rule('Auditions',auds.length)}${grid(auds)}</section>`:''}
+${(VO.demos.length||VO.voices.length)?`<section class="vo">${rule('Voice over',VO.demos.length+VO.voices.length)}
+${VO.demos.length?`<div class="vdemos">${VO.demos.map(m=>`<figure class="vdemo"><figcaption><span class="lbl">Demo</span><b>${E(m.n)}</b><span class="vs">${mm(m.secs)}</span></figcaption><audio src="${m.u}" controls preload="none"></audio><a class="cplay" href="${m.u}" download="${E(m.fn||'demo.mp3')}">DOWNLOAD THE MP3</a></figure>`).join('')}</div>`:''}
+${VO.voices.length?`<div class="vwrap" id="vlist"><div class="vtog"><a href="#vgal" class="vg">GALLERY</a><a href="#vlist" class="vl">LIST</a></div>
+<div class="vgal">${VO.voices.map(v=>`<figure class="vtile">${v.pic&&v.pic.u?`<img src="${v.pic.u}" alt="${E(v.n)}" loading="lazy">`:'<span class="vnopic"></span>'}<figcaption><b>${E(v.n)}</b>${v.line?`<span>${E(v.line)}</span>`:''}</figcaption><audio src="${v.a.u}" controls preload="none"></audio></figure>`).join('')}</div>
+<div class="vlist">${VO.voices.map(v=>`<div class="vrow"><b>${E(v.n)}</b><span>${E(v.line||'')}</span><audio src="${v.a.u}" controls preload="none"></audio></div>`).join('')}</div></div>`:''}
+${VO.voices.length?`<p class="vnote">Every voice here is ${E(p.name||'one actor')}.</p>`:''}</section>`:''}
+${LK.items.length?`<section class="looks">${rule('Commercial · looks',LK.items.length)}
+${LK.stats.length?`<dl class="dl lkdl">${LK.stats.map(s=>`<dt>${E(s[0])}</dt><dd>${E(s[1])}</dd>`).join('')}</dl>`:''}
+<div class="lkgrid">${LK.items.map(l=>`<article>${l.photos[0]?`<a href="#${lbImg(l.photos[0],l.n)}"><img class="lkmain" src="${l.photos[0].u}" alt="${E(l.n)}" loading="lazy"></a>`:'<span class="lkmain lkblank"></span>'}
+${l.photos.length>1?`<div class="lkmore">${l.photos.slice(1,3).map(ph=>`<a href="#${lbImg(ph,l.n)}"><img src="${ph.u}" alt="" loading="lazy"></a>`).join('')}</div>`:''}
+<h3>${E(l.n)}</h3>${l.spots?`<p class="lkspots">${E(l.spots)}</p>`:''}
+${l.skills.length?`<ul class="lksk">${l.skills.map(s=>s.clip&&s.clip.u?`<li><a href="#${lbVid([s.clip],l.n+' · '+s.n)}"><span class="dot">&#9654;</span>${E(s.n)}</a></li>`:`<li class="none"><span class="dot"></span>${E(s.n)}</li>`).join('')}</ul>`:''}</article>`).join('')}</div></section>`:''}
 ${monos.length?`<section>${rule('Monologues & stand-up',monos.length)}${grid(monos)}</section>`:''}
 
 ${credits.length?`<section>${rule('Credits',credits.length)}

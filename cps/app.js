@@ -571,6 +571,8 @@
     S.lib = lib && /^ACT\.CPS\//.test(lib.schema || '') ? Object.assign(emptyLib(), lib) : emptyLib();
     for (const c of S.lib.chars) for (const m of [...c.takes, ...c.looks]) { const b = await DB.getMedia(m.id).catch(() => null); if (b) S.urls[m.id] = URL.createObjectURL(b); }
     if (cur()) S.tab = 'chars';
+    /* from VO BOOTH: ?c=<character>&tab=back (come back to this voice) or capture (record a take) */
+    try { const q = new URLSearchParams(location.search), qc = q.get('c'), qt = q.get('tab'); if (qc && S.lib.chars.some(c => c.id === qc)) { S.lib.cur = qc; S.tab = ['back', 'capture', 'voices'].includes(qt) ? qt : 'capture'; } } catch (e) { }
     await scanBreakdown().catch(() => { });
     try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { }
     render();

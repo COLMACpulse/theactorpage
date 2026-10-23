@@ -38,7 +38,8 @@ D.TOOLS=[
  {id:'expenses', name:'Expenses', href:'../expenses/', ls:[/^theactorpage_expenses/], db:[/^theactorpage_receipts$/]},
  {id:'picture', name:'Picture It', href:'../picture/', ls:[/^theactorpage_viz/], db:[/^theactorpage_viz$/]},
  {id:'plan', name:'The Plan', href:'../plan/', ls:[/^theactorpage_plan/], db:[/^theactorpage_plan$/]},
- {id:'looks', name:'Looks', href:'../looks/', ls:[/^theactorpage_looks/], db:[/^theactorpage_looks$/]}
+ {id:'looks', name:'Looks', href:'../looks/', ls:[/^theactorpage_looks/], db:[/^theactorpage_looks$/]},
+ {id:'vodemo', name:'Voice demos', href:'../booth/', ls:[/^theactorpage_vodemo/], db:[/^theactorpage_vodemo$/]}
 ];
 D.OWN_KEY='theactorpage_device_v1';
 /* passing notes between tools (gone in minutes) and things that can't go in a file */
