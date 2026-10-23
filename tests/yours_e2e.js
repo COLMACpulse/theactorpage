@@ -1,0 +1,33 @@
+/* YOURS on home: a sample in each tile; once you've added your own (made-up here), the tile shows your newest and
+   says YOURS. Read on this device only: the page makes no request to anywhere for it. Server on :8811. */
+const {chromium}=require('playwright'); const path=require('path'), os=require('os');
+(async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,400))); if(!x) ok=false; };
+const c=await b.newContext({viewport:{width:1300,height:900}}); const p=await c.newPage(); const errs=[], out=[]; p.on('pageerror',e=>errs.push(e.message));
+p.on('request',r=>{ const u=r.url(); if(!/^http:\/\/localhost:8811\//.test(u)&&!/^(data|blob):/.test(u)) out.push(u); });
+await p.goto('http://localhost:8811/'); await p.evaluate(()=>localStorage.clear()); await p.reload(); await p.waitForTimeout(900);
+const t0=await p.$$eval('.ytile',x=>x.map(e=>e.dataset.y+':'+e.querySelector('.ytag').textContent));
+want('YOURS: seven picture tiles, each a SAMPLE to start', t0.length===7&&t0.every(x=>/SAMPLE$/.test(x)), t0);
+want('Expenses and Footage as plain links, no picture; the footer stays a list', await p.$$eval('#yours .yrow a',x=>x.map(e=>e.textContent).join('|')).then(t=>/Expenses/.test(t)&&/Footage/.test(t))&&!(await p.$('footer .ytile')));
+await p.evaluate(()=>{
+ const s=Notes.addSession({title:'Low Tide',who:[{name:'Pat Coach'}]}); Notes.addNote({sid:s.id,text:'Take the pause before the door.',giver:'Pat Coach'});
+ Viz.add({title:'Harbor Lights',kind:'show'});
+ localStorage.setItem('theactorpage_spotted_v1',JSON.stringify({items:[{id:'i1',at:Date.now(),card:{project:'Dry Creek',role:'Series regular',where:'Austin',casting:['Pell Casting'],source:'https://example.com/story'}}],me:{},held:[]}));
+ Contacts.add({name:'Morgan Lee',role:'agent'});
+ Viz.plugAdd({kind:'airing',title:'Harbor Lights',text:'Harbor Lights is on next Friday. Tune in.'});
+ const day=new Date().toISOString().slice(0,10), due=new Date(Date.now()+5*864e5).toISOString().slice(0,10); const h=Plan.hear('Audition for Ferro, the role of Ray, due '+due,day,{}); Plan.save(Plan.make('x',Object.assign(h,{title:'Ferro',due}),day));
+});
+await p.reload(); await p.waitForTimeout(1200);
+const t1=await p.$$eval('.ytile',x=>x.map(e=>({k:e.dataset.y,tag:e.querySelector('.ytag').textContent,t:e.querySelector('.yart').innerText.replace(/\s+/g,' ')})));
+const by=k=>t1.find(x=>x.k===k)||{};
+want('Notes: your last note, YOURS', by('notes').tag==='YOURS'&&/Take the pause before the door/.test(by('notes').t), by('notes'));
+want('Spotted: the last thing you spotted, where it came from', by('spotted').tag==='YOURS'&&/Dry Creek/.test(by('spotted').t)&&/EXAMPLE\.COM/.test(by('spotted').t), by('spotted'));
+want('Contacts: your people first', by('contacts').tag==='YOURS'&&/Morgan Lee/.test(by('contacts').t), by('contacts'));
+want('Picture It: your wall', by('picture').tag==='YOURS'&&/HARBOR LIGHTS|Harbor Lights/i.test(by('picture').t)&&/WANT IT/.test(by('picture').t), by('picture'));
+want('Press: your last plug, in your words', by('press').tag==='YOURS'&&/Tune in/.test(by('press').t), by('press'));
+want('The Plan: your days', by('plan').tag==='YOURS'&&/Ferro/.test(by('plan').t), by('plan'));
+want('no Hub on this device: the Hub tile keeps its sample', by('hub').tag==='SAMPLE');
+want('nothing goes anywhere: no request leaves this site for it', out.length===0, out);
+const e=await p.$('#yours'); await e.scrollIntoViewIfNeeded(); await e.screenshot({path:path.join(os.tmpdir(),'yours_home.png')});
+want('no page errors', errs.length===0, errs);
+await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();

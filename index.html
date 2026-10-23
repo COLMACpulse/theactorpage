@@ -408,6 +408,30 @@ body.has .scrollcue{display:none}
 .lens .hname.none{color:#9a9284}
 .yres{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;border:1px solid #2a2f37;background:#12151a;padding:12px 14px;margin:10px 0}
 .yres b{color:var(--paper);font-weight:600;margin-right:6px}.yres small{color:var(--faint)}.yact{display:flex;gap:8px;align-items:center}
+/* YOURS: a picture per tool; a sample until you add your own (shared/yours.js) */
+.ygrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px 24px}.ytile[data-y="hub"],.ytile[data-y="press"]{grid-column:span 2}
+@media(max-width:1000px){.ygrid{grid-template-columns:repeat(2,minmax(0,1fr))}.ytile[data-y="press"]{grid-column:auto}}
+@media(max-width:560px){.ygrid{grid-template-columns:1fr}.ytile[data-y="hub"],.ytile[data-y="press"]{grid-column:auto}}
+.ytile{position:relative;display:flex;flex-direction:column;gap:9px;text-decoration:none;color:inherit}
+.yart{position:relative;height:170px;border-radius:8px;background:#1b1f25;border:1px solid var(--rule);display:flex;align-items:center;justify-content:center;overflow:hidden;transition:border-color .15s}
+.ytile:hover .yart{border-color:#6b4f21}.ytile:hover .ycap b{color:var(--tungsten)}
+.ytag{position:absolute;right:10px;top:10px;font:700 .56rem var(--script);letter-spacing:.16em;padding:3px 6px;border:1px solid #3a414c;border-radius:4px;color:#9aa1ab;background:rgba(13,15,18,.7)}
+.ytile.mine .ytag{background:var(--tungsten);border-color:var(--tungsten);color:#17110a}
+.ycap b{display:block;font:700 .82rem var(--script);letter-spacing:.04em;color:#c3c8d0}.ycap i{display:block;font:normal .72rem var(--script);font-style:normal;color:var(--faint)}
+.ycard{align-self:stretch;width:100%;padding:16px;box-sizing:border-box;display:flex;flex-direction:column;gap:5px;background:#14171b}
+.yk{font:700 .6rem var(--script);letter-spacing:.2em;color:#9aa1ab}.yt{font-size:1.2rem;font-weight:500;color:#ece7dc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.yr{font:700 .7rem var(--script);letter-spacing:.14em;color:var(--tungsten)}.yd{margin-top:auto;font:.74rem var(--script);color:#c3c8d0}
+.ynote{width:min(230px,84%);min-height:110px;max-height:128px;overflow:hidden;background:#f3efe2;transform:rotate(-2deg);box-shadow:0 8px 18px rgba(0,0,0,.45);padding:12px 16px;box-sizing:border-box;background-image:repeating-linear-gradient(#f3efe2 0 23px,#c9d6e6 23px 24px);color:#22324a;font:italic 1rem/24px Georgia,serif}
+.yclip{width:min(270px,86%);background:#e9e4d6;transform:rotate(1.5deg);box-shadow:0 8px 18px rgba(0,0,0,.45);padding:12px 14px;box-sizing:border-box;color:#16161a;display:flex;flex-direction:column;gap:5px}
+.ys{font:.56rem var(--script);letter-spacing:.2em;border-bottom:1px solid #16161a;padding-bottom:4px}.yh{font:700 1.25rem/1.08 Georgia,serif}.yb{font:.72rem/1.3 Georgia,serif;color:#3a3a3a}
+.ypeople{align-self:stretch;width:100%;padding:30px 14px 12px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:10px;background:#14171b;font-size:.88rem;color:#ece7dc}
+.ypeople>span{display:flex;gap:10px;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ypeople i{flex:none;width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font:700 .7rem var(--script);font-style:normal;color:#fff}.ypeople em{font-style:normal;color:#9aa1ab}
+.yplan{align-self:stretch;width:100%;padding:34px 12px 14px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:10px;background:#14171b}
+.ydays{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}.ydays>span{display:flex;flex-direction:column;gap:3px;align-items:center;padding:8px 2px;border-radius:6px;background:#1b1f25;font-size:.72rem;color:#ece7dc;overflow:hidden}.ydays b{font:700 .6rem var(--script);color:#9aa1ab}.ydays .ok::after{content:"\2713";color:#8fbf8a}.ydays .on{border:1px solid var(--tungsten);background:none}.ydays .on b{color:var(--tungsten)}
+.yposters{display:flex;gap:12px}.yp{position:relative;width:82px;height:123px;border-radius:5px;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:600;font-size:.8rem;letter-spacing:.06em;line-height:1.15;padding:6px;box-sizing:border-box;color:#ece7dc;background-size:cover;background-position:center}
+.yp i{position:absolute;left:5px;bottom:5px;font:700 .5rem var(--script);font-style:normal;letter-spacing:.12em;background:var(--tungsten);color:#17110a;padding:2px 4px;border-radius:3px}.yp i.got{background:#8fbf8a;color:#10180f}
+.yplug{width:min(250px,86%);background:#14171b;border:1px solid #3a414c;border-radius:10px;padding:12px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:6px}.yplug .yk{color:var(--tungsten)}.ypt{font-size:.88rem;line-height:1.35;color:#ece7dc;max-height:4.1em;overflow:hidden}
+.yrow{display:flex;flex-wrap:wrap;gap:4px 28px;margin-top:22px;padding-top:14px;border-top:1px solid var(--rule)}
+.yours-why{font:.78rem/1.6 var(--script);color:var(--faint);max-width:16em;margin-top:14px}
 .deptgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px 18px;margin-top:22px}
 .deptgrid .dg{display:flex;gap:12px;align-items:center;padding:10px 6px;color:var(--grey);text-decoration:none;border-radius:8px}
 .deptgrid .dg svg.st{width:46px;height:46px;flex:none;transition:transform .15s}
@@ -991,6 +1015,22 @@ body.stopen{overflow:hidden}
 
 <hr class="hair">
 
+<section class="band yours" id="yours" aria-labelledby="yoursname">
+  <div class="wrap disc">
+    <div>
+      <h2 class="disc-name" id="yoursname">YOURS</h2>
+      <p class="disc-what">Your work,<br>where you can see it.</p>
+      <p class="yours-why" id="yourswhy">A sample in each one until you add your own. Then it shows your newest, on this device only.</p>
+    </div>
+    <div>
+      <div class="ygrid"><a class="ytile" href="hub/" data-y="hub"><span class="yart"><span class="ycard"><span class="yk">AUDITION</span><span class="yt">Harbor Lights</span><span class="yr">DECKHAND</span><span class="yd">Tape due Fri · 5:00 PM PT</span></span></span><span class="ytag">SAMPLE</span><span class="ycap"><b>Project Hub</b><i>auditions, requests</i></span></a><a class="ytile" href="notes/" data-y="notes"><span class="yart"><span class="ynote">Slow down on the turn.<br>Let her talk first.</span></span><span class="ytag">SAMPLE</span><span class="ycap"><b>Notes</b><i>what they told you</i></span></a><a class="ytile" href="spotted/" data-y="spotted"><span class="yart"><span class="yclip"><span class="ys">THE TRADES · CASTING</span><span class="yh">Now casting: Dry Creek</span><span class="yb">Series regular. Shoots in Austin this spring.</span></span></span><span class="ytag">SAMPLE</span><span class="ycap"><b>Spotted</b><i>pass it along</i></span></a><a class="ytile" href="contacts/" data-y="contacts"><span class="yart"><span class="ypeople"><span><i style="background:#2a5fa8">DW</i>Dana Wolfe <em>· director, Harbor Lights</em></span><span><i style="background:#1f8a5c">JH</i>Jen Holt <em>· casting, 3 auditions</em></span><span><i style="background:#c0392b">KM</i>Kit Moreno <em>· DP, Harbor Lights</em></span></span></span><span class="ytag">SAMPLE</span><span class="ycap"><b>Contacts</b><i>the who</i></span></a><a class="ytile" href="plan/" data-y="plan"><span class="yart"><span class="yplan"><span class="ydays"><span class="ok"><b>MON</b>Learn</span><span class="ok"><b>TUE</b>Run</span><span class="on"><b>WED</b>Tape</span><span><b>THU</b>Cut</span><span><b>FRI</b>Send</span></span><span class="yd">Harbor Lights · due Fri 5 PM</span></span></span><span class="ytag">SAMPLE</span><span class="ycap"><b>The Plan</b><i>to the deadline</i></span></a><a class="ytile" href="picture/" data-y="picture"><span class="yart"><span class="yposters"><span class="yp" style="background:linear-gradient(170deg,#2a4a63,#0f1d29)">HARBOR LIGHTS<i>WANT IT</i></span><span class="yp" style="background:linear-gradient(170deg,#5a3e2a,#1f140c)">UNION CARD<i class="got">GOT IT</i></span></span></span><span class="ytag">SAMPLE</span><span class="ycap"><b>Picture It</b><i>see it, plug it</i></span></a><a class="ytile" href="press/" data-y="press"><span class="yart"><span class="yplug"><span class="yk">SHAMELESS PLUG</span><span class="ypt">Check out Harbor Lights, next Friday night at 10:00 on [NETWORK].</span></span></span><span class="ytag">SAMPLE</span><span class="ycap"><b>Press</b><i>when you have news</i></span></a></div>
+      <div class="yrow"><a class="ftool" href="expenses/"><svg class="st r-yours" viewBox="0 0 96 96" aria-hidden="true"><circle class="ring" cx="48" cy="48" r="44"/><use href="#s-expenses" x="18" y="16" width="60" height="60"/></svg><span><b>Expenses</b><i>for tax time</i></span></a><a class="ftool" href="footage/"><svg class="st r-yours" viewBox="0 0 96 96" aria-hidden="true"><circle class="ring" cx="48" cy="48" r="44"/><use href="#s-footage" x="18" y="16" width="60" height="60"/></svg><span><b>Footage</b><i>to your reel</i></span></a><a class="ftool" href="gsd/"><svg class="st r-yours" viewBox="0 0 96 96" aria-hidden="true"><circle class="ring" cx="48" cy="48" r="44"/><use href="#s-gsd" x="18" y="16" width="60" height="60"/></svg><span><b>GSD</b><i>get it done</i></span></a><a class="ftool" href="device/"><svg class="st r-yours" viewBox="0 0 96 96" aria-hidden="true"><circle class="ring" cx="48" cy="48" r="44"/><use href="#s-dev" x="18" y="16" width="60" height="60"/></svg><span><b>On This Device</b><i>your backup</i></span></a><a class="ftool" href="privacy/"><svg class="st r-yours" viewBox="0 0 96 96" aria-hidden="true"><circle class="ring" cx="48" cy="48" r="44"/><use href="#s-priv" x="18" y="16" width="60" height="60"/></svg><span><b>Privacy</b><i>what stays here</i></span></a></div>
+    </div>
+  </div>
+</section>
+
+<hr class="hair">
+
 <section class="band yourpage" id="yourpage" aria-labelledby="ypname">
   <div class="wrap disc">
     <div>
@@ -1369,6 +1409,7 @@ body.stopen{overflow:hidden}
 <script src="shared/capture.js"></script>
 <script src="shared/takes.js"></script>
 <script src="shared/studio.js"></script>
+<script src="shared/yours.js"></script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
 <script>(function(){var g=document.getElementById('sp-get');if(!g)return;var bs=g.querySelectorAll('.gkb'),ps=g.querySelectorAll('.gkp');function set(k){bs.forEach(function(b){b.setAttribute('aria-pressed',b.dataset.k===k?'true':'false');});ps.forEach(function(p){p.hidden=p.dataset.k!==k;});try{localStorage.setItem('theactorpage_getkind',k);}catch(e){}}bs.forEach(function(b){b.onclick=function(){set(b.dataset.k);};});try{var k=localStorage.getItem('theactorpage_getkind');if(k&&g.querySelector('.gkp[data-k="'+k+'"]'))set(k);}catch(e){}})();</script>
 </body>
