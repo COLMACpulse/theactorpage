@@ -1,6 +1,7 @@
 /* THEACTORPAGE YOURS, on home: a picture for each of your tools. The sample shows what the tool holds; once you've
    added your own, the tile shows your newest: your next audition, your last note, the last thing you spotted, your
-   people, your plan, your wall, your last plug. Read here from this device only: nothing is sent anywhere, and
+   people, your plan, your wall, your last plug. No samples: a tile shows only once it has yours, and the section
+   only once one does. Read here from this device only: nothing is sent anywhere, and
    these pictures only ever show on your own phone or computer. Expenses and Footage stay as plain links. */
 (function (g) {
   'use strict';
@@ -11,7 +12,7 @@
   const dueWords = iso => { const d = new Date(iso); if (isNaN(d)) return ''; return 'Due ' + DN[d.getDay()] + ' ' + (d.getMonth() + 1) + '/' + d.getDate() + ' · ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); };
   const initials = n => clean(n).split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
   const COLORS = ['#2a5fa8', '#1f8a5c', '#c0392b', '#d9b23a', '#5c636d'];
-  function set(k, html) { const t = $('.ytile[data-y="' + k + '"]'); if (!t || !html) return; t.querySelector('.yart').innerHTML = html; t.classList.add('mine'); t.querySelector('.ytag').textContent = 'YOURS'; }
+  function set(k, html) { const t = $('.ytile[data-y="' + k + '"]'); if (!t || !html) return; t.querySelector('.yart').innerHTML = html; t.classList.add('mine'); t.querySelector('.ytag').remove(); }
 
   /* each one: what it shows once it's yours, or '' to keep the sample. Pure: the tests feed it made-up data. */
   Y.hub = function (projects, now) { now = now || Date.now();
@@ -32,7 +33,7 @@
     const nowI = show.find(s => !(p.done || {})[s.i]);
     return '<span class="yplan"><span class="ydays">' + show.map(s => '<span class="' + ((p.done || {})[s.i] ? 'ok' : (nowI && s.i === nowI.i ? 'on' : '')) + '"><b>' + DN[new Date(s.date + 'T12:00').getDay()].toUpperCase() + '</b>' + esc(clean(s.what).split(/[.:,]/)[0].split(' ')[0]) + '</span>').join('') + '</span><span class="yd">' + esc([p.heard.title || 'Your audition', p.heard.due ? 'due ' + p.heard.due.slice(5).replace('-', '/') : ''].filter(Boolean).join(' · ')) + '</span></span>'; };
   Y.picture = function (walls, urls) { const L = (walls || []).slice(0, 2); if (!L.length) return '';
-    return '<span class="yposters">' + L.map(w => '<span class="yp"' + (urls && urls[w.id] ? ' style="background-image:url(' + urls[w.id] + ')"' : ' style="background:linear-gradient(170deg,#2a4a63,#0f1d29)"') + '>' + (urls && urls[w.id] ? '' : esc(w.title)) + '<i' + (w.got ? ' class="got"' : '') + '>' + (w.got ? 'GOT IT' : 'WANT IT') + '</i></span>').join('') + '</span>'; };
+    return '<span class="yposters">' + L.map(w => '<span class="ypost"' + (urls && urls[w.id] ? ' style="background-image:url(' + urls[w.id] + ')"' : ' style="background:linear-gradient(170deg,#2a4a63,#0f1d29)"') + '>' + (urls && urls[w.id] ? '' : esc(w.title)) + '<i' + (w.got ? ' class="got"' : '') + '>' + (w.got ? 'GOT IT' : 'WANT IT') + '</i></span>').join('') + '</span>'; };
   Y.press = function (plugs, render) { const p = (plugs || [])[0]; if (!p) return ''; let t = ''; try { t = render ? render(p) : p.text; } catch (e) { t = p.text; }
     return '<span class="yplug"><span class="yk">' + esc(p.kind === 'airing' ? 'SHAMELESS PLUG · AIRING' : 'SHAMELESS PLUG') + '</span><span class="ypt">' + esc(clean(t || p.title).slice(0, 140)) + '</span></span>'; };
 
@@ -47,7 +48,9 @@
     try { if (g.Viz) { const V = g.Viz, W = V.wanted().concat(V.gotten()).slice(0, 2).map(w => Object.assign({}, w, { got: V.got(w) })), U = {};
       for (const w of W) { if (w.pic) { const b = await V.picBlob(w.pic); if (b) U[w.id] = URL.createObjectURL(b); } }
       k('picture', Y.picture(W, U)); k('press', Y.press(V.plugs(), p => V.plug(p.text, p).text)); } } catch (e) { }
-    const why = $('#yourswhy'); if (why && mine) why.textContent = 'Your newest in each one, on this device only. A sample where you haven\'t added anything yet.';
+    /* only what's yours: a tile with nothing of yours in it goes, and with nothing at all the section stays hidden */
+    document.querySelectorAll('#yours .ytile:not(.mine)').forEach(t => t.remove());
+    const sec = $('#yours'); if (sec) { sec.hidden = !mine; const hr = sec.nextElementSibling; if (hr && hr.tagName === 'HR') hr.hidden = !mine; }
     return mine;
   };
   g.Yours = Y;
