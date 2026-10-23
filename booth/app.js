@@ -191,7 +191,7 @@ async function checkFile(f){
 }
 
 /* ---------- show it ---------- */
-const TABS=['copy','room','read','send','demo'];
+const TABS=['copy','room','voices','read','send','demo'];
 function render(){
  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===S.tab));
  const J=job(); $('title').textContent=S.job.client||(J.spots[0]&&J.spots[0].title)||'Voice over';
@@ -201,8 +201,10 @@ function render(){
  else if(S.tab==='room') m.innerHTML=roomView();
  else if(S.tab==='read') m.innerHTML=readView(J);
  else if(S.tab==='demo'){ if(window.BoothDemo) BoothDemo.render(m); }
+ else if(S.tab==='voices'){ if(window.BoothVoices) BoothVoices.render(m); }
  else m.innerHTML=sendView(J);
  wire(J);
+ if(S.tab==='read'&&window.BoothVoices) BoothVoices.strip($('rvoice'),S.job.voice||'');
 }
 function copyView(J){
  const n=J.spots.length;
@@ -240,7 +242,7 @@ function roomView(){
 }
 function readView(J){
  if(!J.spots.length) return '<div class="msg">Add the copy on COPY first.</div>';
- let h='<div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="dim small">'+(MIC?'Mic on. Tap ● to record a line, tap again to stop.':'Tap ● to record a line, tap again to stop.')+'</span>'+(MIC?'<button class="btn sm ghost" id="micoff">MIC OFF</button>':'')+'</div>';
+ let h='<div id="rvoice"></div><div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="dim small">'+(MIC?'Mic on. Tap ● to record a line, tap again to stop.':'Tap ● to record a line, tap again to stop.')+'</span>'+(MIC?'<button class="btn sm ghost" id="micoff">MIC OFF</button>':'')+'</div>';
  J.spots.forEach((sp,si)=>{ const t=spotTime(sp,J);
   h+='<div class="spot"><p class="kicker">'+(si+1)+' · '+esc(sp.title||'Spot')+(sp.secs?' · :'+sp.secs:'')+'</p>'
    +(t.have?'<p class="time'+(sp.secs&&Math.abs(t.secs-sp.secs)>1?' off':'')+'">'+esc(A.timeWords(t.secs,sp.secs))+(t.missing?' ('+t.missing+' line'+(t.missing===1?'':'s')+' still to read)':'')+'</p>':'');
@@ -316,12 +318,12 @@ function wire(J){
    goTab('read'); const b=document.querySelector('[data-rec]'); if(b&&b.scrollIntoView) b.scrollIntoView({block:'center'}); }
  });
 }
-function goTab(t){ S.tab=t;
+function goTab(t){ if(t==='voices'&&S.tab!=='voices'&&window.BoothVoices) BoothVoices.open('home'); S.tab=t;
  // the mic is only on where you record: leave READ or ROOM and it goes off
  if(MIC&&!['read','room'].includes(S.tab)){ if(REC) stopRec(); C.stop(MIC); MIC=null; }
  save(); render(); window.scrollTo(0,0); }
 $('tabs').addEventListener('click',e=>{ const b=e.target.closest('button[data-t]'); if(b) goTab(b.dataset.t); });
 window.addEventListener('pagehide',()=>{ C.stop(MIC); });
-window.__booth={get S(){return S;},job,plan,addText,make,checkFile,render,decode,to441,get,keptOf,name};
+window.__booth={get S(){return S;},job,plan,addText,make,checkFile,render,decode,to441,get,keptOf,name,save,goTab};
 render();
 })();
