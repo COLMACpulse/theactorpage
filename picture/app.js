@@ -193,10 +193,39 @@
   }
   async function fonts() { try { await Promise.all(['600 30px Jost', '700 15px Jost', '700 13px "Courier Prime"'].map(f => document.fonts.load(f))); } catch (e) { } }
   const toBlob = cv => new Promise(r => cv.toBlob(r, 'image/png'));
+  const mmss = x => { x = Math.max(0, Math.round(x || 0)); return Math.floor(x / 60) + ':' + String(x % 60).padStart(2, '0'); };
+  /* THE LIVE ONE on the card: your live headshot (HEADSHOTS) moving in the photo, the rest of the card as it is. For POST only. */
+  let LIVEV = null;
+  async function liveVideo() { if (LIVEV && LIVEV.k === (You.get().live || {}).added) return LIVEV.v; const b = await You.liveBlob(); if (!b) return null;
+    const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.loop = true; v.src = URL.createObjectURL(b);
+    await new Promise(r => { v.onloadeddata = r; v.onerror = r; setTimeout(r, 4000); }); LIVEV = { k: You.get().live.added, v }; return v; }
+  const frameOf = (v, fr) => { if (!v.videoWidth) return null; if (fr.width !== v.videoWidth) { fr.width = v.videoWidth; fr.height = v.videoHeight; } fr.getContext('2d').drawImage(v, 0, 0); return fr; };
+  let ANIM = 0;
+  async function animateCard(id) { const my = ++ANIM, v = await liveVideo(); if (!v || my !== ANIM) return; const dd = await cardData(id), fr = document.createElement('canvas');
+    v.play().catch(() => { }); const tick = () => { const cv = $('c_cv'); if (my !== ANIM || !cv || !cv.isConnected) return; const f = frameOf(v, fr); if (f) { dd.bitmap = f; Postcard.draw(cv, dd, CSIZE); } setTimeout(tick, 66); }; tick(); }
+  async function cardVideo(id, size) { await fonts();
+    try { const b = await You.liveBlob(); if (!b || typeof MediaRecorder === 'undefined') return null;
+      const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.src = URL.createObjectURL(b);
+      await new Promise(r => { v.onloadeddata = r; v.onerror = r; setTimeout(r, 4000); }); if (!v.videoWidth) return null;
+      const dd = await cardData(id), fr = document.createElement('canvas'), cv = document.createElement('canvas'); dd.bitmap = frameOf(v, fr); Postcard.draw(cv, dd, size);
+      if (!cv.captureStream) return null;
+      const mime = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'].find(m => { try { return MediaRecorder.isTypeSupported(m); } catch (e) { return false; } }) || '';
+      const st = cv.captureStream(30), rec = new MediaRecorder(st, mime ? { mimeType: mime, videoBitsPerSecond: 6e6 } : {}), parts = [];
+      rec.ondataavailable = e => { if (e.data && e.data.size) parts.push(e.data); };
+      const done = new Promise(r => { rec.onstop = r; });
+      const secs = (You.get().live || {}).secs || 5; let t;
+      rec.start(500); await v.play().catch(() => { });
+      t = setInterval(() => { const f = frameOf(v, fr); if (f) { dd.bitmap = f; Postcard.draw(cv, dd, size); } }, 33);
+      await new Promise(r => { v.onended = r; setTimeout(r, secs * 1000 + 600); });
+      clearInterval(t); rec.stop(); await done; URL.revokeObjectURL(v.src);
+      const type = (rec.mimeType || mime || 'video/webm').split(';')[0], ext = /mp4/.test(type) ? 'mp4' : 'webm';
+      const q = G.plugGet(id); return new File(parts, 'card-' + Postcard.slug(q.title || 'plug') + '-' + size + '.' + ext, { type });
+    } catch (e) { return null; } }
   async function cardBlob(id, size) { await fonts(); return toBlob(Postcard.draw(document.createElement('canvas'), await cardData(id), size)); }
   async function cardView(id) {
     const PC = window.Postcard, q = G.plugGet(id); if (!q || !PC) return go('plugs');
     const you = window.You ? You.get() : {}, words = G.plug(q.text, q).text, c = Object.assign({}, q.card || {}), d = await cardData(id), st = PC.settings();
+    const canMove = !!(window.You && You.get().live && q.you && !q.pic), moving = canMove && (c.moving !== undefined ? !!c.moving : You.leadsLive());
     const hasPic = !!(await G.plugBlob(Object.assign({}, q, { nopic: false }))), socials = PC.socials(you), base = PC.pageBase(you, onlinePage());
     const save = patch => { const x = G.plugGet(id); G.plugSet(id, { card: Object.assign({}, x.card || {}, patch) }); };
     if (!c.look) save({ look: d.look });
@@ -209,7 +238,7 @@
       '<p class="mut small" id="c_where">' + esc(PC.size(CSIZE)[2] + ' × ' + PC.size(CSIZE)[3] + ' · ' + PC.size(CSIZE)[4]) + '</p>' +
       '<div class="cards"><canvas id="c_cv" class="cardcv" role="img" aria-label="Your card"></canvas>' + (CSIZE === 'print' ? '<canvas id="c_bk" class="cardcv" role="img" aria-label="The back of your postcard"></canvas>' : '') + '</div>' +
       '<label class="lab">ON THE CARD</label>' +
-      (hasPic ? ck('photo', d.photo, 'Your photo') : '<p class="mut small">No picture on this plug. Add one on the plug, or the card goes words only.</p>') +
+      (hasPic ? ck('photo', d.photo, 'Your photo') + (canMove ? ck('moving', moving, 'Moving: your live one, ' + mmss(you.live.secs) + ' on a loop <span class="mut">for POST. Email and print take the still.</span>', d.photo ? '' : ' disabled') : '') : '<p class="mut small">No picture on this plug. Add one on the plug, or the card goes words only.</p>') +
       socials.map(x => ck('show="' + x.k + '"', c.show && c.show[x.k] !== undefined ? c.show[x.k] : PC.onCardDefault(you, x.k), esc(x.name) + ' <span class="mut">' + esc(x.text) + '</span>')).join('') +
       (base ? ck('show="page"', c.page !== undefined ? c.page : PC.onCardDefault(you, 'page'), 'Your page <span class="mut">' + esc(PC.bare(base)) + '</span>') : '') +
       (socials.length ? '' : '<p class="mut small">Your socials go in YOUR PROFILE, on the <a href="../#you">home page</a>. Just the handle.</p>') +
@@ -257,18 +286,20 @@
     V.innerHTML = h;
     $('c_back').onclick = e => { e.preventDefault(); say(''); go('plug=' + id); };
     const redraw = async () => { await fonts(); const dd = await cardData(id); PC.draw($('c_cv'), dd, CSIZE); if ($('c_bk')) { const P0 = ((G.plugGet(id).card || {}).to || [])[0], who = P0 && window.Contacts ? Contacts.get(P0) : null; PC.drawBack($('c_bk'), dd, (G.plugGet(id).card || {}).blank || !who ? null : { name: who.name, address: (who.mail || []).join('\n') }); } };
-    redraw();
+    redraw(); if (moving && d.photo && CSIZE !== 'print') animateCard(id);
     V.querySelectorAll('[data-look]').forEach(b => b.onclick = () => { save({ look: b.dataset.look }); if (PC.settings().keep) PC.setSettings({ look: b.dataset.look }); cardView(id); });
     V.querySelectorAll('[data-size]').forEach(b => b.onclick = () => { CSIZE = b.dataset.size; cardView(id); });
     V.querySelectorAll('[data-send]').forEach(b => b.onclick = () => { CSEND = b.dataset.send; say(''); cardView(id); });
     const chk = (sel, fn) => { const el = V.querySelector(sel); if (el) el.onchange = () => { fn(el.checked); redraw(); }; };
     chk('[data-photo]', v => save({ photo: v }));
+    chk('[data-moving]', v => { save({ moving: v }); cardView(id); });
     V.querySelectorAll('[data-show]').forEach(el => el.onchange = () => { const k = el.dataset.show; if (k === 'page') save({ page: el.checked }); else save({ show: Object.assign({}, (G.plugGet(id).card || {}).show || {}, { [k]: el.checked }) }); redraw(); });
     chk('[data-rep]', v => save({ rep: v })); chk('[data-qr]', v => save({ qr: v }));
     const kp = V.querySelector('[data-keep]'); if (kp) kp.onchange = () => { PC.setSettings({ keep: kp.checked, look: (G.plugGet(id).card || {}).look || 'slate' }); cardView(id); };
     if ($('c_watch')) { $('c_watch').oninput = () => save({ watch: $('c_watch').value.trim() }); $('c_watch').onchange = () => { if ($('c_watch').value.trim() && !PC.url($('c_watch').value)) say('That doesn\'t look like a link. Paste the whole address.'); else say(''); }; }
     /* POST */
-    const fileOf = async size => { const b = await cardBlob(id, size); return b ? new File([b], 'card-' + PC.slug(q.title || 'plug') + '-' + size + '.png', { type: 'image/png' }) : null; };
+    const isMoving = () => { const x = G.plugGet(id), cc = x.card || {}; return canMove && cc.photo !== false && (cc.moving !== undefined ? !!cc.moving : You.leadsLive()); };
+    const fileOf = async size => { if (isMoving()) { say('Making the moving card…'); const v = await cardVideo(id, size); say(v ? '' : 'This browser couldn\'t make the moving card. Untick Moving to send the still.'); if (v) return v; } const b = await cardBlob(id, size); return b ? new File([b], 'card-' + PC.slug(q.title || 'plug') + '-' + size + '.png', { type: 'image/png' }) : null; };
     const postSize = () => (CSIZE === 'print' ? 'square' : CSIZE);
     if ($('c_share')) $('c_share').onclick = async () => { const f = await fileOf(postSize()), dd = await cardData(id), data = { text: PC.postWords('', dd) }; if (f && (!navigator.canShare || navigator.canShare({ files: [f] }))) data.files = [f]; try { await navigator.share(data); } catch (e) { } };
     if ($('c_save')) $('c_save').onclick = async () => { const f = await fileOf(postSize()); if (!f) { say('This browser wouldn\'t make the picture.'); return; } const u = URL.createObjectURL(f), a = document.createElement('a'); a.href = u; a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); say('Saved. Post it from your photos or your downloads.'); };

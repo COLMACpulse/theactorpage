@@ -1,8 +1,9 @@
-/* HEADSHOTS: your headshots in your own words, a check on each photo, and a shoot that's planned.
-   PHOTOS  the headshots in YOUR PROFILE (the same ones the Hub, Virtual Résumé and Slate Maker use): the roles each is for,
-           keep / retest / retire, a note, the photo check, and how it reads at thumbnail size
-   PLAN    the roles you're called in for and the ones you want; which have a keeper, in plain words; before / after tests
-   BRIEF   for the photographer (or you, shooting yourself): a standalone page and a shot sheet; you choose what goes in
+/* HEADSHOTS: the face they see first. Your headshots in your own words, a live one, and a shoot that's planned.
+   FRONT   the one you lead with (STILL or LIVE), your headshots (the same ones the Hub, Virtual Résumé and Slate Maker use):
+           tap one for the roles it's for, keep / retest / retire, a note, the photo check, how it reads at thumbnail size.
+   LIVE    five seconds of you, on a loop, shot here. Plays on your page and the postcard when you lead with it.
+   PLAN    (folded) the roles you're called in for and the ones you want; which have a keeper, in plain words; before / after tests
+   BRIEF   (folded) for the photographer (or you, shooting yourself): a standalone page and a shot sheet; you choose what goes in
    Nothing here rates your looks, names your type or predicts a booking. Nothing uploaded. */
 (function(){
 const Y=window.You, H=window.Headshots;
@@ -39,14 +40,84 @@ async function exportBrief(kind){
 async function preview(){ const y=Y.get(), o={name:y.name||'',rep:y.rep||'',plan:P,refs:[]}; for(const r of P.refs.filter(r=>r.share)){ const b=await H.getRef(r.id); if(b) o.refs.push({name:r.name,note:r.note,src:await dataUrl(b)}); }
  const ov=$('ov'); ov.hidden=false; document.body.classList.add('ovopen'); ov.innerHTML='<div class="recbox"><button class="btn block" id="pvx">CLOSE</button><iframe id="pvf" class="pvf"></iframe></div>'; $('pvf').srcdoc=H.briefHtml(o); $('pvx').onclick=()=>{ ov.hidden=true; ov.innerHTML=''; document.body.classList.remove('ovopen'); }; }
 
+/* ---------- the front: the one you lead with (still or live), your headshots, the live one; the plan folded ---------- */
+const HS_ICON='<svg class="hico" viewBox="0 0 64 80" role="img" aria-label="A headshot, live"><rect class="pg" x="2" y="2" width="60" height="76" rx="5"/><rect class="ph" x="7" y="7" width="50" height="66" rx="3"/><g class="who"><circle class="sil" cx="32" cy="32" r="11"/><path class="sil" d="M12 73c3-15 11-22 20-22s17 7 20 22z"/></g><circle class="ldot" cx="51" cy="13" r="3.5"/></svg>';
+const SIL='<svg class="silbig" viewBox="0 0 120 130" aria-hidden="true"><circle cx="60" cy="48" r="26"/><path d="M8 130c6-34 26-50 52-50s46 16 52 50z"/></svg>';
+const RM=()=>{ try{ return matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; } };
+let OPEN='', EXT=null, LIVEURL='', LIVEK='';
+const mmss=s=>{ s=Math.max(0,Math.round(s||0)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); };
+const day=t=>{ try{ return new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch(e){ return ''; } };
+async function liveUrl(){ const y=Y.get(); if(!y.live) return ''; const k=y.live.added+':'+y.live.name; if(LIVEK===k&&LIVEURL) return LIVEURL; const b=await Y.liveBlob(); if(!b) return ''; if(LIVEURL) URL.revokeObjectURL(LIVEURL); LIVEURL=URL.createObjectURL(b); LIVEK=k; return LIVEURL; }
+async function fillLive(){ const els=document.querySelectorAll('video[data-live]'); if(!els.length) return; const u=await liveUrl(); if(!u) return; for(const v of els){ if(v.dataset.poster&&!v.poster){ const pu=await src(v.dataset.poster); if(pu) v.poster=pu; } if(v.src!==u) v.src=u; if(!RM()) v.play().catch(()=>{}); } }
+
+function header(){
+ const y=Y.get(), sub=U.tab==='plan'?'What you\'re called in for, what you want to be seen for, which have a keeper.':U.tab==='brief'?'A brief and your references, in your words.':'Your headshots, and a live one: five seconds of you, on a loop.';
+ const t=U.tab==='plan'?'The plan':U.tab==='brief'?'For the photographer':'The face they see first';
+ return '<header class="top bhead"><div class="bwrap">'+HS_ICON+'<div class="btx"><div class="kicker" style="margin:0">ACT · HEADSHOTS</div><h1 id="title">'+esc(t)+'</h1><p>'+esc(sub)+'</p><div class="count" id="count">'+(y.photos.length?y.photos.filter(p=>p.kind!=='still').length+' headshot'+(Y.headshots().length===1?'':'s')+' · '+y.photos.filter(p=>p.status==='keeper').length+' keep'+(y.live?' · a live one':''):'')+'</div></div><img class="bsig" src="../img/sigil-film-180.png" alt="THEACTORPAGE" width="64" height="64"></div></header><i class="hstk" aria-hidden="true"></i>';
+}
+const TAGW={keeper:'KEEP',retest:'RETEST',retire:'RETIRE'};
+function leadHtml(y){
+ const hs=Y.headshots(), prim=hs.find(p=>p.id===y.primary)||hs[0], live=!!y.live, lv=live&&y.lead==='live';
+ let h='<section class="lead"><div class="lhead"><span class="kicker" style="margin:0">THE ONE YOU LEAD WITH</span>'+(live?'<span class="seg" role="group" aria-label="Lead with the still or the live one"><button type="button" class="'+(lv?'':'on')+'" data-lead="still" aria-pressed="'+!lv+'">STILL</button><button type="button" class="'+(lv?'on':'')+'" data-lead="live" aria-pressed="'+lv+'">LIVE</button></span>':'')+'</div>';
+ h+='<div class="hero'+(lv?' islive':'')+'">';
+ if(lv) h+='<video data-live class="hv" muted loop playsinline'+(RM()?' controls':' autoplay')+(prim?' data-poster="'+prim.id+'"':'')+'></video><span class="badge"><i class="dot"></i>LIVE · '+mmss(y.live.secs)+' LOOP</span>'+(y.live.sound?'<button type="button" class="hear" id="hear" aria-pressed="false">SOUND OFF</button>':'');
+ else if(prim) h+='<img data-src="'+prim.id+'" class="hv" alt="Your main headshot">';
+ else h+='<div class="hempty">'+SIL+'<span>No headshot yet</span></div>';
+ h+='<span class="ytag">YOUR HEADSHOT</span></div>';
+ h+='<div class="goes"><span class="kicker" style="margin:0 4px 0 0">GOES ON</span><span class="tag">YOUR PAGE</span><span class="tag">THE POSTCARD</span><span class="tag">YOUR PACKAGES</span><span class="tag">THE SLATE</span></div>';
+ h+='<p class="dim small" style="margin:6px 0 0">'+(live?(lv?'The live one plays where your page and the postcard show your headshot. Anywhere that takes only stills gets the still.':'Your still leads everywhere. Pick LIVE and the live one plays on your page and the postcard.'):'The Hub, Virtual Résumé and Slate Maker use this one. Shoot a live one and it can play on your page and the postcard.')+'</p></section>';
+ return h;
+}
+function cardHtml(p,y){ const roles=(p.roles||[]).join(' · '), main=y.primary===p.id;
+ return '<button type="button" class="shot'+(OPEN===p.id?' open':'')+'" data-open="'+p.id+'" aria-expanded="'+(OPEN===p.id)+'"><span class="pic"><img data-src="'+p.id+'" alt="">'+(main?'<span class="mtag">LEAD STILL</span>':'')+(p.fromLive?'<span class="ftag">FROM THE LIVE ONE</span>':'')+'</span><span class="cap">'+(p.status?'<span class="tag st-'+p.status+'">'+TAGW[p.status]+'</span>':'')+'<span class="for">'+esc(roles||'Tap to say what it\'s for')+'</span></span></button>';
+}
+function detailHtml(p,y){ const main=y.primary===p.id, roles=p.roles||[], V=H.vocab(y.photos,P);
+ return '<div class="card hs detail" id="detail"><div class="hsrow"><img data-src="'+p.id+'" class="big" alt=""><div class="hsside"><b class="fn">'+esc(plain(p.name))+'</b>'
+  +(main?'<span class="pill on">THE ONE YOU LEAD WITH</span>':'<button class="btn sm ghost" data-main="'+p.id+'">LEAD WITH THIS ONE</button>')
+  +'<p class="lab" style="margin-top:10px">At thumbnail size</p><img data-src="'+p.id+'" class="thumb" alt=""></div></div>'
+  +'<p class="lab">Status</p><div class="row">'+H.STATUS.map(([k,l])=>chip(p.status===k,'data-st="'+p.id+'|'+k+'"',l)).join('')+'</div>'
+  +'<p class="lab" style="margin-top:10px">The roles it\'s for (your words)</p><div class="row">'+V.map(r=>chip(roles.some(x=>x.toLowerCase()===r.toLowerCase()),'data-role="'+p.id+'|'+esc(r)+'"',r)).join('')+'</div>'
+  +'<div class="row" style="margin-top:6px"><input class="field" data-newrole="'+p.id+'" placeholder="Another role word"><button class="btn sm" data-addrole="'+p.id+'">ADD</button></div>'
+  +'<p class="lab" style="margin-top:10px">Note</p><input class="field" data-note="'+p.id+'" value="'+esc(p.note||'')+'" placeholder="What it says, where it came from, who shot it">'
+  +'<p class="lab" style="margin-top:10px">Photo check</p>'+(p.check?'<ul class="chk">'+H.words(p.check).map(l=>'<li class="'+(l.ok?'ok':'no')+'">'+esc(l.t)+'</li>').join('')+'</ul>':'<p class="faint small">Checking…</p>')
+  +'<p class="faint small">Measures light on you against the background, focus in the middle of the frame, and size. Never looks at who you are.</p>'
+  +'<div class="row" style="justify-content:space-between"><button class="btn sm ghost" data-open="'+p.id+'">CLOSE</button><button class="lnk faint" data-rm="'+p.id+'">remove</button></div></div>';
+}
+function liveRow(y){ const L=y.live; if(!L) return '';
+ const st=L.still&&y.photos.find(p=>p.id===L.still);
+ return '<div class="liverow" id="liverow"><video data-live class="lthumb" muted loop playsinline'+(RM()?'':' autoplay')+'></video><div class="lt"><b>The live one</b><span class="dim small">'+esc([mmss(L.secs),'loops','shot '+day(L.added),L.sound?'with sound':'no sound',st?'a still kept from it':''].filter(Boolean).join(' · '))+'</span></div><div class="row"><button type="button" class="btn sm" id="lsave">SAVE THE FILE</button><button type="button" class="btn sm ghost" id="lagain">SHOOT A NEW ONE</button><button type="button" class="lnk faint" id="lrm">remove</button></div></div>';
+}
+function exampleHtml(){
+ return '<section class="example" id="example" data-step="0" aria-label="Example, how it works"><p class="kicker" style="margin:0 0 10px">EXAMPLE · HOW IT WORKS</p><div class="exgrid"><div class="exhero"><div class="exwho">'+SIL+'</div><span class="badge exlive"><i class="dot"></i>LIVE · 0:05 LOOP</span><span class="extag">KEEP</span></div>'
+  +'<ol class="exsteps"><li data-n="0"><b>Add your headshots.</b> The same ones your page and the Hub use.</li><li data-n="1"><b>Say what each one is for,</b> in your own words. Keep, retest or retire.</li><li data-n="2"><b>Shoot a live one:</b> five seconds of you. It loops.</li><li data-n="3"><b>Pick STILL or LIVE.</b> The live one plays on your page and the postcard.</li></ol></div><p class="faint small" style="margin:10px 0 0">An example. Nothing here is yours until you add it.</p></section>';
+}
+function playExample(){ clearInterval(EXT); const ex=$('example'); if(!ex||RM()) return; let n=0; EXT=setInterval(()=>{ const e=$('example'); if(!e){ clearInterval(EXT); return; } n=(n+1)%4; e.dataset.step=n; },2200); }
+function photosView(y){
+ const hs=Y.headshots(), none=!hs.length&&!y.live;
+ let h='<div class="front">';
+ if(none){ h+='<div class="startrow"><label class="btn pri big"><input type="file" id="hf" accept="image/*" multiple hidden>+ ADD HEADSHOTS</label><button type="button" class="btn big" id="shoot"><i class="dot"></i>SHOOT A LIVE ONE</button></div>'+exampleHtml(); }
+ else {
+  h+='<div class="fgrid"><div class="fl">'+leadHtml(y)+'</div><div class="fr">';
+  h+='<div class="lhead"><span class="kicker" style="margin:0">YOUR HEADSHOTS · '+hs.length+'</span><span class="row"><label class="btn sm"><input type="file" id="hf" accept="image/*" multiple hidden>+ ADD HEADSHOTS</label><button type="button" class="btn sm pri" id="shoot"><i class="dot"></i>SHOOT A LIVE ONE</button></span></div>';
+  h+='<div class="shots">'+hs.map(p=>cardHtml(p,y)).join('')+'</div>';
+  const o=OPEN&&hs.find(p=>p.id===OPEN); if(o) h+=detailHtml(o,y);
+  h+=liveRow(y);
+  h+='</div></div>';
+ }
+ h+='<div class="planning"><p class="kicker">WHEN YOU\'RE PLANNING A SHOOT</p><button type="button" class="fold" data-t="plan"><b>THE PLAN</b><span>What you\'re called in for, what you want to be seen for, which have a keeper</span><i>OPEN</i></button><button type="button" class="fold" data-t="brief"><b>FOR THE PHOTOGRAPHER</b><span>A brief and your references, in your words</span><i>OPEN</i></button></div>';
+ h+=(window.Kit?'<div class="kitwrap">'+Kit.html([{id:'tshot',dev:'camera',label:'CAMERA',what:'Take a test shot',note:'Front or back camera. Reads the light and focus where you\'re standing. Kept only if you add it'}])+'</div>':'');
+ return h+'</div>';
+}
+
 /* ---------- show it ---------- */
 function render(){
- document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===U.tab));
- const y=Y.get(); $('title').textContent=U.tab==='plan'?'The plan':U.tab==='brief'?'For the photographer':'Your headshots';
- $('count').textContent=y.photos.length?y.photos.length+' headshot'+(y.photos.length===1?'':'s')+' · '+y.photos.filter(p=>p.status==='keeper').length+' keep':'';
- $('main').innerHTML=U.tab==='plan'?planView(y):U.tab==='brief'?briefView(y):photosView(y);
- wire(); fillImgs();
+ clearInterval(EXT);
+ const y=Y.get();
+ const back=U.tab!=='photos'?'<div class="backbar"><button type="button" class="btn sm ghost" data-t="photos">‹ YOUR HEADSHOTS</button><span class="seg"><button type="button" class="'+(U.tab==='plan'?'on':'')+'" data-t="plan">THE PLAN</button><button type="button" class="'+(U.tab==='brief'?'on':'')+'" data-t="brief">FOR THE PHOTOGRAPHER</button></span></div>':'';
+ $('app').innerHTML=header()+'<main id="main">'+back+(U.tab==='plan'?planView(y):U.tab==='brief'?briefView(y):photosView(y))+'</main>';
+ wire(); fillImgs(); fillLive(); playExample();
 }
+
 const chip=(on,attr,label,extra)=>'<button class="chip sm'+(on?' on':'')+'" '+attr+'>'+esc(label)+(extra||'')+'</button>';
 /* ---------- TEST SHOT: the camera, where you're standing. The light and focus, read live; a still if you want one.
    Nothing is kept unless you add it to your headshots or save it to the phone. ---------- */
@@ -81,24 +152,98 @@ function tsWire(){
   $('tsadd').onclick=async()=>{ const f=new File([TS.blob],'Test shot '+new Date().toISOString().slice(0,16).replace('T',' ').replace(':','.')+'.jpg',{type:'image/jpeg'}); tsClose(); await addPhotos([f]); };
  };
 }
-function photosView(y){
- let h=(window.Kit?Kit.html([{id:'tshot',dev:'camera',label:'CAMERA',what:'Take a test shot',note:'Front or back camera. Reads the light and focus where you\'re standing. Kept only if you add it'}]):'')+'<div class="card"><p class="dim small">The same headshots as YOUR PROFILE on home. The Hub, Virtual Résumé and Slate Maker use your main one. Tag each in your own words: the roles it\'s for, and keep, retest or retire.</p>'
-  +'<label class="btn pri block"><input type="file" id="hf" accept="image/*" multiple hidden>ADD HEADSHOTS</label></div>';
- if(!y.photos.length) return h+'<p class="faint small">No headshots yet. Add them here, or drop them on home.</p>';
- const V=H.vocab(y.photos,P);
- y.photos.forEach(p=>{ const main=y.primary===p.id, roles=p.roles||[];
-  h+='<div class="card hs"><div class="hsrow"><img data-src="'+p.id+'" class="big" alt=""><div class="hsside"><b class="fn">'+esc(plain(p.name))+'</b>'
-   +(main?'<span class="pill on">MAIN</span>':'<button class="btn sm ghost" data-main="'+p.id+'">MAKE MAIN</button>')
-   +'<p class="lab" style="margin-top:10px">At thumbnail size</p><img data-src="'+p.id+'" class="thumb" alt=""></div></div>'
-   +'<p class="lab">Status</p><div class="row">'+H.STATUS.map(([k,l])=>chip(p.status===k,'data-st="'+p.id+'|'+k+'"',l)).join('')+'</div>'
-   +'<p class="lab" style="margin-top:10px">The roles it\'s for (your words)</p><div class="row">'+V.map(r=>chip(roles.some(x=>x.toLowerCase()===r.toLowerCase()),'data-role="'+p.id+'|'+esc(r)+'"',r)).join('')+'</div>'
-   +'<div class="row" style="margin-top:6px"><input class="field" data-newrole="'+p.id+'" placeholder="Another role word"><button class="btn sm" data-addrole="'+p.id+'">ADD</button></div>'
-   +'<p class="lab" style="margin-top:10px">Note</p><input class="field" data-note="'+p.id+'" value="'+esc(p.note||'')+'" placeholder="What it says, where it came from, who shot it">'
-   +'<p class="lab" style="margin-top:10px">Photo check</p>'+(p.check?'<ul class="chk">'+H.words(p.check).map(l=>'<li class="'+(l.ok?'ok':'no')+'">'+esc(l.t)+'</li>').join('')+'</ul>':'<p class="faint small">Checking…</p>')
-   +'<div class="row" style="justify-content:flex-end"><button class="lnk faint" data-rm="'+p.id+'">remove</button></div></div>'; });
- h+='<p class="faint small">Measures light on you against the background, focus in the middle of the frame, and size. Never looks at who you are.</p>';
- return h;
+/* ---------- SHOOT A LIVE ONE: five seconds of you, on a loop. The camera is on only while this is open, and it says so.
+   Front or back, 3 / 5 / 8 seconds, a timer, sound off unless you turn it on. No filter, no touch-up.
+   Ten frames are kept as it records; tap one to keep it as a still too. Nothing is kept until KEEP. ---------- */
+const SPK='headshots_shoot_v1';
+let SH=null;
+const shPrefs=()=>{ try{ return Object.assign({facing:'user',len:5,timer:3,sound:false},JSON.parse(localStorage.getItem(SPK)||'{}')); }catch(e){ return {facing:'user',len:5,timer:3,sound:false}; } };
+const shSave=()=>{ try{ localStorage.setItem(SPK,JSON.stringify({facing:SH.facing,len:SH.len,timer:SH.timer,sound:SH.sound})); }catch(e){} };
+async function shoot(){
+ if(!C) return toast('This browser can\'t open the camera here.');
+ const ov=$('ov'); ov.hidden=false; document.body.classList.add('ovopen');
+ SH=Object.assign(shPrefs(),{stage:'ready',frames:[],pick:-1});
+ ov.innerHTML='<div class="shoot" id="shootbox"><header class="shead"><div class="btx"><div class="kicker" style="margin:0">HEADSHOTS · THE LIVE ONE</div><h2>Five seconds of you. It loops.</h2><p id="shsub"></p></div><span class="campill" id="campill" hidden><i class="dot"></i><span id="camword"></span></span><button type="button" class="btn ghost sm" id="shx">CLOSE</button></header>'
+  +'<div class="sgrid"><div class="sl"><div class="frame" id="sframe"><video id="shv" playsinline muted autoplay class="mirror"></video><video id="shr" playsinline loop hidden></video>'
+  +'<svg class="thirds" viewBox="0 0 400 500" preserveAspectRatio="none" aria-hidden="true"><path d="M133 0V500M267 0V500M0 167H400M0 333H400"/></svg>'
+  +'<span class="bigcount" id="shcount" hidden></span><span class="clock" id="shclock" hidden></span><span class="prog" id="shprog"></span><span class="looptag" id="shloop" hidden>PLAYING ON A LOOP</span><p class="camerr" id="sherr" hidden></p></div>'
+  +'<div class="strip" id="shstrip" hidden></div><p class="dim small" id="shpickwhy" hidden>Tap a frame to keep it as a still too. It goes with your headshots, marked as from the live one.</p></div>'
+  +'<div class="sr"><div class="card opts" id="shopts"></div><div id="shact"></div></div></div></div>';
+ $('shx').onclick=shClose; shOpts(); shAct(); await shCam();
 }
+function shOpts(){ const o=$('shopts'); if(!o||!SH) return; const busy=SH.stage!=='ready';
+ const b=(k,v,l)=>'<button type="button" class="opt'+(SH[k]===v?' on':'')+'" data-o="'+k+'" data-v="'+v+'" aria-pressed="'+(SH[k]===v)+'"'+(busy?' disabled':'')+'>'+l+'</button>';
+ o.innerHTML='<div class="og"><span class="kicker">CAMERA</span><div class="row">'+b('facing','user','Front')+b('facing','environment','Back')+'</div></div>'
+  +'<div class="og"><span class="kicker">LENGTH</span><div class="row">'+b('len',3,'3 s')+b('len',5,'5 s')+b('len',8,'8 s')+'</div></div>'
+  +'<div class="og"><span class="kicker">TIMER</span><div class="row">'+b('timer',0,'Off')+b('timer',3,'3 s')+b('timer',10,'10 s')+'</div></div>'
+  +'<div class="og"><span class="kicker">SOUND</span><div class="row">'+b('sound',false,'Off')+b('sound',true,'On')+'</div></div>'
+  +'<p class="dim small" style="margin:4px 0 0">'+(SH.sound?'The mic is on too, so it keeps your sound. ':'No sound in it. ')+'No filter, no touch-up: it\'s you, as the camera saw you.</p>';
+ o.querySelectorAll('[data-o]').forEach(x=>x.onclick=async()=>{ if(SH.stage!=='ready') return; const k=x.dataset.o; let v=x.dataset.v; v=k==='facing'?v:k==='sound'?v==='true':+v; if(SH[k]===v) return; SH[k]=v; shSave(); shOpts(); shAct(); if(k==='facing'||k==='sound') await shCam(); });
+}
+function shPill(){ const p=$('campill'); if(!p||!SH) return; const on=!!SH.stream, rec=SH.stage==='rec'; p.hidden=!on||!!window.Hot; p.classList.toggle('rec',rec);
+ $('camword').textContent=(SH.sound?'CAMERA AND MIC ON':'CAMERA ON')+(rec?' · RECORDING':' · NOT RECORDING'); }
+function shAct(){ const a=$('shact'), s=$('shsub'); if(!a||!SH) return; const st=SH.stage; const op=$('shopts'); if(op) op.hidden=st==='review';
+ if(s) s.textContent=st==='review'?'There it is. Keep it, or go again.':st==='rec'?'Recording. Just be you.':st==='count'?'Settle in.':'Frame yourself, tap the red button'+(SH.timer?', and the timer gives you time to settle.':'.');
+ if(st==='ready') a.innerHTML='<div class="recrow"><button type="button" class="recbtn" id="shgo" aria-label="'+(SH.timer?'Start the timer and record':'Record')+'"'+(SH.stream?'':' disabled')+'></button><span class="dim">'+(SH.timer?'The timer counts '+SH.timer+', then it records '+SH.len+' seconds.':'It records '+SH.len+' seconds.')+'</span></div>';
+ else if(st==='count'||st==='rec') a.innerHTML='<div class="recrow"><button type="button" class="recbtn stop" id="shstop" aria-label="Stop"><span></span></button><span class="dim">'+(st==='count'?'Tap to stop the timer.':'Tap to stop early.')+'</span></div>';
+ else a.innerHTML='<div class="col"><button type="button" class="btn pri big block" id="shkeep">KEEP IT AS THE LIVE ONE</button><div class="row" style="margin-top:10px"><button type="button" class="btn big" id="shagain" style="flex:1">AGAIN</button><button type="button" class="btn big" id="shfile" style="flex:1">SAVE THE FILE</button></div><p class="dim small" id="shpicked">'+(SH.pick>=0?'Frame '+(SH.pick+1)+' goes with your headshots when you keep it.':'No still from it unless you tap a frame.')+'</p>'+(Y.get().live?'<p class="faint small">Keeping it replaces the live one you have now.</p>':'')+'</div>';
+ const go=$('shgo'); if(go) go.onclick=shStart;
+ const sp=$('shstop'); if(sp) sp.onclick=()=>{ if(SH.stage==='count'){ clearInterval(SH.cd); SH.stage='ready'; $('shcount').hidden=true; shOpts(); shAct(); shPill(); } else shFinish(); };
+ const k=$('shkeep'); if(k) k.onclick=shKeep;
+ const ag=$('shagain'); if(ag) ag.onclick=shAgain;
+ const f=$('shfile'); if(f) f.onclick=()=>saveFile(SH.blob,SH.ext);
+ shPill();
+}
+async function shCam(){
+ if(!SH) return; const v=$('shv'), er=$('sherr');
+ try{ if(SH.stream) C.stop(SH.stream); SH.stream=null; shPill(); er.hidden=true;
+  const s=await C.open({video:true,audio:!!SH.sound,facing:SH.facing,w:1440,h:1800});
+  if(!SH){ C.stop(s); return; } SH.stream=s; v.srcObject=s; v.classList.toggle('mirror',SH.facing==='user'); v.play().catch(()=>{});
+ }catch(e){ er.hidden=false; er.textContent=C.errorWords(e,SH.sound?'camera and mic':'video'); }
+ shPill(); shAct();
+}
+function shStart(){ if(!SH||!SH.stream||SH.stage!=='ready') return;
+ const go=()=>{ $('shcount').hidden=true; shRecord(); };
+ if(!SH.timer) return go();
+ SH.stage='count'; let n=SH.timer; const c=$('shcount'); c.hidden=false; c.textContent=n; shOpts(); shAct();
+ SH.cd=setInterval(()=>{ n--; if(!SH){ return; } if(n<=0){ clearInterval(SH.cd); go(); } else c.textContent=n; },1000);
+}
+function shRecord(){
+ const v=$('shv'); SH.stage='rec'; SH.frames=[]; SH.pick=-1;
+ try{ SH.rec=C.record(SH.stream,'video'); }catch(e){ SH.stage='ready'; toast(e.message); shAct(); return; }
+ shOpts(); shAct(); const clock=$('shclock'), prog=$('shprog'); clock.hidden=false; const t0=Date.now(), L=SH.len*1000;
+ const marks=[...Array(10)].map((_,i)=>L*(i+0.5)/10); let mi=0;
+ SH.tick=setInterval(async()=>{ if(!SH||SH.stage!=='rec') return; const t=Date.now()-t0;
+  clock.textContent=mmss(t/1000).replace(/^0:/,'0:')+' / '+mmss(SH.len); prog.style.width=Math.min(100,t/L*100)+'%';
+  while(mi<marks.length&&t>=marks[mi]){ mi++; if(v.videoWidth){ const b=await C.snap(v,false); if(b&&SH) SH.frames.push(b); } }
+  if(t>=L) shFinish(); },100);
+}
+async function shFinish(){ if(!SH||SH.stage!=='rec') return; clearInterval(SH.tick); SH.stage='saving';
+ const v=$('shv'), w=v.videoWidth, h=v.videoHeight; const r=await SH.rec.stop(); if(!SH) return;
+ C.stop(SH.stream); SH.stream=null;
+ SH.blob=r.blob; SH.mime=r.mime; SH.ext=r.ext; SH.secs=Math.min(SH.len,r.secs||SH.len); SH.w=w; SH.h=h; SH.url=URL.createObjectURL(r.blob);
+ SH.stage='review'; v.hidden=true; const rv=$('shr'); rv.src=SH.url; rv.hidden=false; rv.muted=!SH.sound; rv.play().catch(()=>{ rv.muted=true; rv.play().catch(()=>{}); });
+ $('shclock').hidden=true; $('shprog').style.width='0'; $('shloop').hidden=false; $('sframe').classList.add('review');
+ const strip=$('shstrip'); SH.furls=SH.frames.map(b=>URL.createObjectURL(b));
+ strip.innerHTML=SH.furls.map((u,i)=>'<button type="button" class="fr" data-f="'+i+'" aria-label="Frame '+(i+1)+'" aria-pressed="false"><img src="'+u+'" alt=""></button>').join(''); strip.hidden=!SH.frames.length; $('shpickwhy').hidden=!SH.frames.length;
+ strip.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{ const i=+b.dataset.f; SH.pick=SH.pick===i?-1:i; strip.querySelectorAll('[data-f]').forEach(x=>{ const on=+x.dataset.f===SH.pick; x.classList.toggle('on',on); x.setAttribute('aria-pressed',on); }); shAct(); });
+ shOpts(); shAct();
+}
+function shDrop(){ if(!SH) return; if(SH.url) URL.revokeObjectURL(SH.url); (SH.furls||[]).forEach(u=>URL.revokeObjectURL(u)); SH.blob=null; SH.url=''; SH.frames=[]; SH.furls=[]; SH.pick=-1; }
+async function shAgain(){ shDrop(); SH.stage='ready'; const v=$('shv'), rv=$('shr'); rv.pause(); rv.removeAttribute('src'); rv.hidden=true; v.hidden=false; $('shloop').hidden=true; $('shstrip').hidden=true; $('shpickwhy').hidden=true; $('sframe').classList.remove('review'); shOpts(); shAct(); await shCam(); }
+function shClose(){ if(!SH) return; clearInterval(SH.tick); clearInterval(SH.cd); try{ if(SH.rec&&SH.stage==='rec') SH.rec.cancel(); }catch(e){} C.stop(SH.stream); shDrop(); SH=null; const ov=$('ov'); ov.hidden=true; ov.innerHTML=''; document.body.classList.remove('ovopen'); }
+async function shKeep(){ if(!SH||!SH.blob) return; const b=$('shkeep'); if(b) b.disabled=true;
+ const nm=H.fileName('live_headshot',Y.get().name).replace(/\.html$/,'.'+SH.ext);
+ let still='';
+ if(SH.pick>=0&&SH.frames[SH.pick]){ const f=new File([SH.frames[SH.pick]],'Live one still '+new Date().toISOString().slice(0,16).replace('T',' ').replace(':','.')+'.jpg',{type:'image/jpeg'}); const r=await Y.addPhoto(f,{live:true}); if(r&&r.photo) still=r.photo.id; }
+ const L=await Y.setLive(SH.blob,{name:nm,mime:SH.mime,ext:SH.ext,secs:SH.secs,sound:SH.sound,w:SH.w,h:SH.h,still});
+ shClose(); if(!L){ toast('This phone would not keep the clip. It may be out of room.'); return; }
+ render(); checkAll(); toast('Kept. It leads on your page and the postcard. Pick STILL any time.');
+}
+async function saveFile(blob,ext){ if(!blob) return; const f=new File([blob],H.fileName('live_headshot',Y.get().name).replace(/\.html$/,'.'+(ext||'webm')),{type:blob.type||'video/webm'});
+ try{ if(/Android|iPhone|iPad/i.test(navigator.userAgent)&&navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:f.name}); return; } }catch(e){ if(e&&e.name==='AbortError') return; }
+ const a=document.createElement('a'); a.href=URL.createObjectURL(f); a.download=f.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),60000); toast('Saved '+f.name); }
+
 function planView(y){
  const V=H.vocab(y.photos,P), cov=H.coverage(P.want,y.photos), ph=y.photos;
  let h='<div class="card"><p class="kicker">What you\'re called in for now</p><div class="row">'+V.map(r=>chip(P.called.some(x=>x.toLowerCase()===r.toLowerCase()),'data-called="'+esc(r)+'"',r)).join('')+'</div>'
@@ -135,12 +280,19 @@ function briefView(y){
 function wire(){
  const q=(s,f)=>document.querySelectorAll(s).forEach(f), y=()=>Y.get();
  const hf=$('hf'); if(hf) hf.onchange=()=>{ const f=[...hf.files]; hf.value=''; addPhotos(f); };
- q('[data-main]',b=>b.onclick=()=>{ Y.setPrimary(b.dataset.main); render(); toast('Your main headshot. The Hub, Virtual Résumé and Slate Maker use it.'); });
+ q('[data-main]',b=>b.onclick=()=>{ Y.setPrimary(b.dataset.main); render(); toast('The one you lead with. The Hub, Virtual Résumé and Slate Maker use it.'); });
+ q('[data-open]',b=>b.onclick=()=>{ OPEN=OPEN===b.dataset.open?'':b.dataset.open; render(); const d=$('detail'); if(d&&OPEN) d.scrollIntoView({block:'nearest',behavior:RM()?'auto':'smooth'}); });
+ q('[data-lead]',b=>b.onclick=()=>{ Y.setLead(b.dataset.lead); render(); });
+ q('[data-t]',b=>b.onclick=()=>{ U.tab=b.dataset.t; saveU(); P=H.plan(); render(); window.scrollTo(0,0); });
+ const sh=$('shoot'); if(sh) sh.onclick=shoot; const la=$('lagain'); if(la) la.onclick=shoot;
+ const ls=$('lsave'); if(ls) ls.onclick=async()=>{ const y0=Y.get(); saveFile(await Y.liveBlob(),y0.live&&y0.live.ext); };
+ const lr=$('lrm'); if(lr) lr.onclick=async()=>{ if(!confirm('Remove the live one? Your page and the postcard go back to your still.')) return; await Y.removeLive(); render(); };
+ const he=$('hear'); if(he) he.onclick=()=>{ const v=document.querySelector('.hero video'); if(!v) return; v.muted=!v.muted; if(!v.muted) v.play().catch(()=>{}); he.textContent=v.muted?'SOUND OFF':'SOUND ON'; he.setAttribute('aria-pressed',String(!v.muted)); };
  q('[data-st]',b=>b.onclick=()=>{ const [id,k]=b.dataset.st.split('|'); const p=y().photos.find(x=>x.id===id); Y.setPhoto(id,{status:p&&p.status===k?'':k}); render(); });
  q('[data-role]',b=>b.onclick=()=>{ const i=b.dataset.role.indexOf('|'), id=b.dataset.role.slice(0,i), r=b.dataset.role.slice(i+1), p=y().photos.find(x=>x.id===id); if(!p) return; const L=(p.roles||[]).slice(), j=L.findIndex(x=>x.toLowerCase()===r.toLowerCase()); if(j>=0) L.splice(j,1); else L.push(r); Y.setPhoto(id,{roles:L}); render(); });
  q('[data-addrole]',b=>b.onclick=()=>{ const id=b.dataset.addrole, inp=document.querySelector('[data-newrole="'+id+'"]'), r=(inp&&inp.value||'').trim(); if(!r) return; const p=y().photos.find(x=>x.id===id); const L=(p.roles||[]).slice(); if(!L.some(x=>x.toLowerCase()===r.toLowerCase())) L.push(r); Y.setPhoto(id,{roles:L}); render(); });
  q('[data-note]',i=>i.oninput=()=>Y.setPhoto(i.dataset.note,{note:i.value}));
- q('[data-rm]',b=>b.onclick=async()=>{ if(!confirm('Remove this headshot from your profile? The Hub, Virtual Résumé and Slate Maker won\'t have it either.')) return; await Y.removePhoto(b.dataset.rm); render(); });
+ q('[data-rm]',b=>b.onclick=async()=>{ if(!confirm('Remove this headshot from your profile? The Hub, Virtual Résumé and Slate Maker won\'t have it either.')) return; await Y.removePhoto(b.dataset.rm); OPEN=''; render(); });
  q('[data-called]',b=>b.onclick=()=>{ const r=b.dataset.called, j=P.called.findIndex(x=>x.toLowerCase()===r.toLowerCase()); if(j>=0) P.called.splice(j,1); else P.called.push(r); saveP(); render(); });
  q('[data-want]',b=>b.onclick=()=>{ const r=b.dataset.want, j=P.want.findIndex(x=>x.toLowerCase()===r.toLowerCase()); if(j>=0) P.want.splice(j,1); else P.want.push(r); saveP(); render(); });
  const nw=$('nwadd'); if(nw) nw.onclick=()=>{ const r=($('nw').value||'').trim(); if(!r) return; if(!P.want.some(x=>x.toLowerCase()===r.toLowerCase())) P.want.push(r); saveP(); render(); };
@@ -159,9 +311,9 @@ function wire(){
  const bd=$('bdl'); if(bd) bd.onclick=()=>exportBrief('brief');
  const sd=$('sdl'); if(sd) sd.onclick=()=>exportBrief('sheet');
 }
-$('tabs').addEventListener('click',e=>{ const b=e.target.closest('button[data-t]'); if(!b) return; U.tab=b.dataset.t; saveU(); P=H.plan(); render(); window.scrollTo(0,0); });
-window.addEventListener('storage',e=>{ if(e.key&&/you_v1|headshots_v1/.test(e.key)){ P=H.plan(); render(); } });
-window.__hs={render,check,testShot,get P(){return P;}};
-document.addEventListener('visibilitychange',()=>{ if(document.hidden&&TS&&!TS.blob) tsClose(); });
-render(); checkAll();
+window.addEventListener('storage',e=>{ if(e.key&&/you_v1|headshots_v1/.test(e.key)){ P=H.plan(); if(!SH) render(); } });
+window.__hs={render,check,testShot,shoot,get P(){return P;},get SH(){return SH;}};
+document.addEventListener('visibilitychange',()=>{ if(document.hidden){ if(TS&&!TS.blob) tsClose(); if(SH&&(SH.stage==='ready'||SH.stage==='count'||SH.stage==='rec')) shClose(); } });
+{ const t=new URLSearchParams(location.search).get('tab'); U.tab=t==='plan'||t==='brief'?t:'photos'; }
+render(); checkAll(); if(/[?&]shoot=1/.test(location.search)) shoot();
 })();

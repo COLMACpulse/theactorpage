@@ -12,7 +12,7 @@ function keepAsk(){ try{ const s=navigator.storage; if(!s||!s.persist) return; c
 const KEY='theactorpage_you_v1';
 const Y={};
 Y.FIELDS=[['name','Name'],['union','Union'],['rep','Rep'],['repPhone','Rep phone'],['phone','Your phone'],['email','Email'],['height','Height'],['weight','Weight'],['hair','Hair'],['eyes','Eyes'],['locations','Local hire']];
-const blank=()=>({name:'',union:'',rep:'',repPhone:'',phone:'',email:'',height:'',weight:'',hair:'',eyes:'',locations:'',credits:[],training:[],skills:[],accents:[],languages:[],types:[],photos:[],primary:'',resume:null,edited:{},from:{},updated:0});
+const blank=()=>({name:'',union:'',rep:'',repPhone:'',phone:'',email:'',height:'',weight:'',hair:'',eyes:'',locations:'',credits:[],training:[],skills:[],accents:[],languages:[],types:[],photos:[],primary:'',live:null,lead:'still',resume:null,edited:{},from:{},updated:0});
 Y.get=function(){ try{ const d=JSON.parse(localStorage.getItem(KEY)||'null'); if(d) return Object.assign(blank(),d); }catch(e){} return blank(); };
 function put(d){ d.updated=Date.now(); try{ localStorage.setItem(KEY,JSON.stringify(d)); return true; }catch(e){ return false; } }
 Y.has=()=>{ const d=Y.get(); return !!(d.name||d.credits.length||d.photos.length||d.resume); };
@@ -56,7 +56,7 @@ Y.addPhoto=async function(file,opts){ keepAsk(); opts=opts||{};
  const id='h'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
  if(!(await op('readwrite',st=>st.put(s.blob,id)))) return {error:'this phone would not keep the photo'};
  const p={id,sig,name:file.name||'headshot.jpg',w:s.w,h:s.h,ow:s.ow||s.w,oh:s.oh||s.h,added:Date.now(),roles:[],status:'',note:''};
- if(opts.kind==='still'){ p.kind='still'; if(opts.from) p.from=opts.from; }
+ if(opts.kind==='still'){ p.kind='still'; if(opts.from) p.from=opts.from; } if(opts.live) p.fromLive=true;
  const e=Y.get(); e.photos.push(p); if(!e.primary&&p.kind!=='still') e.primary=id; put(e); return {photo:p,primary:e.primary===id};
 };
 Y.photoBlob=id=>op('readonly',st=>st.get(id));
@@ -65,7 +65,21 @@ Y.stills=()=>Y.get().photos.filter(p=>p.kind==='still');
 /* your words on a headshot: the roles it's for, keep / retest / retire, a note; and its photo check (HEADSHOTS) */
 Y.setPhoto=function(id,patch){ const d=Y.get(), p=d.photos.find(x=>x.id===id); if(!p) return null; Object.assign(p,patch); put(d); return p; };
 Y.setPrimary=function(id){ const d=Y.get(); if(d.photos.some(p=>p.id===id)){ d.primary=id; put(d); } return d; };
-Y.removePhoto=async function(id){ const d=Y.get(); d.photos=d.photos.filter(p=>p.id!==id); if(d.primary===id){ const h=d.photos.find(p=>p.kind!=='still'); d.primary=h?h.id:''; } put(d); await op('readwrite',st=>st.delete(id)); return d; };
+Y.removePhoto=async function(id){ const d=Y.get(); d.photos=d.photos.filter(p=>p.id!==id); if(d.live&&d.live.still===id) d.live.still=''; if(d.primary===id){ const h=d.photos.find(p=>p.kind!=='still'); d.primary=h?h.id:''; } put(d); await op('readwrite',st=>st.delete(id)); return d; };
+/* ---------- the live one: five seconds of you, on a loop (HEADSHOTS). One at a time; a new one replaces it.
+   d.live {name,mime,ext,secs,sound,w,h,added,still}  d.lead 'live' | 'still': which one leads where moving pictures play
+   (your page, the postcard). Anywhere that takes only stills gets your main headshot. ---------- */
+Y.setLive=async function(blob,meta){ keepAsk(); meta=meta||{};
+ if(!blob||!(await op('readwrite',st=>st.put(blob,'live')))) return null;
+ const d=Y.get(); d.live={name:meta.name||'live_headshot.'+(meta.ext||'webm'),mime:meta.mime||blob.type||'video/webm',ext:meta.ext||'webm',secs:+meta.secs||0,sound:!!meta.sound,w:meta.w||0,h:meta.h||0,added:Date.now(),still:meta.still||''};
+ d.lead='live'; put(d); return d.live;
+};
+Y.liveBlob=()=>op('readonly',st=>st.get('live'));
+Y.setLiveStill=function(id){ const d=Y.get(); if(d.live){ d.live.still=id||''; put(d); } return d; };
+Y.setLead=function(k){ const d=Y.get(); d.lead=k==='live'&&d.live?'live':'still'; put(d); return d; };
+/* the live one leads (there is one, and you picked LIVE) */
+Y.leadsLive=()=>{ const d=Y.get(); return !!(d.live&&d.lead==='live'); };
+Y.removeLive=async function(){ const d=Y.get(); d.live=null; d.lead='still'; put(d); await op('readwrite',st=>st.delete('live')); return d; };
 /* ---------- your résumé, the file itself: kept so it's here when someone asks for it ---------- */
 Y.setResume=async function(file,source){ keepAsk();
  if(!file) return null;

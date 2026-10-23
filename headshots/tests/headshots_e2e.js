@@ -33,9 +33,9 @@ want('small original: its size', /Small/.test(words[2][1]), words[2]);
 want('the first headshot is your main one (same as YOUR PROFILE)', await p.evaluate(()=>You.get().primary===You.get().photos[0].id));
 // tag in your words
 const ids=await p.evaluate(()=>You.get().photos.map(x=>x.id));
-await p.click(`[data-st="${ids[0]}|keeper"]`); await p.click(`[data-role="${ids[0]}|Law enforcement"]`);
-await p.fill(`[data-newrole="${ids[1]}"]`,'Bartender'); await p.click(`[data-addrole="${ids[1]}"]`); await p.click(`[data-st="${ids[1]}|retest"]`);
-await p.click(`[data-st="${ids[2]}|retire"]`);
+await p.click(`[data-open="${ids[0]}"]`); await p.click(`[data-st="${ids[0]}|keeper"]`); await p.click(`[data-role="${ids[0]}|Law enforcement"]`);
+await p.click(`.shot[data-open="${ids[1]}"]`); await p.fill(`[data-newrole="${ids[1]}"]`,'Bartender'); await p.click(`[data-addrole="${ids[1]}"]`); await p.click(`[data-st="${ids[1]}|retest"]`);
+await p.click(`.shot[data-open="${ids[2]}"]`); await p.click(`[data-st="${ids[2]}|retire"]`);
 want('tags and status kept on the photo itself', await p.evaluate(i=>{ const P=You.get().photos; return P[0].status==='keeper'&&P[0].roles.includes('Law enforcement')&&P[1].roles.includes('Bartender')&&P[2].status==='retire'; },ids));
 // plan
 await p.click('[data-t=plan]'); await p.click('[data-want="Law enforcement"]'); await p.click('[data-want="Bartender"]'); await p.click('[data-called="Everyday"]');

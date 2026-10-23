@@ -25,7 +25,7 @@ want('AGAIN: live again', await p.evaluate(()=>{ const v=document.getElementById
 await p.click('#tsgo'); await p.waitForTimeout(800); await p.click('#tsadd'); await p.waitForTimeout(1800);
 const y=await p.evaluate(()=>You.get().photos.map(x=>({name:x.name,check:!!x.check})));
 want('ADD TO MY HEADSHOTS: in your profile, named test shot, checked', y.length===1&&/^Test shot \d{4}-\d\d-\d\d \d\d\.\d\d\.jpg$/.test(y[0].name)&&y[0].check, y);
-want('the overlay is closed, the card shows it', (await p.$eval('#ov',o=>o.hidden))&&!!(await p.$('.card.hs')));
+want('the overlay is closed, the card shows it', (await p.$eval('#ov',o=>o.hidden))&&!!(await p.$('.shot')));
 await p.click('[data-kit="tshot"]'); await p.waitForTimeout(1500); await p.click('#tsx'); await p.waitForTimeout(300);
 want('CLOSE: the camera off, nothing added', (!(await p.$('#hotbar'))||!/CAMERA/.test(await p.innerText('#hotbar')))&&await p.evaluate(()=>You.get().photos.length)===1);
 want('no em dashes', !/—/.test(await p.innerText('body')));

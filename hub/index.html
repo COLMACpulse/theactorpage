@@ -2900,7 +2900,9 @@ async function pkgExtras(mode,entries){
   looks.stats=Looks.stats(window.You?You.get():{},Looks.book()); }catch(e){} }
  /* your socials, the ones you ticked ON YOUR PAGE in YOU: small links at the bottom */
  let socials=[]; try{ if(window.Postcard&&window.You) socials=Postcard.onPage(You.get()).filter(x=>x.url); }catch(e){}
- return {made:{films,writing},vlinks,xclips:xclips.filter(x=>x.u),heads,photos,showRoles:!!profile.pageRoles,voice,looks,socials};
+ /* THE LIVE ONE (HEADSHOTS): five seconds of you, on a loop, where your headshot shows. Only when you lead with it. */
+ let live=null; try{ if(window.You&&You.leadsLive()){ const lb=await You.liveBlob(); const m=lb?await media(lb,'headshot_live'):null; if(m) live=Object.assign(m,{sound:!!You.get().live.sound}); } }catch(e){}
+ return {made:{films,writing},vlinks,xclips:xclips.filter(x=>x.u),heads,photos,showRoles:!!profile.pageRoles,voice,looks,socials,live};
 }
 function primaryName(){ const a=ARTS.find(x=>x.id===(pkgSel.headshot||profile.primaryHeadshot)); return a?(a.filename||a.label||''):''; }
 /* VOICE OVER and COMMERCIAL on your page: only when you've made them, each one off with a tap */
@@ -3423,6 +3425,7 @@ body{margin:0;background:var(--bond);color:var(--ink);font-family:var(--body);fo
 .dl{display:grid;grid-template-columns:auto 1fr;gap:5px 16px;font-family:var(--mono);font-size:12px;line-height:1.5;max-width:430px}
 .dl dt{color:var(--grey);letter-spacing:.1em;text-transform:uppercase;font-size:10.5px;padding-top:2px}
 .dl dd{margin:0;color:var(--ink)}
+.livehs{position:relative}.hssound{position:absolute;right:10px;bottom:10px;font:600 10.5px var(--mono);letter-spacing:.12em;padding:7px 11px;border:0;border-radius:999px;background:rgba(10,10,10,.72);color:#fff;cursor:pointer}
 .hs{width:100%;aspect-ratio:4/5;object-fit:cover;background:var(--black);display:block;
  box-shadow:0 1px 0 var(--hair),0 12px 26px rgba(20,18,14,.16)}
 .skills{margin-top:20px;padding-top:14px;border-top:1px solid var(--hair);font-family:var(--mono);font-size:11px;line-height:1.9;color:var(--grey);max-width:430px}
@@ -3535,7 +3538,7 @@ footer a.soc{color:var(--ink);text-decoration:none;border-bottom:1px solid var(-
   </dl>
   ${(d.showSkills&&p.skills&&p.skills.length)?`<div class="skills"><span style="letter-spacing:.1em;text-transform:uppercase;font-size:10.5px">Skills</span> &nbsp;${p.skills.map(x=>`<b>${E(x)}</b>`).join(' &middot; ')}</div>`:''}
  </div>
- <div class="port">${has(d.head)?`<img class="hs" src="${d.head.u}" alt="${E(p.name)}">`:''}</div>
+ <div class="port">${d.live&&d.live.u?`<div class="livehs"><video class="hs" src="${d.live.u}" ${has(d.head)?`poster="${d.head.u}"`:''} autoplay muted loop playsinline aria-label="${E(p.name)}, a live headshot"></video>${d.live.sound?`<button type="button" class="hssound" onclick="var v=this.previousElementSibling;v.muted=!v.muted;v.play();this.textContent=v.muted?'SOUND OFF':'SOUND ON'">SOUND OFF</button>`:''}</div>`:has(d.head)?`<img class="hs" src="${d.head.u}" alt="${E(p.name)}">`:''}</div>
 </header>
 
 ${d.note?`<p class="note">${E(d.note)}</p>`:''}
