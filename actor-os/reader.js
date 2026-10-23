@@ -246,6 +246,8 @@ function screenLoad(blob){
   SCREEN.oncanplay=()=>go(true); SCREEN.onerror=()=>go(false); setTimeout(()=>go(true),900); });
 }
 function screenGo(){ if(!SCREEN||!SCREENURL) return; SCREEN.classList.add('on'); try{ SCREEN.currentTime=SCREENAT||0; }catch(e){} const p=SCREEN.play(); if(p&&p.catch) p.catch(()=>{}); }
+/* a tap opens the sound on this device (phones keep sound shut until you touch the page) */
+A.wake=function(){ try{ const c=ctx(), b=c.createBuffer(1,1,22050), s=c.createBufferSource(); s.buffer=b; s.connect(c.destination); s.start(0); }catch(e){} };
 A.screenOn=function(){ return !!(SCREEN&&SCREEN.classList.contains('on')); };
 A.play=async function(blob,onended,opts){
  A.stopPlay();

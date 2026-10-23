@@ -33,6 +33,26 @@ textarea{width:100%;min-height:80px;background:var(--panel2);color:var(--ink);bo
 .state.rec{background:var(--red);color:#fff}
 .sensor{font:700 12px var(--mono);letter-spacing:.14em;color:#8fb6ec;margin:0 0 8px}
 .bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;width:0;background:var(--gold)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 12px}
+.tab{min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:none;color:var(--dim);font:700 12px var(--mono);letter-spacing:.12em;cursor:pointer}
+.tab.on{border-color:#8fb6ec;color:#8fb6ec;background:rgba(42,95,168,.15)}
+.tab.spk.on{border-color:var(--gold);color:var(--gold);background:rgba(224,162,60,.12)}
+.top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin:0 0 12px}
+.tag{font:700 12px var(--mono);letter-spacing:.14em;padding:6px 10px;border-radius:6px;background:var(--panel2);color:var(--dim)}
+.tag.rec{background:var(--red);color:#fff}
+.camon{font:700 12px var(--mono);letter-spacing:.14em;padding:6px 10px;border-radius:6px;background:var(--red);color:#fff}
+.sides{max-height:72vh;overflow:auto;padding:4px 2px;scroll-behavior:smooth}
+.ln{padding:12px 14px;border-radius:10px;margin:0 0 6px;opacity:.45;border-left:4px solid transparent}
+.ln .who{display:block;font:700 12px var(--mono);letter-spacing:.16em;color:var(--faint);margin:0 0 4px}
+.ln .tx{font-size:var(--fs,26px);line-height:1.3}
+.ln.mine{border-left-color:var(--gold)}.ln.mine .who{color:var(--gold)}
+.ln.on{opacity:1;background:var(--panel2)}
+.ln.next{opacity:.75}
+.own{position:relative;background:#000;border-radius:10px;overflow:hidden;aspect-ratio:16/9}
+.own video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.own .camon{position:absolute;left:10px;top:10px}
+.own .st2{position:absolute;right:10px;top:10px}
+.alist{list-style:none;margin:8px 0 0;padding:0}.alist li{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line)}
 </style>
 </head>
 <body>
@@ -42,6 +62,7 @@ textarea{width:100%;min-height:80px;background:var(--panel2);color:var(--ink);bo
 </main>
 <script src="../film/vendor/qrcode.min.js"></script>
 <script src="../film/monitor-link.js"></script>
+<script src="reader.js"></script>
 <script>
 (function(){
 'use strict';
@@ -61,7 +82,7 @@ async function start(code){
  if(!code) return ask('');
  app.innerHTML='<div class="card"><p class="dim">Making the code for the phone…</p></div>';
  try{
-  const r=await L.answer(code,s=>{ M.stream=s; if(M.up) live(); },dc=>{ M.dc=dc; L.receive(dc,onMsg,onFile,onProg); dc.onopen=()=>{ M.up=true; live(); }; dc.onclose=()=>lost(); });
+  const r=await L.answer(code,s=>{ M.stream=s; if(M.up) live(); },dc=>{ M.dc=dc; L.receive(dc,onMsg,onFile,onProg); dc.onopen=()=>{ M.up=true; live(); role(); }; dc.onclose=()=>lost(); });
   M.pc=r.pc; M.answer=r.code; M.mirror=r.meta&&r.meta.facing==='user';
   M.pc.addEventListener('connectionstatechange',()=>{ const s=M.pc.connectionState; if(M.up&&(s==='failed'||s==='closed')) lost(); });
   showAnswer();
@@ -73,19 +94,39 @@ function showAnswer(){
  $('copy').onclick=async()=>{ try{ await navigator.clipboard.writeText(M.answer); $('copy').textContent='COPIED'; }catch(e){ prompt('Copy this code:',M.answer); } };
 }
 const send=m=>{ try{ M.dc&&M.dc.readyState==='open'&&M.dc.send(JSON.stringify(m)); }catch(e){} };
+/* ---------- linked: one screen, four jobs. MONITOR, SIDES, 2ND CAMERA; READER PLAYS HERE goes with any of them ---------- */
+let VIEW='monitor';
+const AR=window.ActorReader;
+M.clips=new Map(); M.sides={id:'',lines:[]}; M.speaker=false; M.cam=null; M.rec=null; M.chunks=[]; M.angles=[]; M.facing='environment'; M.withSound=true; M.q=Promise.resolve();
+const queue=fn=>(M.q=M.q.then(fn).catch(()=>{}));
+const role=()=>send({t:'role',view:VIEW,speaker:M.speaker,cam:!!M.cam});
 function live(){
  if(!M.up) return;
  try{ if(navigator.wakeLock&&!M.lock) navigator.wakeLock.request('screen').then(l=>M.lock=l).catch(()=>{}); }catch(e){}
- app.innerHTML='<div class="grid two"><div class="card"><p class="sensor">MONITOR · THE PHONE\'S CAMERA · NO SOUND</p>'
-  +'<div class="screen'+(M.mirror?' mirror':'')+'" id="scr"><video id="v" playsinline muted autoplay></video><span class="state" id="st">LINKED</span></div>'
-  +'<div class="row"><button class="btn roll" id="roll">● ROLL</button><button class="btn" id="mir">MIRROR</button><button class="btn" id="full">FULL SCREEN</button></div>'
+ const tab=(v,l)=>'<button class="tab'+(VIEW===v?' on':'')+'" data-v="'+v+'">'+l+'</button>';
+ let h='<div class="tabs" role="tablist">'+tab('monitor','MONITOR')+tab('sides','SIDES')+tab('cam','2ND CAMERA')
+  +'<button class="tab spk'+(M.speaker?' on':'')+'" id="spk" aria-pressed="'+(M.speaker?'true':'false')+'">'+(M.speaker?'♪ READER PLAYS HERE':'♪ PLAY THE READER HERE')+'</button></div>'
+  +'<div class="top"><span class="tag" id="st">LINKED</span><button class="btn roll" id="roll">● ROLL</button></div>';
+ if(VIEW==='monitor') h+='<div class="grid two"><div class="card"><p class="sensor">MONITOR · THE PHONE\'S CAMERA · NO SOUND</p>'
+  +'<div class="screen'+(M.mirror?' mirror':'')+'" id="scr"><video id="v" playsinline muted autoplay></video></div>'
+  +'<div class="row"><button class="btn" id="mir">MIRROR</button><button class="btn" id="full">FULL SCREEN</button></div>'
   +'<p class="faint">ROLL counts you in on the phone, then records there. Space bar or a clicker paired to this device works too.</p></div>'
-  +'<div class="card"><p class="sensor">PLAYBACK</p><div id="pb"><p class="faint">Each take comes over here when you cut.</p></div></div></div>';
- const v=$('v'); if(M.stream){ v.srcObject=M.stream; v.play&&v.play().catch(()=>{}); }
+  +'<div class="card"><p class="sensor">PLAYBACK</p><div id="pb"></div></div></div>';
+ else if(VIEW==='sides') h+='<div class="card"><p class="sensor">SIDES · THE LINE YOU\'RE ON, LIT UP</p><div class="row"><button class="btn" id="fsm" aria-label="Smaller words">A−</button><button class="btn" id="fbg" aria-label="Bigger words">A+</button><span class="faint">Put this screen beside the lens.</span></div><div class="sides" id="sides"></div></div>';
+ else h+='<div class="card"><p class="sensor">2ND CAMERA · THIS DEVICE FILMS ITS OWN ANGLE</p><div id="camv"></div></div>';
+ h+='<p class="faint" id="spkwhy">'+(M.speaker?'Your reader lines play from this screen, in your recordings, while the phone runs the scene. Keep this screen off camera, at your eyeline.':'Tap PLAY THE READER HERE to have your reader lines come out of this screen instead of the phone.')+'</p>';
+ app.innerHTML=h;
+ app.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{ VIEW=b.dataset.v; role(); live(); });
+ $('spk').onclick=()=>{ M.speaker=!M.speaker; if(M.speaker&&AR) AR.wake(); else if(AR) AR.stopPlay(); role(); live(); };
  $('roll').onclick=()=>send({t:M.st.rec||M.st.count?'cut':'roll'});
- $('mir').onclick=()=>{ M.mirror=!M.mirror; $('scr').classList.toggle('mirror',M.mirror); };
- $('full').onclick=()=>{ const s=$('scr'); if(document.fullscreenElement) document.exitFullscreen(); else if(s.requestFullscreen) s.requestFullscreen().catch(()=>{}); };
- paintState(); paintTake();
+ if(VIEW==='monitor'){ const v=$('v'); if(M.stream){ v.srcObject=M.stream; v.play&&v.play().catch(()=>{}); }
+  $('mir').onclick=()=>{ M.mirror=!M.mirror; $('scr').classList.toggle('mirror',M.mirror); };
+  $('full').onclick=()=>{ const s=$('scr'); if(document.fullscreenElement) document.exitFullscreen(); else if(s.requestFullscreen) s.requestFullscreen().catch(()=>{}); };
+  paintTake(); }
+ if(VIEW==='sides'){ const fs=k=>{ let n=26; try{ n=+localStorage.getItem('aos_screen_fs')||26; }catch(e){} n=Math.max(16,Math.min(60,n+k)); try{ localStorage.setItem('aos_screen_fs',n); }catch(e){} $('sides').style.setProperty('--fs',n+'px'); };
+  $('fsm').onclick=()=>fs(-4); $('fbg').onclick=()=>fs(4); fs(0); paintSides(true); }
+ if(VIEW==='cam') paintCam();
+ paintState();
 }
 function paintState(){
  const s=M.st, el=$('st'), b=$('roll'); if(!el||!b) return;
@@ -93,6 +134,60 @@ function paintState(){
  el.classList.toggle('rec',!!s.rec);
  b.textContent=s.rec||s.count?'■ CUT':'● ROLL'; b.className='btn '+(s.rec||s.count?'cut':'roll'); b.disabled=!!s.review&&!s.rec;
  const k=$('pbbtns'); if(k) k.hidden=!s.review;
+ const s2=$('st2'); if(s2){ s2.textContent=M.rec?'● ROLLING HERE':''; s2.className=M.rec?'tag rec st2':'st2'; }
+}
+function paintSides(jump){
+ const box=$('sides'); if(!box) return; const L=M.sides.lines||[];
+ if(!L.length){ box.innerHTML='<p class="faint">No sides on the phone yet. Load your sides there and pick a way to run it.</p>'; return; }
+ if(box.dataset.id!==M.sides.id){ box.dataset.id=M.sides.id; box.innerHTML=L.map((l,i)=>'<div class="ln'+(l.mine?' mine':'')+'" data-i="'+i+'"><span class="who">'+esc(l.mine?'YOU · '+l.who:l.who)+'</span><span class="tx">'+esc(l.text)+'</span></div>').join(''); }
+ const i=M.st.idx||0; box.querySelectorAll('.ln').forEach(e=>{ const j=+e.dataset.i; e.classList.toggle('on',j===i); e.classList.toggle('next',j===i+1); });
+ const on=box.querySelector('.ln.on'); if(on&&(jump||box.dataset.at!==String(i))){ box.dataset.at=String(i); box.scrollTop=Math.max(0,on.offsetTop-box.offsetTop-box.clientHeight*0.3); }
+}
+function paintCam(){
+ const c=$('camv'); if(!c) return;
+ if(!M.cam){ c.innerHTML='<p>This device films its own angle every time the phone rolls, and stops when it cuts. The angle goes back to the phone, and a copy stays here.</p>'
+  +'<p class="dim">It asks for this camera first, and shows you whenever it\'s on.</p>'
+  +'<label class="row"><input type="checkbox" id="snd"'+(M.withSound?' checked':'')+'> <span>With sound (helps line the two angles up)</span></label>'
+  +'<div class="row"><button class="btn pri" id="camgo">TURN ON THIS CAMERA</button></div><p class="faint" id="camwhy"></p>'+anglesHtml();
+  $('snd').onchange=()=>{ M.withSound=$('snd').checked; }; $('camgo').onclick=camOn; wireAngles(); return; }
+ c.innerHTML='<div class="own"><video id="ov" playsinline muted autoplay></video><span class="camon">● '+(M.cam.getAudioTracks().length?'CAMERA + MIC ON':'CAMERA ON')+'</span><span class="st2" id="st2"></span></div>'
+  +'<div class="row"><button class="btn" id="flip">FLIP</button><button class="btn" id="camoff" style="color:var(--red);border-color:var(--red)">TURN THIS CAMERA OFF</button></div>'
+  +'<p class="faint">Rolls when the phone rolls (from the count-in), stops when it cuts.</p>'+anglesHtml();
+ const v=$('ov'); v.srcObject=M.cam; v.play&&v.play().catch(()=>{}); $('ov').style.transform=M.facing==='user'?'scaleX(-1)':'';
+ $('flip').onclick=async()=>{ if(M.rec) return; M.facing=M.facing==='user'?'environment':'user'; camStop(); await camOn(); };
+ $('camoff').onclick=()=>{ camStop(); role(); live(); }; wireAngles();
+}
+function anglesHtml(){ if(!M.angles.length) return ''; return '<p class="sensor" style="margin-top:14px">ANGLES KEPT HERE</p><ul class="alist">'+M.angles.map((a,i)=>'<li><span>Take '+esc(a.n||'?')+' · '+(a.blob.size/1048576).toFixed(1)+' MB'+(a.sent?' · sent to the phone':a.sending?' · sending…':'')+'</span><button class="btn" data-save="'+i+'">SAVE</button></li>').join('')+'</ul>'; }
+function wireAngles(){ app.querySelectorAll('[data-save]').forEach(b=>b.onclick=()=>{ const a=M.angles[+b.dataset.save]; const u=URL.createObjectURL(a.blob), x=document.createElement('a'); x.href=u; x.download='take-'+(a.n||'x')+'-second-angle.'+(/mp4/.test(a.blob.type)?'mp4':'webm'); document.body.appendChild(x); x.click(); x.remove(); setTimeout(()=>URL.revokeObjectURL(u),5000); }); }
+async function camOn(){
+ try{ M.cam=await navigator.mediaDevices.getUserMedia({video:{facingMode:M.facing,width:{ideal:1920},height:{ideal:1080}},audio:M.withSound}); }
+ catch(e){ const w=$('camwhy'); if(w) w.textContent=e&&e.name==='NotAllowedError'?'The camera is off for this page. Allow it in the browser settings, then try again.':'This device\'s camera didn\'t start.'; M.cam=null; return; }
+ role(); live();
+}
+function camStop(){ if(M.rec){ try{ M.rec.stop(); }catch(e){} } if(M.cam){ M.cam.getTracks().forEach(t=>t.stop()); M.cam=null; } }
+const mime=()=>{ const c=['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9,opus','video/webm']; for(const m of c){ try{ if(window.MediaRecorder&&MediaRecorder.isTypeSupported(m)) return m; }catch(e){} } return ''; };
+/* roll with the phone: from its count-in to its cut */
+function follow(){
+ const going=!!(M.st.rec||M.st.count);
+ if(going&&M.cam&&!M.rec){ M.chunks=[]; try{ const mt=mime(); M.rec=new MediaRecorder(M.cam,Object.assign({videoBitsPerSecond:5e6},mt?{mimeType:mt}:{})); }catch(e){ M.rec=null; return; }
+  const r=M.rec; r.ondataavailable=e=>{ if(e.data&&e.data.size) M.chunks.push(e.data); };
+  r.onstop=()=>{ const blob=new Blob(M.chunks,{type:r.mimeType||'video/webm'}); M.chunks=[]; if(M.rec===r) M.rec=null; paintState(); if(blob.size) keepAngle(blob); };
+  r.start(1000); paintState(); }
+ else if(!going&&M.rec&&M.rec.state==='recording'){ try{ M.rec.stop(); }catch(e){} }
+}
+/* the phone's take id shows up just after the cut; wait for it, then send the angle home */
+async function keepAngle(blob){
+ const a={blob,n:'',take:'',sent:false,sending:true}; M.angles.unshift(a); if(VIEW==='cam') paintCam();
+ for(let i=0;i<30&&!(M.st.review&&M.st.take);i++) await new Promise(r=>setTimeout(r,100));
+ if(M.st.take){ a.n=M.st.take.n; a.take=M.st.take.id; }
+ await queue(()=>L.sendFile(M.dc,blob,{kind:'angle',take:a.take,n:a.n}));
+ a.sending=false; a.sent=M.dc&&M.dc.readyState==='open'; if(VIEW==='cam') paintCam();
+}
+/* READER PLAYS HERE: the phone says which recording, this screen plays it */
+function say(m){
+ const blob=M.clips.get(m.id); if(!M.speaker||!AR||!blob){ send({t:'said',id:m.id,miss:true}); return; }
+ try{ if(m.gain&&AR.setGain) AR.setGain(m.gain); }catch(e){}
+ AR.play(blob,()=>send({t:'said',id:m.id}),m.opts||null).then(()=>{ const p=AR.playPos&&AR.playPos(); send({t:'saying',id:m.id,dur:p?p.dur:0}); }).catch(()=>send({t:'said',id:m.id,miss:true}));
 }
 function paintTake(){
  const pb=$('pb'); if(!pb) return;
@@ -105,11 +200,16 @@ function paintTake(){
   +'<p class="faint">The take is kept on the phone. This screen only shows it.</p>';
  $('keep').onclick=()=>send({t:'keep',id:t.id}); $('again').onclick=()=>send({t:'again'}); $('erase').onclick=()=>{ if(confirm('Erase take '+t.n+' on the phone?')) send({t:'erase',id:t.id}); };
 }
-function onMsg(m){ if(m.t==='state'){ const had=!!M.st.review; M.st=m; paintState(); if(had!==!!m.review) paintTake(); } }
-function onProg(f,meta){ if(!M.take||!M.take.loading){ M.take={loading:true,n:meta&&meta.n}; M.got=0; paintTake(); } M.got=f; const b=$('pbar'); if(b) b.style.width=Math.round(f*100)+'%'; }
-function onFile(blob,meta){ if(M.url) URL.revokeObjectURL(M.url); M.url=URL.createObjectURL(blob); M.take=Object.assign({},meta,{loading:false}); M.got=1; paintTake(); }
-function lost(){ if(!M.up) return; M.up=false; try{ M.pc&&M.pc.close(); }catch(e){} try{ M.lock&&M.lock.release(); }catch(e){}
- app.innerHTML='<div class="card"><p><b>Unlinked.</b> The phone let go, or the two lost the Wi-Fi.</p>'+(M.url?'<p class="dim">The last take is still here to watch:</p><video src="'+M.url+'" controls playsinline style="width:100%;border-radius:10px"></video>':'')+'<p class="faint">To link again, make a new code on the phone.</p></div>'; }
+function onMsg(m){
+ if(m.t==='state'){ const had=!!M.st.review; M.st=m; paintState(); if(had!==!!m.review) paintTake(); paintSides(false); follow(); }
+ else if(m.t==='sides'){ M.sides={id:m.id,lines:m.lines||[]}; paintSides(true); }
+ else if(m.t==='say') say(m);
+ else if(m.t==='hush'){ try{ AR&&AR.stopPlay(); }catch(e){} }
+}
+function onProg(f,meta){ if(meta&&meta.kind==='clip') return; if(!M.take||!M.take.loading){ M.take={loading:true,n:meta&&meta.n}; M.got=0; paintTake(); } M.got=f; const b=$('pbar'); if(b) b.style.width=Math.round(f*100)+'%'; }
+function onFile(blob,meta){ if(meta&&meta.kind==='clip'){ M.clips.set(meta.id,blob); return; } if(M.url) URL.revokeObjectURL(M.url); M.url=URL.createObjectURL(blob); M.take=Object.assign({},meta,{loading:false}); M.got=1; paintTake(); }
+function lost(){ if(!M.up) return; M.up=false; camStop(); try{ AR&&AR.stopPlay(); }catch(e){} try{ M.pc&&M.pc.close(); }catch(e){} try{ M.lock&&M.lock.release(); }catch(e){}
+ app.innerHTML='<div class="card"><p><b>Unlinked.</b> The phone let go, or the two lost the Wi-Fi.</p>'+(M.url?'<p class="dim">The last take is still here to watch:</p><video src="'+M.url+'" controls playsinline style="width:100%;border-radius:10px"></video>':'')+'<p class="faint">To link again, make a new code on the phone.</p>'+anglesHtml()+'</div>'; wireAngles(); }
 document.addEventListener('keydown',e=>{ if(!M.up) return; const t=e.target&&e.target.tagName; if(t==='INPUT'||t==='TEXTAREA') return;
  if([' ','Enter','PageDown','PageUp','AudioVolumeUp','AudioVolumeDown','MediaPlayPause'].includes(e.key)){ e.preventDefault(); if(!M.st.review) send({t:M.st.rec||M.st.count?'cut':'roll'}); } });
 if(!window.RTCPeerConnection||!window.CompressionStream) app.innerHTML='<div class="card"><p>This browser can\'t be the other screen. Try Safari or Chrome, up to date.</p></div>';

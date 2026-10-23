@@ -7,7 +7,7 @@ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/ch
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,500))); if(!x) ok=false; };
 const ctx=await b.newContext({viewport:{width:900,height:800}}); await ctx.grantPermissions(['camera','microphone','clipboard-read','clipboard-write'],{origin:'http://localhost:8811'});
 await ctx.addInitScript(()=>{ try{ sessionStorage.setItem('theactorpage_hot_ok','1'); }catch(e){} });
-const p=await ctx.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
+const p=await ctx.newPage(); const errs=[]; p.on('pageerror',e=>errs.push('P '+e.message+' '+(e.stack||'').slice(0,300))); p.on('dialog',d=>d.accept());
 await p.goto('http://localhost:8811/actor-os/'); await p.evaluate(()=>localStorage.clear()); await p.reload(); await p.waitForTimeout(900);
 await p.evaluate(()=>startMode('READER')); await p.waitForTimeout(1500);
 want('the stage has a SCREEN button', await p.isVisible('#sScreen'));
@@ -17,7 +17,7 @@ want('LINK A SCREEN says what it does: monitor, controller, playback; same Wi-Fi
 await p.click('[data-l="start"]'); await p.waitForFunction(()=>ScreenLink.stage==='code',null,{timeout:10000});
 const url=await p.evaluate(()=>ScreenLink.url);
 want('a code and a link for the other screen', !!(await p.$('#linkBox svg.qr'))&&/\/actor-os\/screen\.html#o=[A-Za-z0-9_-]+$/.test(url), url.slice(0,90));
-const m=await ctx.newPage(); const merrs=[]; m.on('pageerror',e=>merrs.push(e.message)); m.on('dialog',d=>d.accept());
+const m=await ctx.newPage(); const merrs=[]; m.on('pageerror',e=>merrs.push('M '+e.message+' '+(e.stack||'').slice(0,300))); m.on('dialog',d=>d.accept());
 await m.goto(url); await m.waitForSelector('#qrbox svg.qr',{timeout:10000});
 want('the other screen: shows its code back, the handshake wiped from the address', /Now show this to the phone/.test(await m.innerText('#app'))&&!/#o=/.test(m.url()));
 const ans=await m.evaluate(()=>window.__screen.answer);
