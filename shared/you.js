@@ -31,6 +31,10 @@ Y.fill=function(p,source){ keepAsk();
 /* You fixed a line by hand: it stays. */
 Y.set=function(k,v){ const d=Y.get(); d[k]=String(v||'').trim(); d.edited[k]=true; d.from[k]='you'; put(d); return d; };
 Y.setList=function(k,arr){ const d=Y.get(); d[k]=(arr||[]).map(x=>String(x).trim()).filter(Boolean); put(d); return d; };
+/* your socials: just the handle or the address, no passwords, no sign-in. onCard / onPage: which ones go on
+   your POSTCARD and on your page (only the ones you tick). */
+Y.SOCIALS=[['instagram','Instagram','@yourname'],['tiktok','TikTok','@yourname'],['x','X','@yourname'],['facebook','Facebook','facebook.com/yourname'],['youtube','YouTube','@yourchannel'],['page','Your page','yoursite.com']];
+Y.setFlag=function(group,k,v){ const d=Y.get(); d[group]=Object.assign({},d[group]||{},{[k]:!!v}); put(d); return d; };
 Y.removeCredit=function(i){ const d=Y.get(); d.credits.splice(i,1); put(d); return d; };
 
 /* ---------- headshots ---------- */

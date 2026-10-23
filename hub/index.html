@@ -167,6 +167,7 @@ small.note{display:block;padding:0 15px 13px;color:var(--faint);font-size:10.5px
 <script src="request.js"></script>
 <script src="../shared/inbox.js"></script>
 <script src="../shared/you.js"></script>
+<script src="../shared/postcard.js"></script>
 <script src="../shared/looks.js"></script>
 <script src="../shared/vodemo.js"></script>
 <script src="../shared/workedwith.js"></script>
@@ -2897,7 +2898,9 @@ async function pkgExtras(mode,entries){
    const sk=[]; for(const s of l.skills){ sk.push({n:s.name,clip:s.clip?await media(await Looks.blob(s.clip),'look_'+l.name+'_'+s.name):null}); }
    looks.items.push({n:l.name,spots:l.spots,photos:ph,skills:sk}); }
   looks.stats=Looks.stats(window.You?You.get():{},Looks.book()); }catch(e){} }
- return {made:{films,writing},vlinks,xclips:xclips.filter(x=>x.u),heads,photos,showRoles:!!profile.pageRoles,voice,looks};
+ /* your socials, the ones you ticked ON YOUR PAGE in YOU: small links at the bottom */
+ let socials=[]; try{ if(window.Postcard&&window.You) socials=Postcard.onPage(You.get()).filter(x=>x.url); }catch(e){}
+ return {made:{films,writing},vlinks,xclips:xclips.filter(x=>x.u),heads,photos,showRoles:!!profile.pageRoles,voice,looks,socials};
 }
 function primaryName(){ const a=ARTS.find(x=>x.id===(pkgSel.headshot||profile.primaryHeadshot)); return a?(a.filename||a.label||''):''; }
 /* VOICE OVER and COMMERCIAL on your page: only when you've made them, each one off with a tap */
@@ -3494,6 +3497,8 @@ footer{padding:24px 38px 40px;font-family:var(--mono);font-size:11px;letter-spac
  color:var(--grey);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
 footer b{color:var(--ink);font-weight:400}
 footer .sp{flex:1}
+footer a.soc{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--hair)}
+.crow:target{outline:2px solid var(--blue);outline-offset:8px}
 
 @media(max-width:720px){
  .slate{grid-template-columns:1fr;gap:22px;padding:26px 22px}
@@ -3558,7 +3563,7 @@ ${monos.length?`<section>${rule('Monologues & stand-up',monos.length)}${grid(mon
 
 ${credits.length?`<section>${rule('Credits',credits.length)}
  <div class="credlist">
- ${credits.map(c=>`<article class="crow">
+ ${credits.map(c=>`<article class="crow"${c.title?` id="c-${E(String(c.title).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/&/g,' and ').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60))}"`:''}>
    <div class="cart">${c.poster&&c.poster.u?`<img src="${c.poster.u}" alt="${E(c.title)}" loading="lazy">`:`<span class="noart">${E((c.title||'').slice(0,2).toUpperCase())}</span>`}</div>
    <div class="cmeta">
      <b>${E(c.title||'')}</b>
@@ -3607,6 +3612,7 @@ ${(d.contact&&(p.email||p.phone))?`<section class="reach">${rule('Get in touch')
  <b>${E(p.name||'')}</b>
  ${d.contact&&p.rep?`<span>${E(p.rep)}</span>`:''}
  ${d.contact&&p.phone?`<span>${E(p.phone)}</span>`:''}
+ ${(d.socials||[]).map(x=>`<a class="soc" href="${E(x.url)}" target="_blank" rel="noopener">${E(x.name)}</a>`).join('')}
  <span class="sp"></span>
  <span style="opacity:.55">theactorpage.com</span>
 </footer>

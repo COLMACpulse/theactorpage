@@ -12,7 +12,7 @@
   const isWork = w => w.kind === 'show' || w.kind === 'film';
   function requestsFor(w) { try { return window.Inbox ? Inbox.all('request').filter(r => G.forRequest(r.data && r.data.title, [w])) : []; } catch (e) { return []; } }
   function go(q) { history.replaceState(null, '', location.pathname + (q ? '?' + q : '')); route(); }
-  function route() { const p = new URLSearchParams(location.search); if (p.get('plug') && G.plugGet(p.get('plug'))) return plugOne(p.get('plug')); if (p.get('plugs') !== null || p.get('plug') === 'new') return plugs(); if (p.get('w') && G.get(p.get('w'))) return one(p.get('w')); if (p.get('lock') !== null) return lock(); wall(); }
+  function route() { const p = new URLSearchParams(location.search); if (p.get('card') && G.plugGet(p.get('card'))) return cardView(p.get('card')); if (p.get('plug') && G.plugGet(p.get('plug'))) return plugOne(p.get('plug')); if (p.get('plugs') !== null || p.get('plug') === 'new') return plugs(); if (p.get('w') && G.get(p.get('w'))) return one(p.get('w')); if (p.get('lock') !== null) return lock(); wall(); }
 
   /* ---------- the wall ---------- */
   function poster(w, url) {
@@ -153,6 +153,7 @@
       '<div class="prev" id="q_prev"></div><p class="mut small" id="q_miss"></p>' +
       '<div class="row"><button class="btn" type="button" id="q_copy">COPY IT</button>' + (navigator.share ? '<button class="btn ghost" type="button" id="q_share">SHARE IT</button>' : '') +
       '<button class="btn quiet" type="button" id="q_keep">SAY IT THIS WAY EVERY TIME</button></div>' +
+      (window.Postcard ? '<div class="row" style="margin-top:8px"><button class="btn ghost" type="button" id="q_card">MAKE THE CARD</button><span class="mut small">For your socials, an email or the mail.</span></div>' : '') +
       ((q.kind === 'airing' || q.kind === 'worked') ? '<div class="row" style="margin-top:8px">' + (window.Press ? (q.press && Press.get(q.press) ? '<a class="btn quiet" href="../press/?c=' + esc(q.press) + '">OPEN IT IN PRESS</a>' : '<button class="btn quiet" type="button" id="q_press">TELL THE PRESS TOO</button>') : '') +
         (window.You ? '<button class="btn quiet" type="button" id="q_cred">ADD IT TO MY CREDITS</button>' : '') + '</div>' : '') +
       '</div><div class="row" style="margin-top:20px"><button class="btn quiet" type="button" id="q_del">DELETE THIS PLUG</button></div>';
@@ -176,8 +177,137 @@
     $('q_keep').onclick = () => { const v = $('q_text').value.trim(); if (!v) { say('Write it first.'); return; } const k = G.plugGet(id).kind; G.keepShape(k, v); say('Kept. Your next ' + G.plugKindName(k).toUpperCase() + ' plug starts from this.'); };
     if ($('q_press')) $('q_press').onclick = () => { const x = read(); const c = Press.add({ title: x.title || 'News', milestone: x.kind === 'airing' ? 'release' : 'other', date: x.date || '', where: x.where }); if (c) { G.plugSet(id, { press: c.id }); location.href = '../press/?c=' + encodeURIComponent(c.id); } };
     if ($('q_cred')) $('q_cred').onclick = () => { const x = read(); if (!x.title) { say('Put in the title first.'); return; } const ch = You.fill({ credits: [G.credit(x, wish && wish.kind === 'film')] }, 'PICTURE IT'); say(ch.length ? 'Added to your credits. Every tool that uses your résumé has it.' : 'It\'s already in your credits.'); };
+    if ($('q_card')) $('q_card').onclick = () => { read(); go('card=' + id); };
     $('q_del').onclick = async () => { if (!confirm('Delete this plug?')) return; await G.plugRemove(id); say(''); go('plugs'); };
     paint();
+  }
+  /* ---------- THE POSTCARD: your plug as a card (shared/postcard.js). The looks are design only; the words are yours. ---------- */
+  let CSIZE = 'square', CSEND = 'post', CBM = { k: '', bm: null };
+  const onlinePage = () => { try { return JSON.parse(localStorage.getItem('hub_online_v1') || 'null') || {}; } catch (e) { return {}; } };
+  const shortDay = t => { const d = new Date(t); return MON[d.getMonth()] + ' ' + d.getDate(); };
+  async function cardData(id) {
+    const q = G.plugGet(id), you = window.You ? You.get() : {}, r = G.plug(q.text, q), d = Postcard.card(q, you, r.text, onlinePage());
+    const b = d.photo ? await G.plugBlob(q) : null, k = b ? (q.pic || q.you || q.wid) + ':' + b.size : '';
+    if (k !== CBM.k) { CBM = { k, bm: null }; if (b) { try { CBM.bm = await createImageBitmap(b); } catch (e) { } } }
+    d.bitmap = CBM.bm; return d;
+  }
+  async function fonts() { try { await Promise.all(['600 30px Jost', '700 15px Jost', '700 13px "Courier Prime"'].map(f => document.fonts.load(f))); } catch (e) { } }
+  const toBlob = cv => new Promise(r => cv.toBlob(r, 'image/png'));
+  async function cardBlob(id, size) { await fonts(); return toBlob(Postcard.draw(document.createElement('canvas'), await cardData(id), size)); }
+  async function cardView(id) {
+    const PC = window.Postcard, q = G.plugGet(id); if (!q || !PC) return go('plugs');
+    const you = window.You ? You.get() : {}, words = G.plug(q.text, q).text, c = Object.assign({}, q.card || {}), d = await cardData(id), st = PC.settings();
+    const hasPic = !!(await G.plugBlob(Object.assign({}, q, { nopic: false }))), socials = PC.socials(you), base = PC.pageBase(you, onlinePage());
+    const save = patch => { const x = G.plugGet(id); G.plugSet(id, { card: Object.assign({}, x.card || {}, patch) }); };
+    if (!c.look) save({ look: d.look });
+    let h = '<p><a href="?plug=' + esc(id) + '" id="c_back">← BACK TO THE PLUG</a></p><p class="msg" id="msg" role="status">' + esc(MSG) + '</p>';
+    if (!words) { V.innerHTML = h + '<div class="card"><p class="kick">THE CARD</p><p class="dim">Write the plug first. The card carries your words, so it starts there.</p></div>'; $('c_back').onclick = e => { e.preventDefault(); go('plug=' + id); }; return; }
+    const ck = (key, on, label, extra) => '<label class="row ck"><input type="checkbox" data-' + key + (on ? ' checked' : '') + (extra || '') + '> <span>' + label + '</span></label>';
+    h += '<div class="card"><p class="kick">THE CARD</p><p class="dim small">Pick a look. The words are yours: change them on the plug.</p>' +
+      '<div class="chips" id="c_looks">' + PC.LOOKS.map(l => '<button type="button" class="chip' + (d.look === l[0] ? ' on' : '') + '" data-look="' + l[0] + '" aria-pressed="' + (d.look === l[0]) + '">' + l[1] + '</button>').join('') + '</div>' +
+      '<div class="chips" id="c_sizes">' + PC.SIZES.map(z => '<button type="button" class="chip' + (CSIZE === z[0] ? ' on' : '') + '" data-size="' + z[0] + '" aria-pressed="' + (CSIZE === z[0]) + '">' + z[1] + '</button>').join('') + '</div>' +
+      '<p class="mut small" id="c_where">' + esc(PC.size(CSIZE)[2] + ' × ' + PC.size(CSIZE)[3] + ' · ' + PC.size(CSIZE)[4]) + '</p>' +
+      '<div class="cards"><canvas id="c_cv" class="cardcv" role="img" aria-label="Your card"></canvas>' + (CSIZE === 'print' ? '<canvas id="c_bk" class="cardcv" role="img" aria-label="The back of your postcard"></canvas>' : '') + '</div>' +
+      '<label class="lab">ON THE CARD</label>' +
+      (hasPic ? ck('photo', d.photo, 'Your photo') : '<p class="mut small">No picture on this plug. Add one on the plug, or the card goes words only.</p>') +
+      socials.map(x => ck('show="' + x.k + '"', c.show && c.show[x.k] !== undefined ? c.show[x.k] : PC.onCardDefault(you, x.k), esc(x.name) + ' <span class="mut">' + esc(x.text) + '</span>')).join('') +
+      (base ? ck('show="page"', c.page !== undefined ? c.page : PC.onCardDefault(you, 'page'), 'Your page <span class="mut">' + esc(PC.bare(base)) + '</span>') : '') +
+      (socials.length ? '' : '<p class="mut small">Your socials go in YOUR PROFILE, on the <a href="../#you">home page</a>. Just the handle.</p>') +
+      '<label class="lab">THE LINKS</label>' +
+      (d.page ? '<p class="small" style="margin:4px 0">Your page, always: <b>' + esc(PC.bare(d.page)) + '</b>' + (/#c-/.test(d.page) ? ' <span class="mut">opens right at this credit</span>' : '') + '</p>'
+        : '<p class="small" style="margin:4px 0;color:var(--bad)">No page address yet. Put it in YOUR PROFILE (Your page) on the <a href="../#you">home page</a>, or put your page online from the <a href="../hub/?tab=package#online">Hub</a>.</p>') +
+      (q.kind !== 'headshot' ? '<label class="lab" for="c_watch" style="margin-top:6px">WHERE TO WATCH (OPTIONAL)</label><input class="field" id="c_watch" inputmode="url" autocapitalize="off" spellcheck="false" value="' + esc(c.watch || '') + '" placeholder="Paste the show\'s page or trailer">' : '') +
+      (you.rep ? ck('rep', !!c.rep, 'Your rep, as plain text <span class="mut">' + esc([you.rep, you.repPhone].filter(Boolean).join(' · ')) + '</span>') : '') +
+      ck('qr', c.qr !== false, 'A QR code on the printed back <span class="mut">opens your page</span>', d.page ? '' : ' disabled') +
+      '<div style="border-top:1px solid var(--line);margin-top:12px;padding-top:6px">' + ck('keep', st.keep, 'Keep this design') + '<p class="mut small" style="margin:0 0 0 30px">' + (st.keep ? 'Your next card starts on this look.' : 'Your next card starts fresh. Pick a look each time.') + '</p></div></div>';
+    /* SEND IT: you send it. Nothing goes out on its own. */
+    const tab = (k, l) => '<button type="button" class="btn' + (CSEND === k ? '' : ' quiet') + '" data-send="' + k + '">' + l + '</button>';
+    h += '<h2>SEND IT</h2><p class="dim small">You send it. Nothing goes out on its own, and nothing reports back who opened it.</p><div class="row tabsrow">' + tab('post', 'POST') + tab('email', 'EMAIL') + tab('mail', 'MAIL') + '</div><div class="card" id="c_send">';
+    if (CSEND === 'post') {
+      h += '<p class="dim small">Your socials. Pick the size above (square or story), then share it.</p><div class="row">' + (navigator.share ? '<button class="btn" type="button" id="c_share">SHARE THE CARD</button>' : '') +
+        '<button class="btn ghost" type="button" id="c_save">SAVE THE CARD</button><button class="btn quiet" type="button" id="c_copy">COPY YOUR WORDS</button></div>' +
+        '<p class="mut small">' + (navigator.share ? 'SHARE opens your share sheet with the card and your words. Pick Instagram, TikTok, X, wherever. ' : '') + 'Your words come with your page link at the end. Instagram captions don\'t click, so put your page in your bio there.</p>' +
+        (socials.filter(x => x.url).length ? '<div class="row">' + socials.filter(x => x.url).map(x => '<a class="btn quiet" href="' + esc(x.url) + '" target="_blank" rel="noopener">' + esc(x.name.toUpperCase()) + ' ↗</a>').join('') + '</div>' : '') +
+        '<p class="small" style="margin:12px 0 0">THEACTORPAGE can\'t post for you. It never signs in to your accounts.</p>';
+    } else if (CSEND === 'email') {
+      const people = window.Contacts ? PC.emailable(Contacts.mine()).sort((a, b) => a.name.localeCompare(b.name)) : [], sent = q.wrote || {};
+      h += '<p class="dim small">One person at a time, from your own mail app. WRITE IT copies the wide card, then opens a new email with your words and links. Paste the card in under your words. You read it, you hit send.</p>' +
+        '<label class="lab" for="c_subj">SUBJECT</label><input class="field" id="c_subj" value="' + esc(c.subject || '') + '" placeholder="Your subject">' +
+        (people.length ? '<ul class="who">' + people.map(p => { const no = PC.noEmail(p), say = PC.says(p);
+          return '<li><span class="wn"><b>' + esc(p.name) + '</b><span class="mut small">' + esc([p.company && p.company !== p.name ? p.company : '', window.Contacts ? Contacts.roleName(p.role) : ''].filter(Boolean).join(' · ')) + '</span>' +
+            (no ? '<span class="warn">' + esc(PC.SAYS[say] || PC.SAYS.noemail) + '</span>' : '') + (sent[p.id] ? '<span class="mut small">You wrote one ' + esc(shortDay(sent[p.id])) + '</span>' : '') + '</span>' +
+            '<span class="row"><button type="button" class="btn' + (no ? ' quiet' : ' ghost') + '" data-write="' + esc(p.id) + '">WRITE IT</button>' +
+            (say === 'none' ? '' : '<button type="button" class="chip' + (say === 'noemail' ? ' on' : '') + '" data-noemail="' + esc(p.id) + '" aria-pressed="' + (say === 'noemail') + '">THEY SAY NO EMAIL</button>') + '</span></li>'; }).join('') + '</ul>'
+          : '<p class="mut small">No one in Contacts has an email yet. Add one in <a href="../contacts/">Contacts</a>.</p>') +
+        '<div class="row"><button type="button" class="btn quiet" data-write="">WRITE ONE TO SOMEONE ELSE</button><button type="button" class="btn quiet" id="c_copycard">COPY THE CARD</button></div>';
+    } else {
+      const people = window.Contacts ? PC.mailable(Contacts.mine()).sort((a, b) => a.name.localeCompare(b.name)) : [], to = c.to || [];
+      h += '<p class="dim small">The old way: a 4 × 6 postcard, printed and mailed to an office.</p><label class="lab">THE BACK</label>' +
+        '<label class="row ck"><input type="radio" name="c_bk" value="to"' + (c.blank ? '' : ' checked') + '> <span>Addressed, from Contacts</span></label><label class="row ck"><input type="radio" name="c_bk" value="blank"' + (c.blank ? ' checked' : '') + '> <span>Blank, I\'ll write it by hand</span></label>' +
+        '<label class="lab" for="c_note">A NOTE ON THE BACK (OPTIONAL)</label><textarea class="field" id="c_note" rows="2" placeholder="A line in your own words, or leave it for your handwriting">' + esc(c.back || '') + '</textarea>' +
+        (c.blank ? '' : (people.length ? '<ul class="who">' + people.map(p => { const no = PC.noMail(p), say = PC.says(p), on = to.indexOf(p.id) >= 0;
+          return '<li><span class="wn"><label class="row ck" style="margin:0"><input type="checkbox" data-to="' + esc(p.id) + '"' + (on ? ' checked' : '') + '> <b>' + esc(p.name) + '</b></label>' + (no ? '<span class="warn">' + esc(PC.SAYS[say] || PC.SAYS.nomail) + '</span>' : '') +
+            (on ? '<label class="lab" for="c_ad_' + esc(p.id) + '">THEIR MAILING ADDRESS</label><textarea class="field" id="c_ad_' + esc(p.id) + '" data-addr="' + esc(p.id) + '" rows="3" placeholder="Street&#10;City, State ZIP">' + esc((p.mail || []).join('\n')) + '</textarea>' : '') + '</span>' +
+            (say === 'none' ? '' : '<button type="button" class="chip' + (say === 'nomail' ? ' on' : '') + '" data-nomail="' + esc(p.id) + '" aria-pressed="' + (say === 'nomail') + '">THEY SAY NO MAIL</button>') + '</li>'; }).join('') + '</ul>'
+          : '<p class="mut small">No one in Contacts yet. Add the offices in <a href="../contacts/">Contacts</a>, or print a blank back.</p>')) +
+        '<label class="lab">PRINT IT</label><div class="row"><button type="button" class="btn" id="c_shop">FILE FOR A PRINT SHOP</button><button type="button" class="btn ghost" id="c_home">PRINT AT HOME</button></div>' +
+        '<p class="mut small">PRINT SHOP: 4 × 6 at 300 dpi, front and back, ⅛ in bleed. Pick Save as PDF in the print window and take the file in. HOME: letter paper, two cards a sheet, cut on the dashed lines. Print the fronts, put the sheet back in, print the backs. Heavy card stock works best.</p>';
+    }
+    h += '</div>';
+    V.innerHTML = h;
+    $('c_back').onclick = e => { e.preventDefault(); say(''); go('plug=' + id); };
+    const redraw = async () => { await fonts(); const dd = await cardData(id); PC.draw($('c_cv'), dd, CSIZE); if ($('c_bk')) { const P0 = ((G.plugGet(id).card || {}).to || [])[0], who = P0 && window.Contacts ? Contacts.get(P0) : null; PC.drawBack($('c_bk'), dd, (G.plugGet(id).card || {}).blank || !who ? null : { name: who.name, address: (who.mail || []).join('\n') }); } };
+    redraw();
+    V.querySelectorAll('[data-look]').forEach(b => b.onclick = () => { save({ look: b.dataset.look }); if (PC.settings().keep) PC.setSettings({ look: b.dataset.look }); cardView(id); });
+    V.querySelectorAll('[data-size]').forEach(b => b.onclick = () => { CSIZE = b.dataset.size; cardView(id); });
+    V.querySelectorAll('[data-send]').forEach(b => b.onclick = () => { CSEND = b.dataset.send; say(''); cardView(id); });
+    const chk = (sel, fn) => { const el = V.querySelector(sel); if (el) el.onchange = () => { fn(el.checked); redraw(); }; };
+    chk('[data-photo]', v => save({ photo: v }));
+    V.querySelectorAll('[data-show]').forEach(el => el.onchange = () => { const k = el.dataset.show; if (k === 'page') save({ page: el.checked }); else save({ show: Object.assign({}, (G.plugGet(id).card || {}).show || {}, { [k]: el.checked }) }); redraw(); });
+    chk('[data-rep]', v => save({ rep: v })); chk('[data-qr]', v => save({ qr: v }));
+    const kp = V.querySelector('[data-keep]'); if (kp) kp.onchange = () => { PC.setSettings({ keep: kp.checked, look: (G.plugGet(id).card || {}).look || 'slate' }); cardView(id); };
+    if ($('c_watch')) { $('c_watch').oninput = () => save({ watch: $('c_watch').value.trim() }); $('c_watch').onchange = () => { if ($('c_watch').value.trim() && !PC.url($('c_watch').value)) say('That doesn\'t look like a link. Paste the whole address.'); else say(''); }; }
+    /* POST */
+    const fileOf = async size => { const b = await cardBlob(id, size); return b ? new File([b], 'card-' + PC.slug(q.title || 'plug') + '-' + size + '.png', { type: 'image/png' }) : null; };
+    const postSize = () => (CSIZE === 'print' ? 'square' : CSIZE);
+    if ($('c_share')) $('c_share').onclick = async () => { const f = await fileOf(postSize()), dd = await cardData(id), data = { text: PC.postWords('', dd) }; if (f && (!navigator.canShare || navigator.canShare({ files: [f] }))) data.files = [f]; try { await navigator.share(data); } catch (e) { } };
+    if ($('c_save')) $('c_save').onclick = async () => { const f = await fileOf(postSize()); if (!f) { say('This browser wouldn\'t make the picture.'); return; } const u = URL.createObjectURL(f), a = document.createElement('a'); a.href = u; a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 60000); say('Saved. Post it from your photos or your downloads.'); };
+    if ($('c_copy')) $('c_copy').onclick = async () => { const dd = await cardData(id); try { await navigator.clipboard.writeText(PC.postWords('', dd)); say('Copied: your words and your page link.'); } catch (e) { say('Copy didn\'t work here.'); } };
+    /* EMAIL: one at a time, from your mail app */
+    if ($('c_subj')) $('c_subj').oninput = () => save({ subject: $('c_subj').value });
+    const copyCard = async () => { try { const b = await cardBlob(id, 'wide'); await navigator.clipboard.write([new ClipboardItem({ 'image/png': b })]); return true; } catch (e) { return false; } };
+    if ($('c_copycard')) $('c_copycard').onclick = async () => say(await copyCard() ? 'The card is copied. Paste it into your email.' : 'This browser won\'t copy a picture. Pick WIDE above and SAVE THE CARD from POST, then attach it.');
+    V.querySelectorAll('[data-write]').forEach(b => b.onclick = async () => { const p = b.dataset.write ? Contacts.get(b.dataset.write) : null;
+      if (p && PC.noEmail(p) && !confirm(p.name + ' says no email from actors. Write one anyway?')) return;
+      const copied = await copyCard(), dd = await cardData(id);
+      if (p) { const x = G.plugGet(id); G.plugSet(id, { wrote: Object.assign({}, x.wrote || {}, { [p.id]: Date.now() }) }); }
+      const a = document.createElement('a'); a.href = PC.mailto(p ? p.email : '', (G.plugGet(id).card || {}).subject || '', PC.emailBody(dd)); document.body.appendChild(a); a.click(); a.remove();
+      MSG = copied ? 'The card is copied. Paste it into the email under your words.' : 'Your mail app opens with your words and links. To add the card, save the WIDE size from POST and attach it.'; cardView(id); });
+    V.querySelectorAll('[data-noemail]').forEach(b => b.onclick = () => { const p = Contacts.get(b.dataset.noemail); Contacts.set(p.id, { plug: PC.says(p) === 'noemail' ? '' : 'noemail' }); cardView(id); });
+    V.querySelectorAll('[data-nomail]').forEach(b => b.onclick = () => { const p = Contacts.get(b.dataset.nomail); Contacts.set(p.id, { plug: PC.says(p) === 'nomail' ? '' : 'nomail' }); cardView(id); });
+    /* MAIL */
+    V.querySelectorAll('input[name="c_bk"]').forEach(r => r.onchange = () => { save({ blank: r.value === 'blank' }); cardView(id); });
+    if ($('c_note')) $('c_note').oninput = () => { save({ back: $('c_note').value }); redraw(); };
+    V.querySelectorAll('[data-to]').forEach(el => el.onchange = () => { const p = Contacts.get(el.dataset.to);
+      if (el.checked && PC.noMail(p) && !confirm(p.name + ' says no mail from actors. Send one anyway?')) { el.checked = false; return; }
+      const t = ((G.plugGet(id).card || {}).to || []).filter(x => x !== el.dataset.to); if (el.checked) t.push(el.dataset.to); save({ to: t }); cardView(id); });
+    V.querySelectorAll('[data-addr]').forEach(el => el.oninput = () => { Contacts.set(el.dataset.addr, { mail: el.value.split('\n').map(x => x.trim()).filter(Boolean) }); redraw(); });
+    const printIt = async home => { say('Making the print file...'); await fonts(); const dd = await cardData(id), cc = G.plugGet(id).card || {};
+      const who = cc.blank || !window.Contacts ? [null] : (cc.to || []).map(i => Contacts.get(i)).filter(Boolean).map(p => ({ name: p.name, address: (p.mail || []).join('\n') }));
+      const list = who.length ? who : [null], front = URL.createObjectURL(await toBlob(PC.draw(document.createElement('canvas'), dd, 'print')));
+      const backs = []; for (const w of list) backs.push(URL.createObjectURL(await toBlob(PC.drawBack(document.createElement('canvas'), dd, w))));
+      const img = u => '<img src="' + u + '" alt="">';
+      let body, css;
+      if (!home) { css = '@page{size:6.25in 4.25in;margin:0}body{margin:0}img{display:block;width:6.25in;height:4.25in;break-after:page}'; body = backs.map(b => img(front) + img(b)).join(''); }
+      else { css = '@page{size:letter;margin:0}body{margin:0}.sh{width:8.5in;height:11in;position:relative;break-after:page}.cd{position:absolute;left:1.125in;width:6.25in;height:4.25in}.cd img{width:100%;height:100%;display:block}.cd i{position:absolute;inset:.125in;border:1px dashed #888}.a{top:.9in}.b{top:5.85in}';
+        const pairs = []; for (let i = 0; i < backs.length; i += 2) pairs.push(backs.slice(i, i + 2));
+        body = pairs.map(pr => '<div class="sh">' + pr.map((b, i) => '<div class="cd ' + (i ? 'b' : 'a') + '">' + img(front) + '<i></i></div>').join('') + '</div><div class="sh">' + pr.map((b, i) => '<div class="cd ' + (i ? 'b' : 'a') + '">' + img(b) + '<i></i></div>').join('') + '</div>').join(''); }
+      const fr = document.createElement('iframe'); fr.style.cssText = 'position:fixed;width:0;height:0;border:0;right:0;bottom:0'; fr.setAttribute('aria-hidden', 'true');
+      fr.srcdoc = '<!doctype html><html><head><meta charset="utf-8"><title>Postcard</title><style>' + css + '</style></head><body>' + body + '</body></html>';
+      fr.onload = () => { const ims = [...fr.contentDocument.images]; Promise.all(ims.map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; }))).then(() => { say(''); try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) { say('This browser wouldn\'t open the print window.'); } setTimeout(() => fr.remove(), 60000); }); };
+      document.body.appendChild(fr); window.__lastPrint = { home, cards: list.length, css }; };
+    if ($('c_shop')) $('c_shop').onclick = () => printIt(false);
+    if ($('c_home')) $('c_home').onclick = () => printIt(true);
   }
   /* ---------- the lock screen: your wall, phone-sized, made here ---------- */
   async function lock() {
@@ -218,6 +348,6 @@
   }
   function wrap(x, t, cx, cy, mw, lh) { const ws = t.split(/\s+/), L = []; let l = ''; ws.forEach(w => { const s = l ? l + ' ' + w : w; if (x.measureText(s).width > mw && l) { L.push(l); l = w; } else l = s; }); if (l) L.push(l); const y0 = cy - (L.length - 1) * lh / 2; L.forEach((s, i) => x.fillText(s, cx, y0 + i * lh)); }
 
-  window.__viz = { route, drawLock };
+  window.__viz = { route, drawLock, cardBlob };
   route();
 })();

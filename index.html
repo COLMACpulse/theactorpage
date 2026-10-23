@@ -511,6 +511,11 @@ body.stopen{overflow:hidden}
 .yp summary{cursor:pointer;font:700 .78rem var(--script);letter-spacing:.14em;color:var(--tungsten)}
 .yf{display:flex;gap:10px;align-items:center;margin:6px 0;font-size:.85rem}
 .yf span{flex:0 0 96px;color:var(--grey)}
+.ysh,.ysr{display:grid;grid-template-columns:96px minmax(0,1fr) 64px 64px;gap:8px;align-items:center;margin:4px 0;font-size:.85rem}
+.ysh i{font:700 .55rem var(--script);font-style:normal;letter-spacing:.12em;color:var(--grey);text-align:center}
+.ysr label{color:var(--grey)}.ysr input[type=checkbox]{justify-self:center;width:20px;height:20px;accent-color:var(--tungsten)}
+.ysr input:not([type]){min-width:0;background:var(--stock-up);color:var(--ink);border:1px solid var(--rule);padding:6px 8px;font:13px/1.4 var(--title)}
+@media(max-width:480px){.ysh,.ysr{grid-template-columns:76px minmax(0,1fr) 44px 44px}}
 .yf input,.yf textarea{flex:1;min-width:0;background:var(--stock-up);color:var(--ink);border:1px solid var(--rule);padding:6px 8px;font:13px/1.4 var(--title)}
 .ycr{list-style:none;padding:0;margin:6px 0;max-height:260px;overflow:auto;font-size:.84rem}
 .ycr li{padding:3px 0;border-bottom:1px solid var(--rule)}
