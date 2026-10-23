@@ -40,7 +40,7 @@ function take(text,file,f){
  const sc=F.scenes(text);
  if(!sc.length){ MSG='<b>No scenes found.</b> Scene headings start with INT. or EXT., and names sit on their own line above the dialogue.'; render(); return; }
  let id='p'+Date.now().toString(36), me='';
- if(SH){ const it=SH.put({text:text,file:file||'Pasted script',fileSig:f?SH.sig(f):'',from:'STORY STUDIO',tool:TOOL}); if(it){ id=it.id; me=it.me||''; if(it.text) text=it.text; if(f) SH.putFile(it.id,f); } }
+ if(SH){ const it=SH.put({text:text,file:file||'Pasted script',fileSig:f?SH.sig(f):'',from:'STORY STUDIO',tool:TOOL,kind:'script'}); if(it){ id=it.id; me=it.me||''; if(it.text) text=it.text; if(f) SH.putFile(it.id,f); } }
  open(id,text,file,me);
  toast(SCENES.length+' scene'+(SCENES.length===1?'':'s')+' from '+(file||'your script')+'.');
  TAB='scenes'; OPEN=null; render();

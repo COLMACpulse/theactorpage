@@ -12,7 +12,7 @@ const X=window.Intake, Sh=window.Shelf, I=window.Inbox, Y=window.You;
 if(!X||!Sh||!I||!$('drop')) return;
 const KIND={sides:'Sides',script:'Script',request:'Self-tape request',resume:'Résumé',media:'Footage',image:'Headshot',other:'Not placed',unknown:'Not placed'};
 const title=s=>String(s||'').toLowerCase().replace(/(^|[\s\-'])([a-z])/g,(m,a,b)=>a+b.toUpperCase()).replace(/\bMc([a-z])/g,(m,a)=>'Mc'+a.toUpperCase());
-const plain=n=>String(n||'').replace(/\.[a-z0-9]{2,8}$/i,'').replace(/_/g,' ');
+const plain=n=>(window.Shelf&&Shelf.title)?Shelf.title(n):String(n||'').replace(/\.[a-z0-9]{2,8}$/i,'').replace(/_/g,' ');
 let LAST=[];   // what came in this time, for the cards
 
 /* ---------- read one thing ---------- */
@@ -68,7 +68,7 @@ async function route(items){
   let from=null, me='';
   for(const r of known){ if(r&&X.namesFile(r,x.name)){ me=X.matchRole(r.role,sp); if(me){ from=r; break; } } }
   if(!me) for(const r of known){ if(!r) continue; me=X.matchRole(r.role,sp); if(me){ from=r; break; } }
-  const it=Sh.put({text:x.text,file:x.name,fileSig:x.file?Sh.sig(x.file):'',me:me,from:'home'});
+  const it=Sh.put({text:x.text,file:x.name,fileSig:x.file?Sh.sig(x.file):'',me:me,from:'home',kind:x.kind});
   if(it){ x.shelfId=it.id; if(me&&it.me!==me) Sh.setMe(it.id,me); x.me=me||it.me||''; x.meFrom=from?(from.title||'the request'):''; x.parts=sp.slice(0,12);
    if(x.file&&x.fk==='pdf'&&Sh.putFile) Sh.putFile(it.id,x.file).catch(()=>{}); }
   const Vw=window.View, sh=n=>!Vw||Vw.has(n); x.went=x.kind==='sides'?(sh('act')?'On the sides shelf: every ACT tool has it.':'On the sides shelf.'):'On the sides shelf'+(sh('write')?', and in Paper Trail next time you open it.':'.');

@@ -134,10 +134,10 @@ nav.tabs button.on{color:var(--tung-text)}
 /* with life: the icon at work, the sigil, the sticks; your words as you say them */
 .top{display:flex;align-items:center;gap:12px;padding-top:calc(env(safe-area-inset-top) + 8px);padding-bottom:8px}
 .top .tt{flex:1;min-width:0}
-.hico{width:46px;height:58px;flex:none}
+.hico{width:52px;height:65px;flex:none}
 .hico .pg{fill:var(--panel2);stroke:var(--line)}.hico .rl{stroke:var(--line);stroke-width:2;stroke-linecap:round}
-.hico .who{font:700 7px var(--mono,monospace);letter-spacing:.12em;fill:var(--dim)}
-.hico .ln{font:700 9px var(--mono,monospace);fill:var(--tung-text)}.hico .ln.on{fill:var(--ink);font-weight:400}
+.hico .who{font:700 10px var(--mono,monospace);letter-spacing:.1em;fill:var(--dim)}
+.hico .ln{font:700 13px var(--mono,monospace);fill:var(--tung-text)}.hico .ln.on{font:500 12.5px var(--sans,sans-serif);fill:var(--ink)}
 .hico .dot{fill:var(--tung)}
 .hico .a,.hico .b{animation:memA 5s ease-in-out infinite}.hico .b{animation-name:memB}
 @keyframes memA{0%,40%{opacity:1}50%,90%{opacity:0}100%{opacity:1}}
@@ -156,6 +156,9 @@ nav.tabs button.on{color:var(--tung-text)}
 .qrow.cur{border-color:var(--tung)}
 .qhead{display:flex;justify-content:space-between;align-items:baseline;margin:6px 0 2px}
 .sayall{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin:0 0 14px}
+/* on a wider screen: the header lines up with the page, and the page gets room */
+@media (min-width:760px){ .top{padding-left:max(16px,calc((100vw - 720px)/2 + 16px));padding-right:max(16px,calc((100vw - 720px)/2 + 16px))} }
+@media (min-width:1000px){ main{max-width:920px} .top{padding-left:calc((100vw - 920px)/2 + 16px);padding-right:calc((100vw - 920px)/2 + 16px)} .hico{width:66px;height:82px}.hsig{width:64px;height:64px}.top b{font-size:22px} }
 body:has(#hotbar) .top{padding-top:calc(env(safe-area-inset-top) + 50px)}
 </style>
 </head>
@@ -163,11 +166,11 @@ body:has(#hotbar) .top{padding-top:calc(env(safe-area-inset-top) + 50px)}
 <div class="shell">
   <header class="top">
     <svg class="hico" viewBox="0 0 64 80" role="img" aria-label="A line coming back to you: first letters, then the whole line">
-      <rect class="pg" x="3" y="3" width="58" height="74" rx="5"/><path class="rl" d="M11 16H41M11 60H47M11 68H35"/>
-      <text class="who" x="11" y="28">RAY</text>
-      <g class="a"><text class="ln" x="11" y="42">Y · C · B .</text></g>
-      <g class="b"><text class="ln on" x="11" y="42">You came</text><text class="ln on" x="11" y="51">back.</text></g>
-      <circle class="dot" cx="52" cy="30" r="3.2"/>
+      <rect class="pg" x="2" y="2" width="60" height="76" rx="5"/><path class="rl" d="M10 66H54M10 72H40"/>
+      <text class="who" x="10" y="17">RAY</text>
+      <g class="a"><text class="ln" x="10" y="38">Y C B.</text></g>
+      <g class="b"><text class="ln on" x="10" y="34">You came</text><text class="ln on" x="10" y="48">back.</text></g>
+      <circle class="dot" cx="54" cy="13" r="3.5"/>
     </svg>
     <div class="tt"><div class="k">MEMORIZER</div><b id="title">Off book</b><div class="count" id="count"></div></div>
     <img class="hsig" src="../img/sigil-film-180.png" alt="THEACTORPAGE" width="56" height="56">

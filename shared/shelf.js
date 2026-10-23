@@ -44,7 +44,8 @@ Sh.put=function(o){ keepAsk();
  const d=read(), id=o.fileSig?'f'+hash(o.fileSig):Sh.idFor(text), t=now();
  let it=d.list.find(x=>x.id===id);
  if(it){ if(o.file&&!it.file) it.file=o.file; if(o.me&&!it.me) it.me=o.me; if(d.cur!==id) it.updated=t; }
- else { it={id:id,text:text,file:o.file||'Pasted sides',me:o.me||'',range:null,from:o.from||'',added:t,updated:t}; d.list.push(it); }
+ else { it={id:id,text:text,file:o.file||'Pasted sides',me:o.me||'',range:null,from:o.from||'',kind:o.kind||'',added:t,updated:t}; d.list.push(it); }
+ if(o.kind&&!it.kind) it.kind=o.kind;
  d.cur=id; if(o.tool) d.seen[o.tool]={id:id,at:it.updated};
  write(d); return it;
 };
@@ -76,7 +77,16 @@ Sh.pending=function(tool){
  return it;
 };
 Sh.markSeen=function(tool,id){ const d=read(), it=d.list.find(x=>x.id===(id||d.cur)); if(!it) return; d.seen[tool]={id:it.id,at:it.updated}; write(d); };
-Sh.label=function(it){ return (it.me?it.me+', ':'')+String(it.file||'').replace(/\.(pdf|txt|fountain|fdx)$/i,'').replace(/_/g,' '); };
+/* a file name read the way a person writes it: "THE_LAW_OF_THE_LAND12_6_2017.pdf" -> "THE LAW OF THE LAND · 12/6/2017" */
+Sh.title=function(f){
+ let t=String(f||'').replace(/\.(pdf|txt|fountain|fdx|docx?|md|rtf)$/i,'').replace(/[_]+/g,' ').replace(/\s+/g,' ').trim();
+ const m=t.match(/^(.*?[A-Za-z)'’])\s*(\d{1,2})[\s.\-](\d{1,2})[\s.\-](\d{2}(?:\d{2})?)$/);
+ if(m&&+m[2]>=1&&+m[2]<=12&&+m[3]>=1&&+m[3]<=31) t=m[1].trim()+' · '+(+m[2])+'/'+(+m[3])+'/'+m[4];
+ return t.replace(/([a-z])(\d)/gi,(x,a,b)=>a+' '+b).replace(/\s+/g,' ').trim()||'Your sides';
+};
+Sh.label=function(it){ return (it.me?it.me+', ':'')+Sh.title(it.file); };
+/* sides or a whole script: what the dropping tool said, else from the pages (many scenes, or long, is a script) */
+Sh.kindOf=function(it){ if(!it) return ''; if(it.kind) return it.kind; const t=String(it.text||''); const heads=(t.match(/^\s*(?:\d+[A-Z]?\s+)?(?:INT|EXT|I\/E|INT\.?\/EXT)[.\s]/gim)||[]).length; return heads>=8||t.length>40000?'script':'sides'; };
 
 /* ---------- the original file (optional) ---------- */
 function db(){ return new Promise((res)=>{ try{ const rq=indexedDB.open('theactorpage_shelf',1);

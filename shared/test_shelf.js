@@ -26,4 +26,8 @@ for(let i=0;i<14;i++) Sh.put({text:'X'+i+'\nline '+i,tool:'t'});
 ok('keeps the newest 12', Sh.all().length===12);
 ok('label', Sh.label({me:'RENNIE',file:'LAST_BUS_sides.pdf'})==='RENNIE, LAST BUS sides');
 ok('toText', Sh.toText([{type:'heading',text:'INT. ROOM - DAY'},{type:'speech',who:'CAL',text:'Hi.',paren:'(quiet)'}])==='INT. ROOM - DAY\n\nCAL\n(quiet)\nHi.\n');
+ok('a file name the way a person writes it', Sh.title('THE_LAW_OF_THE_LAND12_6_2017.pdf')==='THE LAW OF THE LAND · 12/6/2017'&&Sh.title('NOT ANOTHER DAY10 21 17.pdf')==='NOT ANOTHER DAY · 10/21/17'&&Sh.title('Harbor_Lights sides.pdf')==='Harbor Lights sides'&&Sh.title('SCENE 4.pdf')==='SCENE 4', [Sh.title('THE_LAW_OF_THE_LAND12_6_2017.pdf')]);
+const play=Array.from({length:10},(_,i)=>'INT. ROOM '+i+' - DAY\n\nJOE\nLine.\n').join('\n');
+ok('sides or a whole script: what the tool said, else the pages', Sh.kindOf({text:play})==='script'&&Sh.kindOf({text:'INT. BAR - NIGHT\n\nKIT\nOne more.\n'})==='sides'&&Sh.kindOf({text:'x',kind:'script'})==='script');
+const k=Sh.put({text:'KITE\nUp.\n',file:'k.pdf',kind:'sides'}); ok('the kind is kept on the shelf', Sh.get(k.id).kind==='sides');
 console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail?1:0);

@@ -1,5 +1,5 @@
 /* STORY STUDIO offline shell. Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='story-studio-0.14.26';
+const CACHE='story-studio-0.14.27';
 const FILES=['../shared/tour.js','../shared/view.js','./','index.html','../shared/hot.js','../shared/capture.js','../shared/kit.js','app.js','film.js','fieldkit.js','play.js','manifest.webmanifest','monitor.html','monitor-link.js','vendor/qrcode.min.js','vendor/jsQR.min.js','../shared/clicker.js',
  '../shared/shelf.js','../shared/takes.js','../shared/xlsx.js','../shared/zipw.js','../shared/you.js','../actor-os/sides.js','../actor-os/pdf.js',
  'fonts/jost-latin-400-normal.woff2','fonts/jost-latin-500-normal.woff2','fonts/jost-latin-600-normal.woff2',

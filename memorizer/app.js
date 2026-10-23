@@ -56,7 +56,7 @@ function adoptShelf(){
  setTimeout(()=>toast('New sides: '+SH.label(p)+'. Pick your character.'),300);
  return true;
 }
-function shortFile(f){ return String(f||'').replace(/\.(pdf|txt|fountain)$/i,'').replace(/_/g,' '); }
+function shortFile(f){ return SH&&SH.title?SH.title(f):String(f||'').replace(/\.(pdf|txt|fountain)$/i,'').replace(/_/g,' '); }
 
 /* ---------- Actor OS hand-over (same site, nothing typed) ---------- */
 function fromActorOS(){
@@ -370,7 +370,7 @@ function setVerb(key,v){
 function resetProgress(){ if(!confirm('Forget every mark on this script and start over?'))return; SC.states={}; save(); resetDrill(); render(); }
 
 /* ================= SIDES ================= */
-let PENDING=null, PDFMSG='';
+let PENDING=null, PDFMSG='', SHELFALL=false;
 function renderSides(){
  const ao=fromActorOS();
  const aoId=ao&&ao.me?scriptId(ao.text,ao.me,ao.range):'';
@@ -385,11 +385,14 @@ function renderSides(){
   h+='</div>';
  }
  if(SH){
-  const mine=new Set(Object.values(DB.scripts).map(x=>x.shelf).filter(Boolean));
-  const others=SH.all().filter(x=>!mine.has(x.id)&&!(window.DailyScenes&&DailyScenes.isPractice(x.file)));
+  /* not what's already in your scripts (the same words, or the same file), not a whole script you're writing, not a practice scene */
+  const sc=Object.values(DB.scripts), mine=new Set(sc.map(x=>x.shelf).filter(Boolean)), words=new Set(sc.map(x=>SH.idFor(x.text))), files=new Set(sc.map(x=>shortFile(x.file).toLowerCase()));
+  const others=SH.all().filter(x=>!mine.has(x.id)&&!words.has(SH.idFor(x.text))&&!files.has(shortFile(x.file).toLowerCase())&&SH.kindOf(x)!=='script'&&!(window.DailyScenes&&DailyScenes.isPractice(x.file)));
   if(others.length){
-   h+=`<div class="qhead"><h3 class="kicker" style="margin:0">ON THE SHELF</h3><span class="faint" style="font-size:12px">from your other ACT tools</span></div><div class="quick">`;
-   others.forEach(x=>{ h+=`<button class="qrow" onclick="MEM.fromShelf('${x.id}')"><span><b>${esc(SH.label(x))}</b><small>from ${esc(x.from||'another tool')}</small></span><span class="go">OPEN</span></button>`; });
+   const show=SHELFALL?others:others.slice(0,3);
+   h+=`<div class="qhead"><h3 class="kicker" style="margin:0">ON THE SHELF</h3><span class="faint" style="font-size:12px">sides from your other ACT tools</span></div><div class="quick">`;
+   show.forEach(x=>{ h+=`<button class="qrow" onclick="MEM.fromShelf('${x.id}')"><span><b>${esc(SH.label(x))}</b><small>from ${esc(x.from==='home'?'the home page':x.from||'another tool')}</small></span><span class="go">OPEN</span></button>`; });
+   if(others.length>show.length) h+=`<button class="btn ghost sm" onclick="MEM.shelfAll()">${others.length-show.length} MORE</button>`;
    h+='</div>';
   }
  }
@@ -471,7 +474,7 @@ function removeScript(id){
 /* ---------- boot ---------- */
 window.MEM={tab:tab,level:setLevel,beat:setBeat,again:again,reveal:reveal,typing:typing,checkTyped:checkTyped,mark:mark,anyway:anyway,
  listen:listen,scene:sceneStart,sceneShow:sceneShow,sceneMark:sceneMark,sceneRetry:sceneRetry,verb:setVerb,resetProgress:resetProgress,
- pickMe:pickMe,takeAO:takeAO,sayAll:sayAll,sayKeep:sayKeep,sayClear:sayClear,paste:pasteIt,open:openScript,remove:removeScript,fromShelf:fromShelf,
+ pickMe:pickMe,takeAO:takeAO,shelfAll:()=>{ SHELFALL=true; renderSides(); },sayAll:sayAll,sayKeep:sayKeep,sayClear:sayClear,paste:pasteIt,open:openScript,remove:removeScript,fromShelf:fromShelf,
  _db:()=>DB,_items:()=>ITEMS,_script:()=>SCRIPT,_state:()=>({D:D,R:R})};
 /* a practice scene is only for when you ask for it: opening Memorizer again goes back to your own sides */
 try{ const c=DB.scripts&&DB.scripts[DB.cur]; if(c&&window.DailyScenes&&(c.from==='Practice scene'||DailyScenes.isPractice(c.file))){ const own=Object.keys(DB.scripts).filter(k=>{ const x=DB.scripts[k]; return x&&x.from!=='Practice scene'&&!DailyScenes.isPractice(x.file); }); DB.cur=own[own.length-1]||''; save(); } }catch(e){}
