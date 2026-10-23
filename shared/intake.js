@@ -176,14 +176,14 @@ X.unlocks=function(kind,o){
  o=o||{}; const me=o.me?' as '+o.me:'';
  if(kind==='sides') return [
   ['Actor OS','read it with a scene partner'+me+', tape it, slate it','actor-os/?open=1'],
-  ['Memorizer','learn the lines'+me,'memorizer/'],
+  ['Memorizer','learn the lines'+me,'memorizer/?open=1'],
   ['Breakdown','the scene broken down, the real pages','breakdown/'],
   ['Character Bank','the voices in it','cps/']];
  if(kind==='script') return [
   ['Story Studio','scenes, shot list, shoot day, call sheet, credits','film/'],
   ['Paper Trail','this draft kept, compared with the others','papertrail/'],
   ['Actor OS','any scene, read with you'+me,'actor-os/?open=1'],
-  ['Memorizer','your lines'+me,'memorizer/']];
+  ['Memorizer','your lines'+me,'memorizer/?open=1']];
  if(kind==='request') return [
   ['Project Hub','the audition, the tape due in your time, their directions as a checklist','hub/'],
   ['Actor OS','your name on the slate'+(o.name?' ('+o.name+')':''),'actor-os/']];

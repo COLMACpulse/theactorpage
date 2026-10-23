@@ -10,11 +10,11 @@ const fill=(t,c)=>t.replace(/\{(\w+)\}/g,(m,k)=>c[k]||'');
 /* {t: the spark, go: where GO takes you, label: what GO says, need: what of yours it uses} */
 S.LIST={
  act:[
-  {t:'Say {me}’s first speech out loud, once. No tape.',go:'memorizer/',label:'MEMORIZER',need:['me']},
-  {t:'Read {sides} start to finish, out loud, every part.',go:'actor-os/',label:'ACTOR OS',need:['sides']},
-  {t:'Pick one line of {me}’s. Say it three different ways.',go:'memorizer/',label:'MEMORIZER',need:['me']},
-  {t:'Tape one take of {sides}. Just one. Don’t watch it yet.',go:'actor-os/',label:'ACTOR OS',need:['sides']},
-  {t:'{tape} is due {due}. Run it once, out loud, before you tape.',go:'actor-os/',label:'ACTOR OS',need:['tape']},
+  {t:'Say {me}’s first speech out loud, once. No tape.',go:'memorizer/?open=1',label:'MEMORIZER',need:['me']},
+  {t:'Read {sides} start to finish, out loud, every part.',go:'actor-os/?open=1',label:'ACTOR OS',need:['sides']},
+  {t:'Pick one line of {me}’s. Say it three different ways.',go:'memorizer/?open=1',label:'MEMORIZER',need:['me']},
+  {t:'Tape one take of {sides}. Just one. Don’t watch it yet.',go:'actor-os/?open=1',label:'ACTOR OS',need:['sides']},
+  {t:'{tape} is due {due}. Run it once, out loud, before you tape.',go:'actor-os/?open=1',label:'ACTOR OS',need:['tape']},
   {t:'Read one page of anything out loud, as someone who isn’t you.',go:'actor-os/',label:'ACTOR OS'},
   {t:'Say one line from a movie you love the way you’d do it. Then the opposite way.',go:'#cam',label:'CAMERA'},
   {t:'Watch one scene of something good with the sound off. What are they doing to each other?'},

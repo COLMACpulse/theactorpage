@@ -343,7 +343,9 @@ function renderSides(){
  const ao=fromActorOS();
  const aoId=ao&&ao.me?scriptId(ao.text,ao.me,ao.range):'';
  let h='';
- if(ao&&ao.me&&aoId!==DB.cur){
+ const lt=!SC&&DB.last&&DB.scripts[DB.last];
+ if(lt) h+=`<div class="card"><div class="kicker">WHERE YOU LEFT OFF</div><h2 style="font-size:20px">${esc(lt.me)} · ${esc(shortFile(lt.file))}</h2><button class="btn pri" id="pickup" onclick="MEM.open('${lt.id}')">PICK UP</button></div>`;
+ if(ao&&ao.me&&aoId!==DB.cur&&!(lt&&aoId===lt.id)){
   const n=E.items((function(){ let sc=S.script(S.parse(ao.text),ao.me); if(ao.range){ const a=ao.range[0],b=ao.range[1]>=0?ao.range[1]:sc.length-1; sc=sc.filter((x,i)=>i>=a&&i<=b);} return sc; })()).length;
   h+=`<div class="card from"><div class="kicker">FROM ACTOR OS</div><h2 style="font-size:20px">${esc(ao.me)} · ${esc(shortFile(ao.file))}</h2>
    <p class="dim" style="margin:4px 0 12px">${n} speech${n===1?'':'es'}${ao.range?' in '+esc(ao.scene||'the marked scene'):''}. The sides you're taping, ready to learn.</p>
@@ -447,8 +449,14 @@ window.MEM={tab:tab,level:setLevel,beat:setBeat,again:again,reveal:reveal,typing
  _db:()=>DB,_items:()=>ITEMS,_script:()=>SCRIPT,_state:()=>({D:D,R:R})};
 /* a practice scene is only for when you ask for it: opening Memorizer again goes back to your own sides */
 try{ const c=DB.scripts&&DB.scripts[DB.cur]; if(c&&window.DailyScenes&&(c.from==='Practice scene'||DailyScenes.isPractice(c.file))){ const own=Object.keys(DB.scripts).filter(k=>{ const x=DB.scripts[k]; return x&&x.from!=='Practice scene'&&!DailyScenes.isPractice(x.file); }); DB.cur=own[own.length-1]||''; save(); } }catch(e){}
-build();
-adoptShelf();
-if(!SC&&!PENDING) DB.tab='sides';
-tab(DB.tab||'drill');
+/* Memorizer opens blank. Sides open only when you ask: from another tool (?open=1, or ?sides=<id> for one set), a
+   practice scene you sent, or a button here. Otherwise where you left off and what's on the shelf are offered. */
+(function(){
+ const q=new URLSearchParams(location.search), want=q.get('sides'), asked=q.has('open')||!!want;
+ let handed=false; try{ if(window.DailyScenes){ DailyScenes.cleanShelf(); const h=DailyScenes.takeHandoff('memorizer'); if(h){ addScript({text:h.text,file:h.file,me:h.me,from:'Practice scene'}); DB.tab='drill'; save(); setTimeout(()=>toast(h.scene.title+': a practice scene, you\'re '+h.me+'.'),300); handed=true; } } }catch(e){}
+ if(handed){ build(); tab('drill'); return; }
+ if(asked){ if(!DB.cur&&DB.last&&DB.scripts[DB.last]){ DB.cur=DB.last; save(); } build(); if(want&&SH&&SH.get(want)){ SH.markSeen('memorizer',want); fromShelf(want); } else adoptShelf(); if(!SC&&!PENDING) DB.tab='sides'; tab(DB.tab||'drill'); return; }
+ if(DB.cur){ DB.last=DB.cur; DB.cur=''; save(); }
+ build(); tab('sides');
+})();
 })();
