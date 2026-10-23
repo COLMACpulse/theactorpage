@@ -29,8 +29,11 @@ function addScript(o){
  const id=scriptId(o.text,o.me);
  if(!DB.scripts[id]) DB.scripts[id]={id:id,file:o.file||'Pasted sides',text:o.text,me:o.me,range:o.range||null,from:o.from||'',shelf:o.shelf||'',states:{},verbs:{},added:Date.now()};
  else { DB.scripts[id].range=o.range||null; if(o.shelf) DB.scripts[id].shelf=o.shelf; }
- DB.cur=id; save(); build(); resetDrill(); stopListening();
+ DB.cur=id; onShelf(id); save(); build(); resetDrill(); stopListening();
 }
+/* ON THE SHELF: what you're working on now. It goes on when you open it; DONE takes it off. */
+function onShelf(id){ DB.working=(DB.working||[]).filter(x=>x!==id&&DB.scripts[x]); if(id&&DB.scripts[id]) DB.working.unshift(id); }
+function offShelf(id){ DB.working=(DB.working||[]).filter(x=>x!==id); save(); render(); }
 /* ---------- the sides shelf (../shared/shelf.js) ---------- */
 const SH=window.Shelf||null;
 function shelfPut(text,file,f){
@@ -94,28 +97,61 @@ function tab(t){
 }
 document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>tab(b.dataset.t));
 /* ---------- the front: what the mic can do here, before you go looking (../shared/kit.js) ---------- */
-function tiles(){
- if(!window.Kit) return '';
- const t={id:'say',dev:'typewriter',icon:'mic',label:'MIC',what:'Say your lines'};
- if(!SC){ t.note=Rec?'No sides? Say them: your words go down as you speak.':'Bring in your sides first'; t.off=!Rec; }
- else if(!Rec){ t.note='This browser can\'t hear you here. Try Chrome or Safari.'; t.off=true; }
- else t.note='Checks your words. Chrome sends it to Google, Safari to Apple.';
- return Kit.html([t]);
+/* ---------- the top: YOUR SCRIPTS, ON THE SHELF, BRING IN SIDES. A list only when you ask for it. ---------- */
+let OPENP='';
+const MIC_SVG='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="vertical-align:-3px;margin-right:6px"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg>';
+const isPr=x=>x&&(x.from==='Practice scene'||(window.DailyScenes&&DailyScenes.isPractice(x.file)));
+function myScripts(){ return Object.values(DB.scripts).filter(x=>!isPr(x)||x.id===DB.cur).sort((a,b)=>b.added-a.added); }
+function working(){ return (DB.working||[]).map(id=>DB.scripts[id]).filter(x=>x&&!isPr(x)); }
+/* sides your other ACT tools have that aren't in your scripts yet: not the same words or file, not a whole script, not a practice scene */
+function fromTools(){ if(!SH) return []; const sc=Object.values(DB.scripts), mine=new Set(sc.map(x=>x.shelf).filter(Boolean)), words=new Set(sc.map(x=>SH.idFor(x.text))), files=new Set(sc.map(x=>shortFile(x.file).toLowerCase()));
+ return SH.all().filter(x=>!mine.has(x.id)&&!words.has(SH.idFor(x.text))&&!files.has(shortFile(x.file).toLowerCase())&&SH.kindOf(x)!=='script'&&!(window.DailyScenes&&DailyScenes.isPractice(x.file))); }
+function countOf(s){ try{ let sc=S.script(S.parse(s.text),s.me); if(s.range){ const a=s.range[0],b=s.range[1]>=0?s.range[1]:sc.length-1; sc=sc.filter((x,i)=>i>=a&&i<=b);} return E.countLine(E.count(E.items(sc),s.states||{})); }catch(e){ return ''; } }
+function scriptRow(s,how){ const open=s.id===DB.cur, last=!SC&&s.id===DB.last;
+ return `<div class="row" style="flex-wrap:nowrap;gap:6px"><button class="qrow${open||last?' cur':''}"${last?' id="pickup"':''} onclick="MEM.open('${s.id}')"><span><b>${esc(s.me)} · ${esc(shortFile(s.file))}</b><small>${last?'Where you left off · ':''}${esc(countOf(s))}</small></span><span class="go">${open?'OPEN NOW':last?'PICK UP':'OPEN'}</span></button>`
+  +(how==='shelf'?`<button class="btn sm ghost" aria-label="Done: take ${esc(shortFile(s.file))} off the shelf" onclick="MEM.offShelf('${s.id}')">DONE</button>`:`<button class="btn sm ghost" aria-label="Remove ${esc(shortFile(s.file))}" onclick="MEM.remove('${s.id}')">&times;</button>`)+`</div>`; }
+function topBar(){
+ const mine=myScripts(), tools=fromTools(), wk=working(), bring=DB.tab==='sides';
+ let h=`<div class="tops"><button type="button" class="tpill${OPENP==='s'?' on':''}" aria-expanded="${OPENP==='s'}" onclick="MEM.panel('s')">YOUR SCRIPTS <i>${mine.length+tools.length}</i></button>`
+  +`<button type="button" class="tpill${OPENP==='h'?' on':''}" aria-expanded="${OPENP==='h'}" onclick="MEM.panel('h')">ON THE SHELF <i>${wk.length}</i></button>`
+  +`<button type="button" class="tpill add${bring?' on':''}" onclick="MEM.bring()">+ BRING IN SIDES</button></div>`;
+ if(OPENP==='s'){ h+=`<div class="panel"><p class="kicker">EVERY PROJECT YOU'VE BROUGHT IN</p>`;
+  if(!mine.length&&!tools.length) h+=`<p class="dim" style="margin:0">Nothing yet. Tap + BRING IN SIDES.</p>`;
+  h+=mine.map(x=>scriptRow(x,'all')).join('');
+  if(tools.length) h+=`<p class="kicker" style="margin-top:10px">FROM YOUR OTHER ACT TOOLS</p>`+tools.map(x=>`<button class="qrow" onclick="MEM.fromShelf('${x.id}')"><span><b>${esc(SH.label(x))}</b><small>from ${esc(x.from==='home'?'the home page':x.from||'another tool')}</small></span><span class="go">OPEN</span></button>`).join('');
+  h+='</div>'; }
+ if(OPENP==='h'){ h+=`<div class="panel"><p class="kicker">WHAT YOU'RE WORKING ON NOW</p>`+(wk.length?wk.map(x=>scriptRow(x,'shelf')).join(''):`<p class="dim" style="margin:0">Nothing on the shelf. Open a script and it goes here; DONE takes it off.</p>`)+'</div>'; }
+ return h;
 }
-function wireTiles(){ if(window.Kit) Kit.wire($('main'),{say:sayTile}); }
-function sayTile(){
- if(!SC){ if(!Rec){ toast('This browser can\'t hear you here. Try Chrome or Safari, or bring in your sides.'); return; } if(DB.tab!=='sides') tab('sides'); sayAll(); return; }
- if(!Rec){ if(DB.tab!=='drill') tab('drill'); toast('This browser can\'t hear you here. Try Chrome or Safari.'); return; }
- if(LIS&&DB.tab==='drill'){ listen(); return; }
- if(DB.tab!=='drill') tab('drill');
- if(!current()){ D.anyway=true; D.key=''; renderDrill(); }
- if(D.revealed||D.typing){ D.revealed=false; D.heard=''; D.typing=false; renderDrill(); }
- if(current()) listen();
+function panel(k){ OPENP=OPENP===k?'':k; render(); }
+function bring(){ OPENP=''; if(DB.tab==='sides'){ tab(SC?'drill':'drill'); return; } tab('sides'); }
+/* nothing open: the example, so you see how it works */
+let EXT=null;
+function renderExample(){
+ const m=$('main');
+ m.innerHTML=topBar()+`<div class="work ex"><div class="exhead"><span class="kicker" style="color:var(--tung-text)">EXAMPLE · HOW IT WORKS</span><span class="dim" id="exw" style="font-size:13px"></span></div>
+  <div class="cue"><div class="who">MARA</div><div class="t">I never left.</div></div>
+  <div class="levels" aria-hidden="true">${E.LEVELS.map(l=>`<button tabindex="-1" data-exl="${l.id}">${l.label}</button>`).join('')}</div>
+  <div class="line" id="exline" aria-live="off"></div><div class="heard live" id="exheard"></div>
+  <div class="saybar"><button class="btn big pri" onclick="MEM.bring()">BRING IN YOUR SIDES</button><button class="btn big" onclick="MEM.panel('s')">YOUR SCRIPTS</button></div>
+  <p class="faint" style="font-size:12.5px;margin:8px 0 0">The example plays when nothing is open. Bring in your sides and your lines take its place.</p></div>`;
+ const steps=[['letters','Y C B.','','First letters: just enough to find it'],['letters','Y C B.','You came…','Say it out loud: your words go down as you speak'],['letters','Y C B.','You came back.','Gold where you have it word for word'],['whole','You came back.','You came back.','Show the line: check it'],['none','· · ·','','Got it? Next time: nothing at all']];
+ let i=0; clearInterval(EXT);
+ const paint=()=>{ const st=steps[i%steps.length], ln=$('exline'); if(!ln){ clearInterval(EXT); return; }
+  ln.className='line'+(st[0]==='whole'?' whole':st[0]==='none'?' none':''); ln.textContent=st[1];
+  $('exheard').innerHTML=st[2]?st[2].split(' ').map(w=>'<span class="hw ok">'+esc(w)+'</span>').join(''):'';
+  $('exw').textContent=st[3]; document.querySelectorAll('[data-exl]').forEach(b=>b.classList.toggle('on',b.dataset.exl===st[0])); i++; };
+ paint(); if(!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)) EXT=setInterval(paint,1900);
 }
+function tiles(){ return topBar(); }
+function wireTiles(){ if(window.TapLang) TapLang.wire($('main')); }
+/* the language you speak, for SAY IT: kept for every ACT tool */
+const LANG=()=>window.TapLang?'<div style="margin:4px 0 0">'+TapLang.picker()+'</div>':'';
 function render(){
- paintTop();
+ paintTop(); clearInterval(EXT);
  const t=DB.tab||'drill';
- if(t!=='sides'&&!SC){ renderSides(); return; }
+ document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+ if(t!=='sides'&&!SC){ renderExample(); return; }
  ({drill:renderDrill,scene:renderScene,lines:renderLines,sides:renderSides})[t]();
 }
 
@@ -172,7 +208,7 @@ function renderDrill(){
    <button class="btn big ${Rec?'':'pri'}" onclick="MEM.reveal()" ${Rec?'':'style="grid-column:1/-1"'}>${Rec?'SHOW THE LINE':'SAID IT. SHOW THE LINE'}</button></div>`;
   h+=`<div class="heard ${LIS?'listening live':''}" id="heard" aria-live="polite">${LIS?(D.heard?liveWords(D.heard,target):'<span class="lis" aria-hidden="true"></span>Listening… say it.'):(Rec?'':'Say it out loud, then check.')}</div>`;
   h+=recBlock(it.key);
-  if(Rec) h+=`<p class="faint" style="font-size:12px;margin:6px 0 0">SAY IT uses the browser's speech service: Chrome sends what you say to Google, Safari to Apple. SHOW THE LINE never listens.</p>`;
+  if(Rec) h+=`<p class="faint" style="font-size:12px;margin:6px 0 0">SAY IT uses the browser's speech service: Chrome sends what you say to Google, Safari to Apple. SHOW THE LINE never listens.</p>`+LANG();
   h+=D.typing?`<div class="typebox"><textarea class="field" id="typed" rows="3" placeholder="Type what you said"></textarea>
      <div class="row" style="margin-top:8px"><button class="btn" onclick="MEM.checkTyped()">CHECK</button></div></div>`
     :`<div style="margin-top:10px"><button class="btn ghost sm" onclick="MEM.typing()">Type it instead</button></div>`;
@@ -192,7 +228,7 @@ function renderDrill(){
   h+='</div>';
  }
  h+=`<p class="faint" style="font-size:13px;margin-top:16px">Line ${it.n} of ${ITEMS.length}${D.round?' · '+D.round+' done this sitting':''}</p>`;
- m.innerHTML=tiles()+h; wireTiles();
+ m.innerHTML=tiles()+'<div class="work">'+h+'</div>'; wireTiles();
 }
 function diffHtml(target,c){
  // show the line as written, words marked from the comparison
@@ -428,28 +464,8 @@ let PENDING=null, PDFMSG='', SHELFALL=false;
 function renderSides(){
  const ao=fromActorOS();
  const aoId=ao&&ao.me?scriptId(ao.text,ao.me,ao.range):'';
- let h=sayBox();
- const isPr=x=>x&&(x.from==='Practice scene'||(window.DailyScenes&&DailyScenes.isPractice(x.file)));
- const list=Object.values(DB.scripts).filter(x=>!isPr(x)||x.id===DB.cur).sort((a,b)=>(b.id===DB.last)-(a.id===DB.last)||b.added-a.added);
- if(list.length){
-  h+=`<div class="qhead"><h3 class="kicker" style="margin:0">YOUR SCRIPTS</h3><span class="faint" style="font-size:12px">${list.length}</span></div><div class="quick">`;
-  list.forEach(s=>{ const items=(function(){ try{ let sc=S.script(S.parse(s.text),s.me); if(s.range){ const a=s.range[0],b=s.range[1]>=0?s.range[1]:sc.length-1; sc=sc.filter((x,i)=>i>=a&&i<=b);} return E.items(sc);}catch(e){return [];} })();
-   const c=E.count(items,s.states||{}), last=!SC&&s.id===DB.last, open=s.id===DB.cur;
-   h+=`<div class="row" style="flex-wrap:nowrap;gap:6px"><button class="qrow${last||open?' cur':''}"${last?' id="pickup"':''} onclick="MEM.open('${s.id}')"><span><b>${esc(s.me)} · ${esc(shortFile(s.file))}</b><small>${last?'Where you left off · ':''}${esc(E.countLine(c))}</small></span><span class="go">${open?'OPEN NOW':last?'PICK UP':'OPEN'}</span></button><button class="btn sm ghost" aria-label="Remove ${esc(shortFile(s.file))}" onclick="MEM.remove('${s.id}')">&times;</button></div>`; });
-  h+='</div>';
- }
- if(SH){
-  /* not what's already in your scripts (the same words, or the same file), not a whole script you're writing, not a practice scene */
-  const sc=Object.values(DB.scripts), mine=new Set(sc.map(x=>x.shelf).filter(Boolean)), words=new Set(sc.map(x=>SH.idFor(x.text))), files=new Set(sc.map(x=>shortFile(x.file).toLowerCase()));
-  const others=SH.all().filter(x=>!mine.has(x.id)&&!words.has(SH.idFor(x.text))&&!files.has(shortFile(x.file).toLowerCase())&&SH.kindOf(x)!=='script'&&!(window.DailyScenes&&DailyScenes.isPractice(x.file)));
-  if(others.length){
-   const show=SHELFALL?others:others.slice(0,3);
-   h+=`<div class="qhead"><h3 class="kicker" style="margin:0">ON THE SHELF</h3><span class="faint" style="font-size:12px">sides from your other ACT tools</span></div><div class="quick">`;
-   show.forEach(x=>{ h+=`<button class="qrow" onclick="MEM.fromShelf('${x.id}')"><span><b>${esc(SH.label(x))}</b><small>from ${esc(x.from==='home'?'the home page':x.from||'another tool')}</small></span><span class="go">OPEN</span></button>`; });
-   if(others.length>show.length) h+=`<button class="btn ghost sm" onclick="MEM.shelfAll()">${others.length-show.length} MORE</button>`;
-   h+='</div>';
-  }
- }
+ let h=`<div class="work"><p class="kicker">BRING IN YOUR SIDES</p>`+sayBox();
+ const list=myScripts();
  if(ao&&ao.me&&aoId!==DB.cur&&!list.some(x=>x.id===aoId)){
   const n=E.items((function(){ let sc=S.script(S.parse(ao.text),ao.me); if(ao.range){ const a=ao.range[0],b=ao.range[1]>=0?ao.range[1]:sc.length-1; sc=sc.filter((x,i)=>i>=a&&i<=b);} return sc; })()).length;
   h+=`<div class="quick"><button class="qrow" onclick="MEM.takeAO()"><span><b>${esc(ao.me)} · ${esc(shortFile(ao.file))}</b><small>From Actor OS · ${n} speech${n===1?'':'es'}${ao.range?' in '+esc(ao.scene||'the marked scene'):''}</small></span><span class="go">START</span></button></div>`;
@@ -463,10 +479,11 @@ function renderSides(){
  }
  if(PDFMSG) h+=`<div class="msg bad">${PDFMSG}</div>`;
  h+=`<div class="drop" id="drop"><b>DROP YOUR SIDES</b><span class="dim">PDF or text. Or tap to choose.</span></div>
+  ${SAY||!Rec?'':`<div class="row" style="margin:10px 0 0"><button class="btn" id="sayfirst" onclick="MEM.sayAll()">${MIC_SVG}SAY THEM OUT LOUD</button><span class="faint" style="font-size:12.5px">No sides? Say your lines and watch them go down.</span></div>`+LANG()}
   <details ${SC||ao||Object.keys(DB.scripts).length?'':'open'}><summary class="dim" style="cursor:pointer;min-height:var(--tap);display:flex;align-items:center">Paste them instead</summary>
    <textarea class="field" id="paste" placeholder="CYRUS&#10;You picked the wrong road.&#10;&#10;BRIN&#10;I don't have any."></textarea>
    <div class="row" style="margin-top:8px"><button class="btn" onclick="MEM.paste()">READ IT</button></div></details>`;
- $('main').innerHTML=tiles()+h; wireTiles(); paintSay();
+ $('main').innerHTML=tiles()+h+'</div>'; wireTiles(); paintSay();
  const d=$('drop');
  d.onclick=()=>$('file').click();
  d.ondragover=e=>{ e.preventDefault(); d.classList.add('over'); };
@@ -511,7 +528,7 @@ function takeAO(){
  addScript(ao); toast(ao.me+': '+ITEMS.length+' speech'+(ITEMS.length===1?'':'es')+'. Go.'); tab('drill');
 }
 function pasteIt(){ const t=($('paste')||{}).value||''; if(!t.trim()){ toast('Paste the sides first.'); return; } takeText(t,'Pasted sides'); }
-function openScript(id){ DB.cur=id; save(); build(); resetDrill(); R.on=false; if(SH&&SC&&SC.shelf) SH.use(SC.shelf,'memorizer'); tab('drill'); }
+function openScript(id){ DB.cur=id; onShelf(id); OPENP=''; save(); build(); resetDrill(); R.on=false; if(SH&&SC&&SC.shelf) SH.use(SC.shelf,'memorizer'); tab('drill'); }
 function fromShelf(id){
  const x=SH&&SH.get(id); if(!x) return;
  SH.use(id,'memorizer');
@@ -522,14 +539,14 @@ function fromShelf(id){
 function removeScript(id){
  if(!confirm('Remove this script, its marks and your recordings of it from this phone?')) return;
  try{ const x=DB.scripts[id]; if(x&&x.recs) Object.values(x.recs).forEach(r=>mdel(r.id)); }catch(e){}
- delete DB.scripts[id]; if(DB.cur===id){ DB.cur=Object.keys(DB.scripts)[0]||''; build(); resetDrill(); R.on=false; }
+ delete DB.scripts[id]; DB.working=(DB.working||[]).filter(x=>x!==id); if(DB.cur===id){ DB.cur=Object.keys(DB.scripts)[0]||''; build(); resetDrill(); R.on=false; }
  save(); render();
 }
 
 /* ---------- boot ---------- */
 window.MEM={tab:tab,level:setLevel,beat:setBeat,again:again,reveal:reveal,typing:typing,checkTyped:checkTyped,mark:mark,anyway:anyway,
  listen:listen,scene:sceneStart,sceneShow:sceneShow,sceneMark:sceneMark,sceneRetry:sceneRetry,verb:setVerb,resetProgress:resetProgress,
- pickMe:pickMe,takeAO:takeAO,recYou:recYou,hear:hear,hearAll:hearAll,shelfAll:()=>{ SHELFALL=true; renderSides(); },sayAll:sayAll,sayKeep:sayKeep,sayClear:sayClear,paste:pasteIt,open:openScript,remove:removeScript,fromShelf:fromShelf,
+ pickMe:pickMe,takeAO:takeAO,panel:panel,bring:bring,offShelf:offShelf,recYou:recYou,hear:hear,hearAll:hearAll,shelfAll:()=>{ SHELFALL=true; renderSides(); },sayAll:sayAll,sayKeep:sayKeep,sayClear:sayClear,paste:pasteIt,open:openScript,remove:removeScript,fromShelf:fromShelf,
  _db:()=>DB,_items:()=>ITEMS,_script:()=>SCRIPT,_state:()=>({D:D,R:R})};
 /* a practice scene is only for when you ask for it: opening Memorizer again goes back to your own sides */
 try{ const c=DB.scripts&&DB.scripts[DB.cur]; if(c&&window.DailyScenes&&(c.from==='Practice scene'||DailyScenes.isPractice(c.file))){ const own=Object.keys(DB.scripts).filter(k=>{ const x=DB.scripts[k]; return x&&x.from!=='Practice scene'&&!DailyScenes.isPractice(x.file); }); DB.cur=own[own.length-1]||''; save(); } }catch(e){}
@@ -542,7 +559,8 @@ try{ const c=DB.scripts&&DB.scripts[DB.cur]; if(c&&window.DailyScenes&&(c.from==
  if(asked){ if(!DB.cur&&DB.last&&DB.scripts[DB.last]){ DB.cur=DB.last; save(); } build(); if(want&&SH&&SH.get(want)){ SH.markSeen('memorizer',want); fromShelf(want); } else adoptShelf(); if(!SC&&!PENDING) DB.tab='sides'; tab(DB.tab||'drill'); return; }
  /* a practice scene you didn't open just now is never kept in your scripts */
  try{ if(window.DailyScenes){ let n=0; Object.keys(DB.scripts).forEach(k=>{ const x=DB.scripts[k]; if(x&&(x.from==='Practice scene'||DailyScenes.isPractice(x.file))){ delete DB.scripts[k]; if(DB.cur===k) DB.cur=''; if(DB.last===k) DB.last=''; n++; } }); if(n) save(); } }catch(e){}
+ if(!DB.working){ DB.working=[DB.cur||DB.last].filter(x=>x&&DB.scripts[x]); }
  if(DB.cur){ DB.last=DB.cur; DB.cur=''; save(); }
- build(); tab('sides');
+ build(); tab('drill');
 })();
 })();

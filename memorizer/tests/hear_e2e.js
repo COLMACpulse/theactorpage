@@ -7,7 +7,7 @@ let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===und
 const c=await b.newContext({viewport:{width:390,height:844}}); await c.grantPermissions(['microphone'],{origin:'http://localhost:8811'}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
 await p.goto('http://localhost:8811/memorizer/'); await p.evaluate(()=>{ localStorage.clear(); sessionStorage.setItem('theactorpage_hot_ok','1'); indexedDB.deleteDatabase('memorizer_media'); }); await p.reload(); await p.waitForTimeout(500);
 want('the slate sticks: as tall as the home page\'s', await p.$eval('.hstk',e=>e.getBoundingClientRect().height)===26);
-await p.evaluate(()=>{ document.getElementById('paste').value='INT. DOCK - NIGHT\n\nRAY\nYou came back.\n\nMARA\nI never left.\n\nRAY\nThen why does it feel like you did?\n'; MEM.paste(); }); await p.waitForTimeout(300); await p.evaluate(()=>MEM.pickMe('RAY')); await p.waitForTimeout(400);
+await p.evaluate(()=>MEM.bring()); await p.waitForTimeout(200); await p.evaluate(()=>{ document.getElementById('paste').value='INT. DOCK - NIGHT\n\nRAY\nYou came back.\n\nMARA\nI never left.\n\nRAY\nThen why does it feel like you did?\n'; MEM.paste(); }); await p.waitForTimeout(300); await p.evaluate(()=>MEM.pickMe('RAY')); await p.waitForTimeout(400);
 want('DRILL: RECORD YOURSELF', /RECORD YOURSELF/.test(await p.innerText('#main')));
 await p.click('text=● RECORD YOURSELF'); await p.waitForTimeout(400); if(await p.isVisible('#hotsheet button.p').catch(()=>false)) { await p.click('#hotsheet button.p'); await p.waitForTimeout(300); }
 await p.waitForTimeout(1500);
@@ -31,8 +31,8 @@ want('playing them in order: the line lit, STOP', (await p.$$('.li.playing')).le
 await p.click('text=■ STOP'); await p.waitForTimeout(300);
 want('stopped', (await p.$$('.li.playing')).length===0);
 /* remove the script: the recordings go with it */
-await p.click('#tabs [data-t="sides"]'); await p.waitForTimeout(300);
-await p.click('.quick button[aria-label^="Remove"]'); await p.waitForTimeout(500);
+await p.click('.tpill >> text=YOUR SCRIPTS'); await p.waitForTimeout(300);
+await p.click('.panel button[aria-label^="Remove"]'); await p.waitForTimeout(500);
 const n2=await p.evaluate(async()=>{ const db=await new Promise(res=>{ const q=indexedDB.open('memorizer_media'); q.onsuccess=()=>res(q.result); }); return await new Promise(res=>{ const q=db.transaction('b').objectStore('b').count(); q.onsuccess=()=>res(q.result); }); });
 want('remove the script: its recordings go too', n2===0, n2);
 want('no page errors', errs.length===0, errs);

@@ -12,7 +12,7 @@ const c=await b.newContext({viewport:{width:390,height:844}}); await c.addInitSc
 await p.goto('http://localhost:8811/memorizer/'); await p.evaluate(()=>{ localStorage.clear(); sessionStorage.setItem('theactorpage_hot_ok','1'); }); await p.reload(); await p.waitForTimeout(600);
 want('the header: the icon at work on the left, the sigil on the right, the sticks', !!(await p.$('header.top svg.hico'))&&(await p.getAttribute('header.top img.hsig','alt'))==='THEACTORPAGE'&&!!(await p.$('.hstk')));
 /* no sides: say them */
-await p.click('[data-kit="say"]'); await p.waitForTimeout(200);
+await p.click('.tpill.add'); await p.waitForTimeout(200); await p.click('#sayfirst'); await p.waitForTimeout(200);
 await p.evaluate(()=>__rec.say([['You came back.',true],['I never',false]])); await p.waitForTimeout(100);
 want('no sides: your words go down as you say them', /You came back\.\s*I never/.test(await p.innerText('#sayall')), await p.innerText('#sayall'));
 await p.evaluate(()=>__rec.say([['You came back.',true],['I never left the dock.',true]])); await p.evaluate(()=>MEM.sayAll()); await p.waitForTimeout(200);
@@ -35,10 +35,11 @@ await p.evaluate(k=>{ const d=MEM._db(); localStorage.setItem(k,JSON.stringify(d
 await p.reload(); await p.waitForTimeout(800);
 const t=await p.innerText('#main');
 want('a practice scene you did not open: not in your scripts, not on the shelf', !/Discharge|Bus Stop|Practice scene/i.test(t)&&await p.evaluate(()=>!MEM._db().scripts.px), t.slice(0,400));
-const pos=await p.evaluate(()=>{ const q=[...document.querySelectorAll('.quick')].map(e=>e.getBoundingClientRect().top), d=document.getElementById('drop').getBoundingClientRect().top; return {q,d,vh:innerHeight}; });
-want('your scripts and the shelf: at the top, above the drop, on the first screen', pos.q.length>=2&&pos.q.every(y=>y<pos.d)&&pos.q[1]<pos.vh, pos);
-want('each one a single tap: the row is the button', (await p.$$('.quick button.qrow')).length>=2);
-await p.click('.quick button.qrow:has-text("Diner scene")'); await p.waitForTimeout(400);
+const pos=await p.evaluate(()=>[...document.querySelectorAll('.tops .tpill')].map(e=>e.getBoundingClientRect().bottom));
+want('your scripts and the shelf: two buttons at the top, on the first screen', pos.length===3&&pos.every(y=>y<422), pos);
+await p.click('.tpill >> text=YOUR SCRIPTS'); await p.waitForTimeout(200);
+want('each one a single tap: the row is the button', (await p.$$('.panel button.qrow')).length>=2);
+await p.click('.panel button.qrow:has-text("Diner scene")'); await p.waitForTimeout(400);
 want('tap the shelf row: it opens (pick your character)', /Which character are you\?/.test(await p.innerText('#main')));
 await p.screenshot({path:path.join(os.tmpdir(),'mem_life.png'),fullPage:true});
 want('no page errors', errs.length===0, errs);

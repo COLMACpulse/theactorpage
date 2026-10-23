@@ -1,5 +1,5 @@
 /* MEMORIZER offline shell. Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='memorizer-0.4.29';
+const CACHE='memorizer-0.4.30';
 const FILES=['../shared/tour.js','../shared/view.js','./','index.html','../shared/hot.js','../shared/kit.js','app.js','../shared/capture.js','../shared/wave.js','../img/sigil-film-180.png','engine.js','manifest.webmanifest',
  '../shared/shelf.js','../shared/scenes.js','../actor-os/sides.js','../actor-os/pdf.js',
  'fonts/jost-latin-400-normal.woff2','fonts/jost-latin-500-normal.woff2','fonts/jost-latin-600-normal.woff2',
