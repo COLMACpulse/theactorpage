@@ -1282,7 +1282,7 @@
     const k = e.target.closest('.kt[data-kit]');
     if (k) { e.preventDefault(); if (k.classList.contains('off')) return;
       if (k.dataset.kit === 'saynote') { act('newnote', {}, k); setTimeout(dictStart, 60); }
-      else location.href = k.dataset.kit === 'runout' ? '../memorizer/' : '../actor-os/';
+      else location.href = k.dataset.kit === 'runout' ? '../memorizer/' : '../actor-os/?open=1';
       return; }
     const t = e.target.closest('[data-a]');
     if (!t || t.disabled) return;

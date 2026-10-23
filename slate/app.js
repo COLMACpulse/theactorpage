@@ -56,7 +56,7 @@
   function render() {
     stopPreview();
     $('#app').innerHTML = `<div class="shell">
-      <header class="top"><a class="iconbtn" href="../actor-os/" aria-label="Back to Actor OS" title="Back to Actor OS" style="text-decoration:none;font-size:22px;display:inline-flex;align-items:center;justify-content:center;color:inherit">‹</a><div class="title"><b>SOLO SLATE · ACTOR OS</b><span>${esc(S.kit.name || 'One take. Face to full body. Every shape.')}</span></div>
+      <header class="top"><a class="iconbtn" href="../actor-os/?open=1" aria-label="Back to Actor OS" title="Back to Actor OS" style="text-decoration:none;font-size:22px;display:inline-flex;align-items:center;justify-content:center;color:inherit">‹</a><div class="title"><b>SOLO SLATE · ACTOR OS</b><span>${esc(S.kit.name || 'One take. Face to full body. Every shape.')}</span></div>
         <button class="iconbtn" data-a="theme" aria-label="Light or dark">${ICON.theme}</button></header>
       <main id="main">${({ take: vTake, frame: vFrame, make: vMake, kit: vKit }[S.tab])()}</main>
       <nav class="tabs" style="grid-template-columns:repeat(4,1fr)">${TABS.map(([k, l]) => `<button class="${S.tab === k ? 'on' : ''}" data-a="tab" data-t="${k}">${ICON[k]}<span>${l}</span>${k === 'make' && S.outputs.length ? '<i class="badge"></i>' : ''}</button>`).join('')}</nav>

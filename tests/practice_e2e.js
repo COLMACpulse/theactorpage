@@ -39,8 +39,8 @@ const st=await p.evaluate(()=>({file:SIDES.file,me:SIDES.me}));
 want('TAPE IT: Actor OS has the scene, with your part', st.file==='Practice scene - '+t2&&st.me===parts2[1], st);
 want('not on the shelf, your saved sides untouched', await p.evaluate(l=>!Shelf.all().some(x=>DailyScenes.isPractice(x.file))&&localStorage.getItem('actor_os_sides_last')===l,lastBefore));
 want('the hand-off is used once', await p.evaluate(()=>!localStorage.getItem('theactorpage_handoff_practice')));
-await p.reload(); await p.waitForTimeout(1500);
-want('reopen Actor OS: your real sides are back', await p.evaluate(()=>SIDES.file)==='Salt Road sides', await p.evaluate(()=>SIDES.file));
+await p.goto('http://localhost:8811/actor-os/?open=1'); await p.waitForTimeout(1500);
+want('reopen Actor OS asking for them: your real sides are back', await p.evaluate(()=>SIDES.file)==='Salt Road sides', await p.evaluate(()=>SIDES.file));
 // the fold in Actor OS, TAPE IT in place
 const a=await p.evaluate(()=>{ const d=document.getElementById('dailySec'); return {tag:d.tagName,open:d.open}; });
 want('Actor OS: the practice scene is a closed fold', a.tag==='DETAILS'&&!a.open, a);

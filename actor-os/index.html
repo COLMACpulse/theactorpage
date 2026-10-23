@@ -412,6 +412,7 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
 <div id="aosKit"></div>
 <div class="am">Everything here is optional. PREP supports the work; it does not gate RECORD.</div>
 <div class="section"><h3>Sides</h3><div class="inside">
+<div id="sidesOffer" style="display:none"></div>
 <div class="am" style="margin:0 0 11px">Upload your sides. Everything else runs off this.</div>
 <div class="row" style="gap:8px;flex-wrap:wrap">
   <button onclick="document.getElementById('sidesFile').click()">CHOOSE FILE</button>
@@ -1033,29 +1034,50 @@ window.addEventListener('load',()=>{ setTimeout(()=>{
   if((SIDES.script&&SIDES.script.length)||(SIDES.beats&&SIDES.beats.length)) return;
   /* a practice scene handed over from home: here, just for now, off the shelf */
   try{ if(window.DailyScenes){ DailyScenes.cleanShelf(); const h=DailyScenes.takeHandoff('actor-os'); if(h){ dailyTape(h.scene,h.me); return; } } }catch(e){}
-  /* new sides on the shelf from another tool: open them, with the character if picked */
-  const pend=window.Shelf&&Shelf.pending('actor-os');
-  if(pend){
-   SIDES.me=''; SIDES.script=[]; SIDES.scenes=[]; SIDES.cur=0; SIDES.ready=false; SIDES.omit=[]; SIDES.pick={};
-   window.LAST_PDF=null; window.PDF_LINES=null;
-   loadSides(pend.text,pend.file,{shelf:pend.id});
-   if(pend.me&&SIDES.speakers&&SIDES.speakers.some(x=>x.name===pend.me)&&SIDES.me!==pend.me) pickMe(pend.me);
-   Shelf.markSeen('actor-os',pend.id);
-   stageToast('New sides: '+Shelf.label(pend)+'.'+(SIDES.me?'':' Pick your character.'));
-   return;
-  }
-  const last=JSON.parse(localStorage.getItem('actor_os_sides_last')||'null');
-  if(!last||!last.text) return;
+  /* Actor OS opens blank. It opens sides only when you ask: from another tool (?open=1, or ?sides=<id> for one
+     set), or with the buttons here. Otherwise new sides waiting and the last ones you had are offered, not opened. */
+  const q=new URLSearchParams(location.search), want=q.get('sides'), asked=q.has('open')||!!want;
+  const pend=window.Shelf&&(want?Shelf.get(want):Shelf.pending('actor-os'));
+  let last=JSON.parse(localStorage.getItem('actor_os_sides_last')||'null');
   /* a practice scene is only ever for when you ask for it: never what Actor OS opens on (older versions saved them) */
-  try{ if(window.DailyScenes&&DailyScenes.isPractice(last.file)){ localStorage.removeItem('actor_os_sides_last'); return; } }catch(e){}
-  if(last.pdfLines){ window.LAST_PDF={lines:last.pdfLines}; window.PDF_LINES=last.pdfLines.map(l=>l.text); window.SIDES_DOC=last.file; }
-  SIDES.file=last.file||'';
-  const r=JSON.parse(localStorage.getItem('actor_os_range_'+(SIDES.file||'x'))||'null');
-  loadSides(last.text,last.file);
-  if(r&&r.me&&!SIDES.me) pickMe(r.me);
+  try{ if(last&&window.DailyScenes&&DailyScenes.isPractice(last.file)){ localStorage.removeItem('actor_os_sides_last'); last=null; } }catch(e){}
+  if(last&&!last.text) last=null;
+  if(!asked){ offerSides(pend,last); return; }
+  if(pend){ openPend(pend); return; }
+  if(last) openLast(last);
  }catch(e){}
  },450); });
 
+
+/* open sides from the shelf (another tool put them there), with the character if one was picked */
+function openPend(pend){
+ SIDES.me=''; SIDES.script=[]; SIDES.scenes=[]; SIDES.cur=0; SIDES.ready=false; SIDES.omit=[]; SIDES.pick={};
+ window.LAST_PDF=null; window.PDF_LINES=null;
+ loadSides(pend.text,pend.file,{shelf:pend.id});
+ if(pend.me&&SIDES.speakers&&SIDES.speakers.some(x=>x.name===pend.me)&&SIDES.me!==pend.me) pickMe(pend.me);
+ Shelf.markSeen('actor-os',pend.id);
+ stageToast('Sides: '+Shelf.label(pend)+'.'+(SIDES.me?'':' Pick your character.'));
+}
+/* the last sides you had here, with the role and the scene marks that were on them */
+function openLast(last){
+ if(last.pdfLines){ window.LAST_PDF={lines:last.pdfLines}; window.PDF_LINES=last.pdfLines.map(l=>l.text); window.SIDES_DOC=last.file; }
+ SIDES.file=last.file||'';
+ const r=JSON.parse(localStorage.getItem('actor_os_range_'+(SIDES.file||'x'))||'null');
+ loadSides(last.text,last.file);
+ if(r&&r.me&&!SIDES.me) pickMe(r.me);
+}
+/* blank until you ask: what's waiting, as buttons */
+function offerSides(pend,last){
+ const box=document.getElementById('sidesOffer'); if(!box) return;
+ const nm=f=>String(f||'Your sides').replace(/\.(pdf|txt|fountain|fdx|md)$/i,'').replace(/_/g,' ');
+ const same=pend&&last&&String(pend.file||'')===String(last.file||'')&&String(pend.text||'')===String(last.text||'');
+ const rows=[];
+ if(pend) rows.push('<div class="row" style="gap:8px;align-items:center;margin:0 0 8px"><button type="button" id="offerNew">OPEN THEM</button><span class="am" style="margin:0;flex:1;min-width:180px">New sides'+(pend.from?' from '+esc2(pend.from):'')+': '+esc2(Shelf.label(pend))+'</span></div>');
+ if(last&&!same) rows.push('<div class="row" style="gap:8px;align-items:center;margin:0 0 8px"><button type="button" class="ghost" id="offerLast">PICK UP</button><span class="am" style="margin:0;flex:1;min-width:180px">Where you left off: '+esc2(nm(last.file))+'</span></div>');
+ box.innerHTML=rows.join(''); box.style.display=rows.length?'':'none';
+ const a=document.getElementById('offerNew'); if(a) a.onclick=()=>{ box.innerHTML=''; box.style.display='none'; openPend(pend); };
+ const b=document.getElementById('offerLast'); if(b) b.onclick=()=>{ box.innerHTML=''; box.style.display='none'; openLast(last); };
+}
 
 /* ===== SLATE CARD =====
    Their instructions: "do not edit video with cross-fades or labels on the actual

@@ -130,21 +130,21 @@
     const sendBy = h.dueTime ? (() => { const [hh, mm] = h.dueTime.split(':').map(Number); const t = Math.max(0, hh * 60 + mm - 60); return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); })() : '';
     const S = (date, what, href, kind) => steps.push({ date: date < day ? day : date, what, href, kind });
     if (!due) heads.push('No deadline heard. Put in when it\'s due and the days fill in.');
-    S(day, h.notice ? 'Read the sides and the casting notice. You said there\'s more in it.' : 'Read the sides and the request, all the way through.', 'actor-os/', 'read');
+    S(day, h.notice ? 'Read the sides and the casting notice. You said there\'s more in it.' : 'Read the sides and the request, all the way through.', 'actor-os/?open=1', 'read');
     if (tapeDay) {
       const room = diff(day, tapeDay), runDay = room >= 1 ? add(tapeDay, -1) : day;
       const bdDay = room >= 3 ? add(day, 1) : day, learnDay = room >= 3 ? add(bdDay, 1) : room >= 2 ? add(day, 1) : day;
       S(bdDay, 'Break it down: who you\'re talking to, what you want, scene by scene.', 'breakdown/', 'breakdown');
       S(learnDay, 'Get off book in Memorizer. The lines you miss come back first.', 'memorizer/', 'learn');
-      if (h.reader === 'have') S(runDay, 'Run it with your reader, and lock in a time with them for the tape.', 'actor-os/', 'run');
-      else if (h.reader === 'need') S(day, 'Find a reader: read their lines once yourself in Actor OS, or send a friend the link to read in.', 'actor-os/', 'reader');
-      else S(runDay, 'Run it out loud, with a reader or the one you recorded in Actor OS.', 'actor-os/', 'run');
+      if (h.reader === 'have') S(runDay, 'Run it with your reader, and lock in a time with them for the tape.', 'actor-os/?open=1', 'run');
+      else if (h.reader === 'need') S(day, 'Find a reader: read their lines once yourself in Actor OS, or send a friend the link to read in.', 'actor-os/?open=1', 'reader');
+      else S(runDay, 'Run it out loud, with a reader or the one you recorded in Actor OS.', 'actor-os/?open=1', 'run');
       const early = sendBy ? (() => { const t = Math.max(0, +sendBy.slice(0, 2) * 60 + +sendBy.slice(3) - 60); return P.timeLabel(String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0')); })() : '';
-      S(tapeDay, 'TAPE IT.' + (backup ? ' Backup: ' + P.dayLabel(backup, day) + (h.tapeEarly && backup === due ? ' early' + (early ? ', done by ' + early : '') : '') + '.' : ''), 'actor-os/', 'tape');
+      S(tapeDay, 'TAPE IT.' + (backup ? ' Backup: ' + P.dayLabel(backup, day) + (h.tapeEarly && backup === due ? ' early' + (early ? ', done by ' + early : '') : '') + '.' : ''), 'actor-os/?open=1', 'tape');
     }
     if (due) {
       const where = h.via ? (h.direct ? 'direct submit on ' + h.via : h.via) : (h.direct ? 'direct submit' : '');
-      S(due, 'SEND IT' + (sendBy ? ' by ' + P.timeLabel(sendBy) + ', an hour before it\'s due' : '') + (where ? ': ' + where : '') + '. Actor OS names it, sizes it and checks it.', 'actor-os/', 'send');
+      S(due, 'SEND IT' + (sendBy ? ' by ' + P.timeLabel(sendBy) + ', an hour before it\'s due' : '') + (where ? ': ' + where : '') + '. Actor OS names it, sizes it and checks it.', 'actor-os/?open=1', 'send');
     }
     (h.heads || []).forEach(x => heads.push(x));
     if ((h.heads || []).length && tapeDay) heads.push('Your tape day is ' + P.dayLabel(tapeDay, day) + '. Where will you and your reader be?');

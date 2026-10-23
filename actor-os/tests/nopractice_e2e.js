@@ -9,6 +9,8 @@ await p.goto('http://localhost:8811/actor-os/'); await p.evaluate(()=>{ localSto
 await p.reload(); await p.waitForTimeout(1500);
 want('an old practice scene saved as last: Actor OS does not open on it', await p.evaluate(()=>!SIDES.script.length&&!/Today's scene/.test(document.body.innerText.split('Practice scene')[0])&&!localStorage.getItem('actor_os_sides_last')));
 await p.evaluate(()=>localStorage.setItem('actor_os_sides_last',JSON.stringify({file:'my_sides.txt',text:'INT. ROOM - DAY\n\nAL\nHi.\n\nBO\nHey.\n'}))); await p.reload(); await p.waitForTimeout(1500);
-want('your own last sides: still opens on them', await p.evaluate(()=>SIDES.file==='my_sides.txt'&&(SIDES.speakers||[]).length===2), await p.evaluate(()=>[SIDES.file,(SIDES.speakers||[]).length]));
+want('your own last sides: offered, not opened', /Where you left off: my sides/.test(await p.innerText('#sidesOffer'))&&await p.evaluate(()=>!(SIDES.beats||[]).length&&!(SIDES.script||[]).length));
+await p.click('#offerLast'); await p.waitForTimeout(600);
+want('your own last sides: PICK UP opens them', await p.evaluate(()=>SIDES.file==='my_sides.txt'&&(SIDES.speakers||[]).length===2), await p.evaluate(()=>[SIDES.file,(SIDES.speakers||[]).length]));
 want('no page errors', !errs.length, errs);
 await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();
