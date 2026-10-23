@@ -102,15 +102,31 @@ body:has(#hotbar) .top{padding-top:calc(env(safe-area-inset-top) + 50px)}
 .ufocus .ue{opacity:.1}.ufocus .ue.uon{opacity:1;stroke-width:2}.ufocus .un{opacity:.3}.ufocus .un.uon,.ufocus .un.usel{opacity:1}
 .ulegend{display:flex;gap:14px;flex-wrap:wrap;margin:8px 6px;font-size:13px;color:var(--dim)}.ulegend i{display:inline-block;width:10px;height:10px;margin-right:5px;vertical-align:-1px}.ulegend .lf{background:var(--tung);border-radius:50%}.ulegend .lp{border:1.4px solid var(--ink);border-radius:50%}.ulegend .ll{border:1.4px solid var(--blue)}
 #uinfo{margin:4px 6px 6px}
+
+a.btn{color:inherit;text-decoration:none}
+.hrow{display:flex;align-items:center;gap:12px}.htx{flex:1;min-width:0}
+.hico{width:52px;height:52px;flex:none}.hico .bd{fill:#24211d}.hico .pf{stroke:#ece7dc;stroke-width:3}.hico .pl{fill:#e9b25a}
+.hsig{width:46px;height:46px;flex:none;object-fit:contain}
+.hstk{display:block;height:26px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='176' height='30' viewBox='0 0 176 30'%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232b3038' transform='translate%28-22%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%231f8a5c' transform='translate%280%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23d9b23a' transform='translate%2822%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232a5fa8' transform='translate%2844%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23c0392b' transform='translate%2866%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23e8e6e0' transform='translate%2888%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%239aa0a8' transform='translate%28110%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%235c636d' transform='translate%28132%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232b3038' transform='translate%28154%29'/%3E%3C/svg%3E") repeat-x 0 50%/auto 100%;box-shadow:inset 0 0 0 1px #00000055;opacity:.92}
+.path{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.path span{font-size:10.5px;font-weight:600;letter-spacing:.14em;padding:4px 9px;border-radius:999px;border:1px solid var(--line);color:var(--faint)}
+.path span.y{background:var(--panel2);color:var(--ink)}.path span.now{border-color:var(--tung);color:var(--tung-text);box-shadow:0 0 0 1px var(--tung) inset}
+.fcw{position:relative}.fcw .fc{padding-right:150px}.fcw .fgo{position:absolute;right:12px;top:50%;transform:translateY(-50%)}
+@media (max-width:560px){.fcw .fc{padding-right:10px;padding-bottom:62px}.fcw .fgo{top:auto;transform:none;bottom:12px;right:12px;left:86px}}
+.btn.add{border-style:dashed}
+@media (min-width:1000px){ main{max-width:920px} .top{padding-left:calc((100vw - 920px)/2 + 16px);padding-right:calc((100vw - 920px)/2 + 16px)} .hico{width:70px;height:70px}.hsig{width:64px;height:64px} }
 </style>
 </head>
 <body>
 <div class="shell">
   <header class="top">
-    <div class="k">FILM HUB</div>
-    <b id="title">Your films</b>
-    <div class="count" id="count"></div>
+    <div class="hrow">
+      <svg class="hico" viewBox="0 0 74 74" role="img" aria-label="Your film, ready to play"><rect class="bd" x="6" y="14" width="62" height="46" rx="4"/><path class="pf" d="M12 17h4M22 17h4M32 17h4M42 17h4M52 17h4M62 17h2M12 57h4M22 57h4M32 57h4M42 57h4M52 57h4M62 57h2"/><path class="pl" d="M31 29v16l13-8z"/></svg>
+      <div class="htx"><div class="k">FILM · FILM HUB</div><b id="title">Your films</b><div class="count" id="count"></div></div>
+      <img class="hsig" src="../img/sigil-film-180.png" alt="THEACTORPAGE" width="56" height="56">
+    </div>
   </header>
+  <i class="hstk" aria-hidden="true"></i>
   <main id="main"></main>
 </div>
 <nav class="tabs" id="tabs">

@@ -8,16 +8,16 @@ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/ch
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,400))); if(!x) ok=false; };
 const c=await b.newContext({viewport:{width:390,height:844}}); await c.grantPermissions(['camera','microphone'],{origin:'http://localhost:8811'});
 const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
-await p.goto('http://localhost:8811/film/'); await p.evaluate(()=>{ localStorage.clear(); indexedDB.deleteDatabase('theactorpage_takes'); sessionStorage.setItem('theactorpage_hot_ok','1'); }); await p.reload(); await p.waitForTimeout(600);
+await p.goto('http://localhost:8811/film/'); await p.evaluate(()=>{ localStorage.clear(); indexedDB.deleteDatabase('theactorpage_takes'); sessionStorage.setItem('theactorpage_hot_ok','1'); }); await p.goto('http://localhost:8811/film/?open=1'); await p.waitForTimeout(600);
 const text=fs.readFileSync(path.join(__dirname,'..','..','shared','fixtures','low_tide.fountain'),'utf8');
 await p.setInputFiles('#file',{name:'low_tide.fountain',mimeType:'text/plain',buffer:Buffer.from(text)}); await p.waitForTimeout(800);
-want('a script in: PREP, on its scenes', /PREP/.test(await p.innerText('#roomname'))&&!!(await p.$('#sub [data-t="scenes"].on')));
+want('a script in: PREP, on its scenes', /PLAN/.test(await p.innerText('#roomname'))&&!!(await p.$('#sub [data-t="scenes"].on')));
 await p.click('#tabs [data-r="set"]'); await p.waitForTimeout(300);
 const tiles=()=>p.evaluate(()=>[...document.querySelectorAll('.kit .kt')].map(t=>t.dataset.kit+':'+(t.querySelector('[data-kst]')?t.querySelector('[data-kst]').textContent:'-')));
 want('the front: four tiles, the camera and mic say OFF', (await tiles()).join()==='shoot:OFF,match:OFF,adr:OFF,scout:-', await tiles());
 let m=await p.innerText('#main');
 want('each says what it does here', /Shoot a take/.test(m)&&/Scene 1, take 1/.test(m)&&/Match a shot/.test(m)&&/Re-record a line/.test(m)&&/Shoot or add a take first/.test(m)&&/Scout a place/.test(m), m.slice(0,500));
-want('ON SET: no way picked yet, so it says so, with the tiles under it', /ON SET/.test(await p.innerText('#roomname'))&&/Nothing on the list yet/i.test(m)&&(await p.$$('[data-allway]')).length===4, m.slice(0,400));
+want('ON SET: no way picked yet, so it says so, with the tiles under it', /SHOOT/.test(await p.innerText('#roomname'))&&/Nothing on the list yet/i.test(m)&&(await p.$$('[data-allway]')).length===4, m.slice(0,400));
 // shoot
 await p.click('[data-kit="shoot"]'); await p.waitForTimeout(1500);
 want('SHOOT A TAKE: the camera opens, slate says scene 1, take 1', await p.evaluate(()=>{ const v=document.getElementById('shvid'); return !!(v&&v.videoWidth); })&&/SCENE 1 · TAKE 1/.test(await p.innerText('#shslate')), await p.innerText('#shslate'));
@@ -36,7 +36,7 @@ m=await p.innerText('#main');
 want('the front: take count, scene 1 take 3 next, MIC ready now', /2 takes so far\. They're in CUT\./.test(m)&&/Scene 1, take 3/.test(m)&&/Over a take, in CUT/.test(m), m.slice(0,400));
 await p.click('#tabs [data-r="post"]'); await p.waitForTimeout(500);
 want('CUT: the takes play, and SHOOT A TAKE is on every scene', await p.$$eval('video[data-tvid]',x=>x.length)===2&&await p.$$eval('[data-shoot]',x=>x.length)===await p.evaluate(()=>window.__film.SCENES().length));
-await p.reload(); await p.waitForTimeout(1500); await p.click('#tabs [data-r="post"]'); await p.waitForTimeout(800);
+await p.goto('http://localhost:8811/film/?open=1'); await p.waitForTimeout(1500); await p.click('#tabs [data-r="post"]'); await p.waitForTimeout(800);
 want('after a reload: still there, still plays', await p.$$eval('video[data-tvid]',x=>x.length)===2);
 await p.click('#tabs [data-r="set"]'); await p.waitForTimeout(300);
 await p.click('[data-kit="adr"]'); await p.waitForTimeout(400);

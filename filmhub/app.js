@@ -51,20 +51,25 @@ const NURL={};
 const dataUrl=b=>new Promise(r=>{ const f=new FileReader(); f.onload=()=>r(f.result); f.onerror=()=>r(''); f.readAsDataURL(b); });
 
 /* ---------- FILMS ---------- */
+/* a Story Studio film: its four steps, and what to do next, in one tap */
+function pathHtml(f){ if(f.from!=='studio'||!H.path) return ''; const c=studio()[f.sid]; return '<div class="path">'+H.path(f.st,c).map(x=>'<span class="'+(x.now?'now':x.done?'y':'')+'">'+x.label+(x.done?' ✓':x.now?' · '+esc(x.words):'')+'</span>').join('')+'</div>'; }
+function goOf(f){ if(f.from!=='studio') return ''; const c=studio()[f.sid]||{}, fin=c.cut&&c.cut.final, id=encodeURIComponent(f.sid);
+ return fin?'<a class="btn pri fgo" href="../film/#open='+id+'&tab=out">PUT IT OUT</a>':'<a class="btn fgo" href="../film/#open='+id+'">PICK UP</a>'; }
 function card(f){
  const sub=f.from==='studio'?(H.words(f.st)[0]||''):[f.year,f.kind].filter(Boolean).join(' · ');
  const ns=notesOf(f.id), alt=ns.find(n=>n.thumb);
  return '<button class="fc" data-open="'+esc(f.id)+'"><img class="po" data-poster="'+esc(f.id)+'"'+(alt?' data-alt="n:'+esc(alt.id)+'"':'')+' alt="" hidden><div><b>'+esc(f.title||'Untitled')+'</b><small>'+esc(sub)+'</small>'+(ns.length?'<small>'+ns.length+' note'+(ns.length===1?'':'s')+', last '+esc(new Date(ns[0].at).toLocaleDateString(undefined,{month:'short',day:'numeric'}))+'</small>':'')
-  +(f.stage?'<span class="stg">'+esc(H.stageWord(f.stage))+'</span>':'')+(f.show===false?'<span class="stg" style="color:var(--faint);margin-left:8px">off the page</span>':'')+'</div></button>';
+  +(f.stage?'<span class="stg">'+esc(H.stageWord(f.stage))+'</span>':'')+(f.show===false?'<span class="stg" style="color:var(--faint);margin-left:8px">off the page</span>':'')+pathHtml(f)+'</div></button>';
 }
+function row(f){ const g=goOf(f); return g?'<div class="fcw">'+card(f)+g+'</div>':card(f); }
 function filmsView(){
  if(U.open&&film(U.open)) return filmView(film(U.open));
  const L=films(), mk=L.filter(f=>f.from==='studio'), mine=L.filter(f=>f.from==='hand');
  let h='';
  if(window.Kit) h+=Kit.html([{id:'vnote',dev:'camera',label:'CAMERA',what:'Shoot a note',note:L.length?'On a film, sorted for you':'Add a film first',off:!L.length},{id:'anote',dev:'mic',label:'MIC',what:'Say a note',note:L.length?'Voice only':'Add a film first',off:!L.length}]);
- h+='<p class="kicker">Making now</p>'+(mk.length?mk.map(card).join(''):'<div class="card"><p class="dim small" style="margin:0">Nothing in Story Studio yet. Start a film there and it shows up here, counted from what you mark.</p><a class="btn" href="../film/" style="margin-top:10px;text-decoration:none">OPEN STORY STUDIO</a></div>');
+ h+='<p class="kicker">Making now</p>'+(mk.length?mk.map(row).join(''):'<div class="card"><p class="dim small" style="margin:0">Nothing in Story Studio yet. Start a film there and it shows up here, counted from what you mark.</p><a class="btn" href="../film/?start=1" style="margin-top:10px;text-decoration:none">+ START A FILM</a></div>');
  h+='<p class="kicker" style="margin-top:18px">Films you\'ve made</p>'+(mine.length?mine.map(card).join(''):'<p class="faint small">The ones from before, or made anywhere else. Add them here for the page.</p>');
- h+='<button class="btn" id="addfilm" style="margin-top:6px">ADD A FILM YOU\'VE MADE</button>';
+ h+='<div class="row" style="margin-top:6px"><a class="btn add" href="../film/?start=1">+ START A FILM</a><button class="btn add" id="addfilm">+ ADD ONE YOU\'VE MADE</button></div>';
  return h;
 }
 function filmView(f){
@@ -74,7 +79,7 @@ function filmView(f){
  h+='<div class="card"><div class="row" style="align-items:flex-start;gap:14px"><label style="cursor:pointer"><img class="po big" data-poster="'+esc(f.id)+'" alt="Poster" hidden><span class="btn sm" style="margin-top:6px">'+(URLS[f.id]?'NEW POSTER':'ADD A POSTER')+'</span><input type="file" id="pf" accept="image/*" hidden></label>'
   +'<div style="flex:1;min-width:0"><h2 style="font-size:20px">'+esc(f.title||'Untitled')+'</h2>'+(f.stage?'<span class="stg">'+esc(H.stageWord(f.stage))+'</span>':'')
   +'<div class="row" style="margin-top:10px"><button class="chip sm'+(r.mark==='done'?' on':'')+'" id="done">'+(r.mark==='done'?'Done':'Mark it done')+'</button><button class="chip sm'+(r.show===false?'':' on')+'" id="show">'+(r.show===false?'Off the page':'On the page')+'</button></div></div></div></div>';
- if(!hand){ h+='<div class="card"><p class="kicker">Where it stands</p><ul class="facts">'+H.words(f.st).map(w=>'<li>'+esc(w)+'</li>').join('')+'</ul><a class="btn" href="../film/#open='+encodeURIComponent(f.sid)+'" style="margin-top:10px;text-decoration:none">OPEN IN STORY STUDIO</a></div>'; }
+ if(!hand){ const fin=(studio()[f.sid]||{}).cut&&(studio()[f.sid]||{}).cut.final; h+='<div class="card"><p class="kicker">Where it stands</p>'+pathHtml(f)+'<ul class="facts">'+H.words(f.st).map(w=>'<li>'+esc(w)+'</li>').join('')+'</ul><div class="row" style="margin-top:10px">'+(fin?'<a class="btn pri" href="../film/#open='+encodeURIComponent(f.sid)+'&tab=out">PUT IT OUT</a>':'')+'<a class="btn" href="../film/#open='+encodeURIComponent(f.sid)+'">OPEN IN STORY STUDIO</a></div></div>'; }
  h+='<div class="card"><p class="kicker">On the page</p>'+(hand?fld('title','Title','',f.title):fld('title','Title on the page','',r.title||f.title))
   +fld('logline','Logline','One line: who, what they want, what\'s in the way')+'<div class="row" style="gap:8px"><div style="flex:1 1 90px">'+fld('year','Year','2026')+'</div><div style="flex:1 1 120px">'+fld('kind','Kind','Short, feature, pilot')+'</div><div style="flex:1 1 90px">'+fld('runtime','Runtime','12 min')+'</div></div>'
   +fld('credit','Credit line','Written and directed by …')

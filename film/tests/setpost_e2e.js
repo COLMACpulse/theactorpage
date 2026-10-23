@@ -6,14 +6,14 @@ const {chromium}=require('playwright'); const path=require('path'), fs=require('
 const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,500))); if(!x) ok=false; };
 const p=await (await b.newContext({viewport:{width:390,height:844}})).newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
-await p.goto('http://localhost:8811/film/'); await p.evaluate(()=>localStorage.clear()); await p.reload(); await p.waitForTimeout(400);
+await p.goto('http://localhost:8811/film/'); await p.evaluate(()=>localStorage.clear()); await p.goto('http://localhost:8811/film/?open=1'); await p.waitForTimeout(400);
 await p.setInputFiles('#file',{name:'low_tide.fountain',mimeType:'text/plain',buffer:fs.readFileSync(path.join(__dirname,'..','..','shared','fixtures','low_tide.fountain'))}); await p.waitForTimeout(800);
 await p.click('#tabs [data-r="set"]'); await p.waitForTimeout(200); await p.click('[data-allway="crew"]'); await p.waitForTimeout(200);
 await p.fill('#setnote','boom in frame'); await p.click('[data-mk="never"]'); await p.waitForTimeout(150); await p.click('[data-mk="gold"]'); await p.waitForTimeout(150);
 await p.click('#shotdone'); await p.waitForTimeout(150); await p.fill('#setnote','use the end'); await p.click('[data-mk="backup"]'); await p.waitForTimeout(150);
 const T0=new Date(2026,9,18,9,0).getTime(), mn=60000;
 await p.evaluate(([T0,mn])=>{ const d=JSON.parse(localStorage.getItem('film_os_v1')), c=d.scripts[d.cur]; c.set.log.forEach((t,i)=>t.at=T0+[2,6,30][i]*mn); localStorage.setItem('film_os_v1',JSON.stringify(d)); },[T0,mn]);
-await p.reload(); await p.waitForTimeout(500); await p.click('#tabs [data-r="post"]'); await p.waitForTimeout(300);
+await p.goto('http://localhost:8811/film/?open=1'); await p.waitForTimeout(500); await p.click('#tabs [data-r="post"]'); await p.waitForTimeout(300);
 let m=await p.innerText('#main');
 want('POST: from the set, in words', /3 takes logged on set, on 2 shots\. 1 circled\./.test(m)&&/None matched to a clip yet\./.test(m)&&/1 circled take not matched to a clip yet\./.test(m), m.slice(0,500));
 const clip=fs.readFileSync(path.join(__dirname,'..','..','shared','fixtures','made_up_clip.mp4')).toString('base64');

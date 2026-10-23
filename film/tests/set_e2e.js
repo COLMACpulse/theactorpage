@@ -6,7 +6,7 @@ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/ch
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,500))); if(!x) ok=false; };
 const ctx=await b.newContext({viewport:{width:390,height:844},acceptDownloads:true}); await ctx.grantPermissions(['clipboard-read','clipboard-write'],{origin:'http://localhost:8811'});
 const p=await ctx.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
-await p.goto('http://localhost:8811/film/'); await p.evaluate(()=>localStorage.clear()); await p.reload(); await p.waitForTimeout(500);
+await p.goto('http://localhost:8811/film/'); await p.evaluate(()=>localStorage.clear()); await p.goto('http://localhost:8811/film/?open=1'); await p.waitForTimeout(500);
 await p.setInputFiles('#file',{name:'low_tide.fountain',mimeType:'text/plain',buffer:fs.readFileSync(path.join(__dirname,'..','..','shared','fixtures','low_tide.fountain'))}); await p.waitForTimeout(800);
 await p.click('#tabs [data-r="set"]'); await p.waitForTimeout(300);
 let m=await p.innerText('#main');
@@ -42,7 +42,7 @@ want('email it: subject and body', /^mailto:\?subject=Wrap/.test(await p.getAttr
 const [dl]=await Promise.all([p.waitForEvent('download'),p.click('#wrapsave')]); want('save as text', /wrap \d{4}-\d{2}-\d{2}\.txt$/.test(dl.suggestedFilename()), dl.suggestedFilename());
 await p.screenshot({path:SHOTS+'/set_wrap.png',fullPage:true});
 await p.click('#wrapback'); await p.waitForTimeout(200);
-await p.reload(); await p.waitForTimeout(600); await p.click('#tabs [data-r="set"]'); await p.waitForTimeout(300);
+await p.goto('http://localhost:8811/film/?open=1'); await p.waitForTimeout(600); await p.click('#tabs [data-r="set"]'); await p.waitForTimeout(300);
 want('kept after a reload: the takes and where you were', /SHOT 1 OF .* · DONE/.test(await p.innerText('.nowcard .nk'))&&(await p.$$('.tklist div')).length===2);
 want('this phone: the camera and mic tiles are still here', (await p.$$('.kit .kt')).length===4);
 want('nothing runs off the side, no em dashes', await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)&&!/—/.test(await p.innerText('#main')));

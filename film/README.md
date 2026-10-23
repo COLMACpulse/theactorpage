@@ -7,6 +7,10 @@
 
 **The rule:** the actor is the machine. No scores. It lists what's in the script and what you own; you pick.
 
+## New: the front door (FILM, four steps)
+Opened with nothing, like every tool: an example (SALT ROAD, made up) plays, with **YOUR FILMS** (where you left off, PICK UP, each film's steps) and **+ START A FILM** (what you're making: a scene for your reel, a short, a sketch; solo or with a crew; the script from THEACTORPAGES, your shelf, a file or a paste). With a crew, every scene starts as a crew scene. `?open=1` opens where you left off, `#open=<id>` (and `&tab=out`) a given film, `?start=1` START A FILM.
+The rooms are **PLAN** (was PREP), **SHOOT** (was ON SET), **FINISH** (was POST) and **OUT**, each counting on its tab. **OUT** takes the rough cut (kept when you make it) or the finished film from your editor, and sends it, one tap each, nothing until you tap: FOOTAGE (a job with the clip), YOUR REEL (a reel clip on the takes shelf for the Project Hub), YOUR PAGE (done and on the page through Film Hub), A PACKAGE (the Hub), A POSTCARD (a plug in Picture It, your words), THE FILE. Light and dark.
+
 ## The flow
 1. **SCRIPT.** Anything already on the sides shelf (dropped in Actor OS, MEMORIZER, BREAKDOWN, Today's scene) is here with no upload, with your character. Or drop a PDF, Final Draft (.fdx), Fountain or text file, or paste. A script brought in here goes on the shelf for every other tool. Pick who you play on camera.
 2. **SCENES.** Each scene with who speaks and how many lines. A voice in the script (V.O., O.S., on the phone) is marked voice only and never gets a close-up. Tap one:

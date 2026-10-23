@@ -1,5 +1,5 @@
 /* THEACTORPAGE FILM HUB: your films from the filmmaker's side. Where each one stands, who was on it, and a page to send.
-   Story Studio's projects (localStorage film_os_v1) are read, never written: the counts come from what you marked there.
+   Story Studio's projects (localStorage film_os_v1) are read, never written here: the counts come from what you marked there.
    Films you made before (or anywhere else) are added by hand. No score, no verdict: counts, and the words you gave it.
    Pure: pass Story Studio's engine (film.js, window.FilmOS) in. Runs in Node for the tests. */
 (function(g){
@@ -35,6 +35,21 @@ H.stage=function(s,mark){
  if(s.shotsDone||s.takes) return 'shooting';
  if(s.planned||s.placed) return 'planning';
  return 'script';
+};
+/* the four steps, for a Story Studio film: PLAN, SHOOT, FINISH, OUT. A later step done counts the earlier ones done
+   (a crew film can come back from the editor without every scene planned here). c.cut.final: the finished file;
+   c.out: where it went. Counts and words, no verdict. */
+H.OUTS=['footage','reel','page','postcard','file'];   // a package is built in the Hub, so it isn't counted here
+H.path=function(s,c){
+ c=c||{}; const fin=c.cut&&c.cut.final, outs=H.OUTS.filter(k=>c.out&&c.out[k]).length;
+ const d=[s.scenes>0&&s.planned===s.scenes, s.shots>0&&s.shotsDone===s.shots, !!fin, outs>0];
+ for(let i=2;i>=0;i--) if(d[i+1]) d[i]=true;
+ const w=[s.scenes?s.planned+' of '+pl(s.scenes,'scene')+' planned':'no scenes yet',
+  s.shots?s.shotsDone+' of '+pl(s.shots,'shot'):s.takes?pl(s.takes,'take'):'nothing shot yet',
+  fin?'cut '+mmss(fin.secs):s.pieces?mmss(s.cutSecs)+' in the cut':'not cut yet',
+  outs+' of '+H.OUTS.length];
+ const now=d.indexOf(false);
+ return ['PLAN','SHOOT','FINISH','OUT'].map((k,i)=>({k:['plan','shoot','finish','out'][i],label:k,done:d[i],now:i===now,words:w[i]}));
 };
 H.stageWord=k=>(H.STAGES.find(x=>x[0]===k)||H.STAGES[0])[1];
 H.words=function(s){

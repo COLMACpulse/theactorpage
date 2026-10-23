@@ -5,7 +5,7 @@ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/ch
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,500))); if(!x) ok=false; };
 const p=await (await b.newContext({viewport:{width:390,height:844}})).newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
 await p.goto('http://localhost:8811/film/'); await p.evaluate(()=>localStorage.clear()); await p.reload(); await p.waitForTimeout(500);
-want('the title: crew or solo', /Crew or solo/i.test(await p.innerText('#title'))&&/Crew or solo/.test(await p.title()));
+want('the title: make your own', /Make your own/i.test(await p.innerText('#title'))&&/Make your own/.test(await p.title()));
 const text=fs.readFileSync(path.join(__dirname,'..','..','shared','fixtures','low_tide.fountain'),'utf8');
 await p.setInputFiles('#file',{name:'low_tide.fountain',mimeType:'text/plain',buffer:Buffer.from(text)}); await p.waitForTimeout(800);
 const n=await p.evaluate(()=>{ const S=window.__film.SCENES(); const s=S.find(x=>F_seen(x)); return s?s.n:null; function F_seen(x){ return window.FilmOS.seen(x).length>1; } });

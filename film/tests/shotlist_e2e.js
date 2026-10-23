@@ -6,7 +6,7 @@ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/ch
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,500))); if(!x) ok=false; };
 const ctx=await b.newContext({viewport:{width:390,height:844},acceptDownloads:true}); const p=await ctx.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
 const CSV='SCENE #,SHOT #,SETUP,SHOT TYPE,CAMERA ,CAMERA MOVE,CAST,ACTION,PROPS\nTEASER,,,,,,,,\nT1,1,DUNES,POV,MEDIUM,,3,"HANDS HOLD LANTERN, SEARCH",LANTERN\nT1,2,DUNES,POV,CU,,3,FINDS A KEY,"LANTERN, KEY"\n,,,,,,,,\n1,3,CABIN,,WIDE,HD,"1,2",TWO MEN ARGUE,\nOMIT,4,CABIN,INSERT,CU,HD,1,HAND ON THE DOOR,\n1,5,"CABIN,PORCH",SHOT THRU WINDOW,MEDIUM,STATIC,"1,2",DOG BARKS OUTSIDE,\n2,,PORCH,,,HD,1,VALE WAITS,\n';
-await p.goto('http://localhost:8811/film/'); await p.evaluate(()=>localStorage.clear()); await p.reload(); await p.waitForTimeout(400);
+await p.goto('http://localhost:8811/film/'); await p.evaluate(()=>localStorage.clear()); await p.goto('http://localhost:8811/film/?open=1'); await p.waitForTimeout(400);
 await p.click('#sub [data-t="shots"]'); await p.waitForTimeout(200);
 want('PREP has SHOT LIST; no script: says the scenes get made from it', /No script\? The scenes are made from the list\./.test(await p.innerText('#main')));
 await p.fill('#slpaste',CSV); await p.click('#slread'); await p.waitForTimeout(500);
@@ -27,7 +27,7 @@ await p.click('#sub [data-t="shots"]'); await p.waitForTimeout(200);
 const [dl]=await Promise.all([p.waitForEvent('download'),p.click('#slcsv')]); const back=fs.readFileSync(await dl.path(),'utf8');
 want('save as CSV: OMIT kept, columns in order', /^﻿SCENE,SHOT,SETUP,SHOT TYPE,CAMERA,CAMERA MOVE,CAST,ACTION,PROPS,LENS,NOTES/.test(back)&&/\nOMIT,4,CABIN/.test(back), back.slice(0,200));
 // with a script: by number, the rest picked by hand
-await p.evaluate(()=>localStorage.clear()); await p.reload(); await p.waitForTimeout(400);
+await p.evaluate(()=>localStorage.clear()); await p.goto('http://localhost:8811/film/?open=1'); await p.waitForTimeout(400);
 await p.setInputFiles('#file',{name:'low_tide.fountain',mimeType:'text/plain',buffer:fs.readFileSync(path.join(__dirname,'..','..','shared','fixtures','low_tide.fountain'))}); await p.waitForTimeout(800);
 await p.click('#sub [data-t="shots"]'); await p.waitForTimeout(200);
 await p.setInputFiles('#slfile',{name:'made up - Sheet1.csv',mimeType:'text/csv',buffer:Buffer.from(CSV)}); await p.waitForTimeout(500);

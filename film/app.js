@@ -8,6 +8,8 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;'
 const rid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 
 let DB=load(); let TAB='script', OPEN=null, SCENES=[], MSG='', OEDIT=null;
+const H=window.FilmHub;
+let START={kind:'reel',who:'solo'}, OPENP=false, EXT=null, ASKED=false;
 /* scout photos: IndexedDB 'film_os' / 'photos', this phone only */
 function idb(){ return new Promise(res=>{ try{ const r=indexedDB.open('film_os',1); r.onupgradeneeded=()=>r.result.createObjectStore('photos'); r.onsuccess=()=>res(r.result); r.onerror=()=>res(null); }catch(e){ res(null); } }); }
 async function putPhoto(id,blob){ const d=await idb(); if(!d) return false; return new Promise(res=>{ const x=d.transaction('photos','readwrite'); x.objectStore('photos').put(blob,id); x.oncomplete=()=>res(true); x.onerror=()=>res(false); }); }
@@ -33,7 +35,10 @@ function st(n){ const c=cur(); c.scenes=c.scenes||{}; c.scenes[n]=c.scenes[n]||{
 function open(id,text,file,me){
  DB.scripts[id]=DB.scripts[id]||{file:file||'Script',scenes:{}};
  const c=DB.scripts[id]; c.text=text; c.file=file||c.file; if(me&&!c.me) c.me=me;
- DB.cur=id; SCENES=F.scenes(text); save();
+ DB.cur=id; SCENES=F.scenes(text); c.at=Date.now();
+ if(TAB==='start'){ c.kind=START.kind; c.who=START.who;
+  if(START.who==='crew') SCENES.forEach(sc=>{ c.scenes[sc.n]=c.scenes[sc.n]||{way:'',where:'',done:{},cont:{}}; if(!c.scenes[sc.n].way) c.scenes[sc.n].way='crew'; }); }
+ OPENP=false; save();
 }
 function take(text,file,f){
  MSG='';
@@ -69,33 +74,38 @@ function fromShelf(id){
 function adopt(){
  /* from BACKLOT: a start dealt from your ground, headings only. A new script, not on the actor's shelf. */
  let hf=null; try{ hf=JSON.parse(localStorage.getItem('theactorpage_handoff_film')||'null'); localStorage.removeItem('theactorpage_handoff_film'); }catch(e){}
- if(hf&&hf.text&&F.scenes(hf.text).length){ open('b'+Date.now().toString(36),hf.text,hf.title||'From the ground',''); TAB='scenes'; setTimeout(()=>toast('From BACKLOT: '+(hf.title||'a start')+'.'),300); return; }
+ if(hf&&hf.text&&F.scenes(hf.text).length){ ASKED=true; open('b'+Date.now().toString(36),hf.text,hf.title||'From the ground',''); TAB='scenes'; setTimeout(()=>toast('From BACKLOT: '+(hf.title||'a start')+'.'),300); return; }
  if(!SH) return;
  const p=SH.pending(TOOL);
- if(p){ SH.markSeen(TOOL,p.id); open(p.id,p.text,p.file,p.me); TAB='scenes';
+ if(p){ ASKED=true; SH.markSeen(TOOL,p.id); open(p.id,p.text,p.file,p.me); TAB='scenes';
    setTimeout(()=>toast('New script: '+SH.label(p)+'.'),300); return; }
  // opened from FILM HUB: ../film/#open=<script id>
- const hm=String(location.hash||'').match(/^#open=(.+)$/); if(hm){ const id=decodeURIComponent(hm[1]); if(DB.scripts[id]){ DB.cur=id; save(); TAB='scenes'; } try{ history.replaceState(null,'',location.pathname); }catch(e){} }
+ const hm=String(location.hash||'').match(/^#open=([^&]+)(?:&tab=(\w+))?$/); if(hm){ const id=decodeURIComponent(hm[1]); if(DB.scripts[id]){ ASKED=true; DB.cur=id; DB.scripts[id].at=Date.now(); save(); TAB=['out','cut','set','day'].includes(hm[2])?hm[2]:'scenes'; } try{ history.replaceState(null,'',location.pathname); }catch(e){} }
  const c=cur(); if(c&&c.text) SCENES=F.scenes(c.text);
 }
 
 /* ---------- the rooms: PREP (script, scenes, what you own, the days), ON SET (today), POST (the cut, the pack) ---------- */
-const ROOMS={prep:[['script','SCRIPT'],['shots','SHOT LIST'],['scenes','SCENES'],['own','OWNED'],['day','DAYS']],set:[['set','TODAY'],['tools','TOOLS']],post:[['cut','CUT']]};
-const ROOMNAME={prep:'PREP',set:'ON SET',post:'POST'};
+const ROOMS={prep:[['script','SCRIPT'],['shots','SHOT LIST'],['scenes','SCENES'],['own','OWNED'],['day','DAYS']],set:[['set','TODAY'],['tools','TOOLS']],post:[['cut','CUT']],out:[['out','OUT']]};
+const ROOMNAME={prep:'PLAN',set:'SHOOT',post:'FINISH',out:'OUT'};
 const roomOf=t=>Object.keys(ROOMS).find(r=>ROOMS[r].some(x=>x[0]===t))||'prep';
-const LASTIN={prep:'scenes',set:'set',post:'cut'};
+const LASTIN={prep:'scenes',set:'set',post:'cut',out:'out'};
 /* ---------- views ---------- */
 function render(){
- const room=roomOf(TAB); LASTIN[room]=TAB; if(TAB!=='tools') kitStop();
- document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.r===room));
- $('roomname').textContent=ROOMNAME[room];
- $('sub').innerHTML=ROOMS[room].length>1?ROOMS[room].map(([t,l])=>'<button data-t="'+t+'"'+(t===TAB?' class="on"':'')+'>'+l+'</button>').join(''):'';
+ clearInterval(EXT);
+ const room=roomOf(TAB); if(TAB!=='start') LASTIN[room]=TAB; if(TAB!=='tools') kitStop();
+ document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',TAB!=='start'&&b.dataset.r===room));
+ $('roomname').textContent=TAB==='start'?'START':ROOMNAME[room];
+ $('sub').innerHTML=TAB!=='start'&&ROOMS[room].length>1?ROOMS[room].map(([t,l])=>'<button data-t="'+t+'"'+(t===TAB?' class="on"':'')+'>'+l+'</button>').join(''):'';
  $('sub').querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{ TAB=b.dataset.t; if(TAB!=='scenes') OPEN=null; OEDIT=null; render(); });
  const c=cur();
- $('title').textContent=c?String(c.file||'Script').replace(/\.(pdf|txt|fountain|fdx)$/i,'').replace(/_/g,' '):'Crew or solo';
+ $('title').textContent=c?String(c.file||'Script').replace(/\.(pdf|txt|fountain|fdx)$/i,'').replace(/_/g,' '):TAB==='start'?'Start a film':'Make your own';
+ paintRooms(c);
  $('count').textContent=c?SCENES.length+' scene'+(SCENES.length===1?'':'s')+(c.me?' · you are '+c.me:''):'';
  const m=$('main');
- if(TAB==='script') m.innerHTML=vScript();
+ if(TAB==='start') m.innerHTML=topBar()+vStart();
+ else if(!c&&['script','scenes','day','set','out'].includes(TAB)) m.innerHTML=topBar()+vExample();
+ else if(TAB==='out') m.innerHTML=topBar()+vOut();
+ else if(TAB==='script') m.innerHTML=topBar()+vScript();
  else if(!c&&TAB==='cut') m.innerHTML=logBox()+'<div class="msg">'+(DB.log?'Or bring in the script first, and the log goes on its scenes.':'No script yet. Open your footage log above and make the scenes from it, or bring in the script.')+'</div><button class="btn block" data-go="script">SCRIPT</button>';
  else if(TAB==='shots') m.innerHTML=vShots();
  else if(TAB==='tools') m.innerHTML=vTools();
@@ -105,8 +115,119 @@ function render(){
  else if(TAB==='day') m.innerHTML=vDay();
  else if(TAB==='cut') m.innerHTML=vCut();
  else if(TAB==='set') m.innerHTML=vSet();
- wire();
+ if(!m.querySelector('.tops')) m.insertAdjacentHTML('afterbegin',topBar());
+ wire(); if(m.querySelector('#exsteps')) playExample();
  window.scrollTo(0,0);
+}
+/* ---------- the front door ---------- */
+const kindName=k=>({reel:'A scene for your reel',short:'A short',sketch:'A sketch'})[k]||'';
+function titleOf(c){ return H?H.title(c):String((c&&c.file)||'Script').replace(/\.(pdf|txt|fountain|fdx|docx)$/i,'').replace(/_/g,' '); }
+function films(){ return Object.keys(DB.scripts).map(id=>Object.assign({id},DB.scripts[id])).filter(c=>c.text).sort((a,b)=>(b.at||0)-(a.at||0)); }
+function pathOf(c){ return H?H.path(H.status(c,F),c):[]; }
+function paintRooms(c){
+ const P=c?pathOf(c):[], x=c&&H?H.status(c,F):null;
+ const short=[x&&x.scenes?x.planned+'/'+x.scenes:'', x&&x.shots?x.shotsDone+'/'+x.shots:x&&x.takes?x.takes+' takes':'',
+  c&&c.cut&&c.cut.final?F.mmss(c.cut.final.secs):'', c&&H?H.OUTS.filter(k=>c.out&&c.out[k]).length+' of '+H.OUTS.length:''];
+ ['prep','set','post','out'].forEach((r,i)=>{ const el=document.querySelector('[data-rs="'+r+'"]'); if(el) el.textContent=c?(P[i]&&P[i].done?(i===3||i===2?'✓ '+short[i]:'✓').trim():short[i]):''; });
+ const sn=c?(LASTSCENE||(SCENES[0]&&SCENES[0].n)||1):3, tk=c?takesIn(sn)+1:4;
+ if($('hsc')) $('hsc').textContent=sn; if($('htk')) $('htk').textContent=tk;
+}
+function pathHtml(c){ return '<div class="path">'+pathOf(c).map(x=>'<span class="'+(x.now?'now':x.done?'y':'')+'">'+x.label+(x.done?' ✓':x.now?' · '+esc(x.words):'')+'</span>').join('')+'</div>'; }
+function topBar(){
+ const L=films();
+ let h='<div class="tops"><button type="button" class="tpill'+(OPENP?' on':'')+'" id="yourfilms" aria-expanded="'+OPENP+'">YOUR FILMS <i>'+L.length+'</i></button>'
+  +'<button type="button" class="tpill add'+(TAB==='start'?' on':'')+'" id="startfilm">+ START A FILM</button></div>';
+ if(OPENP){ h+='<div class="fpanel"><p class="kicker" style="margin:0 2px">'+(L.length?'Every film you\'ve started here':'Nothing yet')+'</p>';
+  if(!L.length) h+='<p class="dim" style="margin:0 2px;font-size:14px">Tap + START A FILM.</p>';
+  h+=L.map(c=>{ const now=c.id===DB.cur, last=!DB.cur&&c.id===DB.last;
+   return '<div class="frow"><div style="min-width:0"><b>'+esc(titleOf(c))+'</b><small>'+esc([kindName(c.kind),c.who==='crew'?'with a crew':c.who==='solo'?'solo':'',last?'where you left off':''].filter(Boolean).join(' · ')||'A film')+'</small>'+pathHtml(c)+'</div>'
+    +'<button class="btn sm'+(last?' pri':'')+'" data-film="'+esc(c.id)+'"'+(last?' id="pickup"':'')+'>'+(now?'OPEN NOW':last?'PICK UP':'OPEN')+'</button></div>'; }).join('');
+  h+='<a class="lnk" href="../filmhub/" style="align-self:flex-start;margin:0 2px">ALL IN FILM HUB ›</a></div>'; }
+ return h;
+}
+function vExample(){
+ return '<div class="work"><div class="exhead"><span class="kicker">EXAMPLE · HOW IT WORKS</span><span class="dim" id="excap" style="font-size:13.5px"></span></div>'
+  +'<div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap"><b style="font:700 17px var(--mono)">SALT ROAD · scene 3</b><span class="dim" style="font-size:13.5px">a scene for your reel · solo · a made-up example</span></div>'
+  +'<div class="steps" id="exsteps">'
+  +'<div class="step" data-ex="0"><b>1 PLAN</b><span>Shot list, shoot day, call sheet</span><div class="ln"><i class="y"></i>1 WIDE · kitchen</div><div class="ln"><i class="y"></i>2 CLOSE · JUNE</div><div class="ln"><i class="y"></i>3 INSERT · keys</div></div>'
+  +'<div class="step" data-ex="1"><b>2 SHOOT</b><span>Takes, the slate, match camera</span><div class="ln"><i class="y"></i>1 WIDE · take 2</div><div class="ln"><i id="exd2"></i>2 CLOSE · take <span id="extk">3</span></div><div class="ln"><i></i>3 INSERT</div></div>'
+  +'<div class="step" data-ex="2"><b>3 FINISH</b><span>Rough cut, a line again, your editor\'s pack</span><div class="ln">ROUGH CUT · 1:42</div></div>'
+  +'<div class="step" data-ex="3"><b>4 OUT</b><span>Back to YOU, where it gets seen</span><div class="ln"><i class="y"></i>Your reel</div><div class="ln"><i class="y"></i>Your page</div><div class="ln"><i></i>A postcard</div></div></div>'
+  +'<div class="row"><button class="btn pri" id="exstart">START A FILM</button><button class="btn" id="exfilms">YOUR FILMS</button></div>'
+  +'<p class="faint" style="font-size:12.5px;margin:10px 0 0">The example plays when nothing is open. Start a film and yours takes its place.</p></div>';
+}
+function playExample(){
+ const cap=['Plan: the shot list from your script, matched to what you own','Shoot: slate it, mark the take that goes','Finish: cut it on the phone, or hand your editor a pack','Out: the cut lands on your reel, your page, a postcard'];
+ let i=0; const paint=()=>{ const box=$('exsteps'); if(!box){ clearInterval(EXT); return; } const k=i%4;
+  box.querySelectorAll('[data-ex]').forEach(e=>e.classList.toggle('on',+e.dataset.ex===k)); $('excap').textContent=cap[k];
+  const d=$('exd2'); if(d) d.className=k>=1?'y':''; const t=$('extk'); if(t) t.textContent=k>=1?'4':'3'; i++; };
+ paint(); if(!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)) EXT=setInterval(paint,2200);
+}
+function vStart(){
+ const o=(on,attr,b,sm)=>'<button type="button" class="opt'+(on?' on':'')+'" '+attr+' aria-pressed="'+on+'"><b>'+b+'</b><small>'+sm+'</small></button>';
+ let h='<div class="work"><p class="kicker">1 · What are you making?</p><div class="opts">'
+  +o(START.kind==='reel','data-kind="reel"','A SCENE FOR YOUR REEL','One scene, shot to show what you do')
+  +o(START.kind==='short','data-kind="short"','A SHORT','A whole story, a few scenes')
+  +o(START.kind==='sketch','data-kind="sketch"','A SKETCH','Funny, quick, for your socials')+'</div>'
+  +'<p class="kicker">2 · Who\'s making it?</p><div class="opts">'
+  +o(START.who==='solo','data-who="solo"','SOLO','You and a phone. Play every part, or turn the others into a shoulder and a voice.')
+  +o(START.who==='crew','data-who="crew"','WITH A CREW','A call sheet for them, a pack for your editor.')+'</div>'
+  +'<p class="kicker">3 · The script</p>';
+ if(MSG) h+='<div class="msg'+(/<b>/.test(MSG)?' bad':'')+'">'+MSG+'</div>';
+ const list=(SH?SH.all():[]).filter(it=>!(window.DailyScenes&&DailyScenes.isPractice&&DailyScenes.isPractice(it.file)));
+ h+=list.map(it=>'<div class="frow" style="margin-bottom:6px"><div style="min-width:0"><b>'+esc(SH.label(it))+'</b><small>'+esc(/blockage|THEACTORPAGES/i.test(it.from||'')?'From THEACTORPAGES':'From your shelf'+(it.from?' · '+it.from:''))+' · '+F.scenes(it.text).length+' scenes</small></div><button class="btn sm" data-shelf="'+esc(it.id)+'">USE IT</button></div>').join('');
+ h+='<div class="drop" id="drop" style="margin-top:8px"><b>DROP A SCRIPT</b><span class="dim">PDF, Final Draft, Fountain or text. Or tap to pick one.</span></div>'
+  +'<textarea class="field" id="paste" placeholder="Or paste it here"></textarea><button class="btn block" id="readit" style="margin-top:8px">READ IT</button>'
+  +'<p class="faint" style="font-size:13px;margin:12px 0 0" id="startsum">'+esc(kindName(START.kind))+', '+(START.who==='solo'?'solo':'with a crew')+'. Pick the script and you\'re planning. You can change either later.</p></div>';
+ return h;
+}
+/* ---------- OUT: the cut, back to YOU. One tap each; nothing goes anywhere until you tap it. ---------- */
+let FINALURL='';
+function outOf(){ const c=cur(); c.out=c.out||{}; return c.out; }
+function finalOf(){ const c=cur(); return c&&c.cut&&c.cut.final||null; }
+async function finalBlob(){ return DB.cur?await getPhoto('final:'+DB.cur):null; }
+async function keepFinal(blob,name,secs,from){ const c=cur(); if(!c) return false; if(!(await putPhoto('final:'+DB.cur,blob))){ toast('This phone would not keep the cut. Save the file instead.'); return false; }
+ cutOf().final={name,secs:Math.round((secs||0)*10)/10,size:blob.size,mime:blob.type,at:Date.now(),from}; if(FINALURL){ URL.revokeObjectURL(FINALURL); FINALURL=''; } save(); return true; }
+const DESTS=[
+ ['footage','FOOTAGE','In your Footage list, with the clip','PUT IT IN'],
+ ['reel','YOUR REEL','A reel clip in your Project Hub','ADD IT'],
+ ['page','YOUR PAGE','Under your work, with the title','PUT IT ON'],
+ ['package','A PACKAGE','For an agent, or for casting','BUILD ONE'],
+ ['postcard','A POSTCARD','To casting, or to your socials','MAKE ONE'],
+ ['file','THE FILE','Save the video to this phone or computer','SAVE IT']];
+function vOut(){
+ const f=finalOf(), o=outOf(), when=t=>new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+ let h='<div class="work">';
+ if(!f){ return h+'<p class="kicker">Your cut goes here</p><p class="dim" style="margin:0 0 12px">Make the rough cut in FINISH, or bring in the finished film from your editor. Then it goes out from here.</p>'
+  +'<div class="row"><button class="btn pri" data-go="cut">MAKE THE ROUGH CUT</button><label class="btn"><input type="file" accept="video/*,.mov,.mp4,.m4v,.webm" class="hide" id="outfile">BRING IN THE FINISHED FILM</label></div></div>'; }
+ h+='<div class="cutbox"><video id="outvid" controls playsinline preload="metadata"></video><div><p class="kicker" style="margin:0 0 4px">4 · OUT</p><b style="font-size:19px">Your cut is ready. Where does it go?</b>'
+  +'<p class="dim" style="font-size:14px;margin:4px 0 6px">'+esc(f.name)+' · '+F.mmss(f.secs)+' · '+(f.size/1048576).toFixed(1)+' MB'+(f.from==='file'?' · brought in':' · the rough cut')+'</p>'
+  +'<p class="faint" style="font-size:13px;margin:0">Each place is one tap. Nothing goes anywhere until you tap it.</p>'
+  +'<label class="lnk" style="display:inline-block;cursor:pointer">REPLACE IT<input type="file" accept="video/*,.mov,.mp4,.m4v,.webm" class="hide" id="outfile"></label></div></div>';
+ h+='<div class="dests">'+DESTS.map(([k,b,sm,go])=>{ const done=o[k]&&k!=='package';
+  return '<div class="dest" data-dest-row="'+k+'"><span><b>'+b+'</b><small>'+sm+'</small></span>'+(done?'<span class="ok">'+(k==='file'?'SAVED':k==='postcard'?'MADE':'DONE')+' ✓ '+when(o[k].at||o[k])+'</span>'+(k==='postcard'?'<a class="btn sm" href="../picture/?plug='+esc(o[k].id||'')+'">OPEN</a>':k==='file'?'<button class="btn sm ghost" data-dest="file">AGAIN</button>':''):'<button class="btn sm'+(k==='reel'||k==='page'?' pri':'')+'" data-dest="'+k+'">'+go+'</button>')+'</div>'; }).join('')+'</div>';
+ if(o.page) h+='<p class="faint" style="font-size:13px;margin:10px 0 0">On your page through Film Hub, where you can add a poster, a logline and links. <a class="lnk" href="../filmhub/">FILM HUB ›</a></p>';
+ return h+'</div>';
+}
+async function fillOut(){ const v=$('outvid'); if(!v) return; if(!FINALURL){ const b=await finalBlob(); if(!b){ v.replaceWith(Object.assign(document.createElement('p'),{className:'faint',textContent:'The file isn\'t on this device any more. Bring it in again.'})); return; } FINALURL=URL.createObjectURL(b); } v.src=FINALURL; }
+async function sendOut(k){
+ const c=cur(), f=finalOf(); if(!c||!f) return; const o=outOf(), title=titleOf(c);
+ if(k==='package'){ location.href='../hub/?tab=package'; return; }
+ if(k==='file'){ const b=await finalBlob(); if(!b) return toast('The file isn\'t on this device any more.'); const file=new File([b],f.name,{type:b.type});
+  if(/Android|iPhone|iPad/i.test(navigator.userAgent)&&navigator.canShare&&navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file],title:f.name}); }catch(e){ return; } }
+  else { const u=URL.createObjectURL(b), a=document.createElement('a'); a.href=u; a.download=f.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000); }
+  o.file={at:Date.now()}; save(); render(); return; }
+ if(k==='footage'){ const FT=window.Footage; if(!FT) return toast('Footage isn\'t here.'); const j=FT.add({title,role:c.me||'',kind:c.kind==='sketch'?'web':'short',note:'Made in Story Studio'}); if(!j) return toast('Footage would not take it.');
+  FT.addClip(j.id,{name:f.name,secs:f.secs}); o.footage={at:Date.now(),job:j.id}; save(); render(); toast('In Footage: '+title+'.'); return; }
+ if(k==='reel'){ const T=window.Takes, b=await finalBlob(); if(!T||!b) return toast(b?'The takes shelf isn\'t here.':'The file isn\'t on this device any more.');
+  const ext=(f.name.match(/\.(\w+)$/)||[])[1]||(/webm/.test(b.type)?'webm':'mp4');
+  try{ const it=await T.put(b,{kind:'video',mime:b.type,ext,name:f.name,secs:f.secs,for:{type:'clip',title,role:c.me||''}}); o.reel={at:Date.now(),take:it.id}; save(); render(); toast('A reel clip in your Project Hub.'); }catch(e){ toast('This phone would not keep it. Save the file instead.'); } return; }
+ if(k==='page'){ let d=null; try{ d=JSON.parse(localStorage.getItem('filmhub_v1')||'null'); }catch(e){}
+  d=d&&Array.isArray(d.films)?d:{films:[],studio:{},notes:[],me:{banner:'',about:'',email:'',into:[],want:[]}}; d.studio=d.studio||{};
+  const x=d.studio[DB.cur]=d.studio[DB.cur]||{}; x.mark='done'; x.show=true; if(!x.runtime&&f.secs) x.runtime=Math.max(1,Math.round(f.secs/60))+' min'; if(!x.kind&&c.kind) x.kind=c.kind==='reel'?'Scene':c.kind==='sketch'?'Sketch':'Short';
+  try{ localStorage.setItem('filmhub_v1',JSON.stringify(d)); }catch(e){ return toast('This phone would not save.'); }
+  o.page={at:Date.now()}; save(); render(); toast('On your page: '+title+'.'); return; }
+ if(k==='postcard'){ const V=window.Viz; if(!V) return toast('Picture It isn\'t here.'); const q=V.plugAdd({kind:'worked',title,role:c.me||''}); o.postcard={at:Date.now(),id:q.id}; save(); location.href='../picture/?plug='+encodeURIComponent(q.id); return; }
 }
 function vScript(){
  const c=cur(); let h='';
@@ -1195,6 +1316,7 @@ function wireCut(){
    q.forEach(x=>URL.revokeObjectURL(x.url)); if(!r){ return; }
    if(ROUGH) URL.revokeObjectURL(ROUGH.url);
    ROUGH=Object.assign(r,{url:URL.createObjectURL(r.blob),name:name()+' rough cut.'+r.ext,len:F.cutLength(P.filter(p=>FILES[p.id]))});
+   keepFinal(r.blob,ROUGH.name,ROUGH.len,'rough');
    render(); const o=$('roughvid'); if(o) o.scrollIntoView({block:'center'}); };
  const sr=$('csaverough'); if(sr) sr.onclick=async()=>{ if(!ROUGH) return; try{ const f=new File([ROUGH.blob],ROUGH.name,{type:ROUGH.blob.type}); if(/Android|iPhone|iPad/i.test(navigator.userAgent)&&navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:ROUGH.name}); return; } }catch(e){ if(e&&e.name==='AbortError') return; }
    const a=document.createElement('a'); a.href=ROUGH.url; a.download=ROUGH.name; document.body.appendChild(a); a.click(); a.remove(); };
@@ -1221,6 +1343,16 @@ function wireCut(){
 /* ---------- wiring ---------- */
 function wire(){
  document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ TAB=b.dataset.go; render(); });
+ const yf=$('yourfilms'); if(yf) yf.onclick=()=>{ OPENP=!OPENP; render(); };
+ const sf=$('startfilm'); if(sf) sf.onclick=()=>{ OPENP=false; MSG=''; TAB=TAB==='start'?(cur()?LASTIN.prep:'script'):'start'; OPEN=null; render(); };
+ const es=$('exstart'); if(es) es.onclick=()=>{ MSG=''; TAB='start'; render(); };
+ const ef=$('exfilms'); if(ef) ef.onclick=()=>{ OPENP=true; render(); };
+ document.querySelectorAll('[data-film]').forEach(b=>b.onclick=()=>{ const id=b.dataset.film, c=DB.scripts[id]; if(!c) return; DB.cur=id; c.at=Date.now(); OPENP=false; SCENES=F.scenes(c.text); OPEN=null; save(); if(TAB==='start'||TAB==='script') TAB='scenes'; render(); fromTakes(); });
+ document.querySelectorAll('[data-kind]').forEach(b=>b.onclick=()=>{ START.kind=b.dataset.kind; render(); });
+ document.querySelectorAll('[data-who]').forEach(b=>b.onclick=()=>{ START.who=b.dataset.who; render(); });
+ document.querySelectorAll('[data-dest]').forEach(b=>b.onclick=()=>sendOut(b.dataset.dest));
+ const of=$('outfile'); if(of) of.onchange=async()=>{ const f=of.files[0]; if(!f) return; const secs=await clipLength(f); if(await keepFinal(f,f.name,secs||0,'file')){ render(); toast('Your cut is in.'); } };
+ if(TAB==='out') fillOut();
  const d=$('drop');
  if(d){
   d.onclick=()=>$('file').click();
@@ -1294,25 +1426,31 @@ $('file').addEventListener('change',e=>{ const f=e.target.files[0]; e.target.val
 window.addEventListener('storage',e=>{ if(e.key===KEY&&e.newValue){ try{ const d=JSON.parse(e.newValue); if(d&&Array.isArray(d.owned)){ DB.owned=d.owned; render(); } }catch(x){} } });
 window.addEventListener('storage',e=>{ if(e.key&&/shelf/.test(e.key)){ const p=SH&&SH.pending(TOOL); if(p){ adopt(); render(); } } });
 
-adopt(); if(cur()&&TAB==='script'&&SCENES.length) TAB='scenes';
+adopt();
+/* opened with nothing, like every tool: what you were on is one tap away (YOUR FILMS · PICK UP), never in your face.
+   ?open=1, #open=<id>, a script sent from another tool, or a start from BACKLOT open it. ?start=1 opens START A FILM. */
+{ const q=new URLSearchParams(location.search); if(!ASKED&&!q.get('open')&&DB.cur){ DB.last=DB.cur; DB.cur=''; SCENES=[]; save(); }
+  if(q.get('open')&&!DB.cur&&DB.last&&DB.scripts[DB.last]){ DB.cur=DB.last; SCENES=F.scenes(DB.scripts[DB.cur].text); }
+  if(q.get('start')&&!DB.cur) TAB='start'; }
+if(cur()&&TAB==='script'&&SCENES.length) TAB='scenes';
 render();
 /* takes recorded with CAMERA on the home page (shared/takes.js): a scene take lands on its scene in CUT,
    and its file is kept, so it plays again after the page is closed */
 async function fromTakes(){
- const T=window.Takes; if(!T||!cur()) return; let n=0, lastHere=true; const here0=()=>lastHere;
+ const T=window.Takes; if(!T) return; let n=0, lastHere=true; const here0=()=>lastHere;
  for(const it of T.pending(TOOL,['scene'])){
-  // it goes on the script it was shot for, even if another one is open now
-  const sc=(it.for.script&&DB.scripts[it.for.script])||cur(), here=sc===cur();
+  // it goes on the script it was shot for, even if another one is open now (or none is)
+  const sc=(it.for.script&&DB.scripts[it.for.script])||cur(); if(!sc) continue; const here=sc===cur();
   const b=await T.blob(it.id); if(!b){ T.take(TOOL,it.id); continue; }
   sc.cut=sc.cut||{target:300,fps:'30',takes:{}}; const k=sc.cut, sn=(!here||SCENES.some(x=>x.n===+it.for.scene))?(+it.for.scene||1):((SCENES[0]&&SCENES[0].n)||1); k.takes[sn]=k.takes[sn]||[];
   const id=rid('t'), d=Math.round((it.secs||0)*100)/100;
   k.takes[sn].push({id:id,name:it.name,size:b.size,dur:d,in:0,out:d,use:!k.takes[sn].some(x=>x.use),at:it.at,takeId:it.id});
   FILES[id]=new File([b],it.name,{type:b.type,lastModified:it.at}); lastHere=here; T.take(TOOL,it.id); n++; }
  // and the files of earlier ones, back from the takes shelf
- const k=cur().cut; if(k&&k.takes) for(const L of Object.values(k.takes)) for(const t of L){ if(t.takeId&&!FILES[t.id]){ const b=await T.blob(t.takeId); if(b) FILES[t.id]=new File([b],t.name,{type:b.type}); } }
+ const k=cur()&&cur().cut; if(k&&k.takes) for(const L of Object.values(k.takes)) for(const t of L){ if(t.takeId&&!FILES[t.id]){ const b=await T.blob(t.takeId); if(b) FILES[t.id]=new File([b],t.name,{type:b.type}); } }
  if(n){ save(); toast(n===1?'A take from home is on its scene in CUT'+(here0()?'.':' of the script it was shot for.'):n+' takes from home are in CUT.'); }
  if(n||TAB==='cut') render();
 }
 fromTakes();
-window.__film={DB:()=>DB,SCENES:()=>SCENES,dayOpen:f=>dayOpen(f),packFiles:()=>packFiles(),CAM,MIC,MON,CLICK};
+window.__film={sendOut:k=>sendOut(k),keepFinal:(b,n,s,f)=>keepFinal(b,n,s,f),DB:()=>DB,SCENES:()=>SCENES,dayOpen:f=>dayOpen(f),packFiles:()=>packFiles(),CAM,MIC,MON,CLICK};
 })();

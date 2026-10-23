@@ -9,11 +9,11 @@ const T=fs.mkdtempSync(path.join(os.tmpdir(),'day-'));
 (async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,500))); if(!x) ok=false; };
 const c=await b.newContext({viewport:{width:390,height:844},acceptDownloads:true}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
-await p.goto('http://localhost:8811/film/'); await p.evaluate(()=>{ localStorage.clear(); sessionStorage.setItem('theactorpage_hot_ok','1'); }); await p.reload(); await p.waitForTimeout(700);
+await p.goto('http://localhost:8811/film/'); await p.evaluate(()=>{ localStorage.clear(); sessionStorage.setItem('theactorpage_hot_ok','1'); }); await p.goto('http://localhost:8811/film/?open=1'); await p.waitForTimeout(700);
 const text=fs.readFileSync(path.join(__dirname,'..','..','shared','fixtures','low_tide.fountain'),'utf8');
 await p.setInputFiles('#file',{name:'low_tide.fountain',mimeType:'text/plain',buffer:Buffer.from(text)}); await p.waitForTimeout(800);
 // a way for scene 1, so it has a shot list
-await p.evaluate(()=>{ const D=window.__film.DB(), c=D.scripts[D.cur]; c.scenes=c.scenes||{}; c.scenes[1]={way:'keep',where:'',done:{},cont:{}}; localStorage.setItem('film_os_v1',JSON.stringify(D)); }); await p.reload(); await p.waitForTimeout(800);
+await p.evaluate(()=>{ const D=window.__film.DB(), c=D.scripts[D.cur]; c.scenes=c.scenes||{}; c.scenes[1]={way:'keep',where:'',done:{},cont:{}}; localStorage.setItem('film_os_v1',JSON.stringify(D)); }); await p.goto('http://localhost:8811/film/?open=1'); await p.waitForTimeout(800);
 await p.click('#tabs [data-r="post"]'); await p.waitForTimeout(400);
 let m=await p.innerText('#main');
 want('CUT: LOG THE DAY, says what it does', /Log the day/i.test(m)&&/line up in the order you shot them/.test(m));
