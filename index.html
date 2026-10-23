@@ -553,7 +553,24 @@ body.stopen{overflow:hidden}
 .cost caption{text-align:left;padding:14px 18px 4px;color:#9aa1ab;font-size:.9rem}
 .cost th{text-align:left;padding:12px 18px;font-weight:500;color:#9aa1ab;border-bottom:1px solid var(--rule)}.cost th:last-child{color:var(--tungsten)}
 .cost td{padding:12px 18px;border-bottom:1px solid #1f2328}.cost tr:last-child td{border-bottom:0}.cost td:nth-child(2){color:#c3c8d0}
-.trysec{text-align:center}.trysec p{color:#c3c8d0;max-width:30em;margin:0 auto 22px;font-size:1.06rem}
+.trysec p{color:#c3c8d0;max-width:30em;margin:0 0 22px;font-size:1.06rem}
+/* the slate sticks: the clapper's stripes, the same as Actor OS's slate */
+.sticks{display:grid;gap:4px;margin:0 0 6px}
+.stk{display:block;height:20px;border-radius:3px;border:1px solid #3a3f47;background:repeating-linear-gradient(-55deg,#ece7dc 0 14px,#101114 14px 28px)}
+.stk.top{transform-origin:6px 100%;transform:rotate(-9deg);margin-bottom:6px}
+.trygrid{display:grid;grid-template-columns:minmax(240px,360px) 1fr;gap:clamp(28px,6vw,80px);align-items:center}
+.slatecard{background:#141619;border:1px solid #3a3f47;border-radius:8px;padding:12px 12px 4px;box-shadow:0 18px 40px rgba(0,0,0,.45)}
+.slatecard .sticks{margin:-2px 0 10px}
+.sfields{display:grid;grid-template-columns:1fr 1fr;margin:0;border-top:1px solid #2c3138}
+.sfields>div{padding:9px 10px;border-bottom:1px solid #2c3138}.sfields>div:nth-child(2n+1):not(.w2){border-right:1px solid #2c3138}.sfields .w2{grid-column:1/-1}
+.sfields dt{font:700 .62rem var(--script);letter-spacing:.18em;color:#9aa1ab}.sfields dd{margin:3px 0 0;font:700 1rem var(--script);letter-spacing:.06em;color:#ece7dc}.sfields dd.big{font-size:1.7rem;line-height:1}.sfields .w2:last-child dd{font-size:.8rem;letter-spacing:.1em}
+.trytext .hero-go{justify-content:flex-start}
+.pitchgrid{display:grid;grid-template-columns:1fr minmax(240px,340px);gap:clamp(28px,6vw,80px);align-items:center}
+.ledger{background:#141619;border:1px solid #3a3f47;border-radius:8px;padding:12px}
+.ledger .sticks{margin:-2px 0 10px}
+.ledger dl{margin:0}.ledger dl>div{display:flex;justify-content:space-between;gap:12px;padding:10px 4px;border-bottom:1px solid #2c3138}.ledger dl>div:last-child{border-bottom:0}
+.ledger dt{font:700 .66rem var(--script);letter-spacing:.16em;color:#9aa1ab;align-self:center}.ledger dd{margin:0;font:700 .82rem var(--script);color:var(--tungsten);text-align:right}
+@media(max-width:820px){.trygrid,.pitchgrid{grid-template-columns:1fr}.slatecard{max-width:360px;order:2}.ledger{max-width:420px}}
 
 .sec-lede{font-size:1.08rem;line-height:1.55;color:#c3c8d0;max-width:36em;margin:-12px 0 24px}
 .sp-tools{display:grid;gap:8px;margin:0 0 20px}
@@ -916,13 +933,16 @@ body.stopen{overflow:hidden}
 <hr class="hair">
 
 <section class="band pitch">
-  <div class="wrap">
+  <div class="wrap pitchgrid"><div>
     <p>Every service in this business rents you your own work back. Your reel sits on
        their server. Your sides live in their app. Stop paying and it all goes dark.</p>
     <p>THEACTORPAGE keeps your material on your own machine. Every tool, one account,
        and <strong>the footage never leaves your disk unless you send it somewhere.</strong></p>
     <p class="nolimit" id="nolimit">No limit on your material. Add every headshot, every take, every clip, every draft. It's all on your machine, so adding more never costs you more.</p>
   </div>
+  <div class="ledger" aria-label="Where your material lives"><div class="sticks" aria-hidden="true"><i class="stk"></i></div>
+    <dl><div><dt>YOUR REEL</dt><dd>On your machine</dd></div><div><dt>YOUR SIDES</dt><dd>On your machine</dd></div><div><dt>YOUR TAKES</dt><dd>On your machine</dd></div><div><dt>YOUR HEADSHOTS</dt><dd>On your machine</dd></div><div><dt>IF YOU STOP PAYING</dt><dd>Still yours</dd></div></dl>
+  </div></div>
 </section>
 
 <hr class="hair">
@@ -1292,11 +1312,16 @@ body.stopen{overflow:hidden}
 <hr class="hair">
 
 <section class="band trysec" id="try">
-  <div class="wrap">
-    <h2 class="sec-h">Start with a scene we wrote.</h2>
-    <p>Low Tide is a short made-up script. Pick a part and try every step. When you're ready, put in your own.</p>
+  <div class="wrap trygrid">
+    <div class="slatecard" aria-hidden="true"><div class="sticks" aria-hidden="true"><i class="stk top"></i><i class="stk"></i></div>
+      <dl class="sfields"><div class="w2"><dt>PROD.</dt><dd>LOW TIDE (SAMPLE)</dd></div><div><dt>ROLE</dt><dd>YOU PICK</dd></div><div><dt>TAKE</dt><dd class="big">1</dd></div><div class="w2"><dt>STEPS</dt><dd>GET · LEARN · RUN · TAPE · SEND</dd></div></dl>
+    </div>
+    <div class="trytext">
+    <h2 class="sec-h">Start with a sample scene.</h2>
+    <p>Low Tide is a short sample script. Pick a part and try every step. When you're ready, put in your own.</p>
     <div class="hero-go"><a class="btn hero-try" href="demo/?try">Try it on a sample scene</a><a class="btn ghost" href="#you">Add my own sides</a></div>
     <p class="hero-note">Or <a href="demo/">watch the narrated tour</a>, about 6 minutes. Your own work is put away while you do.</p>
+    </div>
   </div>
 </section>
 

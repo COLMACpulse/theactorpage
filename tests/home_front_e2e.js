@@ -40,7 +40,7 @@ const why=await p.innerText('#why');
 want('why it\'s different: free, a real reader, stays yours, no signal; and what it costs elsewhere', /Free, with no limit/.test(why)&&/A real reader/.test(why)&&/It stays yours/.test(why)&&/Works with no signal/.test(why)&&/\$5 to \$15 a month/.test(why));
 want('ACT tools are one tap away, folded', /SEE EVERY ACT TOOL/.test(await p.innerText('.band.act'))&&!(await p.$eval('.dept[data-d="act"]',d=>d.open)));
 want('the stale bits are gone: no "three rooms", no sign-in account, no "folder on your disk"', await p.evaluate(()=>!/three rooms|Sign in once|A folder on your disk is the record|All three tools/.test(document.body.innerText)));
-want('try it, again at the bottom', /Start with a scene we wrote/.test(await p.innerText('#try')));
+want('try it, again at the bottom', /Start with a sample scene/.test(await p.innerText('#try')));
 want('no em dashes, no "thing"', await p.evaluate(()=>!/—/.test(document.body.innerText)&&!/\bthings?\b/i.test(document.body.innerText)));
 // TRY IT: the demo on Low Tide, no voice
 let spoke=0; await c.exposeFunction('__spoke',()=>{ spoke++; });
