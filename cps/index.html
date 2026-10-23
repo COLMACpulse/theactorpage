@@ -75,7 +75,7 @@ label.lab{display:block;font-size:12px;letter-spacing:.12em;text-transform:upper
 .top .title b{display:block;font-size:15px;letter-spacing:.08em}
 .top .title span{font-size:12px;color:var(--tung-text);letter-spacing:.06em}
 main{flex:1;min-width:0;padding:16px 16px calc(var(--nav) + 24px + env(safe-area-inset-bottom));max-width:1100px;width:100%;margin:0 auto}
-nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(5,1fr);background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(3,1fr);background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
 nav.tabs button{min-height:var(--nav);border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;letter-spacing:.1em;color:var(--faint);position:relative}
 nav.tabs button svg{width:22px;height:22px}
 nav.tabs button.on{color:var(--tung-text)}
@@ -238,6 +238,74 @@ svg.cg [data-tip]:focus .hit{stroke:var(--ink);stroke-width:1}
 .tunelive .big{margin:4px 0 2px}
 svg#ttrace{height:90px;margin-top:8px;background:var(--panel2);border-radius:8px}
 svg#ttrace .tbandr{fill:var(--c-then);opacity:.14}
+
+/* the header: a character card with its voice moving, the sigil, the sticks */
+.top.bhead{position:relative;display:block;min-height:0;padding:calc(env(safe-area-inset-top) + 12px) 16px 10px;background:var(--bg);border:0}
+.bwrap{display:flex;align-items:center;gap:14px;max-width:1100px;margin:0 auto}
+.btx{flex:1;min-width:0}.btx h1{font-size:22px;letter-spacing:.02em;margin:2px 0;font-weight:600}.btx p{margin:0;color:var(--tung-text);font-size:14px}
+.bico{width:52px;height:65px;flex:none}.bico .pg{fill:var(--panel);stroke:var(--line)}.bico .ph{fill:var(--panel2)}.bico .sil{fill:var(--faint);opacity:.6}
+.bico .wb{fill:var(--tung);transform-origin:center;transform-box:fill-box;animation:wbp 1.2s ease-in-out infinite alternate}
+@keyframes wbp{0%{transform:scaleY(.25)}100%{transform:scaleY(1)}}
+@media (prefers-reduced-motion:reduce){.bico .wb{animation:none;transform:scaleY(.6)}}
+.bsig{width:46px;height:46px;flex:none;object-fit:contain}
+.hstk{display:block;height:26px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='176' height='30' viewBox='0 0 176 30'%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232b3038' transform='translate%28-22%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%231f8a5c' transform='translate%280%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23d9b23a' transform='translate%2822%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232a5fa8' transform='translate%2844%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23c0392b' transform='translate%2866%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23e8e6e0' transform='translate%2888%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%239aa0a8' transform='translate%28110%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%235c636d' transform='translate%28132%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232b3038' transform='translate%28154%29'/%3E%3C/svg%3E") repeat-x 0 50%/auto 100%;box-shadow:inset 0 0 0 1px #00000055;opacity:.92}
+.cbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.cbwrap{display:flex;align-items:center;gap:10px;max-width:1100px;margin:0 auto;padding:6px 16px;flex-wrap:wrap}.cbwrap b{flex:1;min-width:0;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}.seg button{min-height:40px;padding:0 14px;border:0;background:transparent;font:600 12px var(--sans);letter-spacing:.12em;color:var(--dim)}.seg button.on{background:var(--tung);color:var(--tung-ink)}
+/* the bank */
+.bankbar{gap:8px;margin:0 0 14px;align-items:center}.bankbar .chip{min-height:40px}.bankbar .chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.addc{margin-left:auto;border-style:dashed;font-weight:600;letter-spacing:.1em;font-size:13px}.addc.on{border-color:var(--tung);box-shadow:0 0 0 1px var(--tung) inset}
+.hpanel{background:var(--panel2);border-radius:14px;padding:12px;margin:0 0 14px}
+.starts .btn{gap:8px}
+.bank{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.ccard{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
+.ccard.strained{border-color:var(--bad)}
+.clook{position:relative;aspect-ratio:4/5;background:var(--panel2);overflow:hidden}
+.lk2{position:absolute;inset:0;display:block}
+.lk2 .lbg{position:absolute;inset:-10%;width:120%;height:120%;object-fit:cover;filter:blur(18px) saturate(1.1);opacity:.55}
+.lk2 .lfg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.lk2.nolook{display:flex;align-items:flex-end;justify-content:center}.lk2.nolook svg{width:62%;fill:var(--line)}
+.lk2.nolook small{position:absolute;top:10px;right:10px;font:600 10px var(--sans);letter-spacing:.14em;color:var(--faint)}
+.hear{position:absolute;left:10px;bottom:10px;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px 0 10px;border-radius:999px;border:0;background:rgba(18,17,16,.8);color:#ece7dc;font:600 12px var(--sans);letter-spacing:.12em}
+.hear svg path{fill:#e9b25a}.hear.on{background:var(--tung);color:var(--tung-ink)}.hear.on svg path{fill:var(--tung-ink)}
+.cbody{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px}
+.cname{border:0;background:none;padding:0;text-align:left;font:600 17px var(--sans);color:var(--ink);min-height:32px}
+.cline{font:700 13.5px var(--mono);color:var(--ink)}
+.cwave{display:block;height:28px}.cw{width:100%;height:28px;display:block}.cw rect{fill:var(--line)}.cw:not(.none) rect{fill:var(--faint)}.cw rect.on{fill:var(--tung)}
+/* the example, when the bank is empty */
+.work{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px 20px;margin:4px 0 12px}
+.exhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin:0 0 12px}
+.exsteps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 14px}
+.exs{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--bg);display:flex;flex-direction:column;gap:8px;transition:border-color .3s,box-shadow .3s}
+.exs.on{border-color:var(--tung);box-shadow:0 0 0 1px var(--tung) inset;background:var(--panel)}
+.exs b{font:600 12.5px var(--sans);letter-spacing:.14em}.exs span{font-size:13px;color:var(--dim)}.exs svg{width:100%;height:40px}
+.exw{stroke:var(--tung);stroke-width:4;stroke-linecap:round}
+.exlook{display:flex;align-items:center;justify-content:center;height:60px;border-radius:8px;background:var(--panel2);font:600 10px var(--sans)!important;letter-spacing:.14em}
+@media (max-width:760px){.exsteps{grid-template-columns:1fr 1fr}}
+/* KEEP: the voice open, the rest when you want it */
+details.fold>summary{list-style:none;cursor:pointer;min-height:var(--tap);display:flex;align-items:center}details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary h3{margin:0;flex:1}details.fold>summary::after{content:"OPEN";font:600 11px var(--sans);letter-spacing:.14em;color:var(--tung-text);margin-left:10px}
+details.fold[open]>summary::after{content:"CLOSE"}details.fold[open]>summary{margin-bottom:8px}
+/* COME BACK: one step at a time */
+.backgrid{display:grid;grid-template-columns:1fr;gap:18px}
+.baside{display:none}
+.bdots{display:flex;gap:2px;flex-wrap:wrap;margin:0 0 12px}
+.bdot{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 8px;border:0;background:none;font:600 11px var(--sans);letter-spacing:.14em;color:var(--faint)}
+.bdot i{width:24px;height:24px;border-radius:50%;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-style:normal;font-size:11px;letter-spacing:0}
+.bdot.on{color:var(--tung-text)}.bdot.on i{background:var(--tung);border-color:var(--tung);color:var(--tung-ink)}.bdot.done{color:var(--dim)}.bdot.done i{background:var(--panel2);color:var(--tung-text)}
+.bstepcard{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px 22px;min-height:260px}
+.bstepcard .kicker{color:var(--tung-text)}.bstepcard .bh{font-size:24px;font-weight:600;margin:0 0 12px;line-height:1.25}
+.bstepcard #tune>h3{display:none}
+.bstepcard #tune,.bstepcard #result{border:0;padding:0;margin:0;background:none}
+.blook .hero-look{max-height:46vh}.bbody{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px 16px;margin-top:12px}
+.ccard .row .btn{white-space:nowrap;padding:0 10px;font-size:13px;letter-spacing:.06em}
+@media (min-width:900px){.bstepcard .phonly{display:none}}
+.bnav{margin-top:12px}.bnav .btn{min-height:52px;padding:0 22px}
+@media (min-width:900px){.backgrid{grid-template-columns:minmax(0,2fr) minmax(0,3fr)}.baside{display:flex;flex-direction:column;gap:12px;position:sticky;top:64px;align-self:start}
+ .baside .lk2{position:relative;display:block;aspect-ratio:4/5;border-radius:18px;overflow:hidden;background:var(--panel2)}.baside .lk2.nolook{display:flex}
+ .bline{font:700 20px var(--mono);text-align:center;color:var(--ink)}}
+@media (max-width:640px){.bwrap .bsig{width:40px;height:40px}.btx h1{font-size:18px}.btx p{font-size:13px}.bank{grid-template-columns:1fr 1fr;gap:10px}.cbody{padding:10px}.cname{font-size:15px}.hear span{display:none}.hear{padding:0 12px}.addc{margin-left:0}}
+@media (min-width:1000px){.bico{width:66px;height:82px}.bsig{width:64px;height:64px}.btx h1{font-size:24px}}
 </style>
 </head>
 <body>
@@ -248,6 +316,7 @@ svg#ttrace .tbandr{fill:var(--c-then);opacity:.14}
 <input type="file" id="zipin" class="sr" accept=".zip,application/zip,.json,application/json">
 <script src="../shared/kit.js"></script>
 <script src="../shared/shelf.js"></script>
+<script src="../shared/wave.js"></script>
 <script src="engine.js"></script>
 <script src="charts.js"></script>
 <script src="app.js"></script>

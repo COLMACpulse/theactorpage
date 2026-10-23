@@ -28,7 +28,7 @@ want(scheme+': hover a dot: its numbers', /Kid Nell/.test(await p.innerText('#cg
 await p.focus('svg.cg g[data-tip*="Old Sam"]'); await p.waitForTimeout(100);
 want(scheme+': focus works too (keyboard)', /Old Sam/.test(await p.innerText('#cgtip')));
 // come back: then and now, and every come-back
-await p.evaluate(()=>{ window.CPS.S.lastReturn='r3'; window.CPS.act('tab',{t:'back'}); }); await p.waitForTimeout(400);
+await p.evaluate(()=>{ window.CPS.S.lastReturn='r3'; window.CPS.S.bstepName='moved'; window.CPS.act('tab',{t:'back'}); }); await p.waitForTimeout(400);
 const ct=await p.$('svg.cg[aria-label^="Pitch through the take"]');
 want(scheme+': COME BACK: then and now, two lines, keyed', !!ct&&(await p.$$eval('svg.cg .line.then',x=>x.length))===1&&(await p.$$eval('svg.cg .line.now',x=>x.length))===1&&/then\s+now\. Pitch through the take/.test(await p.innerText('#main')));
 const hit=await p.$('svg.cg .hitarea'); await hit.scrollIntoViewIfNeeded(); const bb=await hit.boundingBox(); await p.mouse.move(bb.x+bb.width*0.4,bb.y+bb.height/2); await p.waitForTimeout(150);

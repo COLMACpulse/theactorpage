@@ -8,9 +8,9 @@ const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.messag
 await p.goto('http://localhost:8811/cps/'); await p.evaluate(()=>new Promise(r=>{ const q=indexedDB.deleteDatabase('cps_v02'); q.onsuccess=q.onerror=q.onblocked=()=>r(); })); await p.reload();
 await p.waitForFunction(()=>window.CPS&&window.CPS.S&&window.CPS.S.lib,null,{timeout:8000});
 const setRef=hz=>p.evaluate(hz=>{ const {S}=window.CPS; const ch={id:'sam',name:'Old Sam',project:'',created:'2026-09-01T10:00:00Z',updated:'2026-10-15T10:00:00Z',state:null,anchorLine:'Get off my land.',notes:'',refId:'vs',takes:[{id:'vs',kind:'voice',at:'2026-09-01T10:00:00Z',an:{pitchHz:hz,pitchLoHz:hz*0.85,pitchHiHz:hz*1.2,rangeSt:5.9,spanSec:5,silencePct:10}}],looks:[],bd:null,me:false};
- S.lib.chars=[ch]; S.lib.cur='sam'; S.cold=false; window.CPS.act('tab',{t:'back'}); },hz);
+ S.lib.chars=[ch]; S.lib.cur='sam'; S.cold=false; S.bstepName='pitch'; S.tab='chars'; window.CPS.act('tab',{t:'back'}); },hz);
 await setRef(96); await p.waitForTimeout(300);
-let m=await p.innerText('#tune');
+let m=await p.innerText('#bstep');
 want('COME BACK has FIND THE PITCH: the middle, the range, listens not records', /Find the pitch/i.test(m)&&/96 Hz \(G2\)/.test(m)&&/82 to 115 Hz/.test(m)&&/doesn.t record/.test(m), m);
 await p.click('[data-a="tune"]'); await p.waitForTimeout(2500);
 m=await p.innerText('#tune');
@@ -25,7 +25,7 @@ await setRef(100); await p.waitForTimeout(300); await p.click('[data-a="tune"]')
 want('on the reference pitch: On it, held, counted', (await p.innerText('#tword'))==='On it.'&&/Held within 50 cents for \d\.\d s/.test(await p.innerText('#thold'))&&await p.$eval('#tneedle',e=>e.classList.contains('on')), [await p.innerText('#tword'),await p.innerText('#thold')]);
 await p.evaluate(()=>window.CPS.act('tab',{t:'voices'})); await p.waitForTimeout(300);
 want('leave COME BACK: the mic stops', await p.evaluate(()=>!window.CPS.S.tune));
-await p.evaluate(()=>{ window.CPS.S.cold=true; window.CPS.act('tab',{t:'back'}); }); await p.waitForTimeout(300);
+await p.evaluate(()=>{ window.CPS.S.cold=true; window.CPS.S.tab='chars'; window.CPS.act('tab',{t:'back'}); }); await p.waitForTimeout(300);
 want('cold come-back: no pitch to copy (hidden, like the notes)', !(await p.$('#tune')));
 want('no em dashes', !/—/.test(m));
 want('no page errors', !errs.length, errs);

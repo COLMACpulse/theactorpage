@@ -39,7 +39,7 @@
 
   const emptyLib = () => ({ schema: SCHEMA, app: 'Character Bank ' + VERSION, created: now(), chars: [], cur: null, lastSaved: null, lines: E.DEFAULT_LINES });
   const newChar = (name, project) => ({ id: rid(), name: name || '', project: project || '', created: now(), updated: now(), state: null, anchorLine: '', notes: '', refId: null, takes: [], looks: [], bd: null, never: '', vary: '', strain: '', strained: false, me: false, posture: '', weight: '', eyes: '', hands: '', trigger: '', plays: '', neverDo: '', backs: [] });
-  const S = { visit: null, cold: (function () { try { return localStorage.getItem('cps_cold') === '1'; } catch (e) { return false; } })(), lib: null, tab: 'chars', urls: {}, rec: null, lastReturn: null, bd: [], busy: '' };
+  const S = { fold: {}, proj: '', newOpen: false, bstep: 0, visit: null, cold: (function () { try { return localStorage.getItem('cps_cold') === '1'; } catch (e) { return false; } })(), lib: null, tab: 'chars', urls: {}, rec: null, lastReturn: null, bd: [], busy: '' };
   let saveT = null;
   function touch(c) { if (c) c.updated = now(); clearTimeout(saveT); saveT = setTimeout(() => DB.putLib(S.lib), 200); }
   const cur = () => S.lib.chars.find(c => c.id === S.lib.cur) || null;
@@ -105,7 +105,7 @@
       if (!a.pitchHz && a.speechSec < 0.5) toast('That take is nearly silent. It\'s kept, but there\'s nothing to measure.');
     }
     const t = { id: rid(), kind, at: now(), type: blob.type || typeOf(name || ''), size: blob.size, name: name || '', an: a };
-    if (kind === 'return') { const ref = E.reference(c); t.refId = ref ? ref.id : null; S.lastReturn = t.id; if (S.cold && S.visit && S.visit.id === c.id && !S.visit.coldDone) { t.cold = true; S.visit.coldDone = true; } }
+    if (kind === 'return') { const ref = E.reference(c); t.refId = ref ? ref.id : null; S.lastReturn = t.id; S.bstepName = 'moved'; if (S.cold && S.visit && S.visit.id === c.id && !S.visit.coldDone) { t.cold = true; S.visit.coldDone = true; } }
     if (kind === 'lines') { t.linesKey = E.linesKey(S.lib.lines); t.lines = S.lib.lines; }
     try { await DB.putMedia(t.id, blob); } catch (e) { toast('Couldn\'t save the recording on this device. Save a pack now.'); }
     c.takes.push(t);
@@ -136,18 +136,25 @@
     close: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>',
     theme: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg>'
   };
-  const TABS = [['chars', 'CHARACTERS'], ['capture', 'CAPTURE'], ['back', 'COME BACK'], ['voices', 'VOICES'], ['pack', 'PACK']];
+  const TABS = [['chars', 'BANK'], ['voices', 'VOICES'], ['pack', 'PACK']];
+  const IN_CHAR = t => t === 'capture' || t === 'back';
+  const CB_ICON = `<svg class="bico" viewBox="0 0 64 80" role="img" aria-label="A character card and its voice"><rect class="pg" x="2" y="2" width="60" height="76" rx="5"/><rect class="ph" x="8" y="8" width="48" height="40" rx="3"/><circle class="sil" cx="32" cy="24" r="8"/><path class="sil" d="M18 48c2-9 8-13 14-13s12 4 14 13z"/>${[0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => `<rect class="wb" style="animation-delay:${(i * 0.11).toFixed(2)}s" x="${10 + i * 5}" y="58" width="3" height="16" rx="1"/>`).join('')}</svg>`;
   function render() {
     closeSheet(true);
     if (S.tune && S.tab !== 'back') stopTune();
-    const c = cur();
+    if (S.tab !== 'chars') hush();
+    const c = cur(), inChar = IN_CHAR(S.tab) && c;
+    const sub = S.tab === 'voices' ? 'Your voices, same lines' : S.tab === 'pack' ? 'Keep it safe' : 'The voice, the look, the line that drops you back in.';
     $('#app').innerHTML = `<div class="shell">
-      <header class="top"><div class="title"><b>CHARACTER BANK</b><span>${esc(S.tab === 'voices' ? 'Your voices, same lines' : c && S.tab !== 'chars' && S.tab !== 'pack' ? (c.name || 'Unnamed character') + (c.project ? ' · ' + c.project : '') : 'You find it. This keeps it.')}</span></div><button class="iconbtn" data-a="theme" aria-label="Light or dark">${ICON.theme}</button></header>
+      <header class="top bhead"><div class="bwrap">${CB_ICON}<div class="btx"><div class="kicker" style="margin:0">ACT · CHARACTER BANK</div><h1>${S.tab === 'voices' ? 'Every voice, the same lines' : S.tab === 'pack' ? 'Your characters, in one file' : "Every character you've found, kept"}</h1><p>${esc(sub)}</p></div><img class="bsig" src="../img/sigil-film-180.png" alt="THEACTORPAGE" width="64" height="64"><button class="iconbtn" data-a="theme" aria-label="Light or dark">${ICON.theme}</button></div></header>
+      <i class="hstk" aria-hidden="true"></i>
+      ${inChar ? `<div class="cbar"><div class="cbwrap"><button class="btn ghost sm" data-a="tab" data-t="chars">‹ THE BANK</button><b id="cname">${esc(c.me ? 'You, as yourself' : (c.name || 'Unnamed character'))}${c.project ? ' <span class="faint">· ' + esc(c.project) + '</span>' : ''}</b>
+        <span class="seg">${c.me ? '' : `<button class="${S.tab === 'capture' ? 'on' : ''}" data-a="tab" data-t="capture">KEEP</button><button class="${S.tab === 'back' ? 'on' : ''}" data-a="tab" data-t="back">COME BACK</button>`}</span></div></div>` : ''}
       <main id="main">${S.busy ? `<div class="msg" role="status">${esc(S.busy)}</div>` : ''}${({ chars: vChars, capture: vCapture, back: vBack, voices: vVoices, pack: vPack }[S.tab])()}</main>
-      <nav class="tabs">${TABS.map(([k, l]) => `<button class="${S.tab === k ? 'on' : ''}" data-a="tab" data-t="${k}">${ICON[k]}<span>${l}</span></button>`).join('')}</nav></div>`;
-    if (S.tab === 'chars' && window.Kit) Kit.wire($('#main'), KIT);
+      <nav class="tabs">${TABS.map(([k, l]) => `<button class="${S.tab === k || (k === 'chars' && IN_CHAR(S.tab)) ? 'on' : ''}" data-a="tab" data-t="${k}">${ICON[k]}<span>${l}</span></button>`).join('')}</nav></div>`;
     if (G) G.wire($('#main'));
     if (S.tab === 'back') { const r = $('#refaudio'); if (r) r.addEventListener('play', () => { const c2 = cur(); if (c2) { c2.lastVisit = now(); touch(c2); } }, { once: true }); }
+    if (S.tab === 'chars') { fillWaves(); paintHear(); if ($('#example')) playExample(); }
   }
   const stateChip = c => { const s = E.autoState(c); return `<span class="state ${s}">${E.STATES[s]}</span>`; };
   function avatar(c) {
@@ -160,35 +167,89 @@
       <div style="flex:1;min-width:0">${on ? `<div class="meter" id="recmeter"><i></i></div><div class="row" style="justify-content:space-between;margin-top:4px"><span class="mono" id="rectime">0:00.0</span><span class="faint" style="font-size:13px">Tap again to stop</span></div>` : `<b>${esc(label)}</b>`}</div></div>`;
   }
 
-  // ---------------------------------------------------------------- CHARACTERS
+  /* ---------- a take's shape, for the card: read once from the recording, kept with VO BOOTH's (localStorage theactorpage_wave_v1) ---------- */
+  const WKEY = 'theactorpage_wave_v1', WV = window.Wave, WN = 40;
+  const wcache = () => { try { return JSON.parse(localStorage.getItem(WKEY) || '{}') || {}; } catch (e) { return {}; } };
+  const WAVING = new Set();
+  async function waveOf(t) {
+    if (!t || !WV) return null; const c = wcache(); if (c[t.id] && c[t.id].w) return c[t.id].w;
+    if (WAVING.has(t.id)) return null; WAVING.add(t.id);
+    try { const b = await DB.getMedia(t.id); if (!b) return null; const d = await decode(b); const ch = d.chans[0];
+      const w = WV.peaks(ch, 56); const all = wcache(); all[t.id] = { w, t: [0, 1] }; const ks = Object.keys(all); if (ks.length > 300) delete all[ks[0]]; try { localStorage.setItem(WKEY, JSON.stringify(all)); } catch (e) { } return w; } catch (e) { return null; } finally { WAVING.delete(t.id); }
+  }
+  function waveSvg(w) { const n = WN, src = w && w.length ? w : null; let h = '';
+    for (let i = 0; i < n; i++) { const v = src ? src[Math.floor(i * src.length / n)] / 100 : 0.15; const bh = Math.max(2, Math.round(v * 26)); h += `<rect data-i="${i}" x="${i * 5}" y="${(28 - bh) / 2}" width="3.2" height="${bh}" rx="1"/>`; }
+    return `<svg class="cw${src ? '' : ' none'}" viewBox="0 0 ${n * 5} 28" preserveAspectRatio="none" aria-hidden="true">${h}</svg>`; }
+  async function fillWaves() { for (const el of document.querySelectorAll('[data-cw]')) { const c = S.lib.chars.find(x => x.id === el.dataset.cw), r = c && E.reference(c); if (!r) continue; const w = await waveOf(r); if (w && el.isConnected) { el.innerHTML = waveSvg(w); paintHear(); } } }
+
+  /* ---------- HEAR THEN: one tap on the card plays the take you go back to ---------- */
+  const HEAR = { id: '', a: null };
+  function hush() { if (HEAR.a) { try { HEAR.a.pause(); } catch (e) { } } HEAR.id = ''; HEAR.a = null; }
+  function hear(id) {
+    const c = S.lib.chars.find(x => x.id === id), r = c && E.reference(c); if (!r || !url(r.id)) { toast('No recording to play yet.'); return; }
+    if (HEAR.id === id) { hush(); paintHear(); return; }
+    hush(); const a = new Audio(url(r.id)); HEAR.id = id; HEAR.a = a;
+    a.ontimeupdate = paintHear; a.onended = () => { hush(); paintHear(); };
+    a.play().catch(() => { hush(); paintHear(); toast('This browser would not play it.'); });
+    c.lastVisit = c.lastVisit || now(); paintHear();
+  }
+  function paintHear() {
+    document.querySelectorAll('[data-hear]').forEach(b => { const on = HEAR.id === b.dataset.hear; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); const w = b.querySelector('span'); if (w) w.textContent = on ? 'PLAYING' : 'HEAR THEN'; });
+    document.querySelectorAll('[data-cw]').forEach(el => { const on = HEAR.id === el.dataset.cw && HEAR.a && HEAR.a.duration; const k = on ? HEAR.a.currentTime / HEAR.a.duration * WN : -1; el.querySelectorAll('rect').forEach(r => r.classList.toggle('on', +r.dataset.i <= k)); });
+  }
+
+  // ---------------------------------------------------------------- THE BANK
+  function lookOf(c) { return (c.looks || []).find(x => x.kind !== 'video' && url(x.id)) || null; }
+  function lookBox(c, big) {
+    const l = lookOf(c), v = !l && (c.looks || []).find(x => x.kind === 'video' && url(x.id));
+    if (l) return `<span class="lk2"><img class="lbg" src="${url(l.id)}" alt=""><img class="lfg" src="${url(l.id)}" alt="${esc((c.name || 'Character') + ': the look')}"></span>`;
+    if (v) return `<span class="lk2"><video class="lfg" src="${url(v.id)}" muted playsinline preload="metadata"></video></span>`;
+    return `<span class="lk2 nolook"><svg viewBox="0 0 120 150" aria-hidden="true"><circle cx="60" cy="52" r="28"/><path d="M10 150c6-38 26-56 50-56s44 18 50 56z"/></svg>${big ? '' : '<small>NO LOOK YET</small>'}</span>`;
+  }
+  function charCard(c) {
+    const r = E.reference(c), st = E.autoState(c), name = c.me ? 'You, as yourself' : (c.name || 'Unnamed character');
+    return `<div class="ccard${c.strained ? ' strained' : ''}"><div class="clook">${lookBox(c)}
+        ${r ? `<button type="button" class="hear" data-a="hear" data-hear="${c.id}" aria-pressed="false" aria-label="Hear ${esc(name)}: the take you go back to"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><span>HEAR THEN</span></button>` : ''}</div>
+      <div class="cbody"><div class="row" style="justify-content:space-between;gap:6px;align-items:baseline;flex-wrap:nowrap"><button class="cname" data-a="open" data-id="${c.id}">${esc(name)}</button>${c.strained ? '<span class="state strained">Strained</span>' : `<span class="state ${st}">${E.STATES[st]}</span>`}</div>
+        <span class="faint" style="font-size:12.5px">${esc(c.project || (c.me ? 'Every voice is measured against you' : 'No project'))} · ${esc(ago(c.lastVisit || c.updated))}</span>
+        ${c.anchorLine ? `<span class="cline">"${esc(c.anchorLine)}"</span>` : ''}
+        ${r ? `<span class="cwave" data-cw="${c.id}">${waveSvg(null)}</span><span class="faint" style="font-size:12px">${esc(r.an && r.an.pitchHz ? E.noteName(r.an.pitchHz) + ' · ' + Math.round(r.an.pitchHz) + ' Hz' : 'Recorded')} · ${esc(ago(r.at))}</span>` : `<span class="faint" style="font-size:12.5px">No voice recorded yet.</span>`}
+        <div class="row" style="gap:6px;margin-top:4px">${r && !c.me ? `<button class="btn sm pri" data-a="comeback" data-id="${c.id}" style="flex:1">COME BACK</button>` : ''}<button class="btn sm${r && !c.me ? ' ghost' : ''}" data-a="open" data-id="${c.id}" style="flex:1">${c.me ? 'OPEN' : 'KEEP'}</button></div></div></div>`;
+  }
+  function startRow() {
+    const bdNew = S.bd.filter(r => !S.lib.chars.some(c => c.bd && c.bd.pid === r.pid && c.bd.role === r.role));
+    return `<div class="row starts"><button class="btn pri" data-a="quickrec"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>RECORD A VOICE</button><button class="btn" data-a="quickmemo">FROM A VOICE MEMO</button><button class="btn" data-a="newchar">START WITH A NAME</button></div>
+      ${bdNew.length ? `<div class="kicker" style="margin-top:12px">From your sides</div><div class="row">${bdNew.map(r => `<button class="chip" data-a="frombd" data-pid="${esc(r.pid)}" data-role="${esc(r.role)}">${esc(r.role)} · ${esc(r.title)}</button>`).join('')}</div>` : ''}`;
+  }
+  function exampleHtml() {
+    return `<div class="work" id="example"><div class="exhead"><span class="kicker" style="color:var(--tung-text);margin:0">EXAMPLE · HOW IT WORKS</span><span class="dim" id="excap" style="font-size:13.5px">Old Sam, a made-up character</span></div>
+      <div class="exsteps">
+        <div class="exs" data-ex="0"><b>1 THE VOICE</b><span>Record it the day you find it. Raw mic, as the character.</span><svg viewBox="0 0 160 40" preserveAspectRatio="none" aria-hidden="true"><path class="exw" d="M4 30v-20M12 30v-12M20 30v-24M28 30v-16M36 30v-26M44 30v-10M52 30v-18M60 30v-22M68 30v-8M76 30v-20M84 30v-14M92 30v-24M100 30v-10M108 30v-18M116 30v-6M124 30v-16M132 30v-12M140 30v-20M148 30v-8"/></svg><span class="mono" style="font-size:12px;color:var(--ink)">G2 · low, slow, long pauses</span></div>
+        <div class="exs" data-ex="1"><b>2 THE LOOK</b><span>A selfie in costume, a picture you found, a render, a sketch.</span><span class="exlook">THE LOOK</span></div>
+        <div class="exs" data-ex="2"><b>3 THE LINE</b><span>The one that drops you back in.</span><span class="mono" style="font-weight:700;font-size:15px;color:var(--ink)">"Get off my land."</span></div>
+        <div class="exs" data-ex="3"><b>4 WEEKS LATER</b><span>The callback. Hear then, say the line, record now. See what moved.</span><svg viewBox="0 0 160 40" preserveAspectRatio="none" aria-hidden="true"><path d="M10 32C30 10 50 30 70 14S110 26 150 12" fill="none" stroke="var(--c-then)" stroke-width="3"/><path d="M10 30C30 14 50 28 70 18S110 22 150 16" fill="none" stroke="var(--c-now)" stroke-width="3" stroke-dasharray="5 4"/></svg><span class="mono" style="font-size:12px;color:var(--ink)">then · now · back in 2:14</span></div>
+      </div>
+      ${startRow()}
+      <p class="faint" style="font-size:12.5px;margin:10px 0 0">The example plays when the bank is empty. Your first character takes its place.</p></div>`;
+  }
+  let EXT = null;
+  function playExample() { clearInterval(EXT); let i = 0; const paint = () => { const b = $('#example'); if (!b) { clearInterval(EXT); return; } b.querySelectorAll('[data-ex]').forEach(e => e.classList.toggle('on', +e.dataset.ex === i % 4)); i++; };
+    paint(); if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) EXT = setInterval(paint, 2200); }
   function vChars() {
     const L = S.lib;
-    const bdNew = S.bd.filter(r => !L.chars.some(c => c.bd && c.bd.pid === r.pid && c.bd.role === r.role));
-    return `${L.chars.length ? '' : `<div style="padding:12px 0 4px"><div class="kicker">THEACTORPAGE · ACT</div><h1 style="font-size:30px;letter-spacing:.1em">CHARACTER BANK</h1>
-        <div style="color:var(--tung-text);letter-spacing:.04em;margin-top:2px">Character Preservation. You find it. This keeps it.</div>
-        <p class="dim" style="margin:8px 0 0;max-width:36em">You found the voice in rehearsal. Weeks later, the callback. Record it now, as you, in your own voice. Add the look and the line that drops you back in. When you come back, hear yourself and see what moved.</p></div>`}
-      ${front()}
-      <div class="row" style="margin-bottom:14px"><button class="btn" data-a="quickmemo">Start from a voice memo</button><button class="btn ghost" data-a="newchar">Start with just a name</button></div>
-      ${bdNew.length ? `<div class="kicker">From your sides</div><div class="row" style="margin-bottom:14px">${bdNew.map(r => `<button class="chip" data-a="frombd" data-pid="${esc(r.pid)}" data-role="${esc(r.role)}">${esc(r.role)} · ${esc(r.title)}</button>`).join('')}</div>` : ''}
-      ${L.chars.length ? `<div class="kicker">${L.chars.length} ${L.chars.length === 1 ? 'character' : 'characters'}</div>` + L.chars.slice().sort((a, b) => (b.updated || '').localeCompare(a.updated || '')).map(c => {
-        const m = E.missing(c);
-        return `<button class="char" data-a="open" data-id="${c.id}">${avatar(c)}<span class="b"><b>${esc(c.me ? 'You, as yourself' : (c.name || 'Unnamed character'))}</b><span class="faint" style="font-size:13px">${esc(c.project || 'No project')} · last visit ${ago(c.lastVisit || c.updated)}</span><br>${stateChip(c)}${c.strained ? '<span class="state strained">Strained</span>' : ''}${m.length && !c.me ? `<span class="faint" style="font-size:12px;margin-left:6px">Still to keep: ${esc(m.join(', '))}</span>` : ''}</span></button>`;
-      }).join('') : ''}`;
+    if (!L.chars.length) return exampleHtml();
+    const projs = [...new Set(L.chars.filter(c => !c.me).map(c => (c.project || '').trim()).filter(Boolean))].sort();
+    if (S.proj && !projs.includes(S.proj)) S.proj = '';
+    const list = L.chars.filter(c => !S.proj || c.project === S.proj || c.me).slice().sort((a, b) => (a.me - b.me) || (b.updated || '').localeCompare(a.updated || ''));
+    const n = L.chars.filter(c => !c.me).length;
+    return `<div class="row bankbar"><span class="kicker" style="margin:0 4px 0 0">${n} ${n === 1 ? 'character' : 'characters'}</span>
+        ${projs.length > 1 ? `<button class="chip${S.proj ? '' : ' on'}" data-a="proj" data-p="">All</button>` + projs.map(p => `<button class="chip${S.proj === p ? ' on' : ''}" data-a="proj" data-p="${esc(p)}">${esc(p)}</button>`).join('') : ''}
+        <button class="btn addc${S.newOpen ? ' on' : ''}" data-a="newopen" aria-expanded="${!!S.newOpen}">+ NEW CHARACTER</button></div>
+      ${S.newOpen ? `<div class="hpanel">${startRow()}</div>` : ''}
+      <div class="bank">${list.map(charCard).join('')}</div>
+      <p class="faint" style="font-size:12.5px;margin:14px 0 0">KEEP holds everything for a character: takes, looks, notes, the body and the choices. COME BACK walks you back in. VO BOOTH reads every voice here, to pin one to a job or put it on your page.</p>`;
   }
-  // the front: the mic and camera this tool uses, as tiles, before you go looking
-  function front() {
-    if (!window.Kit) return '';
-    const c = cur(), who = c ? (c.me ? 'You, as yourself' : (c.name || 'Unnamed character')) : '';
-    return `<div style="margin:12px 0 0">${Kit.html([
-      { id: 'voice', dev: 'mic', label: 'MIC', what: 'Record a voice', note: 'Starts a new character' },
-      { id: 'look', dev: 'camera', label: 'CAMERA', what: 'Photo of the look', note: c ? 'For: ' + who : 'Pick or start a character first', off: !c }
-    ])}</div>`;
-  }
-  const KIT = {
-    voice: () => act('quickrec'),
-    look: () => { if (!cur()) return toast('Pick a character first, or record a voice to start one.'); S.tab = 'capture'; render(); window.scrollTo(0, 0); $('#camin').click(); }
-  };
-  function needChar(what) { return `<div class="msg" style="margin-top:12px">Pick a character first.</div><button class="btn pri block" data-a="tab" data-t="chars" style="margin-top:10px">Characters</button>${what ? '' : ''}`; }
+  function needChar(what) { return `<div class="msg" style="margin-top:12px">Pick a character first.</div><button class="btn pri block" data-a="tab" data-t="chars" style="margin-top:10px">THE BANK</button>${what ? '' : ''}`; }
 
   // ---------------------------------------------------------------- CAPTURE
   function vCapture() {
@@ -213,38 +274,38 @@
         </div>
       </section>
 
-      <section class="step"><h3><span class="n">2</span>The look${h.look ? '<span class="ok">kept</span>' : ''}</h3>
+      <details class="step fold" data-fold="2"${S.fold[2] ? ' open' : ''}><summary><h3><span class="n">2</span>The look${h.look ? '<span class="ok">kept</span>' : ''}</h3></summary>
         <p class="dim" style="font-size:14px;margin:0 0 10px">A photo in costume, a mirror selfie, a sketch. Whatever puts you back in the body.</p>
         <div class="row"><button class="btn" data-a="camera">Take a photo</button><button class="btn" data-a="photo">Add photo or video</button><button class="btn" data-a="sketch">Sketch</button></div>
         ${c.looks.length ? `<div class="looks">${c.looks.map(l => `<div class="lk">${l.kind === 'video' ? `<video src="${url(l.id)}" playsinline controls></video>` : `<img src="${url(l.id)}" alt="Look">`}<button class="iconbtn" data-a="dellook" data-id="${l.id}" aria-label="Remove">${ICON.close}</button></div>`).join('')}</div>` : ''}
-      </section>
+      </details>
 
-      <section class="step"><h3><span class="n">3</span>The line that drops you in${h.line ? '<span class="ok">kept</span>' : ''}</h3>
+      <details class="step fold" data-fold="3"${S.fold[3] ? ' open' : ''}><summary><h3><span class="n">3</span>The line that drops you in${h.line ? '<span class="ok">kept</span>' : ''}</h3></summary>
         <p class="dim" style="font-size:14px;margin:0 0 8px">One line. When you say it, you're them.</p>
         <textarea class="field" id="c_line" data-c="anchorLine" rows="2" style="font-family:var(--mono)" placeholder="Insurance. You think I need you?">${esc(c.anchorLine)}</textarea>
-      </section>
+      </details>
 
-      <section class="step"><h3><span class="n">4</span>What you found${h.note ? '<span class="ok">kept</span>' : ''}</h3>
+      <details class="step fold" data-fold="4"${S.fold[4] ? ' open' : ''}><summary><h3><span class="n">4</span>What you found${h.note ? '<span class="ok">kept</span>' : ''}</h3></summary>
         <p class="dim" style="font-size:14px;margin:0 0 8px">Out of character. Where the voice sits, how they walk, what they want. Talk it or type it.</p>
         ${recBlock('note', 'Talk it')}
         ${notes.map(t => `<div class="take"><audio src="${url(t.id)}" controls preload="metadata"></audio><div class="row" style="justify-content:space-between"><span class="rd">Note · ${esc(ago(t.at))}</span><button class="btn ghost bad" data-a="deltake" data-id="${t.id}" style="min-height:36px">Delete</button></div></div>`).join('')}
         <textarea class="field" id="c_notes" data-c="notes" rows="3" style="margin-top:10px" placeholder="Low in the chest. Never looks at the person he's threatening.">${esc(c.notes)}</textarea>
-      </section>
-      <section class="step"><h3><span class="n">5</span>Your voice, kept safe${c.strained ? '<span class="state strained">Strained</span>' : ''}</h3>
+      </details>
+      <details class="step fold" data-fold="5"${S.fold[5] ? ' open' : ''}><summary><h3><span class="n">5</span>Your voice, kept safe${c.strained ? '<span class="state strained">Strained</span>' : ''}</h3></summary>
         <p class="dim" style="font-size:14px;margin:0 0 8px">So the voice stays the same and your throat stays whole.</p>
         <label class="lab" for="c_never">What never changes</label><textarea class="field" id="c_never" data-c="never" rows="2" placeholder="The gravel on the first word. Always a beat before he answers.">${esc(c.never || '')}</textarea>
         <label class="lab" for="c_vary" style="margin-top:8px">What can vary</label><textarea class="field" id="c_vary" data-c="vary" rows="2" placeholder="Speed. How loud he gets.">${esc(c.vary || '')}</textarea>
         <label class="lab" for="c_strain" style="margin-top:8px">What strained your voice</label><textarea class="field" id="c_strain" data-c="strain" rows="2" placeholder="Holding the growl past ten seconds.">${esc(c.strain || '')}</textarea>
         <label class="row" style="margin-top:10px;gap:10px"><input type="checkbox" data-cb="strained"${c.strained ? ' checked' : ''} style="width:22px;height:22px"><span>This voice hurt. Flag it.</span></label>
         ${c.strained ? '<div class="msg bad" style="margin-top:8px">Stop if it hurts. No character is worth your voice. Rest it, then find a way in that doesn\'t hurt.</div>' : ''}
-      </section>
-      <section class="step"><h3><span class="n">6</span>The body and the choices${E.body(c).length ? '<span class="ok">kept</span>' : ''}</h3>
+      </details>
+      <details class="step fold" data-fold="6"${S.fold[6] ? ' open' : ''}><summary><h3><span class="n">6</span>The body and the choices${E.body(c).length ? '<span class="ok">kept</span>' : ''}</h3></summary>
         <p class="dim" style="font-size:14px;margin:0 0 8px">If it helps. Any of these, none of them.</p>
         <div class="grid2">${[['posture', 'Posture', 'Squared up, heavy'], ['weight', 'Weight', 'Planted, in the heels'], ['eyes', 'Eyes', 'Flat. Doesn\'t blink first'], ['hands', 'Hands', 'Still. In his pockets']].map(([k, l, ph]) => `<div><label class="lab" for="c_${k}">${l}</label><input class="field" id="c_${k}" data-c="${k}" value="${esc(c[k] || '')}" placeholder="${ph}"></div>`).join('')}</div>
         <label class="lab" for="c_trigger" style="margin-top:8px">What sets them off</label><textarea class="field" id="c_trigger" data-c="trigger" rows="2" placeholder="When someone looks away while he's talking.">${esc(c.trigger || '')}</textarea>
         <label class="lab" for="c_plays" style="margin-top:8px">What they play</label><textarea class="field" id="c_plays" data-c="plays" rows="2" placeholder="Make them flinch first.">${esc(c.plays || '')}</textarea>
         <label class="lab" for="c_neverDo" style="margin-top:8px">What they never do</label><textarea class="field" id="c_neverDo" data-c="neverDo" rows="2" placeholder="Raise his voice. Plead.">${esc(c.neverDo || '')}</textarea>
-      </section>
+      </details>
       ${E.autoState(c) !== 'found' ? `<button class="btn pri block" data-a="tab" data-t="back">Come back to ${esc(c.name || 'them')} later</button>` : ''}`;
   }
   function takeRow(c, t, ref) {
@@ -316,27 +377,36 @@
         ${recBlock('return', 'Record it cold')}
         <div class="row" style="margin-top:10px"><button class="btn" data-a="memo" data-k="return">Use a voice memo</button></div>
       </section>`;
-    const bd = E.body(c);
-    return head + `
-      ${look ? `<section class="step"><h3><span class="n">1</span>Look</h3>${look.kind === 'video' ? `<video class="hero-look" src="${url(look.id)}" playsinline controls></video>` : `<img class="hero-look" src="${url(look.id)}" alt="Your look">`}</section>` : ''}
-      <section class="step"><h3><span class="n">${look ? 2 : 1}</span>Listen to then</h3>
+    const bd = E.body(c), steps = [];
+    if (look || bd.length) steps.push(['look', 'LOOK']);
+    steps.push(['listen', 'LISTEN']);
+    if (ref.an && ref.an.pitchHz) steps.push(['pitch', 'PITCH']);
+    if (c.anchorLine) steps.push(['line', 'THE LINE']);
+    steps.push(['record', 'RECORD']);
+    if (rets.length) steps.push(['moved', 'WHAT MOVED']);
+    if (S.bstepName) { const i = steps.findIndex(x => x[0] === S.bstepName); if (i >= 0) S.bstep = i; S.bstepName = ''; }
+    S.bstep = Math.max(0, Math.min(steps.length - 1, S.bstep || 0));
+    const k = steps[S.bstep][0], shown = last || rets[0] || null;
+    const body = {
+      look: `<div class="kicker">${S.bstep + 1} · The look</div><h2 class="bh">Put the body back on.</h2>${look ? `<div class="blook phonly">${look.kind === 'video' ? `<video class="hero-look" src="${url(look.id)}" playsinline controls></video>` : `<img class="hero-look" src="${url(look.id)}" alt="Your look">`}</div>` : ''}${bd.length ? `<div class="bbody">${bd.map(b => `<div><span class="faint" style="font-size:13px">${esc(b.label)}</span><div>${esc(b.text)}</div></div>`).join('')}</div>` : ''}`,
+      listen: `<div class="kicker">${S.bstep + 1} · Listen to then</div><h2 class="bh">Hear yourself as ${esc(c.name || 'them')}.</h2>
         <audio id="refaudio" src="${url(ref.id)}" controls preload="auto" style="width:100%"></audio>
         <div class="rd mono faint" style="font-size:13px;margin-top:4px">${esc(readout(ref.an))} · recorded ${esc(ago(ref.at))}</div>
         ${c.notes ? `<p style="margin:10px 0 0;font-size:15px">${esc(c.notes)}</p>` : ''}
-        ${c.takes.filter(t => t.kind === 'note').slice(-1).map(t => `<div style="margin-top:8px"><span class="faint" style="font-size:13px">Your note</span><audio src="${url(t.id)}" controls preload="metadata" style="width:100%;height:40px"></audio></div>`).join('')}
-      </section>
-      ${tuneBlock(ref)}
-      ${bd.length ? `<section class="step"><h3>The body and the choices</h3>${bd.map(b => `<div style="margin:4px 0"><span class="faint" style="font-size:13px">${esc(b.label)}</span><div>${esc(b.text)}</div></div>`).join('')}</section>` : ''}
-      ${c.anchorLine ? `<section class="step"><h3><span class="n">${look ? 3 : 2}</span>Say the line</h3><div class="big">${esc(c.anchorLine)}</div></section>` : ''}
-      <section class="step"><h3><span class="n">${(look ? 3 : 2) + (c.anchorLine ? 1 : 0)}</span>Record now</h3>
-        <p class="dim" style="font-size:14px;margin:0 0 10px">Same lines as the reference, so the time and pauses mean something.</p>
-        ${recBlock('return', 'Record it now')}
-        <div class="row" style="margin-top:10px"><button class="btn" data-a="memo" data-k="return">Use a voice memo</button></div>
-      </section>
-      ${last ? resultBlock(c, last) : ''}
-      ${rets.filter(t => t !== last).length ? `<div class="kicker" style="margin-top:16px">Earlier come-backs</div>${rets.filter(t => t !== last).map(t => { const r0 = take(c, t.refId) || ref; return `<div class="take"><audio src="${url(t.id)}" controls preload="metadata"></audio><div class="rd">${esc(ago(t.at))}${t.cold ? ' · cold' : ''} · ${esc(E.compare(r0.an, t.an).say.join(' '))}</div><div class="row" style="justify-content:flex-end;gap:4px">${ref.id === t.id ? '<span class="state inuse">Reference</span>' : `<button class="btn ghost" data-a="setref" data-id="${t.id}" style="min-height:36px">Make reference</button>`}<button class="btn ghost bad" data-a="deltake" data-id="${t.id}" style="min-height:36px">Delete</button></div></div>`; }).join('')}` : ''}
-      ${histBlock(ref, rets)}
-      ${backs.length ? `<div class="kicker" style="margin-top:16px">How long it took to get back</div><ul class="said">${backs.slice(0, 8).map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}`;
+        ${c.takes.filter(t => t.kind === 'note').slice(-1).map(t => `<div style="margin-top:8px"><span class="faint" style="font-size:13px">Your note</span><audio src="${url(t.id)}" controls preload="metadata" style="width:100%;height:40px"></audio></div>`).join('')}`,
+      pitch: `<div class="kicker">${S.bstep + 1} · Find the pitch</div>${tuneBlock(ref)}`,
+      line: `<div class="kicker">${S.bstep + 1} · Say the line</div><h2 class="bh">The one that drops you in.</h2><div class="big">${esc(c.anchorLine)}</div>`,
+      record: `<div class="kicker">${S.bstep + 1} · Record now</div><h2 class="bh">Same lines as then.</h2><p class="dim" style="font-size:14px;margin:0 0 10px">Same lines as the reference, so the time and pauses mean something.</p>
+        ${recBlock('return', 'Record it now')}<div class="row" style="margin-top:10px"><button class="btn" data-a="memo" data-k="return">Use a voice memo</button></div>`,
+      moved: `<div class="kicker">${S.bstep + 1} · What moved</div>${shown ? resultBlock(c, shown) : ''}
+        ${rets.filter(t => t !== shown).length ? `<div class="kicker" style="margin-top:16px">Earlier come-backs</div>${rets.filter(t => t !== shown).map(t => { const r0 = take(c, t.refId) || ref; return `<div class="take"><audio src="${url(t.id)}" controls preload="metadata"></audio><div class="rd">${esc(ago(t.at))}${t.cold ? ' · cold' : ''} · ${esc(E.compare(r0.an, t.an).say.join(' '))}</div><div class="row" style="justify-content:flex-end;gap:4px">${ref.id === t.id ? '<span class="state inuse">Reference</span>' : `<button class="btn ghost" data-a="setref" data-id="${t.id}" style="min-height:36px">Make reference</button>`}<button class="btn ghost bad" data-a="deltake" data-id="${t.id}" style="min-height:36px">Delete</button></div></div>`; }).join('')}` : ''}
+        ${histBlock(ref, rets)}
+        ${backs.length ? `<div class="kicker" style="margin-top:16px">How long it took to get back</div><ul class="said">${backs.slice(0, 8).map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}`
+    }[k];
+    return head + `<div class="backgrid"><aside class="baside">${lookBox(c, true)}${c.anchorLine ? `<div class="bline">"${esc(c.anchorLine)}"</div>` : ''}</aside>
+      <div class="bmain"><div class="bdots" role="tablist">${steps.map((x, i) => `<button type="button" role="tab" aria-selected="${i === S.bstep}" class="bdot${i === S.bstep ? ' on' : i < S.bstep ? ' done' : ''}" data-a="bstep" data-s="${i}"><i>${i < S.bstep ? '✓' : i + 1}</i>${x[1]}</button>`).join('')}</div>
+        <div class="bstepcard" id="bstep" data-step="${k}">${body}</div>
+        <div class="row bnav"><button class="btn" data-a="bstep" data-s="${S.bstep - 1}"${S.bstep ? '' : ' disabled'}>BACK</button>${S.bstep < steps.length - 1 ? `<button class="btn pri" data-a="bstep" data-s="${S.bstep + 1}">NEXT: ${steps[S.bstep + 1][1]}</button>` : ''}</div></div></div>`;
   }
   /* takes from before the graphs have no pitch line: read it once from the saved sound */
   const LINING = new Set();
@@ -502,16 +572,21 @@
     ds = ds || {}; const L = S.lib, c = cur();
     switch (a) {
       case 'tune': await startTune(); break;
+      case 'bstep': if (S.rec) await stopRec(); if (S.tune) stopTune(); if (isNaN(+ds.s)) S.bstepName = ds.s; else S.bstep = +ds.s; render(); { const g = $('.bmain'); if (g && g.getBoundingClientRect().top < 0) g.scrollIntoView({ block: 'start' }); } break;
+      case 'comeback': S.visit = null; L.cur = ds.id; S.tab = 'back'; S.bstep = 0; S.lastReturn = null; touch(); render(); window.scrollTo(0, 0); break;
+      case 'hear': hear(ds.hear || ds.id); break;
+      case 'proj': S.proj = ds.p || ''; render(); break;
+      case 'newopen': S.newOpen = !S.newOpen; render(); break;
       case 'tunestop': stopTune(); render(); break;
       case 'cold': S.cold = ds.v === '1'; try { localStorage.setItem('cps_cold', S.cold ? '1' : '0'); } catch (e) { } render(); break;
       case 'itsback': if (c && S.visit && S.visit.id === c.id && S.visit.done == null) { const secs = Math.round((Date.now() - S.visit.t0) / 1000); S.visit.done = secs; c.backs = c.backs || []; c.backs.push({ at: now(), secs, cold: !!S.visit.coldDone }); c.state = 'inuse'; c.lastVisit = now(); touch(c); toast('Back in ' + E.clock(secs) + '.'); render(); } break;
-      case 'tab': if (S.rec) await stopRec(); if (ds.t !== 'back') S.visit = null; S.tab = ds.t; render(); window.scrollTo(0, 0); break;
+      case 'tab': if (S.rec) await stopRec(); if (ds.t !== 'back') S.visit = null; if (ds.t === 'back' && S.tab !== 'back') S.bstep = 0; S.tab = ds.t; S.newOpen = false; render(); window.scrollTo(0, 0); break;
       case 'theme': { const cu = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'); const nx = cu === 'light' ? 'dark' : 'light'; document.documentElement.dataset.theme = nx; try { localStorage.setItem('cps_theme', nx); } catch (e) { } break; }
       case 'quickrec': makeChar('', ''); S.tab = 'capture'; await startRec('voice'); break;
       case 'quickmemo': pendingNew = true; pendingMemoKind = 'voice'; $('#voicein').click(); break;
       case 'newchar': makeChar('', ''); S.tab = 'capture'; render(); { const n = $('#c_name'); if (n) n.focus(); } break;
       case 'frombd': { const r = S.bd.find(x => x.pid === ds.pid && x.role === ds.role); if (!r) break; const n = makeChar(r.role, r.title); n.bd = r; touch(n); S.tab = 'capture'; render(); break; }
-      case 'open': S.visit = null; L.cur = ds.id; touch(); { const o = cur(); S.tab = E.autoState(o) === 'found' ? 'capture' : 'back'; } S.lastReturn = null; render(); window.scrollTo(0, 0); break;
+      case 'open': S.visit = null; L.cur = ds.id; touch(); S.tab = 'capture'; S.bstep = 0; S.lastReturn = null; render(); window.scrollTo(0, 0); break;
       case 'recstart': await startRec(ds.k); break;
       case 'recstop': await stopRec(); break;
       case 'memo': pendingNew = false; pendingMemoKind = ds.k; $('#voicein').click(); break;
@@ -546,12 +621,13 @@
     if (t.dataset.c && c) {
       c[t.dataset.c] = t.value; touch(c);
       const sb = $('#statebox .state'); if (sb) sb.outerHTML = stateChip(c);
-      if (t.dataset.c === 'name' || t.dataset.c === 'project') { const s = $('.top .title span'); if (s) s.textContent = (c.name || 'Unnamed character') + (c.project ? ' · ' + c.project : ''); }
+      if (t.dataset.c === 'name' || t.dataset.c === 'project') { const s = $('#cname'); if (s) s.textContent = (c.name || 'Unnamed character') + (c.project ? ' · ' + c.project : ''); }
     }
   });
   // lines edited: line the voices up again once you leave the box (not mid-typing; a tapped button renders by itself)
   document.addEventListener('focusout', e => { if (!(e.target.dataset && e.target.dataset.lib)) return; if (e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('[data-a]')) return; setTimeout(() => { if (S.tab === 'voices' && !(document.activeElement && document.activeElement.dataset && document.activeElement.dataset.lib)) render(); }, 0); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('.sheet')) act('closesheet'); });
+  document.addEventListener('toggle', e => { const d = e.target; if (d && d.dataset && d.dataset.fold) S.fold[d.dataset.fold] = d.open; }, true);
   $('#voicein').addEventListener('change', async e => {
     const f = e.target.files[0]; e.target.value = ''; if (!f) return;
     if (pendingNew) { makeChar(f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim().slice(0, 40), ''); S.tab = 'capture'; pendingNew = false; }
