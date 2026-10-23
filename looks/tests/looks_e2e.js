@@ -1,4 +1,4 @@
-/* LOOKS in the browser: the quiet line on home, add a look, photos (added and from YOU), a skill with a clip,
+/* LOOKS in the browser: a tool under ACT on home, add a look, photos (added and from YOU), a skill with a clip,
    the book with stats off and on, saving it as a folder. Made-up looks only. Server on :8811. */
 const {chromium}=require('playwright'); const path=require('path'), fs=require('fs'), os=require('os');
 const A=path.join(__dirname,'look_a.jpg'), B=path.join(__dirname,'look_b.jpg'), V=path.join(__dirname,'clip.mp4');
@@ -8,10 +8,11 @@ const c=await b.newContext({viewport:{width:390,height:844},acceptDownloads:true
 const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
 await p.goto('http://localhost:8811/'); await p.evaluate(()=>{ localStorage.clear(); indexedDB.deleteDatabase('theactorpage_looks'); indexedDB.deleteDatabase('theactorpage_you'); }); await p.reload(); await p.waitForTimeout(500);
 const home=await p.innerText('#you');
-want('home: one quiet line, nothing else about looks', (await p.$$('#st_looks')).length===1&&(home.match(/look/gi)||[]).length===1&&/FOR COMMERCIAL WORK/.test(home), home.match(/.*look.*/gi));
+want('home: LOOKS is a tool under ACT (its card, its icon, the footer), not in YOU', !/\blooks?\b/i.test(home)&&(await p.$$('section.act .tool a[href="looks/"]')).length===1&&(await p.$$('section.act .deptgrid a[href="looks/"]')).length===1&&(await p.$$('footer .fcol[data-dept="act"] a[href="looks/"]')).length===1, home.match(/.*look.*/gi));
 /* a headshot in YOU, made up */
 await p.evaluate(async()=>{ const r=await fetch('/looks/tests/look_b.jpg'); const bl=await r.blob(); await You.addPhoto(new File([bl],'riley.jpg',{type:'image/jpeg'})); You.set('name','Riley Hart'); You.set('union','SAG-AFTRA'); You.set('height','6\'1"'); You.set('rep','Northgate Talent'); });
-await p.click('#st_looks'); await p.waitForTimeout(400);
+await p.goto('http://localhost:8811/looks/'); await p.waitForTimeout(400);
+want('LOOKS says where it lives: ACT', /ACT/.test(await p.innerText('.crumb')));
 const t0=await p.innerText('main');
 want('empty: no looks, one way in, nothing suggested', /No looks yet/.test(t0)&&/ADD A LOOK/.test(t0)&&!/LOOK BOOK/.test(t0));
 await p.click('#addOpen'); await p.click('#a_go'); await p.waitForTimeout(200);
