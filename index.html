@@ -533,6 +533,10 @@ body.stopen{overflow:hidden}
 .steppanel ul{margin:0 0 22px;padding-left:20px;display:grid;gap:7px;line-height:1.45}
 .sp-tool{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;border-top:1px solid var(--rule);padding-top:16px}
 .sp-tool span{font:700 .7rem var(--script);letter-spacing:.2em;color:#9aa1ab}.sp-tool b{font-weight:500}.sp-tool .btn{margin-left:auto}
+.sp-tool .btn+.btn{margin-left:0}
+.gk{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+.gkb{font:700 .68rem var(--script);letter-spacing:.16em;min-height:40px;padding:8px 13px;border-radius:999px;cursor:pointer;background:none;color:#c3c8d0;border:1px solid #3a3f47}
+.gkb[aria-pressed="true"]{color:var(--tungsten);border-color:var(--tungsten)}
 .sp-shot{flex:0 0 240px;margin:0 auto}.sp-shot img{display:block;width:240px;height:auto;border:9px solid #000;border-radius:34px;background:#000}
 /* why */
 .whygrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:0 0 30px}
@@ -610,10 +614,25 @@ body.stopen{overflow:hidden}
     <div class="steppanel" role="tabpanel" id="sp-get" aria-labelledby="st-get">
       <div class="sp-text">
         <p class="sp-n">STEP 1 OF 6</p>
+        <div class="gk" role="group" aria-label="What kind of audition"><button type="button" class="gkb" data-k="th" aria-pressed="true">THEATRICAL</button><button type="button" class="gkb" data-k="co" aria-pressed="false">COMMERCIAL</button><button type="button" class="gkb" data-k="vo" aria-pressed="false">VOICE OVER</button></div>
+        <div class="gkp" data-k="th">
         <h3>You got an audition. Time to go to work.</h3>
-        <p class="sp-body">The email lands with the sides. Put it in here: the sides, the self-tape request, or your rep’s email. It finds your part, reads who’s casting and when the tape is due, and every tool opens on your part from then on.</p>
+        <p class="sp-body">Film, TV, stage. The email lands with the sides. Put it in here: the sides, the self-tape request, or your rep’s email. It finds your part, reads who’s casting and when the tape is due, and every tool opens on your part from then on.</p>
         <ul><li>Your lines lit, and the cue before each one</li><li>The due date in your time zone and theirs</li><li>Their directions turned into a checklist</li></ul>
         <div class="sp-tool"><span>THE TOOL</span><b>Add your material, on this page</b><a class="btn" href="#you">ADD YOUR MATERIAL</a></div>
+        </div>
+        <div class="gkp" data-k="co" hidden>
+        <h3>A commercial. Short copy, or none at all.</h3>
+        <p class="sp-body">Put the request in here, or your rep’s email. It reads who’s casting, when it’s due and what they asked for. If there’s copy, your lines are lit like any sides. The slate is often half the tape, so it gets its own tool.</p>
+        <ul><li>The due date in your time zone and theirs</li><li>Their directions turned into a checklist</li><li>Solo slate: one wide take, face to full body, cut to every shape they ask for</li><li>Your looks for commercial work, if you keep them</li></ul>
+        <div class="sp-tool"><span>THE TOOLS</span><b>Add the request, then slate it</b><a class="btn" href="#you">ADD YOUR MATERIAL</a><a class="btn ghost" href="slate/">SOLO SLATE</a><a class="btn ghost" href="looks/">LOOKS</a></div>
+        </div>
+        <div class="gkp" data-k="vo" hidden>
+        <h3>Voice over. A different animal.</h3>
+        <p class="sp-body">The copy comes as a PDF, a Word file or the email itself. Drop it in VO BOOTH with the brief and your agent’s note. It reads the spots and their lengths, your lines, the ALTs, and what the note asks for: the client, the due date, one file or one per spot, the order.</p>
+        <ul><li>Your room checked before you read</li><li>Each spot timed as you go: “28.4 s of :30”</li><li>One file, levelled and named the way they asked</li><li>Your character voices kept in Character Bank, for the callback</li></ul>
+        <div class="sp-tool"><span>THE TOOL</span><b>VO BOOTH</b><a class="btn" href="booth/">OPEN VO BOOTH</a><a class="btn ghost" href="cps/">CHARACTER BANK</a></div>
+        </div>
       </div>
       <div class="sp-shot"><img src="img/steps/get.webp" alt="A script read in: the characters found, your part picked" width="260" height="520" loading="lazy"></div>
     </div>
@@ -1314,5 +1333,6 @@ body.stopen{overflow:hidden}
 <script src="shared/takes.js"></script>
 <script src="shared/studio.js"></script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
+<script>(function(){var g=document.getElementById('sp-get');if(!g)return;var bs=g.querySelectorAll('.gkb'),ps=g.querySelectorAll('.gkp');function set(k){bs.forEach(function(b){b.setAttribute('aria-pressed',b.dataset.k===k?'true':'false');});ps.forEach(function(p){p.hidden=p.dataset.k!==k;});try{localStorage.setItem('theactorpage_getkind',k);}catch(e){}}bs.forEach(function(b){b.onclick=function(){set(b.dataset.k);};});try{var k=localStorage.getItem('theactorpage_getkind');if(k&&g.querySelector('.gkp[data-k="'+k+'"]'))set(k);}catch(e){}})();</script>
 </body>
 </html>
