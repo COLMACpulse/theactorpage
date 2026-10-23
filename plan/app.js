@@ -41,7 +41,7 @@
       (f ? '<p class="dim small">From ' + esc(f.from) + ': ' + esc([f.title, f.part, f.office, f.due ? P.longDate(f.due) : ''].filter(Boolean).join(' · ')) + '. Add what you know.</p>' : '') +
       '<textarea class="field" id="t" rows="6" placeholder="The project, the casting office, the role, when it\'s due, where it goes, your reader, when you can tape, anything you\'re up against."></textarea>' +
       '<p class="mut small">On a phone, tap the mic on your keyboard and talk.</p>' +
-      '<div class="row">' + (Rec ? '<button class="btn quiet" type="button" id="listen">LISTEN</button>' : '') + '<button class="btn quiet" type="button" id="vrec">KEEP A VOICE NOTE</button><span class="mut small" id="vst"></span></div>' +
+      '<div class="row">' + (Rec ? '<button class="btn quiet" type="button" id="listen"><svg class="mic" style="width:16px;height:16px;margin-right:8px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6"/></svg>LISTEN</button>' : '') + '<button class="btn quiet" type="button" id="vrec">KEEP A VOICE NOTE</button><span class="mut small" id="vst"></span></div>' +
       (Rec ? '<p class="mut small">LISTEN turns your voice into words with your browser\'s own speech service. In Chrome that goes through Google.</p>' : '') +
       '<div class="row" style="margin-top:12px"><button class="btn" type="button" id="go">MAKE THE PLAN</button></div></div>';
     if (list.length) h += '<h2>YOUR PLANS</h2>' + list.map(p => { const next = (p.plan.steps || []).find((s, i) => !(p.done || {})[i]);
@@ -55,10 +55,10 @@
   }
   function listen(Rec) {
     const b = $('listen'); if (b.dataset.on) { try { b._r.stop(); } catch (e) { } return; }
-    const r = new Rec(); r.lang = 'en-US'; r.continuous = true; r.interimResults = false; b._r = r; b.dataset.on = '1'; b.textContent = 'STOP LISTENING';
+    const r = new Rec(); r.lang = 'en-US'; r.continuous = true; r.interimResults = false; b._r = r; b.dataset.on = '1'; b._h = b.innerHTML; b.innerHTML = b._h.replace('LISTEN', 'STOP LISTENING');
     r.onresult = e => { for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) { const t = $('t'); t.value = (t.value ? t.value.replace(/\s*$/, '') + ' ' : '') + e.results[i][0].transcript.trim() + '.'; } };
     r.onerror = e => { say(e.error === 'not-allowed' ? 'The mic is off for this page. You can still type, or use the mic on your keyboard.' : 'Listening stopped. Type the rest, or tap LISTEN again.'); };
-    r.onend = () => { delete b.dataset.on; b.textContent = 'LISTEN'; };
+    r.onend = () => { delete b.dataset.on; if (b._h) b.innerHTML = b._h; };
     try { r.start(); } catch (e) { say('Listening didn\'t start here. Type it, or use the mic on your keyboard.'); }
   }
   async function voiceNote() {
