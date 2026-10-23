@@ -16,6 +16,19 @@
   const pinned = () => { try { return (B().S.job || {}).voice || ''; } catch (e) { return ''; } };
   const match = (c, q) => { const t = [c.name, c.project, c.anchorLine, c.notes].join(' ').toLowerCase(); return String(q || '').toLowerCase().split(/\s+/).filter(Boolean).every(w => t.indexOf(w) >= 0); };
 
+  /* a voice's shape: read once from Character Bank's recording, kept here (not in Character Bank) */
+  const WKEY = 'theactorpage_wave_v1', WV = window.Wave, AU = window.VOAudio;
+  const wcache = () => { try { return JSON.parse(localStorage.getItem(WKEY) || '{}') || {}; } catch (e) { return {}; } };
+  async function waveOf(t) {
+    if (!t || !WV || !B()) return null; const c = wcache(); if (c[t.id]) return c[t.id];
+    try { const b = await VD.cpsMedia(t.id); if (!b) return null; const d = await B().to441(await B().decode(b)); let trim = [0, 1];
+      try { const tr = AU.trim(AU.rumbleCut(d, 44100), 44100); trim = WV.trimOf(tr, d.length).map(x => Math.round(x * 1000) / 1000); } catch (e) { }
+      const w = { w: WV.peaks(d, 56), t: trim }; const all = wcache(); all[t.id] = w; const ks = Object.keys(all); if (ks.length > 300) delete all[ks[0]]; try { localStorage.setItem(WKEY, JSON.stringify(all)); } catch (e) { } return w; } catch (e) { return null; }
+  }
+  const slot = (t, cls, label, color) => '<span class="vwv" data-vwv="' + esc(t ? t.id : '') + '" data-cls="' + (cls || '') + '" data-label="' + esc(label || '') + '" data-color="' + (color || '') + '"></span>';
+  async function fillWaves(root) { for (const el of (root || document).querySelectorAll('[data-vwv]')) { const id = el.dataset.vwv; if (!id) continue; const C = await chars(), c = C.find(x => (x.takes || []).some(t => t.id === id)); const t = c && c.takes.find(x => x.id === id); const w = await waveOf(t); if (w && WV) el.innerHTML = WV.svg(w.w, { trim: w.t, cls: el.dataset.cls, label: el.dataset.label || null, color: el.dataset.color || null }); } }
+  /* now: your latest come-back, else your latest take that isn't the one you go back to */
+  const nowTake = (c, r) => { const t = (c.takes || []).filter(x => (x.kind === 'return' || x.kind === 'voice') && (!r || x.id !== r.id)).sort((a, b) => String(b.at).localeCompare(String(a.at))); return t.find(x => x.kind === 'return') || t[0] || null; };
   async function chars() { return (await VD.chars()).filter(c => !c.me); }
   async function render(m) {
     m = m || $('main'); const C = await chars();
@@ -30,21 +43,23 @@
     h += '<div class="vgrid">';
     for (const c of list) { const l = look(c), u = l ? await url(l.id) : '', r = ref(c);
       h += '<button type="button" class="vcard" data-v="' + esc(c.id) + '">' + (u ? '<img src="' + u + '" alt="">' : '<span class="vini" aria-hidden="true">' + esc(initials(c.name)) + '</span>') +
-        '<b>' + esc(c.name || 'Unnamed') + '</b>' + (c.project ? '<small>' + esc(c.project) + '</small>' : '') +
+        '<b>' + esc(c.name || 'Unnamed') + '</b>' + (c.project ? '<small>' + esc(c.project) + '</small>' : '') + (r ? slot(r, 'sm', '', '') : '') +
         (c.id === pin ? '<i class="vpin">ON THIS JOB</i>' : !r ? '<small class="faint">No recording yet</small>' : '') + '</button>'; }
     h += '</div>' + (list.length ? '' : '<p class="faint small">No voice matches that.</p>') +
       '<p class="faint small" style="margin-top:10px">Kept in Character Bank. Add a voice there and it shows up here. <a href="../cps/">CHARACTER BANK</a></p>';
-    m.innerHTML = h;
+    m.innerHTML = h + '';
+    if (C.some(c => ref(c))) { const p = document.createElement('p'); p.className = 'faint small'; p.textContent = 'Each voice shows the shape of the take you go back to.'; const g0 = m.querySelector('.vgrid'); if (g0) g0.after(p); }
+    fillWaves(m);
     m.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { VIEW = 'one:' + b.dataset.v; render(m); window.scrollTo(0, 0); });
     const q = $('vq'); if (q) q.oninput = () => { Q = q.value; const at = q.selectionStart; render(m).then(() => { const n = $('vq'); if (n) { n.focus(); try { n.setSelectionRange(at, at); } catch (e) { } } }); };
   }
   async function one(m, c) {
-    const l = look(c), u = l ? await url(l.id) : '', r = ref(c), ru = r ? await url(r.id) : '', pin = pinned() === c.id, cid = encodeURIComponent(c.id);
+    const l = look(c), u = l ? await url(l.id) : '', r = ref(c), ru = r ? await url(r.id) : '', pin = pinned() === c.id, cid = encodeURIComponent(c.id), nw = r ? nowTake(c, r) : null;
     const note = (c.takes || []).filter(t => t.kind === 'note').slice(-1)[0], nu = note ? await url(note.id) : '';
     let h = '<button class="btn ghost sm" id="vback">&larr; YOUR VOICES</button>' +
       '<h2 style="margin:12px 0 2px;font-weight:500">' + esc(c.name || 'Unnamed') + '</h2>' + (c.project ? '<p class="dim" style="margin:0 0 8px">' + esc(c.project) + '</p>' : '') +
       (u ? '<img class="vhero" src="' + u + '" alt="' + esc(c.name || 'Your character') + '">' : '') +
-      '<div class="card"><p class="kicker">Listen to then</p>' + (ru ? '<audio id="vref" src="' + ru + '" controls preload="auto" style="width:100%"></audio><small class="faint">' + esc(r.name || 'Your take') + (r.at ? ' · recorded ' + esc(day(r.at)) : '') + '</small>'
+      '<div class="card"><p class="kicker">Listen to then</p>' + (ru ? slot(r, '', 'The take you go back to', '') + (nw ? slot(nw, '', 'Your latest take', '#7fa8e0') + '<small class="faint" style="display:block;margin:2px 0 8px">Gold: then' + (r.at ? ', ' + esc(day(r.at)) : '') + '. Blue: your latest' + (nw.at ? ', ' + esc(day(nw.at)) : '') + '. Side by side, so you see where it moved.</small>' : '') + '<audio id="vref" src="' + ru + '" controls preload="auto" style="width:100%"></audio><small class="faint">' + esc(r.name || 'Your take') + (r.at ? ' · recorded ' + esc(day(r.at)) : '') + '</small>'
         : '<p class="faint small" style="margin:0">No recording of this voice yet. Record it in Character Bank and it plays here.</p>') +
       (c.notes ? '<p style="margin:10px 0 0">' + esc(c.notes) + '</p>' : '') +
       (nu ? '<p class="faint small" style="margin:10px 0 2px">Your note</p><audio src="' + nu + '" controls preload="metadata" style="width:100%;height:40px"></audio>' : '') + '</div>' +
@@ -53,7 +68,7 @@
       '<p class="faint small">' + (pin ? 'It sits at the top of READ, so you can hear it again between lines.' : 'Puts it at the top of READ, so you can hear it again between lines.') + '</p>' +
       '<div class="row" style="margin-top:10px"><a class="btn" href="../cps/?c=' + cid + '&amp;tab=back" id="vback2">COME BACK THE WHOLE WAY</a><a class="btn ghost" href="../cps/?c=' + cid + '&amp;tab=capture" id="vrec">RECORD A NEW TAKE</a><button class="btn ghost" id="vpage">ON YOUR PAGE</button></div>' +
       '<p class="faint small">COME BACK THE WHOLE WAY opens it in Character Bank: the look, then then, then you, side by side. New takes are kept there too.</p>';
-    m.innerHTML = h;
+    m.innerHTML = h; fillWaves(m);
     $('vback').onclick = () => { VIEW = 'home'; render(m); };
     const set = id => { const Bo = B(); if (!Bo) return; Bo.S.job.voice = id; Bo.save(); render(m); };
     $('vpin').onclick = () => { if (!pin) set(c.id); };
@@ -67,7 +82,7 @@
     const l = look(c), u = l ? await url(l.id) : '', r = ref(c), ru = r ? await url(r.id) : '';
     el.innerHTML = '<div class="card vstrip">' + (u ? '<img src="' + u + '" alt="">' : '<span class="vini" aria-hidden="true">' + esc(initials(c.name)) + '</span>') +
       '<div class="w"><p class="kicker" style="margin:0">THE VOICE · ' + esc((c.name || 'Unnamed').toUpperCase()) + '</p>' + (c.anchorLine ? '<p class="vline sm">' + esc(c.anchorLine) + '</p>' : '') +
-      (ru ? '<audio src="' + ru + '" controls preload="metadata" style="width:100%;height:40px" id="vstripaudio"></audio>' : '') + '</div></div>';
+      (r ? slot(r, 'sm', '', '') : '') + (ru ? '<audio src="' + ru + '" controls preload="metadata" style="width:100%;height:40px" id="vstripaudio"></audio>' : '') + '</div></div>'; fillWaves(el);
   }
   window.BoothVoices = { render, strip, open: v => { VIEW = v || 'home'; } };
 })();

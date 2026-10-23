@@ -126,15 +126,63 @@ body:has(#hotbar) .top{padding-top:calc(env(safe-area-inset-top) + 50px)}
 .vhero{display:block;width:100%;max-width:360px;aspect-ratio:1;object-fit:cover;border-radius:12px;margin:6px 0 12px;border:1px solid var(--line)}
 .vline{font-size:20px;line-height:1.4;margin:4px 0 0}.vline.sm{font-size:15px;margin:2px 0 6px}
 .vstrip{display:flex;gap:12px;align-items:flex-start}.vstrip img,.vstrip .vini{width:64px;height:64px;flex:none;object-fit:cover;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--panel2);color:var(--faint)}.vstrip .w{flex:1;min-width:0}
+/* the booth, alive: the mic and the sigil, ON THE AIR, waveforms */
+.top{display:flex;align-items:center;gap:12px;padding-top:calc(env(safe-area-inset-top) + 8px);padding-bottom:8px}
+.top .tt{flex:1;min-width:0}
+.hmic{width:40px;height:66px;flex:none}
+.hmic .sign{fill:var(--panel2);stroke:var(--line)}.hmic .signt{font:700 7px var(--mono);letter-spacing:.12em;fill:var(--faint)}
+.hmic .cap{fill:var(--panel2);stroke:#9aa0a8;stroke-width:2}.hmic .grill{stroke:var(--line);stroke-width:1.5}
+.hmic .yoke{fill:none;stroke:#9aa0a8;stroke-width:2.5}.hmic .stem{stroke:#9aa0a8;stroke-width:5}.hmic .base{fill:var(--panel);stroke:var(--line)}
+body.onair .hmic .sign{fill:#c0392b;stroke:#e0574a}body.onair .hmic .signt{fill:#fff4ee}body.onair .hmic .cap{stroke:var(--tung-text)}
+body.onair .top .k{color:#e0574a}
+.hsig{width:46px;height:46px;flex:none;object-fit:contain}
+.hstk{display:block;height:5px;background:repeating-linear-gradient(115deg,#2b3038 0 14px,#1f8a5c 14px 28px,#d9b23a 28px 42px,#2a5fa8 42px 56px,#c0392b 56px 70px,#e8e6e0 70px 84px,#9aa0a8 84px 98px,#5c636d 98px 112px,#2b3038 112px 126px)}
+.wv{display:block;width:100%;height:40px}.wv.sm{height:24px}
+.wv-flat{display:block;height:2px;background:var(--line);border-radius:1px;margin:19px 0}
+.wv-none{display:block;height:24px}
+.lrow{flex-wrap:nowrap!important;align-items:center}
+.lw{flex:1;min-width:0}.kt{font:700 12px var(--mono);color:#8fbf8a;flex:none}
+canvas.live{display:block;flex:1;min-width:0;height:64px;--wv:var(--tung);--wv-top:#f0846e}
+canvas.live.big{height:150px;width:100%}
+.mrow{display:flex;align-items:center;gap:10px;margin-top:8px}.mrow .rt{min-width:56px}
+.meter{flex:1;height:8px;border-radius:4px;background:var(--panel2);position:relative;overflow:hidden}
+.meter i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--tung);border-radius:4px;transition:width .06s linear}.meter i.top{background:#e0574a}
+.meter b{position:absolute;top:0;bottom:0;width:2px;background:var(--ink);opacity:.8}
+.takes{margin-top:8px;display:flex;flex-direction:column;gap:4px}
+.take{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:2px 4px 2px 2px;font-size:13px}
+.take.kept{border-color:#3d5a3a}
+.take button{border:0;background:transparent;min-height:40px;padding:0 9px;color:inherit}
+.take .tw{flex:1;min-width:0}.take .ts{font:700 12px var(--mono);color:var(--dim);flex:none}
+.take em{font-style:normal;font-size:10.5px;letter-spacing:.1em;color:#8fbf8a;padding:0 6px;flex:none}
+.take .tkk{color:var(--tung-text);font-size:11px;letter-spacing:.1em}
+.line.rec .copy{font-size:21px}
+.bpanel .bbig{display:none}
+@media (min-width:980px){
+ main{max-width:1180px}
+ .top{padding-left:max(24px,calc((100vw - 1180px)/2));padding-right:max(24px,calc((100vw - 1180px)/2))}
+ .hmic{width:62px;height:102px}.hsig{width:84px;height:84px}.top b{font-size:24px}.top .count{font-size:15px}
+ .readgrid{display:grid;grid-template-columns:minmax(0,1fr) 430px;gap:28px;align-items:start}
+ .readlist{grid-column:1;grid-row:1}
+ .bpanel{grid-column:2;grid-row:1;position:sticky;top:150px;display:flex;flex-direction:column;gap:12px}
+ .bpanel .bbig{display:block;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
+ .bpanel .bline{font-size:24px;line-height:1.3;margin:4px 0 10px}
+ .line canvas.live,.line .mrow{display:none}
+ .line.rec .lrow::after{content:"RECORDING";font:700 12px var(--mono);color:#e0574a;letter-spacing:.12em}
+}
+body:has(#hotbar) .top{padding-top:calc(env(safe-area-inset-top) + 50px)}
+.vwv{display:block;min-height:24px;margin:4px 0}.vwv .wv{height:52px}.vcard .vwv .wv,.vstrip .vwv .wv{height:24px}
 </style>
 </head>
 <body>
 <div class="shell">
   <header class="top">
-    <div class="k">VO BOOTH</div>
-    <b id="title">Voice over</b>
-    <div class="count" id="count"></div>
+    <svg class="hmic" viewBox="0 0 80 132" role="img" aria-label="The mic"><path class="sign" d="M8 28Q40 2 72 28L70 34Q40 12 10 34Z"/><text class="signt" x="40" y="27" text-anchor="middle">ON THE AIR</text>
+      <rect class="cap" x="24" y="38" width="32" height="50" rx="16"/><path class="grill" d="M28 50H52M27 56H53M27 62H53M28 70H52M29 76H51"/>
+      <path class="yoke" d="M18 60V70A22 22 0 0 0 62 70V60"/><path class="stem" d="M40 92V112"/><ellipse class="base" cx="40" cy="118" rx="30" ry="9"/></svg>
+    <div class="tt"><div class="k" id="onair">VO BOOTH</div><b id="title">Voice over</b><div class="count" id="count"></div></div>
+    <img class="hsig" src="../img/sigil-film-180.png" alt="THEACTORPAGE" width="56" height="56">
   </header>
+  <i class="hstk" aria-hidden="true"></i>
   <main id="main"></main>
 </div>
 <nav class="tabs" id="tabs">
@@ -156,6 +204,7 @@ body:has(#hotbar) .top{padding-top:calc(env(safe-area-inset-top) + 50px)}
 <script src="../shared/delivery.js"></script>
 <script src="../shared/vocopy.js"></script>
 <script src="../shared/voaudio.js"></script>
+<script src="../shared/wave.js"></script>
 <script src="../shared/vendor/lame.min.js"></script>
 <script src="../shared/vodemo.js"></script>
 <script src="app.js"></script>

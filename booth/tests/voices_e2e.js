@@ -25,10 +25,15 @@ await p.evaluate(async([wav,jpg])=>{ const bl=(b64,t)=>new Blob([Uint8Array.from
 const before=await p.evaluate(async()=>{ const db=await new Promise(r=>{ const q=indexedDB.open('cps_v02'); q.onsuccess=()=>r(q.result); }); const v=await new Promise(r=>{ const q=db.transaction('lib').objectStore('lib').get('main'); q.onsuccess=()=>r(JSON.stringify(q.result)); }); db.close(); return v; });
 await p.goto('http://localhost:8811/booth/'); await p.waitForTimeout(500); await p.click('[data-t=voices]'); await p.waitForTimeout(800);
 const cards=await p.$$eval('.vcard',x=>x.map(e=>e.innerText.replace(/\s+/g,' ').trim()));
+await p.waitForTimeout(1200);
+want('the voice card shows the shape of the take you go back to', (await p.$$('[data-v="c1"] .vwv svg.wv')).length===1&&(await p.$$('[data-v="c2"] .vwv')).length===0);
 want('your voices, not you: Captain Rusk with his picture, Pip with no recording yet', cards.length===2&&/Captain Rusk Harbor Lights \(game\)/.test(cards[0])&&/Pip the Gull No recording yet/.test(cards[1])&&(await p.$$('.vcard img')).length===1, cards);
 await p.click('[data-v="c1"]'); await p.waitForTimeout(700);
 const t=await p.innerText('#main');
 want('one voice: its picture, the take you marked (not the first), your notes, the line', !!(await p.$('img.vhero'))&&/Hold the line · recorded Mar 4, 2026/.test(t)&&/Low, slow, gravel in the back\./.test(t)&&/The line that drops you back in\s+Hold the line, sailor\./i.test(t), t.slice(0,500));
+await p.waitForTimeout(1200);
+want('one voice: THEN (the take you go back to) and NOW, each drawn, with what the colours mean', (await p.$$('#main .vwv svg.wv')).length===2&&/Gold: then, Mar 4, 2026\. Blue: your latest, Mar 2, 2026\./.test(await p.innerText('#main')), await p.$$eval('#main .vwv',x=>x.map(e=>e.innerHTML.length)));
+want('the shape kept here, not in Character Bank', await p.evaluate(()=>{ const c=JSON.parse(localStorage.getItem('theactorpage_wave_v1')||'{}'); return !!(c.t1&&c.t1.w.length===56&&c.t0); }));
 want('the take plays: a real sound', await p.$eval('#vref',a=>new Promise(r=>{ if(a.readyState>=1) return r(a.duration>1.5); a.onloadedmetadata=()=>r(a.duration>1.5); a.onerror=()=>r(false); })));
 want('the links open it in Character Bank: come back the whole way, record a new take', (await p.getAttribute('#vback2','href'))==='../cps/?c=c1&tab=back'&&(await p.getAttribute('#vrec','href'))==='../cps/?c=c1&tab=capture');
 await p.click('#vpin'); await p.waitForTimeout(400);
@@ -47,6 +52,6 @@ want('ON YOUR PAGE: the same voice in DEMO', await p.evaluate(()=>__booth.S.tab=
 const after=await p.evaluate(async()=>{ const db=await new Promise(r=>{ const q=indexedDB.open('cps_v02'); q.onsuccess=()=>r(q.result); }); const v=await new Promise(r=>{ const q=db.transaction('lib').objectStore('lib').get('main'); q.onsuccess=()=>r(JSON.stringify(q.result)); }); db.close(); return v; });
 want('Character Bank unchanged: read only', before===after);
 await p.click('[data-t=voices]'); await p.waitForTimeout(400); await p.screenshot({path:path.join(os.tmpdir(),'voices_tab.png'),fullPage:true});
-await p.click('[data-v="c1"]'); await p.waitForTimeout(400); await p.screenshot({path:path.join(os.tmpdir(),'voices_one.png'),fullPage:true});
+await p.click('[data-v="c1"]'); await p.waitForTimeout(1500); await p.screenshot({path:path.join(os.tmpdir(),'voices_one.png'),fullPage:true});
 want('no page errors', errs.length===0, errs);
 await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();

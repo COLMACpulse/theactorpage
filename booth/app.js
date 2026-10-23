@@ -5,7 +5,7 @@
    SEND  one file in the order asked, named the way casting reads it, levelled and the dead air cut. Or check a file you made.
    Nothing leaves this device. */
 (function(){
-const V=window.VOCopy, A=window.VOAudio, C=window.Capture, Y=window.You, X=window.Intake, D=window.Delivery;
+const V=window.VOCopy, A=window.VOAudio, C=window.Capture, Y=window.You, X=window.Intake, D=window.Delivery, WV=window.Wave;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const KEY='booth_v1';
@@ -62,7 +62,7 @@ async function takeFiles(files){
 /* ---------- the mic ---------- */
 let MIC=null, REC=null, RECKEY=null, T0=0, TICK=null;
 async function mic(){ if(MIC&&MIC.getAudioTracks().some(t=>t.readyState==='live')) return MIC; MIC=await C.open({video:false,audio:true}); return MIC; }
-function micOff(){ if(REC) try{ REC.cancel(); }catch(e){} REC=null; RECKEY=null; C.stop(MIC); MIC=null; clearInterval(TICK); render(); }
+function micOff(){ if(WV) WV.live.stop(); if(REC) try{ REC.cancel(); }catch(e){} REC=null; RECKEY=null; C.stop(MIC); MIC=null; clearInterval(TICK); render(); }
 async function decode(blob){
  const AC=window.AudioContext||window.webkitAudioContext, ac=new AC();
  try{ const ab=await blob.arrayBuffer(); const b=await new Promise((res,rej)=>{ const p=ac.decodeAudioData(ab,res,rej); if(p&&p.then) p.then(res,rej); }); return b; }
@@ -80,8 +80,10 @@ async function to441(b){
 /* ---------- ROOM ---------- */
 async function checkRoom(){
  const box=$('roomnow'); try{ await mic(); }catch(e){ box.innerHTML='<div class="msg bad">'+esc(C.errorWords(e,'audio'))+'</div>'; return; }
- const r=C.record(MIC,'audio'); let n=5; box.innerHTML='<p class="cnt">Quiet now… '+n+'</p>';
- await new Promise(res=>{ const t=setInterval(()=>{ n--; if(n<=0){ clearInterval(t); res(); } else box.innerHTML='<p class="cnt">Quiet now… '+n+'</p>'; },1000); });
+ const r=C.record(MIC,'audio'); let n=5; box.innerHTML='<p class="cnt" id="roomcnt">Quiet now… '+n+'</p><canvas class="live" data-live aria-label="What the mic hears in your room" role="img"></canvas><div class="meter"><i data-meter></i><b style="left:'+Math.round(WV.meter(A.CEILING)*100)+'%"></b></div><p class="faint small">The quieter the room, the flatter this line.</p>';
+ if(WV) WV.live.start(MIC,{ceiling:A.CEILING});
+ await new Promise(res=>{ const t=setInterval(()=>{ n--; if(n<=0){ clearInterval(t); res(); } else { const c=$('roomcnt'); if(c) c.textContent='Quiet now… '+n; } },1000); });
+ if(WV) WV.live.stop();
  const out=await r.stop();
  try{ const b=await decode(out.blob), d=await to441(b); const rm=A.room(d,44100); if(S.room&&S.room.id) del(S.room.id); const id='room-'+uid(); await put(id,out.blob); S.room=Object.assign(rm,{id,at:Date.now()}); save(); render(); }
  catch(e){ box.innerHTML='<div class="msg bad">This phone couldn\'t read the recording to measure it. Try again.</div>'; }
@@ -92,18 +94,26 @@ async function recTap(key){
  if(REC&&RECKEY===key) return stopRec();
  if(REC) await stopRec();
  try{ await mic(); }catch(e){ toast(C.errorWords(e,'audio')); return; }
- REC=C.record(MIC,'audio'); RECKEY=key; T0=Date.now(); render();
- TICK=setInterval(()=>{ const el=document.querySelector('[data-rt]'); if(el) el.textContent=((Date.now()-T0)/1000).toFixed(1)+' s'; },100);
+ REC=C.record(MIC,'audio'); RECKEY=key; T0=Date.now(); render(); if(WV) WV.live.start(MIC,{ceiling:A.CEILING});
+ TICK=setInterval(()=>{ const v=((Date.now()-T0)/1000).toFixed(1)+' s'; document.querySelectorAll('[data-rt]').forEach(el=>{ el.textContent=v; }); },100);
 }
 async function stopRec(){
- const r=REC, key=RECKEY; REC=null; RECKEY=null; clearInterval(TICK); if(!r) return;
+ const r=REC, key=RECKEY; REC=null; RECKEY=null; clearInterval(TICK); if(WV) WV.live.stop(); if(!r) return;
  const out=await r.stop(); render();
- let secs=out.secs, silent=false;
- try{ const b=await decode(out.blob), d=await to441(b), t=A.trim(A.rumbleCut(d,44100),44100); secs=Math.round((t.end-t.start)/44100*10)/10; silent=t.silent; }catch(e){}
+ let secs=out.secs, silent=false, wave=null, trim=null;
+ try{ const b=await decode(out.blob), d=await to441(b), t=A.trim(A.rumbleCut(d,44100),44100); secs=Math.round((t.end-t.start)/44100*10)/10; silent=t.silent; if(WV){ wave=WV.peaks(d,56); trim=WV.trimOf(t,d.length).map(x=>Math.round(x*1000)/1000); } }catch(e){}
  if(silent){ toast('Nothing heard in that take. Is the mic covered?'); return; }
  const id='t-'+uid(); await put(id,out.blob);
- (S.takes[key]=S.takes[key]||[]).push({id,secs,at:Date.now()}); S.kept[key]=id; save(); render();
+ (S.takes[key]=S.takes[key]||[]).push({id,secs,at:Date.now(),wave,trim}); S.kept[key]=id; save(); render();
 }
+/* takes from before the waveforms: read each once, keep its shape */
+let SHAPING=false;
+async function shapeOld(){
+ if(SHAPING||!WV) return; SHAPING=true;
+ try{ for(const k of Object.keys(S.takes)) for(const t of S.takes[k]){ if(t.wave) continue; const b=await get(t.id); if(!b) continue;
+   try{ const d=await to441(await decode(b)), tr=A.trim(A.rumbleCut(d,44100),44100); t.wave=WV.peaks(d,56); t.trim=WV.trimOf(tr,d.length).map(x=>Math.round(x*1000)/1000); save();
+    document.querySelectorAll('[data-wv="'+t.id+'"]').forEach(el=>{ el.innerHTML=WV.svg(t.wave,{trim:t.trim,cls:el.dataset.cls||''}); }); }catch(e){} } }
+ finally{ SHAPING=false; } }
 let PLAYER=null;
 async function play(id){ if(PLAYER){ PLAYER.pause(); URL.revokeObjectURL(PLAYER.src); } const b=await get(id); if(!b) return toast('That take is gone.'); PLAYER=new Audio(URL.createObjectURL(b)); PLAYER.play().catch(()=>{}); }
 async function drop(key,id){ const L=S.takes[key]||[]; S.takes[key]=L.filter(t=>t.id!==id); await del(id); if(S.kept[key]===id){ const last=S.takes[key].slice(-1)[0]; if(last) S.kept[key]=last.id; else delete S.kept[key]; } save(); render(); }
@@ -183,7 +193,7 @@ async function checkFile(f){
   const ch=info.channels||b.numberOfChannels, L=[];
   L.push([true,(info.fmt||'Sound file')+(info.kbps?' '+info.kbps+' kbps':'')+(info.bits?' '+info.bits+'-bit':'')+(info.rate?', '+(info.rate/1000)+' kHz':'')+', '+(ch===1?'mono':ch+' channels')+', '+(Math.round(b.duration*10)/10)+' s.']);
   if(ch>1) L.push([false,'Two channels. VO is usually sent mono; check the spec.']);
-  L.push([lufs>=-24&&lufs<=-16,'Loudness '+lufs+' LUFS.'+(lufs<-24?' On the quiet side: it may sound weaker than the others in the pile.':lufs>-16?' Hot: it may sound squashed.':'')]);
+  L.push([lufs>=-24&&lufs<=-16,'Loudness '+lufs+' LUFS.'+(lufs<-24?' On the quiet side: it may sound weaker than the others in the pile.':lufs>-16?' On the loud side: it may sound squashed.':'')]);
   L.push([peak<=-1,'Loudest peak '+peak+' dB.'+(peak>-1?' Too close to the top: it can crackle after they convert it.':'')]);
   if(room!=null) L.push([room<=-60,'Room between lines about '+room+' dB.'+(room>-60?' Above -60: they may hear the room.':'')]);
   box.innerHTML='<div class="card"><b class="fn">'+esc(f.name)+'</b><ul class="chk">'+L.map(([okk,t])=>'<li class="'+(okk?'ok':'no')+'">'+esc(t)+'</li>').join('')+'</ul><p class="faint small">It only listens. Your file isn\'t changed.</p></div>';
@@ -204,7 +214,9 @@ function render(){
  else if(S.tab==='voices'){ if(window.BoothVoices) BoothVoices.render(m); }
  else m.innerHTML=sendView(J);
  wire(J);
+ document.body.classList.toggle('onair',!!REC); const oa=$('onair'); if(oa) oa.textContent=REC?'RECORDING · MIC ON':'VO BOOTH';
  if(S.tab==='read'&&window.BoothVoices) BoothVoices.strip($('rvoice'),S.job.voice||'');
+ if(S.tab==='read') shapeOld();
 }
 function copyView(J){
  const n=J.spots.length;
@@ -242,7 +254,8 @@ function roomView(){
 }
 function readView(J){
  if(!J.spots.length) return '<div class="msg">Add the copy on COPY first.</div>';
- let h='<div id="rvoice"></div><div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="dim small">'+(MIC?'Mic on. Tap ● to record a line, tap again to stop.':'Tap ● to record a line, tap again to stop.')+'</span>'+(MIC?'<button class="btn sm ghost" id="micoff">MIC OFF</button>':'')+'</div>';
+ const cur=RECKEY?lineText(J,RECKEY):'';
+ let h='<div class="readgrid"><aside class="bpanel"><div id="rvoice"></div><div class="bbig"><p class="kicker">THE BOOTH</p><p class="bline">'+(cur?esc(cur):'<span class="faint">Tap ● on a line to record it.</span>')+'</p><canvas class="live big" data-live aria-label="What the mic hears, as you read" role="img"></canvas>'+meter()+'</div></aside><div class="readlist"><div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="dim small">'+(MIC?'Mic on. Tap ● to record a line, tap again to stop.':'Tap ● to record a line, tap again to stop.')+'</span>'+(MIC?'<button class="btn sm ghost" id="micoff">MIC OFF</button>':'')+'</div>';
  J.spots.forEach((sp,si)=>{ const t=spotTime(sp,J);
   h+='<div class="spot"><p class="kicker">'+(si+1)+' · '+esc(sp.title||'Spot')+(sp.secs?' · :'+sp.secs:'')+'</p>'
    +(t.have?'<p class="time'+(sp.secs&&Math.abs(t.secs-sp.secs)>1?' off':'')+'">'+esc(A.timeWords(t.secs,sp.secs))+(t.missing?' ('+t.missing+' line'+(t.missing===1?'':'s')+' still to read)':'')+'</p>':'');
@@ -253,16 +266,21 @@ function readView(J){
    ln.alts.forEach((a,ai)=>{ h+=lineCard(lineKey(sp,li,ai+1),a,'ALT'+(ln.alts.length>1?' '+(ai+1):'')); });
   });
   h+='</div>'; });
- return h;
+ return h+'</div></div>';
 }
+const meter=()=>'<div class="mrow"><span class="rt" data-rt>'+(REC?((Date.now()-T0)/1000).toFixed(1)+' s':'')+'</span><div class="meter" role="img" aria-label="Level"><i data-meter></i><b style="left:'+Math.round(WV?WV.meter(A.CEILING)*100:95)+'%"></b></div><span class="faint small">LEVEL</span></div>';
+function lineText(J,key){ for(const sp of J.spots) for(let li=0;li<sp.lines.length;li++){ const ln=sp.lines[li]; if(lineKey(sp,li,0)===key) return ln.text; for(let ai=0;ai<ln.alts.length;ai++) if(lineKey(sp,li,ai+1)===key) return ln.alts[ai]; } return ''; }
+const shape=(t,cls,label)=>t&&t.wave&&WV?WV.svg(t.wave,{trim:t.trim,cls,label}):'<span class="wv-none" data-wv="'+(t?t.id:'')+'" data-cls="'+(cls||'')+'"></span>';
 function lineCard(key,text,tag){
- const on=RECKEY===key, L=S.takes[key]||[];
- return '<div class="line'+(tag?' alt':'')+(on?' rec':'')+'">'+(tag?'<span class="pill">'+tag+'</span>':'')+'<p class="copy">'+esc(text)+'</p>'
-  +'<div class="row"><button class="recb'+(on?' on':'')+'" data-rec="'+esc(key)+'" aria-label="'+(on?'Stop':'Record')+'">'+(on?'■':'●')+'</button>'
-  +(on?'<span class="rt" data-rt>0.0 s</span>':'')
-  +L.map((t,i)=>'<span class="tk'+(S.kept[key]===t.id?' kept':'')+'"><button class="tkp" data-play="'+t.id+'">▶ '+(i+1)+' · '+t.secs+' s</button>'
-   +(S.kept[key]===t.id?'<em>KEPT</em>':'<button class="tkk" data-keep="'+esc(key)+'|'+t.id+'">KEEP</button>')+'<button class="tkx" data-drop="'+esc(key)+'|'+t.id+'" aria-label="Delete take">×</button></span>').join('')
-  +'</div></div>';
+ const on=RECKEY===key, L=S.takes[key]||[], k=L.find(t=>t.id===S.kept[key]);
+ return '<div class="line'+(tag?' alt':'')+(on?' rec':'')+(k?' has':'')+'">'+(tag?'<span class="pill">'+tag+'</span>':'')+'<p class="copy">'+esc(text)+'</p>'
+  +'<div class="row lrow"><button class="recb'+(on?' on':'')+'" data-rec="'+esc(key)+'" aria-label="'+(on?'Stop':(k?'Record it again':'Record'))+'">'+(on?'■':'●')+'</button>'
+  +(on?'<canvas class="live" data-live aria-label="What the mic hears, as you read" role="img"></canvas>':k?'<span class="lw">'+shape(k,'',null)+'</span><span class="kt">KEPT '+k.secs+' s</span>':'<span class="lw"><span class="wv-flat"></span></span>')
+  +'</div>'+(on?meter():'')
+  +(L.length?'<div class="takes">'+L.map((t,i)=>{ const kept=S.kept[key]===t.id;
+    return '<div class="take'+(kept?' kept':'')+'"><button class="tkp" data-play="'+t.id+'" aria-label="Play take '+(i+1)+'">▶ '+(i+1)+'</button><span class="tw">'+shape(t,'sm','Take '+(i+1))+'</span><span class="ts">'+t.secs+' s</span>'
+     +(kept?'<em>THE ONE THAT GOES</em>':'<button class="tkk" data-keep="'+esc(key)+'|'+t.id+'">KEEP</button>')+'<button class="tkx" data-drop="'+esc(key)+'|'+t.id+'" aria-label="Delete take '+(i+1)+'">×</button></div>'; }).join('')+'</div>':'')
+  +'</div>';
 }
 function fnLine(J){ const client=S.job.client||'Audition', who=name()||'Your Name';
  return S.opts.per==='spot'?'One file per spot, named like: <b>'+esc(V.fileName(client+' - '+((J.spots[0]||{}).title||'Spot'),who,S.opts.fmt))+'</b>':'Named: <b>'+esc(V.fileName(client,who,S.opts.fmt))+'</b>'; }
@@ -324,6 +342,6 @@ function goTab(t){ if(t==='voices'&&S.tab!=='voices'&&window.BoothVoices) BoothV
  save(); render(); window.scrollTo(0,0); }
 $('tabs').addEventListener('click',e=>{ const b=e.target.closest('button[data-t]'); if(b) goTab(b.dataset.t); });
 window.addEventListener('pagehide',()=>{ C.stop(MIC); });
-window.__booth={get S(){return S;},job,plan,addText,make,checkFile,render,decode,to441,get,keptOf,name,save,goTab};
+window.__booth={get S(){return S;},shapeOld,job,plan,addText,make,checkFile,render,decode,to441,get,keptOf,name,save,goTab};
 render();
 })();
