@@ -29,7 +29,7 @@ function addScript(o){
  const id=scriptId(o.text,o.me);
  if(!DB.scripts[id]) DB.scripts[id]={id:id,file:o.file||'Pasted sides',text:o.text,me:o.me,range:o.range||null,from:o.from||'',shelf:o.shelf||'',states:{},verbs:{},added:Date.now()};
  else { DB.scripts[id].range=o.range||null; if(o.shelf) DB.scripts[id].shelf=o.shelf; }
- DB.cur=id; save(); build(); resetDrill();
+ DB.cur=id; save(); build(); resetDrill(); stopListening();
 }
 /* ---------- the sides shelf (../shared/shelf.js) ---------- */
 const SH=window.Shelf||null;
@@ -96,14 +96,14 @@ document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>tab(b.data
 function tiles(){
  if(!window.Kit) return '';
  const t={id:'say',dev:'typewriter',icon:'mic',label:'MIC',what:'Say your lines'};
- if(!SC){ t.note='Bring in your sides first'; t.off=true; }
+ if(!SC){ t.note=Rec?'No sides? Say them: your words go down as you speak.':'Bring in your sides first'; t.off=!Rec; }
  else if(!Rec){ t.note='This browser can\'t hear you here. Try Chrome or Safari.'; t.off=true; }
  else t.note='Checks your words. Chrome sends it to Google, Safari to Apple.';
  return Kit.html([t]);
 }
 function wireTiles(){ if(window.Kit) Kit.wire($('main'),{say:sayTile}); }
 function sayTile(){
- if(!SC){ if(DB.tab!=='sides') tab('sides'); const d=$('drop'); if(d&&d.scrollIntoView) d.scrollIntoView({block:'center'}); toast('Bring in your sides first.'); return; }
+ if(!SC){ if(!Rec){ toast('This browser can\'t hear you here. Try Chrome or Safari, or bring in your sides.'); return; } if(DB.tab!=='sides') tab('sides'); sayAll(); return; }
  if(!Rec){ if(DB.tab!=='drill') tab('drill'); toast('This browser can\'t hear you here. Try Chrome or Safari.'); return; }
  if(LIS&&DB.tab==='drill'){ listen(); return; }
  if(DB.tab!=='drill') tab('drill');
@@ -169,7 +169,7 @@ function renderDrill(){
  if(!D.revealed){
   h+=`<div class="saybar">${Rec?`<button class="btn big ${LIS?'':'pri'}" id="sayBtn" onclick="MEM.listen()">${LIS?'STOP':'SAY IT'}</button>`:''}
    <button class="btn big ${Rec?'':'pri'}" onclick="MEM.reveal()" ${Rec?'':'style="grid-column:1/-1"'}>${Rec?'SHOW THE LINE':'SAID IT. SHOW THE LINE'}</button></div>`;
-  h+=`<div class="heard ${LIS?'listening':''}" id="heard">${LIS?(D.heard?esc(D.heard):'Listening…'):(Rec?'':'Say it out loud, then check.')}</div>`;
+  h+=`<div class="heard ${LIS?'listening live':''}" id="heard" aria-live="polite">${LIS?(D.heard?liveWords(D.heard,target):'<span class="lis" aria-hidden="true"></span>Listening… say it.'):(Rec?'':'Say it out loud, then check.')}</div>`;
   if(Rec) h+=`<p class="faint" style="font-size:12px;margin:6px 0 0">SAY IT uses the browser's speech service: Chrome sends what you say to Google, Safari to Apple. SHOW THE LINE never listens.</p>`;
   h+=D.typing?`<div class="typebox"><textarea class="field" id="typed" rows="3" placeholder="Type what you said"></textarea>
      <div class="row" style="margin-top:8px"><button class="btn" onclick="MEM.checkTyped()">CHECK</button></div></div>`
@@ -227,9 +227,14 @@ function mark(m){
 }
 function anyway(){ D.anyway=true; D.key=''; renderDrill(); }
 
+/* your words as you say them: right where the line has that word, plain where it doesn't */
+function liveWords(heard,target){
+ const t=E.words(target||''), said=String(heard||'').split(/\s+/).filter(Boolean);
+ let i=0; return '<span class="lis" aria-hidden="true"></span>'+said.map(w=>{ const k=E.words(w)[0]||''; const ok=k&&t[i]===k; if(k) i++; return '<span class="hw '+(ok?'ok':'off')+'">'+esc(w)+'</span>'; }).join('');
+}
 /* ---------- listening (where the phone can) ---------- */
 let LIS=null, lisT=null;
-function stopListening(){ if(LIS){ try{ LIS.onend=null; LIS.stop(); }catch(e){} LIS=null; } clearTimeout(lisT); }
+function stopListening(){ if(LIS){ try{ LIS.onend=null; LIS.stop(); }catch(e){} LIS=null; } clearTimeout(lisT); if(typeof SAY!=='undefined'&&SAY&&SAY.r){ const r=SAY.r; SAY.done=sayLines(); SAY.cur=[]; SAY.now=''; SAY.r=null; try{ r.onend=null; r.stop(); }catch(e){} } }
 function listen(){
  if(LIS){ const r=LIS; LIS=null; try{ r.stop(); }catch(e){} return; }
  const it=current(); if(!it||!Rec) return;
@@ -241,7 +246,7 @@ function listen(){
  r.onresult=e=>{
   let s=''; for(let i=0;i<e.results.length;i++) s+=e.results[i][0].transcript+' ';
   D.heard=s.trim();
-  const el=$('heard'); if(el) el.textContent=D.heard;
+  const el=$('heard'); if(el) el.innerHTML=liveWords(D.heard,target);
   clearTimeout(lisT);
   // enough words heard: stop a beat later. Otherwise stop after a long silence.
   lisT=setTimeout(()=>{ try{ r.stop(); }catch(_){} }, E.words(D.heard).length>=E.words(target).length?900:2600);
@@ -252,6 +257,33 @@ function listen(){
  renderDrill();
 }
 
+/* ---------- no sides yet: say your lines and they go down on the page as you speak ---------- */
+let SAY=null;
+function sayAll(){
+ if(SAY&&SAY.r){ const r=SAY.r; SAY.r=null; try{ r.stop(); }catch(e){} return; }
+ let r; try{ r=new Rec(); }catch(e){ toast('This browser can’t listen here.'); return; }
+ r.lang=(window.TapLang?TapLang.speech():((()=>{try{return localStorage.getItem('theactorpage_lang')}catch(e){}})()||navigator.language||'en-US')); r.interimResults=true; r.continuous=true;
+ SAY={r,done:(SAY&&SAY.done)||[],now:''};
+ r.onresult=e=>{ const fin=[]; let now=''; for(let i=0;i<e.results.length;i++){ const x=e.results[i]; if(x.isFinal) fin.push(x[0].transcript.trim()); else now+=x[0].transcript; }
+  SAY.cur=fin; SAY.now=now.trim(); paintSay(); };
+ r.onerror=e=>{ if(e.error==='not-allowed'||e.error==='service-not-allowed') toast('The microphone is blocked.'); };
+ r.onend=()=>{ if(SAY){ SAY.done=SAY.done.concat(SAY.cur||[]).concat(SAY.now?[SAY.now]:[]).filter(Boolean); SAY.cur=[]; SAY.now=''; SAY.r=null; } renderSides(); };
+ try{ r.start(); }catch(e){ SAY.r=null; toast('Could not start listening.'); return; }
+ renderSides();
+}
+function sayLines(){ return SAY?SAY.done.concat(SAY.cur||[]).concat(SAY.now?[SAY.now]:[]).filter(Boolean):[]; }
+function paintSay(){ const el=$('sayall'); if(!el) return; const L=sayLines(); el.innerHTML=(SAY&&SAY.r?'<span class="lis" aria-hidden="true"></span>':'')+(L.length?L.map((x,i)=>'<span class="hw ok" style="display:block">'+esc(x)+'</span>').join(''):'Listening… say your lines.'); }
+function sayBox(){
+ if(!SAY) return '';
+ const L=sayLines(), on=!!(SAY&&SAY.r);
+ return `<div class="sayall"><div class="kicker">${on?'LISTENING':'WHAT YOU SAID'}</div><div class="heard live" id="sayall" aria-live="polite"></div>
+  <div class="row" style="margin-top:10px"><button class="btn ${on?'':'pri'}" onclick="MEM.sayAll()">${on?'STOP':'SAY MORE'}</button>${L.length&&!on?'<button class="btn pri" onclick="MEM.sayKeep()">KEEP THEM AS MY LINES</button><button class="btn ghost" onclick="MEM.sayClear()">START OVER</button>':''}</div>
+  <p class="faint" style="font-size:12px;margin:8px 0 0">Each pause starts a new line. Your words, as you said them. This uses the browser's speech service: Chrome sends what you say to Google, Safari to Apple.</p></div>`;
+}
+function sayKeep(){ const L=sayLines(); if(!L.length) return; const text=L.map(x=>'YOU\n'+x).join('\n\n')+'\n';
+ const sid=shelfPut(text,'Said out loud',null); addScript({text,file:'Said out loud',me:'YOU',range:null,shelf:sid}); if(SH&&sid) SH.setMe(sid,'YOU','memorizer');
+ SAY=null; toast('Your lines: '+ITEMS.length+'. Go.'); tab('drill'); }
+function sayClear(){ if(SAY&&SAY.r) try{ SAY.r.onend=null; SAY.r.stop(); }catch(e){} SAY=null; renderSides(); }
 /* ================= SCENE ================= */
 const R={pos:-1,shown:false,done:{},dropped:[],on:false};
 function sceneStart(from){
@@ -342,25 +374,30 @@ let PENDING=null, PDFMSG='';
 function renderSides(){
  const ao=fromActorOS();
  const aoId=ao&&ao.me?scriptId(ao.text,ao.me,ao.range):'';
- let h='';
- const lt=!SC&&DB.last&&DB.scripts[DB.last];
- if(lt) h+=`<div class="card"><div class="kicker">WHERE YOU LEFT OFF</div><h2 style="font-size:20px">${esc(lt.me)} · ${esc(shortFile(lt.file))}</h2><button class="btn pri" id="pickup" onclick="MEM.open('${lt.id}')">PICK UP</button></div>`;
- if(ao&&ao.me&&aoId!==DB.cur&&!(lt&&aoId===lt.id)){
-  const n=E.items((function(){ let sc=S.script(S.parse(ao.text),ao.me); if(ao.range){ const a=ao.range[0],b=ao.range[1]>=0?ao.range[1]:sc.length-1; sc=sc.filter((x,i)=>i>=a&&i<=b);} return sc; })()).length;
-  h+=`<div class="card from"><div class="kicker">FROM ACTOR OS</div><h2 style="font-size:20px">${esc(ao.me)} · ${esc(shortFile(ao.file))}</h2>
-   <p class="dim" style="margin:4px 0 12px">${n} speech${n===1?'':'es'}${ao.range?' in '+esc(ao.scene||'the marked scene'):''}. The sides you're taping, ready to learn.</p>
-   <button class="btn pri block big" onclick="MEM.takeAO()">START</button></div>`;
- } else if(ao&&!ao.me&&!SC){
-  h+=`<div class="msg">Actor OS has sides (${esc(shortFile(ao.file))}) but no character picked. <button class="btn sm" onclick="MEM.takeAO()">USE THEM</button></div>`;
+ let h=sayBox();
+ const isPr=x=>x&&(x.from==='Practice scene'||(window.DailyScenes&&DailyScenes.isPractice(x.file)));
+ const list=Object.values(DB.scripts).filter(x=>!isPr(x)||x.id===DB.cur).sort((a,b)=>(b.id===DB.last)-(a.id===DB.last)||b.added-a.added);
+ if(list.length){
+  h+=`<div class="qhead"><h3 class="kicker" style="margin:0">YOUR SCRIPTS</h3><span class="faint" style="font-size:12px">${list.length}</span></div><div class="quick">`;
+  list.forEach(s=>{ const items=(function(){ try{ let sc=S.script(S.parse(s.text),s.me); if(s.range){ const a=s.range[0],b=s.range[1]>=0?s.range[1]:sc.length-1; sc=sc.filter((x,i)=>i>=a&&i<=b);} return E.items(sc);}catch(e){return [];} })();
+   const c=E.count(items,s.states||{}), last=!SC&&s.id===DB.last, open=s.id===DB.cur;
+   h+=`<div class="row" style="flex-wrap:nowrap;gap:6px"><button class="qrow${last||open?' cur':''}"${last?' id="pickup"':''} onclick="MEM.open('${s.id}')"><span><b>${esc(s.me)} · ${esc(shortFile(s.file))}</b><small>${last?'Where you left off · ':''}${esc(E.countLine(c))}</small></span><span class="go">${open?'OPEN NOW':last?'PICK UP':'OPEN'}</span></button><button class="btn sm ghost" aria-label="Remove ${esc(shortFile(s.file))}" onclick="MEM.remove('${s.id}')">&times;</button></div>`; });
+  h+='</div>';
  }
  if(SH){
   const mine=new Set(Object.values(DB.scripts).map(x=>x.shelf).filter(Boolean));
-  const others=SH.all().filter(x=>!mine.has(x.id));
+  const others=SH.all().filter(x=>!mine.has(x.id)&&!(window.DailyScenes&&DailyScenes.isPractice(x.file)));
   if(others.length){
-   h+=`<h3 class="kicker">ON THE SHELF</h3><p class="faint" style="font-size:13px;margin:-4px 0 6px">Sides you brought into any ACT tool on this phone.</p>`;
-   others.forEach(x=>{ h+=`<div class="scriptrow"><div><b>${esc(SH.label(x))}</b><small>from ${esc(x.from||'another tool')}</small></div><button class="btn sm" onclick="MEM.fromShelf('${x.id}')">OPEN</button></div>`; });
-   h+='<div style="height:14px"></div>';
+   h+=`<div class="qhead"><h3 class="kicker" style="margin:0">ON THE SHELF</h3><span class="faint" style="font-size:12px">from your other ACT tools</span></div><div class="quick">`;
+   others.forEach(x=>{ h+=`<button class="qrow" onclick="MEM.fromShelf('${x.id}')"><span><b>${esc(SH.label(x))}</b><small>from ${esc(x.from||'another tool')}</small></span><span class="go">OPEN</span></button>`; });
+   h+='</div>';
   }
+ }
+ if(ao&&ao.me&&aoId!==DB.cur&&!list.some(x=>x.id===aoId)){
+  const n=E.items((function(){ let sc=S.script(S.parse(ao.text),ao.me); if(ao.range){ const a=ao.range[0],b=ao.range[1]>=0?ao.range[1]:sc.length-1; sc=sc.filter((x,i)=>i>=a&&i<=b);} return sc; })()).length;
+  h+=`<div class="quick"><button class="qrow" onclick="MEM.takeAO()"><span><b>${esc(ao.me)} · ${esc(shortFile(ao.file))}</b><small>From Actor OS · ${n} speech${n===1?'':'es'}${ao.range?' in '+esc(ao.scene||'the marked scene'):''}</small></span><span class="go">START</span></button></div>`;
+ } else if(ao&&!ao.me&&!SC){
+  h+=`<div class="msg">Actor OS has sides (${esc(shortFile(ao.file))}) but no character picked. <button class="btn sm" onclick="MEM.takeAO()">USE THEM</button></div>`;
  }
  if(PENDING){
   const sp=S.speakers(S.parse(PENDING.text));
@@ -369,21 +406,10 @@ function renderSides(){
  }
  if(PDFMSG) h+=`<div class="msg bad">${PDFMSG}</div>`;
  h+=`<div class="drop" id="drop"><b>DROP YOUR SIDES</b><span class="dim">PDF or text. Or tap to choose.</span></div>
-  <details ${SC||ao?'':'open'}><summary class="dim" style="cursor:pointer;min-height:var(--tap);display:flex;align-items:center">Paste them instead</summary>
+  <details ${SC||ao||Object.keys(DB.scripts).length?'':'open'}><summary class="dim" style="cursor:pointer;min-height:var(--tap);display:flex;align-items:center">Paste them instead</summary>
    <textarea class="field" id="paste" placeholder="CYRUS&#10;You picked the wrong road.&#10;&#10;BRIN&#10;I don't have any."></textarea>
    <div class="row" style="margin-top:8px"><button class="btn" onclick="MEM.paste()">READ IT</button></div></details>`;
- const list=Object.values(DB.scripts).sort((a,b)=>b.added-a.added);
- if(list.length){
-  h+=`<h3 class="kicker" style="margin-top:22px">YOUR SCRIPTS</h3>`;
-  list.forEach(s=>{
-   const items=(function(){ try{ let sc=S.script(S.parse(s.text),s.me); if(s.range){ const a=s.range[0],b=s.range[1]>=0?s.range[1]:sc.length-1; sc=sc.filter((x,i)=>i>=a&&i<=b);} return E.items(sc);}catch(e){return [];} })();
-   const c=E.count(items,s.states||{});
-   h+=`<div class="scriptrow"><div><b>${esc(s.me)} · ${esc(shortFile(s.file))}</b><small>${esc(E.countLine(c))}</small></div>
-    <div class="row" style="flex-wrap:nowrap">${s.id===DB.cur?'<span class="pill solid">OPEN</span>':`<button class="btn sm" onclick="MEM.open('${s.id}')">OPEN</button>`}
-    <button class="btn sm ghost" aria-label="remove" onclick="MEM.remove('${s.id}')">&times;</button></div></div>`;
-  });
- }
- $('main').innerHTML=tiles()+h; wireTiles();
+ $('main').innerHTML=tiles()+h; wireTiles(); paintSay();
  const d=$('drop');
  d.onclick=()=>$('file').click();
  d.ondragover=e=>{ e.preventDefault(); d.classList.add('over'); };
@@ -445,7 +471,7 @@ function removeScript(id){
 /* ---------- boot ---------- */
 window.MEM={tab:tab,level:setLevel,beat:setBeat,again:again,reveal:reveal,typing:typing,checkTyped:checkTyped,mark:mark,anyway:anyway,
  listen:listen,scene:sceneStart,sceneShow:sceneShow,sceneMark:sceneMark,sceneRetry:sceneRetry,verb:setVerb,resetProgress:resetProgress,
- pickMe:pickMe,takeAO:takeAO,paste:pasteIt,open:openScript,remove:removeScript,fromShelf:fromShelf,
+ pickMe:pickMe,takeAO:takeAO,sayAll:sayAll,sayKeep:sayKeep,sayClear:sayClear,paste:pasteIt,open:openScript,remove:removeScript,fromShelf:fromShelf,
  _db:()=>DB,_items:()=>ITEMS,_script:()=>SCRIPT,_state:()=>({D:D,R:R})};
 /* a practice scene is only for when you ask for it: opening Memorizer again goes back to your own sides */
 try{ const c=DB.scripts&&DB.scripts[DB.cur]; if(c&&window.DailyScenes&&(c.from==='Practice scene'||DailyScenes.isPractice(c.file))){ const own=Object.keys(DB.scripts).filter(k=>{ const x=DB.scripts[k]; return x&&x.from!=='Practice scene'&&!DailyScenes.isPractice(x.file); }); DB.cur=own[own.length-1]||''; save(); } }catch(e){}
@@ -456,6 +482,8 @@ try{ const c=DB.scripts&&DB.scripts[DB.cur]; if(c&&window.DailyScenes&&(c.from==
  let handed=false; try{ if(window.DailyScenes){ DailyScenes.cleanShelf(); const h=DailyScenes.takeHandoff('memorizer'); if(h){ addScript({text:h.text,file:h.file,me:h.me,from:'Practice scene'}); DB.tab='drill'; save(); setTimeout(()=>toast(h.scene.title+': a practice scene, you\'re '+h.me+'.'),300); handed=true; } } }catch(e){}
  if(handed){ build(); tab('drill'); return; }
  if(asked){ if(!DB.cur&&DB.last&&DB.scripts[DB.last]){ DB.cur=DB.last; save(); } build(); if(want&&SH&&SH.get(want)){ SH.markSeen('memorizer',want); fromShelf(want); } else adoptShelf(); if(!SC&&!PENDING) DB.tab='sides'; tab(DB.tab||'drill'); return; }
+ /* a practice scene you didn't open just now is never kept in your scripts */
+ try{ if(window.DailyScenes){ let n=0; Object.keys(DB.scripts).forEach(k=>{ const x=DB.scripts[k]; if(x&&(x.from==='Practice scene'||DailyScenes.isPractice(x.file))){ delete DB.scripts[k]; if(DB.cur===k) DB.cur=''; if(DB.last===k) DB.last=''; n++; } }); if(n) save(); } }catch(e){}
  if(DB.cur){ DB.last=DB.cur; DB.cur=''; save(); }
  build(); tab('sides');
 })();

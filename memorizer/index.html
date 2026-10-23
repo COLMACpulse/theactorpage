@@ -131,15 +131,48 @@ nav.tabs button.on{color:var(--tung-text)}
 .scriptrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
 .scriptrow div{min-width:0}.scriptrow b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .scriptrow small{color:var(--faint)}
+/* with life: the icon at work, the sigil, the sticks; your words as you say them */
+.top{display:flex;align-items:center;gap:12px;padding-top:calc(env(safe-area-inset-top) + 8px);padding-bottom:8px}
+.top .tt{flex:1;min-width:0}
+.hico{width:46px;height:58px;flex:none}
+.hico .pg{fill:var(--panel2);stroke:var(--line)}.hico .rl{stroke:var(--line);stroke-width:2;stroke-linecap:round}
+.hico .who{font:700 7px var(--mono,monospace);letter-spacing:.12em;fill:var(--dim)}
+.hico .ln{font:700 9px var(--mono,monospace);fill:var(--tung-text)}.hico .ln.on{fill:var(--ink);font-weight:400}
+.hico .dot{fill:var(--tung)}
+.hico .a,.hico .b{animation:memA 5s ease-in-out infinite}.hico .b{animation-name:memB}
+@keyframes memA{0%,40%{opacity:1}50%,90%{opacity:0}100%{opacity:1}}
+@keyframes memB{0%,40%{opacity:0}50%,90%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.hico .a{animation:none;opacity:0}.hico .b{animation:none;opacity:1}}
+.hsig{width:46px;height:46px;flex:none;object-fit:contain}
+.hstk{display:block;height:5px;background:repeating-linear-gradient(115deg,#2b3038 0 14px,#1f8a5c 14px 28px,#d9b23a 28px 42px,#2a5fa8 42px 56px,#c0392b 56px 70px,#e8e6e0 70px 84px,#9aa0a8 84px 98px,#5c636d 98px 112px,#2b3038 112px 126px)}
+.heard.live{font-size:22px;line-height:1.45;min-height:3.2em;color:var(--ink);font-style:normal}
+.heard .hw{display:inline-block;margin-right:.28em;animation:hwIn .18s ease-out}.heard .hw.ok{color:var(--tung-text)}.heard .hw.off{color:var(--dim)}
+@keyframes hwIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.heard .lis{display:inline-block;width:10px;height:10px;border-radius:50%;background:#e0574a;margin-right:8px;animation:lisP 1s ease-in-out infinite;vertical-align:middle}
+@keyframes lisP{50%{opacity:.35}}
+.quick{display:flex;flex-direction:column;gap:6px;margin:0 0 14px}
+.qrow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;color:inherit;cursor:pointer;min-height:52px}
+.qrow b{font-weight:500}.qrow small{display:block;color:var(--faint);font-size:12.5px}.qrow .go{margin-left:auto;font-size:11px;letter-spacing:.14em;color:var(--tung-text);flex:none}
+.qrow.cur{border-color:var(--tung)}
+.qhead{display:flex;justify-content:space-between;align-items:baseline;margin:6px 0 2px}
+.sayall{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin:0 0 14px}
+body:has(#hotbar) .top{padding-top:calc(env(safe-area-inset-top) + 50px)}
 </style>
 </head>
 <body>
 <div class="shell">
   <header class="top">
-    <div class="k">MEMORIZER</div>
-    <b id="title">Off book</b>
-    <div class="count" id="count"></div>
+    <svg class="hico" viewBox="0 0 64 80" role="img" aria-label="A line coming back to you: first letters, then the whole line">
+      <rect class="pg" x="3" y="3" width="58" height="74" rx="5"/><path class="rl" d="M11 16H41M11 60H47M11 68H35"/>
+      <text class="who" x="11" y="28">RAY</text>
+      <g class="a"><text class="ln" x="11" y="42">Y · C · B .</text></g>
+      <g class="b"><text class="ln on" x="11" y="42">You came</text><text class="ln on" x="11" y="51">back.</text></g>
+      <circle class="dot" cx="52" cy="30" r="3.2"/>
+    </svg>
+    <div class="tt"><div class="k">MEMORIZER</div><b id="title">Off book</b><div class="count" id="count"></div></div>
+    <img class="hsig" src="../img/sigil-film-180.png" alt="THEACTORPAGE" width="56" height="56">
   </header>
+  <i class="hstk" aria-hidden="true"></i>
   <main id="main"></main>
 </div>
 <nav class="tabs" id="tabs">

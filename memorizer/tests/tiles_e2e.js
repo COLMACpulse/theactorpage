@@ -24,13 +24,16 @@ const tileText=p=>p.evaluate(()=>[...document.querySelectorAll('.kit .kt')].map(
 const onTab=(p,t)=>p.evaluate(t=>document.querySelector('#tabs [data-t="'+t+'"]').classList.contains('on'),t);
 const atTop=p=>p.evaluate(()=>{ const m=document.getElementById('main'); return !!(m.firstElementChild&&m.firstElementChild.classList.contains('kit')); });
 
-// 1. a new phone: no sides. The tile is there, OFF, and says to bring sides in.
+// 1. a new phone: no sides. The tile is there, and with no sides it takes your lines as you say them.
 let {c,p,errs}=await open(true);
-want('no sides: the first screen is SIDES, the MIC tile on top, OFF, greyed', (await tiles(p)).join()==='say:OFF:off'&&await atTop(p)&&await onTab(p,'sides'), await tiles(p));
+want('no sides: the first screen is SIDES, the MIC tile on top, OFF, ready', (await tiles(p)).join()==='say:OFF'&&await atTop(p)&&await onTab(p,'sides'), await tiles(p));
 let tt=await tileText(p);
-want('it says what it does and why it is off', /MIC/.test(tt)&&/Say your lines/.test(tt)&&/Bring in your sides first/.test(tt), tt);
+want('it says what it does with no sides', /MIC/.test(tt)&&/Say your lines/.test(tt)&&/No sides\? Say them: your words go down as you speak\./.test(tt), tt);
 await p.click('[data-kit="say"]'); await p.waitForTimeout(300);
-want('tap with no sides: stays on SIDES, says to bring them in, nothing listens', await onTab(p,'sides')&&/Bring in your sides first/.test(await p.innerText('#toast'))&&!(await p.$('#hotbar')));
+want('tap with no sides: on SIDES, listening, your words go down here', await onTab(p,'sides')&&!!(await p.$('#sayall'))&&(await tiles(p)).join()==='say:LISTENING', await tiles(p));
+await p.click('[data-kit="say"]'); await p.waitForTimeout(300);
+want('tap again: stops', (await tiles(p)).join()==='say:OFF'&&!(await p.$('#hotbar')), await tiles(p));
+await p.evaluate(()=>MEM.sayClear());
 // bring them in
 await p.setInputFiles('#file',{name:'low_tide.fountain',mimeType:'text/plain',buffer:Buffer.from(text)}); await p.waitForTimeout(600);
 want('sides in: pick the character, the tile still on top', await atTop(p)&&/Which character/.test(await p.innerText('#main')));

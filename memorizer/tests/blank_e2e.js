@@ -11,7 +11,7 @@ await p.evaluate(s=>{ document.getElementById('paste').value=s; },A); await p.ev
 want('a script of yours, open', !!(await cur()));
 await p.reload(); await p.waitForTimeout(800);
 want('opened again: blank, on SIDES, nothing open', !(await cur())&&await p.evaluate(()=>MEM._db().tab==='sides'));
-want('where you left off: offered', /WHERE YOU LEFT OFF\s+RAY · Pasted sides/.test(await p.innerText('#main'))&&!!(await p.$('#pickup')), (await p.innerText('#main')).slice(0,300));
+want('where you left off: offered, at the top, one tap', /YOUR SCRIPTS[\s\S]*RAY · Pasted sides[\s\S]*Where you left off/.test(await p.innerText('#main'))&&!!(await p.$('#pickup')), (await p.innerText('#main')).slice(0,300));
 want('your scripts: all still there', /YOUR SCRIPTS[\s\S]*RAY · Pasted sides/.test(await p.innerText('#main')));
 await p.click('#pickup'); await p.waitForTimeout(400);
 want('PICK UP: it opens, on DRILL', !!(await cur())&&await p.evaluate(()=>MEM._db().tab==='drill'));
