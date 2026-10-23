@@ -51,5 +51,20 @@ console.log('order:', await p.evaluate(()=>{ const J=__booth.job(); return J.spo
  want('every line of yours has a take', st.length===11&&st.every(L=>L.length===1));
  want('no page errors', !errs.length);
  want('no sideways scroll at phone width', (await p.evaluate(()=>document.documentElement.scrollWidth-innerWidth))<=0);
+ /* where it's going, and on the record in the Project Hub */
+ want('where it\'s going: every site, with its own words', /Casting Networks/.test(await p.innerText('#main'))&&/Voice123/.test(await p.innerText('#main')));
+ await p.click('[data-opt="fmt|wav"]'); await p.click('[data-opt="dest|CASTING_NETWORKS"]'); await p.waitForTimeout(200);
+ want('a site that takes MP3 only switches WAV to MP3, and says its limit', (await p.evaluate(()=>__booth.S.opts.fmt))==='mp3'&&/Up to 50 MB/.test(await p.innerText('#main')));
+ await p.click('#makego'); await p.waitForFunction(()=>/fits Casting Networks/.test(document.getElementById('made').textContent),null,{timeout:60000}).catch(()=>{});
+ want('the made file is checked against the site: it fits', /MB: fits Casting Networks/.test(await p.innerText('#made')));
+ const sh=await p.evaluate(()=>Takes.all('selftape').map(x=>({k:x.kind,from:x.for.from,title:x.for.title,role:x.for.role,taken:Object.keys(x.taken||{}).join()})));
+ want('the file goes to the Hub, as this job\'s tape (never into the self-tape studio)', sh.length>=1&&sh.every(x=>x.k==='audio'&&x.from==='booth'&&x.title==='Northgate Coffee'&&x.role==='Voice over'&&x.taken==='actor-os'), sh);
+ want('the job goes to the Hub on its own list, not as a self-tape request', (await p.evaluate(()=>Inbox.all('vojob').length))===1&&(await p.evaluate(()=>Inbox.all('request').length))===0);
+ const h=await ctx.newPage(); h.on('pageerror',e=>errs.push('H '+e.message)); await h.goto('http://localhost:8811/hub/'); await h.waitForTimeout(2500);
+ const pj=await h.evaluate(()=>{ const x=projects.find(p=>p.title==='Northgate Coffee'); return x?{role:x.role,type:x.type,due:x.deadline,dirs:x.request.directions,line:tapeLine(x)}:null; });
+ want('the Hub has the job: Voice over, the due date, the note\'s asks as the checklist', pj&&pj.role==='Voice over'&&pj.type==='Voice over'&&/2026-10-23/.test(pj.due)&&pj.dirs.some(d=>/one file/i.test(d))&&pj.dirs.some(d=>/In this order: Salt Flats/.test(d)), pj);
+ want('the file is kept with it, from VO BOOTH, in the Audition vault; made twice, kept once', pj&&/from VO BOOTH/.test(pj.line)&&(await h.evaluate(()=>ARTS.filter(a=>a.category==='audition_vid'&&/^audio\//.test(a.type)).length))===1);
+ want('the hand-over copy is gone once the Hub has it', (await h.evaluate(()=>Takes.all('selftape').length))===0);
+ await h.close();
  await p.click('[data-t=copy]'); want('the mic goes off when you leave READ and SEND', !(await p.evaluate(()=>window.Hot&&Hot.status().camera||Hot.status().mic)));
  console.log('errors',errs); await b.close(); fs.rmSync(T,{recursive:true,force:true}); process.exit(ok?0:1);})();

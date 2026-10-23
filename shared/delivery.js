@@ -46,6 +46,19 @@ D.SITES={
  REPRESENTATION:{name:'Email to your rep',maxMB:0,emailMB:25,words:'Gmail attaches up to 25 MB; bigger goes as a link',checked:'',src:''}
 };
 D.capFor=k=>(D.SITES[k]&&D.SITES[k].maxMB)||0;
+/* voice over: where the file goes, what each site takes. maxMB 0: no limit stated on their page (none guessed). mp3: MP3 only. */
+D.VO_SITES={
+ REPRESENTATION:{name:'Your agent, by email',maxMB:25,words:'Gmail attaches up to 25 MB; bigger goes as a link',checked:'',src:''},
+ ACTORS_ACCESS:{name:'Actors Access',maxMB:0,kinds:['mp3','wav'],words:'Takes MP3, M4A, WAV or WMA. No size limit stated on their page',checked:'2026-10-23',src:'https://actorsaccess.freshdesk.com/support/solutions/articles/17000056255'},
+ CASTING_NETWORKS:{name:'Casting Networks',maxMB:50,kinds:['mp3'],words:'Up to 50 MB: AAC, MP3 or OGG (no WAV)',checked:'2026-10-23',src:'https://support.castingnetworks.com/hc/en-us/articles/7802199566733'},
+ VOICE123:{name:'Voice123',maxMB:100,kinds:['mp3'],words:'MP3 only: 44.1 kHz, 96 to 128 kbps, mono, under 100 MB',checked:'2026-10-23',src:'https://support.voice123.com/hc/en-us/articles/207612656'},
+ VOICES:{name:'Voices.com',maxMB:10,kinds:['mp3'],words:'Up to 10 MB an audition; MP3 128 kbps, 44.1 kHz to play in their player',checked:'2026-10-23',src:'https://www.voices.com/help/knowledge/faq/how-large-can-my-files-be'}
+};
+/* a made file against where it's going: [] when it fits, else plain lines */
+D.voCheck=function(k,fmt,bytes){ const s=D.VO_SITES[k], out=[]; if(!s) return out;
+ if(s.kinds&&s.kinds.indexOf(fmt)<0) out.push(s.name+' doesn\'t take '+String(fmt).toUpperCase()+'. Make it as MP3.');
+ if(s.maxMB&&bytes>s.maxMB*1048576) out.push('It\'s '+(bytes/1048576).toFixed(1)+' MB; '+s.name+' takes up to '+s.maxMB+' MB.');
+ return out; };
 D.MODEWORDS={SEPARATE:'Separate files',SLATE_FIRST:'One file, slate first',SLATE_LAST:'One file, slate last'};
 D.words=function(d){
  if(!d) return ''; const L=[];

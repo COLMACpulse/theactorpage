@@ -652,7 +652,7 @@ function startMeters(){try{audioCtx=new AudioContext();let src=audioCtx.createMe
 if($('recBtn'))$('recBtn').onclick=()=>{if(!stream)return alert('Start camera first.');chunks=[];rec=new MediaRecorder(stream);rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};rec.onstop=()=>{let blob=new Blob(chunks,{type:rec.mimeType}),url=URL.createObjectURL(blob);state.takes.push({id:Date.now().toString(36),scene:state.scene,n:state.takes.filter(t=>t.scene===state.scene).length+1,status:'HOLD',bytes:blob.size,type:blob.type,url,trimIn:0,trimOut:0,created:new Date().toISOString()});localStorage.setItem(KEY,JSON.stringify(state));renderTakes();};rec.start();$('recState').textContent='RECORDING';$('recBtn').disabled=true;$('stopBtn').disabled=false};
 if($('stopBtn'))$('stopBtn').onclick=()=>{if(rec&&rec.state!=='inactive')rec.stop();$('recState').textContent='READY';$('recBtn').disabled=false;$('stopBtn').disabled=true};
 function renderTakes(){$('takeCount').textContent=state.takes.length;try{unsavedBanner();renderSave();navState();}catch(e){}$('takeList').innerHTML=state.takes.slice().reverse().map(t=>`<div class="take ${t.status==='SURVIVOR'?'survivor':''}"><div><b>SCENE ${t.scene} · TAKE ${t.n}</b><small>${t.status} · ${(t.bytes/1048576).toFixed(1)} MB · ${t.savedToDevice?'<span style="color:#5cae7e">saved to ${DEVICE}</span>':'<span style="color:#E0A23C">browser only</span>'}</small></div><div class="row"><button class="mini" onclick="saveTakeToDevice('${t.id}')" style="border-color:#E0A23C;color:#E0A23C">&#8681; SAVE</button><button class="mini" onclick="setTake('${t.id}','DROP')">DROP</button><button class="mini" onclick="setTake('${t.id}','HOLD')">HOLD</button><button class="mini" onclick="setTake('${t.id}','SURVIVOR')">KEEP</button></div></div>`).join('')}
-function setTake(id,s){let t=state.takes.find(x=>x.id===id);if(!t)return;if(s==='SURVIVOR')state.takes.filter(x=>x.scene===t.scene).forEach(x=>{if(x.id!==id&&x.status==='SURVIVOR')x.status='HOLD'});t.status=s;localStorage.setItem(KEY,JSON.stringify(state));renderTakes();renderCut()}window.setTake=setTake;
+function setTake(id,s){let t=state.takes.find(x=>x.id===id);if(!t)return;if(s==='SURVIVOR')state.takes.filter(x=>x.scene===t.scene).forEach(x=>{if(x.id!==id&&x.status==='SURVIVOR')x.status='HOLD'});t.status=s;localStorage.setItem(KEY,JSON.stringify(state));renderTakes();renderCut();if(s==='SURVIVOR'&&window.keepToHub)keepToHub(t)}window.setTake=setTake;
 /* Under the first take of each scene that has tried a change: what has not been tried yet. A nudge, never a score. */
 function untriedFor(t,takes){
  const sc=takes.filter(x=>x.scene===t.scene);
@@ -3579,8 +3579,17 @@ function reviewDrop(id){
  else if(MODE&&MODE!=='READER'){ SIDES.run=activeScript(); sIdx=SIDES.run.findIndex(b=>b.mine); if(sIdx<0)sIdx=0; drawStage(); }
  stageToast('Erased. Ready when you are.');
 }
+/* KEEP puts the tape on its audition in the Project Hub (it hands a copy over through the takes shelf; the Hub
+   files it in the Audition vault, kept with the audition, the next time it opens, and the hand-over copy goes) */
+async function keepToHub(t){
+ try{ if(!t||t.hubbed||!window.Takes) return; const b=await ActorReader.getTake(t.id).catch(()=>null); if(!b) return;
+  const job=state.job||{}, it=await Takes.put(b,{kind:'video',mime:b.type,ext:/mp4/.test(b.type)?'mp4':'webm',secs:t.secs,name:takeFilename(t),for:{type:'selftape',title:job.project||'',role:t.role||job.role||'',from:'actor-os',take:t.n}});
+  if(it){ Takes.take('actor-os',it.id); t.hubbed=true; try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){} }
+ }catch(e){}
+}
+window.keepToHub=keepToHub;
 function reviewKeep(id){
- const t=state.takes.find(x=>x.id===id); if(t)t.status='SURVIVOR';
+ const t=state.takes.find(x=>x.id===id); if(t){ t.status='SURVIVOR'; keepToHub(t); }
  try{ if(window.DailyScenes){ const d=DailyScenes.fromFile(SIDES.file); if(d){ DailyScenes.markDone(d.id); renderDaily(); } } }catch(e){}
  try{ localStorage.setItem(KEY,JSON.stringify(state)); renderTakes(); }catch(e){}
  closeReview();

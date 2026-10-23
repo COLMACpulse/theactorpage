@@ -1,7 +1,7 @@
 /* VO BOOTH offline shell. Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='booth-0.1.19';
+const CACHE='booth-0.1.20';
 const FILES=['../shared/tour.js','../shared/view.js','./','index.html','app.js','manifest.webmanifest','../shared/hot.js','../shared/kit.js','../shared/capture.js','../shared/you.js','../actor-os/sides.js','../actor-os/pdf.js','../shared/intake.js',
- '../shared/vocopy.js','../shared/voaudio.js','../shared/vendor/lame.min.js',
+ '../shared/inbox.js','../shared/takes.js','../shared/delivery.js','../shared/vocopy.js','../shared/voaudio.js','../shared/vendor/lame.min.js',
  'fonts/jost-latin-400-normal.woff2','fonts/jost-latin-500-normal.woff2','fonts/jost-latin-600-normal.woff2',
  'fonts/courier-prime-latin-400-normal.woff2','fonts/courier-prime-latin-700-normal.woff2',
  'icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];

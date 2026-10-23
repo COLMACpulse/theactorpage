@@ -5,12 +5,12 @@
    SEND  one file in the order asked, named the way casting reads it, levelled and the dead air cut. Or check a file you made.
    Nothing leaves this device. */
 (function(){
-const V=window.VOCopy, A=window.VOAudio, C=window.Capture, Y=window.You, X=window.Intake;
+const V=window.VOCopy, A=window.VOAudio, C=window.Capture, Y=window.You, X=window.Intake, D=window.Delivery;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const KEY='booth_v1';
 const blank=()=>({parts:[],job:{client:'',due:'',oneFile:false,order:[],format:'',perLine:false},you:'',brief:'',takes:{},kept:{},room:null,
- opts:{target:-20,gap:0.6,spotGap:1.5,alts:true,per:'one',fmt:'mp3'},name:'',tab:'copy',order:null});
+ opts:{target:-20,gap:0.6,spotGap:1.5,alts:true,per:'one',fmt:'mp3',dest:''},name:'',tab:'copy',order:null,jobId:''});
 let S=(()=>{ try{ return Object.assign(blank(),JSON.parse(localStorage.getItem(KEY)||'null')||{}); }catch(e){ return blank(); } })();
 const save=()=>{ try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){ toast('This phone is out of room to save. Your takes are safe; the list may not be.'); } };
 function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('on'),3200); }
@@ -22,6 +22,14 @@ async function put(id,blob){ const d=await db(); return new Promise((res,rej)=>{
 async function get(id){ const d=await db(); return new Promise(res=>{ const q=d.transaction('b','readonly').objectStore('b').get(id); q.onsuccess=()=>res(q.result||null); q.onerror=()=>res(null); }); }
 async function del(id){ const d=await db(); return new Promise(res=>{ const t=d.transaction('b','readwrite'); t.objectStore('b').delete(id); t.oncomplete=()=>res(); t.onerror=()=>res(); }); }
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+
+/* ---------- the Project Hub: the job goes on as an audition, and the file you make is kept with it ---------- */
+const voTitle=J=>S.job.client||((J||job()).spots[0]||{}).title||'Voice over';
+function toHub(){ try{ if(!window.Inbox) return; const J=job(); if(!J.spots.length&&!S.job.client) return; if(!S.jobId){ S.jobId=uid(); save(); }
+ Inbox.put('vojob',{title:voTitle(J),role:'Voice over',vo:{client:S.job.client||'',due:S.job.due||'',order:S.job.order||[],oneFile:!!S.job.oneFile,perLine:!!S.job.perLine,format:S.job.format||'',spots:J.spots.map(s=>s.title).filter(Boolean)}},'vo:'+S.jobId); }catch(e){} }
+async function fileToHub(f,J){ try{ if(!window.Takes) return; toHub();
+ const it=await Takes.put(f.blob,{kind:'audio',mime:f.blob.type,ext:S.opts.fmt,secs:f.out.secs,name:f.fn,for:{type:'selftape',title:voTitle(J),role:'Voice over',from:'booth'}});
+ if(it) Takes.take('actor-os',it.id); }catch(e){} }
 
 /* ---------- the copy ---------- */
 function job(){ const m=V.merge(S.parts.map(p=>p.read),S.job.order); let spots=m.spots;
@@ -48,7 +56,7 @@ function addText(name,lines,text){
 async function takeFiles(files){
  const got=[];
  for(const f of files){ try{ const r=await readFile(f); got.push(f.name+': '+({copy:'copy',note:'the agent\'s note',brief:'the brief',nothing:'nothing to read'})[addText(f.name,r.lines,r.text)]); }catch(e){ got.push(f.name+': couldn\'t read it'); } }
- save(); render(); if(got.length) toast(got.join(' · '));
+ save(); toHub(); render(); if(got.length) toast(got.join(' · '));
 }
 
 /* ---------- the mic ---------- */
@@ -131,6 +139,7 @@ async function make(){
    files.push({fn,blob:new Blob([bytes],{type:S.opts.fmt==='wav'?'audio/wav':'audio/mpeg'}),out});
   }
   showMade(files,missing.length);
+  for(const f of files) await fileToHub(f,J);
  }catch(e){ box.innerHTML='<div class="msg bad">It couldn\'t make the file: '+esc(e.message||e)+'</div>'; }
 }
 let MADE=[];
@@ -144,7 +153,8 @@ function showMade(files,missing){
    +(o.room!=null?' · your room between lines about '+o.room+' dB':'')+'</p>'
    +'<p class="dim small">'+(o.gain>0.5?'Brought up '+Math.round(o.gain)+' dB. ':o.gain<-0.5?'Brought down '+Math.round(-o.gain)+' dB. ':'')+'Rumble cut, dead air trimmed'+(o.limited?', '+o.limited+' s of peaks held under '+A.CEILING+' dB':'')+'.'
    +(o.room!=null&&o.room>-60?' <span class="bad">The room between lines is above -60 dB: they may hear it.</span>':'')+'</p>'
-   +'<div class="row"><a class="btn pri" href="'+m.url+'" download="'+esc(m.fn)+'">DOWNLOAD</a>'+(navigator.canShare?'<button class="btn" data-share="'+i+'">SHARE</button>':'')+'</div></div>'; });
+   +(S.opts.dest&&D.VO_SITES[S.opts.dest]?(()=>{ const w=D.voCheck(S.opts.dest,S.opts.fmt,m.blob.size); return w.length?'<p class="bad small">'+esc(w.join(' '))+'</p>':'<p class="small" style="color:#8fbf8a">'+(m.blob.size/1048576).toFixed(1)+' MB: fits '+esc(D.VO_SITES[S.opts.dest].name)+'.</p>'; })():'')
+   +'<p class="faint small">Kept with this job in the Project Hub.</p><div class="row"><a class="btn pri" href="'+m.url+'" download="'+esc(m.fn)+'">DOWNLOAD</a>'+(navigator.canShare?'<button class="btn" data-share="'+i+'">SHARE</button>':'')+'</div></div>'; });
  $('made').innerHTML=h;
  $('made').querySelectorAll('[data-share]').forEach(b=>b.onclick=async()=>{ const m=MADE[+b.dataset.share]; const f=new File([m.blob],m.fn,{type:m.blob.type}); try{ if(navigator.canShare({files:[f]})) await navigator.share({files:[f],title:m.fn}); else toast('This phone can\'t share a file from here. Use DOWNLOAD.'); }catch(e){} });
 }
@@ -262,7 +272,10 @@ function sendView(J){
   +'<p class="dim small" id="fnp" style="margin-top:8px">'+fnLine(J)+'</p>'
   +'<p class="lab" style="margin-top:10px">Files</p><div class="row">'+ch('per','one','One file')+ch('per','spot','One per spot')+'</div>'
   +(S.job.oneFile&&S.opts.per!=='one'?'<p class="bad small">The note asks for one file.</p>':'')
+  +'<p class="lab" style="margin-top:10px">Where it\'s going</p><div class="row">'+Object.keys(D.VO_SITES).map(k=>ch('dest',k,D.VO_SITES[k].name)).join('')+'</div>'
+  +(S.opts.dest&&D.VO_SITES[S.opts.dest]?'<p class="faint small">'+esc(D.VO_SITES[S.opts.dest].words)+'.'+(D.VO_SITES[S.opts.dest].checked?' From their help page, checked '+esc(D.VO_SITES[S.opts.dest].checked)+'.':'')+'</p>':'')
   +'<p class="lab" style="margin-top:10px">Kind</p><div class="row">'+ch('fmt','mp3','MP3')+ch('fmt','wav','WAV')+'</div>'
+  +(S.opts.dest&&D.voCheck(S.opts.dest,S.opts.fmt,0).length?'<p class="bad small">'+esc(D.voCheck(S.opts.dest,S.opts.fmt,0).join(' '))+'</p>':'')
   +'<p class="lab" style="margin-top:10px">Level</p><div class="row">'+ch('target',-23,'Quieter (-23)')+ch('target',-20,'Standard (-20)')+ch('target',-16,'Louder (-16)')+'</div>'
   +'<p class="faint small">No rule says one number for auditions. Standard sits with most of the pile. Peaks are held under -3 dB either way.</p>'
   +'<p class="lab" style="margin-top:10px">ALTs</p><div class="row">'+ch('alts',true,'Read after their line')+ch('alts',false,'Leave out')+'</div>'
@@ -278,7 +291,7 @@ function sendView(J){
 function wire(J){
  const q=(s,f)=>document.querySelectorAll(s).forEach(f);
  const fi=$('files'); if(fi) fi.onchange=()=>{ const f=[...fi.files]; fi.value=''; takeFiles(f); };
- const pg=$('pastego'); if(pg) pg.onclick=()=>{ const t=$('paste').value; if(!t.trim()) return; const k=addText('Pasted '+new Date().toLocaleTimeString(),t,t); save(); render(); toast(({copy:'Read as copy',note:'Read as the agent\'s note',brief:'Kept as the brief',nothing:'Nothing to read'})[k]); };
+ const pg=$('pastego'); if(pg) pg.onclick=()=>{ const t=$('paste').value; if(!t.trim()) return; const k=addText('Pasted '+new Date().toLocaleTimeString(),t,t); save(); toHub(); render(); toast(({copy:'Read as copy',note:'Read as the agent\'s note',brief:'Kept as the brief',nothing:'Nothing to read'})[k]); };
  q('[data-you]',b=>b.onclick=()=>{ S.you=S.you===b.dataset.you?'':b.dataset.you; save(); render(); });
  q('[data-up]',b=>b.onclick=()=>{ const i=+b.dataset.up; if(!i) return; const ord=(S.order&&S.order.length===J.base.length)?S.order.slice():J.base.map((_,k)=>k); [ord[i-1],ord[i]]=[ord[i],ord[i-1]]; S.order=ord; save(); render(); });
  const nj=$('newjob'); if(nj) nj.onclick=async()=>{ if(!confirm('Start a new job? This clears the copy, the note, the brief and every take.')) return; for(const k of Object.keys(S.takes)) for(const t of S.takes[k]) await del(t.id); const keep={name:S.name,room:S.room,opts:S.opts}; S=Object.assign(blank(),keep,{tab:'copy'}); save(); render(); };
@@ -288,7 +301,9 @@ function wire(J){
  q('[data-play]',b=>b.onclick=()=>play(b.dataset.play));
  q('[data-keep]',b=>b.onclick=()=>{ const [k,id]=b.dataset.keep.split('|'); S.kept[k]=id; save(); render(); });
  q('[data-drop]',b=>b.onclick=()=>{ const [k,id]=b.dataset.drop.split('|'); drop(k,id); });
- q('[data-opt]',b=>b.onclick=()=>{ const [k,v]=b.dataset.opt.split('|'); S.opts[k]=v==='true'?true:v==='false'?false:isNaN(+v)?v:+v; save(); render(); });
+ q('[data-opt]',b=>b.onclick=()=>{ const [k,v]=b.dataset.opt.split('|'); S.opts[k]=v==='true'?true:v==='false'?false:isNaN(+v)?v:+v;
+  if(k==='dest'){ const st=D.VO_SITES[v]; if(st&&st.kinds&&st.kinds.indexOf(S.opts.fmt)<0){ S.opts.fmt=st.kinds[0]; toast(st.name+' takes '+st.kinds.map(x=>x.toUpperCase()).join(' or ')+': set to '+S.opts.fmt.toUpperCase()+'.'); } }
+  save(); render(); });
  const nm=$('nm'); if(nm) nm.oninput=()=>{ S.name=nm.value; save(); };
  const cl=$('cl'); if(cl) cl.oninput=()=>{ S.job.client=cl.value; save(); };
  [nm,cl].forEach(x=>{ if(x) x.addEventListener('input',()=>{ const f=$('fnp'); if(f) f.innerHTML=fnLine(J); }); });
