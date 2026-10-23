@@ -1,6 +1,6 @@
 /* SPOTTED offline shell. Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='spotted-0.2.20';
-const FILES=['../shared/tour.js','../shared/view.js','./','index.html','app.js','manifest.webmanifest','../shared/hot.js','../shared/offices.js','../shared/notes.js','../shared/you.js','../shared/spotted.js','../shared/wire.js',
+const CACHE='spotted-0.2.21';
+const FILES=['../shared/tour.js','../shared/view.js','./','index.html','app.js','manifest.webmanifest','../shared/hot.js','../shared/offices.js','../shared/notes.js','../shared/you.js','../shared/workedwith.js','../shared/spotted.js','../shared/wire.js',
  'fonts/jost-latin-400-normal.woff2','fonts/jost-latin-500-normal.woff2','fonts/jost-latin-600-normal.woff2',
  'fonts/courier-prime-latin-400-normal.woff2','fonts/courier-prime-latin-700-normal.woff2',
  'icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];

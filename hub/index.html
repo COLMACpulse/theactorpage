@@ -169,6 +169,7 @@ small.note{display:block;padding:0 15px 13px;color:var(--faint);font-size:10.5px
 <script src="../shared/you.js"></script>
 <script src="../shared/looks.js"></script>
 <script src="../shared/vodemo.js"></script>
+<script src="../shared/workedwith.js"></script>
 <script src="../shared/offices.js"></script>
 <script src="../shared/notes.js"></script>
 <script src="../shared/spotted.js"></script>
@@ -274,7 +275,7 @@ async function loadMeta(){try{try{const tb=await DB.getMeta('creditTombs');if(tb
 function saveProjects(){try{DB.putMeta('projects',projects);}catch(e){}vaultTouch();}
 function setProjField(id,field,v){const p=projects.find(x=>x.id===id);if(p){p[field]=v;saveProjects();who();}}
 function saveProfile(){DB.putMeta('profile',profile);vaultTouch();}
-function saveCredits(){DB.putMeta('credits',credits);vaultTouch();}
+function saveCredits(){DB.putMeta('credits',credits);vaultTouch();try{if(window.WorkedWith)WorkedWith.fromCredits(credits.filter(c=>c.kind!=='removed'));}catch(e){}}
 function setProf(field,v){profile[field]=v;saveProfile();who();}
 function setProfList(field,v){profile[field]=v.split(',').map(s=>s.trim()).filter(Boolean);saveProfile();}
 function setCredit(i,field,v){credits[i][field]=v;saveCredits();}
@@ -433,6 +434,27 @@ async function imdbImport(){
  toast('Added '+added+' credit'+(added===1?'':'s')+' and '+art+' poster'+(art===1?'':'s'));
  imdbState={busy:false,person:null,rows:[],err:''};render();}
 
+/* WHO YOU'VE WORKED WITH: the directors your credits name, and (with your TMDb key) the director, writer, DP,
+   producers and casting TMDb lists on each credit. Films: that film. TV: the series, not your episode. */
+let WWST={busy:false,done:0,of:0,added:0,err:''};
+async function wwFind(){
+ if(!window.WorkedWith) return; if(!TMDB_KEY){ WWST.err='Add a TMDb key first, in Pull your credits from IMDb. It is free and takes a minute.'; return render(); }
+ const L=credits.filter(c=>c.kind==='credit'&&c.title&&!WorkedWith.fetched(c.title)); WWST={busy:true,done:0,of:L.length,added:0,err:''}; render();
+ for(const c of L){ try{ const hit=await tmdbSearch(c.title,c.medium);
+   if(hit){ const tv=!hit.title; let j; if(tv){ j=await tmdb('/tv/'+hit.id+'/aggregate_credits'); try{ const t=await tmdb('/tv/'+hit.id); j.created_by=t.created_by||[]; }catch(e){} } else j=await tmdb('/movie/'+hit.id+'/credits');
+    WWST.added+=WorkedWith.addTmdb(c.title,WorkedWith.parseTmdb(j,{scope:tv?'series':'film'}),tv?'series':'film'); }
+   else WorkedWith.addTmdb(c.title,[],'film'); }catch(e){ WWST.err=e.message; break; }
+  WWST.done++; if(WWST.done%3===0) render(); }
+ WWST.busy=false; render(); }
+function wwPanel(){
+ if(!window.WorkedWith) return ''; const P=WorkedWith.all(), n={}; P.forEach(p=>p.on.forEach(o=>{ n[o.job]=(n[o.job]||0)+1; }));
+ const left=credits.filter(c=>c.kind==='credit'&&c.title&&!WorkedWith.fetched(c.title)).length;
+ let h=`<div class="panel"><h2>Who you've worked with &middot; ${P.length}</h2><small class="note">From your credits: the director each one names. With your TMDb key: the director, writer, director of photography, producers and casting TMDb lists for each credit. For TV that's everyone on the series, not just your episode. Only names, jobs and credits; nothing else is looked up. They show in <a href="../contacts/">Contacts</a>, and when one of them turns up on a breakdown or in Spotted, it says so.</small>`;
+ h+=`<div style="padding:10px 13px">`+(P.length?`<div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:8px">${WorkedWith.JOBS.filter(j=>n[j[0]]).map(j=>`<span class="tag">${esc(j[1])} ${n[j[0]]}</span>`).join('')}</div>`:'')
+  +(WWST.busy?`<small class="note">Looking up ${WWST.done} of ${WWST.of}&hellip;</small>`:`<button class="act sm" onclick="wwFind()"${left?'':' disabled'}>${left?'FIND WHO YOU WORKED WITH ON '+left+' CREDIT'+(left===1?'':'S'):'EVERY CREDIT LOOKED UP'}</button>`)
+  +(WWST.added&&!WWST.busy?` <small class="note">${WWST.added} new.</small>`:'')+(WWST.err?`<div style="color:var(--bad);font-size:12px;margin-top:6px">${esc(WWST.err)}</div>`:'');
+ if(P.length) h+=`<details style="margin-top:10px"><summary class="note" style="cursor:pointer">See them all</summary><div style="display:grid;gap:3px;margin-top:8px">${P.map(p=>`<div class="reelrow"><span class="rl">${esc(p.name)}</span><span class="tag" style="white-space:normal">${esc(p.on.map(WorkedWith.onWords).join('; '))}</span></div>`).join('')}</div></details>`;
+ return h+`</div></div>`; }
 function imdbPanel(){
  const st=imdbState;
  let h=`<div class="panel"><h2>Pull your credits from IMDb</h2>
@@ -1284,6 +1306,7 @@ function audCardHTML(a){
    ${pl.state==='OK'?planPanel(pl).replace('wsgrp','wsgrp inaud'):''}
    ${reqCardBlock(a)}
    ${tapeLine(a)}
+   ${wwLine(a)}
    ${(gaps.actor.length||gaps.rep.length)&&meta.live?`<div class="ogap" style="margin-top:11px">
      <div><h4>Yours</h4><ul>${gaps.actor.map(x=>`<li>${esc(x)}</li>`).join('')||'<li style="color:var(--mut)">nothing outstanding</li>'}</ul></div>
      <div><h4>Your rep's</h4><ul>${gaps.rep.map(x=>`<li>${esc(x)}</li>`).join('')||'<li style="color:var(--mut)">nothing outstanding</li>'}</ul></div>
@@ -1363,6 +1386,11 @@ function tapeProject(f){ const lc=x=>String(x||'').toLowerCase().trim(); if(!f) 
  return projects.find(p=>p.request&&lc(p.role)===lc(f.role)&&(!f.title||lc(p.title)===lc(f.title)))||(f.title?projects.find(p=>lc(p.title)===lc(f.title)&&lc(p.role)===lc(f.role)):null)||(!f.title?projects.find(p=>p.request&&lc(p.role)===lc(f.role)):null)||null; }
 /* tapes that came in before the vault knew them (category 'take' on an audition): into the vault, still kept with it */
 async function tapesToVault(){ let n=0; for(const a of ARTS){ if(a.category==='take'&&a.scope&&a.scope!=='train'&&a.scope!=='library'){ a.meta=Object.assign({},a.meta||{},{project:a.scope,from:a.from||'home'}); a.category='audition_vid'; a.scope='library'; try{ await DB.put(a); n++; }catch(e){} } } return n; }
+/* WORKED WITH: someone on this audition you've worked with (the request's director, producers, casting) */
+function wwHits(a){ if(!window.WorkedWith) return []; const r=a.request||{}; return WorkedWith.match([r.director,r.producers,a.director].concat(r.castingDirectors||[],[a.casting])); }
+function wwLine(a){ const H=wwHits(a); if(!H.length) return ''; const proj=a.project||a.title||'';
+ return `<div class="tapeline"><h4>You've worked with</h4>`+H.map(p=>`<div class="tl"><span>${esc(WorkedWith.line(p).replace(/^You worked with /,''))}</span>${WorkedWith.pitched(p.name,proj)?'<span class="tag">on your reps sheet</span>':`<button class="ghost act sm" onclick="wwPitch('${esc(p.key||WorkedWith.key(p.name))}','${a.id}')">FOR MY REPS</button>`}</div>`).join('')+`</div>`; }
+function wwPitch(k,id){ const a=projects.find(x=>x.id===id), p=a&&wwHits(a).find(x=>WorkedWith.key(x.name)===k); if(!p) return; WorkedWith.pitch(p,a.project||a.title||''); toast('On your reps sheet: '+p.name); render(); }
 function tapesFor(p){ return ARTS.filter(a=>a.category==='audition_vid'&&a.meta&&a.meta.project===p.id); }
 function tapeLine(p){ const t=tapesFor(p); if(!t.length) return '';
  const FROM={'actor-os':'the self-tape studio',booth:'VO BOOTH',home:'home'};
@@ -1598,6 +1626,7 @@ function intakeView(){
  h+=siteImportPanel();
  h+=`<div id="qs-block">`+quicksheetPanel()+`</div>`;
  h+=`<div id="imdb-block">`+imdbPanel()+`</div>`;
+ h+=wwPanel();
  h+=vaultPanel();   /* the record now, so it leads rather than hiding in a drawer */
 
  h+=`<details class="more"><summary>Other tools</summary>
@@ -1888,6 +1917,7 @@ function repsSource(){
  let people=[]; try{ if(window.Notes) people=Notes.people(); }catch(e){}
  return {name:profile.name||y.name||'',page:(online().live&&online().url)||pkgSel.site||'',at:Date.now(),offices,
   credits:credits.filter(c=>c.kind==='credit').map(c=>({title:c.title,net:c.net,director:c.director,role:c.role})),people,
+  pitch:window.WorkedWith?WorkedWith.pitches().map(x=>({name:x.name,on:WorkedWith.onWords(x.on),project:x.project})):[],
   rightFor:(y.types||[]).concat(hp.called||[]),wantMore:y.wantMore||[],wantSeen:hp.want||[],spotted,after:window.Viz?Viz.forReps():[],typed:!!(y.types||[]).filter(Boolean).length};
 }
 function repsNow(){ const st=repsState(), m=RepSheet.build(repsSource()), ch=RepSheet.changes(st.last&&st.last.snap,m); return {st,m,ch,due:RepSheet.due(st.last&&st.last.at,st.rhythm,ch)}; }
@@ -4150,6 +4180,6 @@ function reelRoomView(){
    wrong tombstone list - so the vault was correcting the record instead of being
    it. Now: browser cache, then folder, then the seeding and filtering run on
    whatever won. */
-seed();render();loadArts().then(()=>loadMeta()).then(async()=>{ if(!HUB_DEMO&&isDemo()) await dropDemoData(); }).then(()=>vaultAuto()).then(()=>{const n=credits.length;credits=credits.filter(c=>!isTombed(c.title));if(credits.length!==n)saveCredits();}).then(()=>seedAuditions()).then(()=>fromInbox()).then(()=>fromYou()).then(()=>tapesToVault()).then(()=>fromTakes()).then(render);
+seed();render();loadArts().then(()=>loadMeta()).then(async()=>{ if(!HUB_DEMO&&isDemo()) await dropDemoData(); }).then(()=>vaultAuto()).then(()=>{const n=credits.length;credits=credits.filter(c=>!isTombed(c.title));if(credits.length!==n)saveCredits();}).then(()=>seedAuditions()).then(()=>fromInbox()).then(()=>fromYou()).then(()=>{ try{ if(window.WorkedWith) WorkedWith.fromCredits(credits.filter(c=>c.kind!=='removed')); }catch(e){} }).then(()=>tapesToVault()).then(()=>fromTakes()).then(render);
 </script><script src="../shared/view.js"></script>
 </body></html>

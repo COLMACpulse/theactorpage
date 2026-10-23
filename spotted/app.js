@@ -137,6 +137,10 @@ function lookHtml(){
 }
 
 /* ---------- one you've kept ---------- */
+/* WORKED WITH: someone on this you've worked with: its director, its casting, or a name in its words */
+function wwHits(it){ const WW=window.WorkedWith; if(!WW) return []; const c=it.card||{}; const a=WW.match([c.director].concat(c.casting||[])), t=WW.inText([c.about,c.raw,it.raw].concat((it.more||[]).map(m=>m.raw)).filter(Boolean).join(' ')); t.forEach(p=>{ if(!a.some(x=>WW.key(x.name)===WW.key(p.name))) a.push(p); }); return a; }
+function wwHtml(it){ const H=wwHits(it); if(!H.length) return ''; const WW=window.WorkedWith, proj=(it.card&&it.card.project)||'';
+ return '<div class="card"><p class="kicker">You\'ve worked with</p>'+H.map(p=>'<div class="row" style="justify-content:space-between;margin:4px 0"><span>'+esc(WW.line(p).replace(/^You worked with /,''))+'</span>'+(proj?(WW.pitched(p.name,proj)?'<small class="faint">on your reps sheet</small>':'<button class="chip sm" data-ww="'+esc(WW.key(p.name))+'">FOR MY REPS</button>'):'')+'</div>').join('')+'</div>'; }
 function itemView(it){
  const c=it.card, F=factsFor(it), m=me();
  const cut=S.cutFor(it.id); cutLogged(it,cut);
@@ -145,6 +149,7 @@ function itemView(it){
  h+='<div class="card"><p class="kicker">'+esc(day(it.at))+'</p><h2 style="font-size:20px">'+esc(c.project||'(no title)')+'</h2><p class="dim" style="margin:4px 0 10px">'+esc([c.role,(c.casting||[]).length?c.casting.join(' & ')+' casting':''].filter(Boolean).join(' · '))+'</p>'
   +'<div class="row">'+S.STATUS.map(([k,l])=>'<button class="chip sm'+(it.status===k?' on':'')+'" data-st="'+k+'">'+l+'</button>').join('')+'</div>'
   +'<label class="lab" for="inote">Your note (on the list your manager sees)</label><input class="field" id="inote" value="'+esc(it.note)+'" placeholder="e.g. Rep submitted 10/20"></div>';
+ h+=wwHtml(it);
  h+=yoursHtml(it);
  h+=stageHtml(c);
  h+=moreHtml(it);
@@ -219,7 +224,7 @@ function youView(){
 const W=window.Wire; let JS=W?W.load():null, WIRE=null, JBUSY=false, JERR='', JOPEN={list:false,news:false};
 const wireMe=()=>{ const y=you(), offs={}, add=(n,seen)=>{ const k=S.key(n); if(!k) return; offs[k]=offs[k]||{name:n,seen:false}; if(seen) offs[k].seen=true; };
  ((HUB&&HUB.projects)||[]).forEach(p=>add(p.casting_office||p.casting_director||p.casting||'',true)); D.items.forEach(it=>(it.card.casting||[]).forEach(n=>add(n,false)));
- const ppl=[]; try{ if(N) N.people().forEach(p=>ppl.push(p.name)); }catch(e){} ((HUB&&HUB.credits)||[]).forEach(c=>{ if(c.director) ppl.push(c.director); });
+ const ppl=[]; try{ if(N) N.people().forEach(p=>ppl.push(p.name)); }catch(e){} ((HUB&&HUB.credits)||[]).forEach(c=>{ if(c.director) ppl.push(c.director); }); try{ if(window.WorkedWith) WorkedWith.all().forEach(p=>ppl.push(p.name)); }catch(e){}
  return {types:types(),wantMore:(y.wantMore||[]).filter(Boolean),places:String(y.locations||'').split(/\s*(?:,|;|\/|\band\b)\s*/).filter(Boolean),offices:Object.values(offs),people:ppl,watch:JS.watch||[],not:JS.not||[]}; };
 async function juiceCheck(){
  if(!W||JBUSY) return; JBUSY=true; JERR=''; $('online').hidden=false; if(U.tab==='juice') render();
@@ -301,6 +306,7 @@ function wire(){
  const it=U.open&&item(U.open);
  if(it&&U.tab==='list'){
   M.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{ setStatus(it,b.dataset.st); render(); });
+  M.querySelectorAll('[data-ww]').forEach(b=>b.onclick=()=>{ const p=wwHits(it).find(x=>WorkedWith.key(x.name)===b.dataset.ww); if(p){ WorkedWith.pitch(p,it.card.project||''); toast('On your reps sheet: '+p.name); render(); } });
   M.querySelectorAll('[data-ys]').forEach(b=>b.onclick=()=>{ setYours(it,b.dataset.ys); render(); });
   if($('inote')) $('inote').onchange=e=>{ it.note=e.target.value.trim(); save(); };
   if($('mine')) $('mine').onchange=e=>{ it.mine=e.target.value.trim(); save(); render(); };

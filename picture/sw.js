@@ -1,5 +1,5 @@
 /* PICTURE IT offline shell. Bump CACHE on every release. Only clears its own old copies. Network first. */
-const CACHE='picture-0.1.0';
+const CACHE='picture-0.1.1';
 const FILES=['./','index.html','app.js','../shared/tour.js','../shared/view.js','../shared/notes.js','../shared/offices.js','../shared/contacts.js','../shared/inbox.js','../shared/you.js','../shared/press.js','../shared/wire.js','../shared/viz.js'];
 self.addEventListener('install',e=>{ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).catch(()=>{}).then(()=>self.skipWaiting())); });
 self.addEventListener('activate',e=>{ e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE&&k.startsWith('picture-')).map(k=>caches.delete(k)))).then(()=>self.clients.claim())); });

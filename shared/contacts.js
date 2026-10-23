@@ -12,7 +12,7 @@
   'use strict';
   const C = {}, KEY = 'theactorpage_contacts_v1';
   C.KEY = KEY;
-  C.ROLES = [['casting', 'Casting'], ['agent', 'Agent'], ['manager', 'Manager'], ['director', 'Director'], ['producer', 'Producer'], ['coach', 'Coach'], ['actor', 'Actor'], ['press', 'Press'], ['crew', 'Crew'], ['other', 'Other']];
+  C.ROLES = [['casting', 'Casting'], ['agent', 'Agent'], ['manager', 'Manager'], ['director', 'Director'], ['producer', 'Producer'], ['writer', 'Writer'], ['coach', 'Coach'], ['actor', 'Actor'], ['press', 'Press'], ['crew', 'Crew'], ['other', 'Other']];
   /* PRESS: the outlet (company), the writer (name, once you've confirmed them from their own work), their beat, and the piece you saw (site). checked: you confirmed it. */
   C.press = () => read().people.filter(p => p.role === 'press' && !p.dnc);
   C.REPKINDS = [['theatrical', 'Theatrical'], ['commercial', 'Commercial'], ['voice', 'Voice over'], ['print', 'Print'], ['youth', 'Youth'], ['other', 'Other']];
@@ -71,6 +71,9 @@
     const sp = src.spotted || {};
     (sp.items || []).forEach(it => { const c = it && it.card; if (!c) return; (c.casting || []).forEach(n => put(n, 'casting', n, 'Spotted: casting ' + (clean(c.project) || 'a project'))); });
     ((sp.me && sp.me.reps) || []).forEach(r => put(r.name, 'agent', '', 'Spotted: one of your reps'));
+    /* WORKED WITH: the people on your credits (your résumé, your site, TMDb in the Hub) */
+    const JOB = { director: ['director', 'director'], writer: ['writer', 'writer'], dp: ['crew', 'DP'], producer: ['producer', 'producer'], casting: ['casting', 'casting'] }, FROM = { resume: 'your résumé', site: 'your site', tmdb: 'TMDb' };
+    (src.worked || []).forEach(p => (p.on || []).forEach(o => { const j = JOB[o.job]; if (!j) return; put(p.name, j[0], '', 'Worked with: ' + j[1] + ' on ' + clean(o.title) + (o.scope === 'series' ? ' (the series)' : '') + ', from ' + (FROM[o.from] || o.from)); }));
     return Object.keys(by).map(k => by[k]);
   };
   /* everyone: the ones you keep, with what the tools know about them; and the ones only the tools know */
@@ -93,7 +96,8 @@
   C.match = (x, q) => { const t = [x.name, x.company, C.roleName(x.role), x.p && x.p.city, x.p && x.p.note, (x.from || []).join(' ')].join(' ').toLowerCase(); return String(q || '').toLowerCase().split(/\s+/).filter(Boolean).every(w => t.indexOf(w) >= 0); };
   /* the other tools, for the page: Notes and Spotted from storage, the Hub's auditions from its database */
   C.sources = async function () {
-    const s = { notes: [], projects: [], spotted: {} };
+    const s = { notes: [], projects: [], spotted: {}, worked: [] };
+    try { const w = JSON.parse(LS().getItem('theactorpage_workedwith_v1') || 'null'); if (w && w.people) s.worked = Object.keys(w.people).map(k => w.people[k]); } catch (e) { }
     try { if (g.Notes) s.notes = g.Notes.people().map(p => ({ name: p.name, role: p.role, sessions: p.sessions || (p.sids ? p.sids.length : 0), notes: p.notes || p.count || 0 })); } catch (e) { }
     try { s.spotted = JSON.parse(LS().getItem('theactorpage_spotted_v1') || '{}') || {}; } catch (e) { }
     try { if (g.Offices) { const h = await g.Offices.load(); if (h) s.projects = h.projects || []; } } catch (e) { }

@@ -50,6 +50,7 @@
       rightFor: uniq((src.rightFor || []).map(clean)), wantMore: uniq((src.wantMore || []).map(clean)), wantSeen: uniq((src.wantSeen || []).map(clean)),
       typed: src.typed !== false,
       news: (sp.news || []).filter(n => n && n.at && clean(n.t)).map(n => ({ project: clean(n.project) || '(no title)', at: n.at, t: clean(n.t).replace(/^You marked it /, 'I marked it ').replace(/^Built a (\S+) cut in Archbook\.?$/, 'I built a $1 cut for it.') })),
+      pitch: (src.pitch || []).filter(x => x && clean(x.name) && clean(x.project)).map(x => ({ name: clean(x.name), on: clean(x.on), project: clean(x.project) })),
       after: (src.after || []).filter(a => a && clean(a.title)).map(a => ({ title: clean(a.title), kind: a.kind || 'show', note: clean(a.note) })),
       fits: (sp.fits || []).map(f => ({ id: f.id, project: clean(f.project) || '(no title)', network: clean(f.network), role: clean(f.role), casting: (f.casting || []).map(clean).filter(Boolean), url: safeUrl(f.url), mine: uniq((f.mine || []).map(clean)) })),
       offices
@@ -108,6 +109,7 @@
     if (m.groups.length || m.coldCount) { L.push('WHERE I STAND'); m.groups.forEach(gp => { L.push(gp.label + ' (' + gp.offices.length + ')'); gp.offices.forEach(o => L.push('- ' + offLine(o))); }); if (m.coldCount) L.push('Plus ' + pl(m.coldCount, 'office') + ' I\'ve taped for once or twice.'); L.push(''); }
     if (m.networks.length) { L.push('NETWORKS I\'VE WORKED FOR'); m.networks.forEach(n => L.push('- ' + n.name + ': ' + n.titles.join(', '))); L.push(''); }
     if (m.people.length) { L.push('PEOPLE I\'VE WORKED WITH'); m.people.forEach(p => L.push('- ' + p.name + ', ' + p.how)); L.push(''); }
+    if ((m.pitch || []).length) { L.push('SOMEONE I\'VE WORKED WITH IS ON IT'); m.pitch.forEach(x => L.push('- ' + x.name + ' (' + x.on + ') is on ' + x.project + '.')); L.push(''); }
     if (m.want.length || m.fresh.length) { L.push('ON MY RADAR'); m.want.forEach(w => L.push('- ' + w.name + (w.why ? ': ' + w.why : ''))); m.fresh.forEach(o => L.push('- ' + o.name + ': casting ' + o.projects.join(', ') + '. Never had me in.')); L.push(''); }
     if (m.rightFor.length) L.push('WHAT I\'M RIGHT FOR', m.rightFor.join(', '), '');
     if (m.wantMore.length || m.wantSeen.length) { L.push('WHAT I WANT MORE OF'); if (m.wantMore.length) L.push(m.wantMore.join(', ')); if (m.wantSeen.length) L.push('Roles I want to be seen for: ' + m.wantSeen.join(', ')); L.push(''); }
@@ -141,6 +143,7 @@
       + sec('Where I stand', stand)
       + sec('Networks I\'ve worked for', ul(m.networks.map(n => '<b>' + esc(n.name) + '</b>: ' + esc(n.titles.join(', ')))))
       + sec('People I\'ve worked with', ul(m.people.map(p => '<b>' + esc(p.name) + '</b>, ' + esc(p.how))))
+      + sec('Someone I\'ve worked with is on it', ul((m.pitch || []).map(x => '<b>' + esc(x.name) + '</b> (' + esc(x.on) + ') is on ' + esc(x.project) + '.')))
       + sec('On my radar', radar)
       + sec('What I\'m after', ul((m.after || []).map(a => esc(afterLine(a)))))
       + sec('What I\'m right for', m.rightFor.length ? '<p>' + esc(m.rightFor.join(', ')) + '</p>' : '')
