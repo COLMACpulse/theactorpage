@@ -25,7 +25,7 @@ want('the plan: title, due Thursday 11 AM, direct submit on Actors Access, the r
 want('heads up: working in ohio, where will you and your reader be', /Working next week in ohio\./.test(t)&&/Your tape day is Wednesday\. Where will you and your reader be\?/.test(t));
 const days=await p.$$eval('.steps .d',x=>x.map(e=>e.textContent));
 want('the days: today, tomorrow, Saturday, Tuesday, Wednesday, Thu Oct 29', days.join()==='TODAY,TOMORROW,SATURDAY,TUESDAY,WEDNESDAY,THU, OCT 29', days);
-want('each step opens its tool', (await p.$$eval('.steps a.go',x=>x.map(a=>a.getAttribute('href')))).join()==='../actor-os/?open=1,../breakdown/,../memorizer/?open=1,../actor-os/?open=1,../actor-os/?open=1,../actor-os/?open=1');
+want('each step opens its tool', (await p.$$eval('.steps a.go',x=>x.map(a=>a.getAttribute('href')))).join()==='../actor-os/?open=1,../breakdown/?open=1,../memorizer/?open=1,../actor-os/?open=1,../actor-os/?open=1,../actor-os/?open=1');
 want('WHAT I HEARD is open to fix, nothing kept yet', await p.$eval('details.heard',e=>e.open)&&await p.evaluate(()=>Plan.all().length)===0);
 want('what you said, kept as you said it', (await p.innerText('.said')).startsWith('i got an audition for next thursday.'));
 /* fix one: the tape day moves to Tuesday */

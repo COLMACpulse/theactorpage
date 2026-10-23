@@ -389,48 +389,105 @@
   // ---------------------------------------------------------------- render root
   const app = () => $('#app');
   function render() {
-    closeSheet(true);
+    closeSheet(true); clearInterval(EXT);
     if (!S.project) return renderHome();
     if (!S.project.me.length || !S.me) return S.parseView ? renderParseStandalone() : renderPick();
     renderShell();
   }
 
-  // ---------------------------------------------------------------- HOME
+  // ---------------------------------------------------------------- HOME: opened with nothing. The example reads a page as you watch;
+  // YOUR SIDES and + BRING IN SIDES show their lists only when you tap them.
+  let EXT = null;
+  function shelfSides() {
+    if (!SH) return [];
+    const isPr = it => window.DailyScenes && DailyScenes.isPractice && DailyScenes.isPractice(it.file);
+    const mine = new Set(S.recent.map(p => p.shelf).filter(Boolean));
+    return SH.all().filter(it => !mine.has(it.id) && !isPr(it) && !(SH.kindOf && SH.kindOf(it) === 'script'));
+  }
+  async function openShelf(id) {
+    const it = SH && SH.get(id); if (!it) return false;
+    const have = (await DB.all()).find(x => x.shelf === id);
+    if (have) {
+      await openProject(have);
+      if (it.me && S.doc.characters[it.me] && have.me[0] !== it.me) { S.project.me = [it.me]; S.me = computeMe(); touch(); render(); }
+      try { SH.markSeen('breakdown', id); SH.use(id, 'breakdown'); } catch (e) { }
+    } else {
+      const f = await SH.getFile(id);
+      await intake(f || it.text, it.file, { shelfId: id, shelfName: it.file });
+    }
+    return true;
+  }
+  const BD_ICON = `<svg class="bico" viewBox="0 0 64 80" role="img" aria-label="A page with your line lit"><rect class="pg" x="2" y="2" width="60" height="76" rx="5"/><text class="who" x="24" y="16">RAY</text><path class="rl" d="M12 22H52M12 28H44"/><rect class="hl" x="9" y="41" width="46" height="9" rx="2"/><text class="who" x="22" y="40">MARA</text><path class="ml" d="M12 46H50M12 52H40"/><path class="rl" d="M12 62H52M12 68H36"/><circle class="dot" cx="54" cy="10" r="3.5"/></svg>`;
+  function bdHeader() {
+    return `<header class="bhead"><div class="bwrap">${BD_ICON}<div class="btx"><div class="kicker" style="margin:0">ACT · BREAKDOWN</div><h1>Your role, read off the page</h1><p>Drop your sides. It does the highlighter work. You make the choices.</p></div><img class="bsig" src="../img/sigil-film-180.png" alt="THEACTORPAGE" width="64" height="64"></div></header><i class="hstk" aria-hidden="true"></i>`;
+  }
+  function exampleHtml() {
+    const f = (k, b, sm, n) => `<div class="find" data-exf="${k}"><span><b>${b}</b><small>${sm}</small></span><i>${n}</i></div>`;
+    return `<div class="work" id="example"><div class="exhead"><span class="kicker" style="color:var(--tung-text);margin:0">EXAMPLE · HOW IT WORKS</span><span class="dim" id="excap" style="font-size:13.5px"></span></div>
+      <div class="exgrid"><div class="expg" aria-label="A made-up page of sides">
+        <b>EXT. THE DOCK - NIGHT</b><p>Mara stands at the end of the pier, a letter in her hand.</p>
+        <span class="who">RAY</span><span class="ln" data-ex="cue">You came back.</span>
+        <span class="who">MARA</span><span class="ln" data-ex="mine">I never left.</span>
+        <span class="who">RAY</span><span class="ln" data-ex="cue"><span data-ex="q">Then why does it feel like you did?</span> <span data-ex="say">You always run when it gets quiet.</span></span>
+        <span class="who">MARA</span><span class="ln" data-ex="mine">I'm here now, aren't I?</span>
+        <p data-ex="do">She folds the letter and puts it in her coat.</p>
+        <div class="exnote" data-ex="note"><span class="tagc">OBJECTIVE</span><span class="ph">Your note, in your words, tied to "I never left."</span></div>
+      </div><div class="exfinds"><div class="kicker" style="margin:0 0 2px">What it finds for Mara</div>
+        ${f(1, 'YOUR LINES', 'lit on every page', 2)}${f(2, 'YOUR CUES', 'the line before each of yours', 2)}${f(3, 'QUESTIONS PUT TO YOU', '"Then why does it feel like you did?"', 1)}${f(3, 'WHAT THEY SAY ABOUT YOU', '"You always run when it gets quiet."', 1)}${f(4, 'WHAT THE PAGE HAS YOU DO', 'folds the letter, puts it in her coat', 1)}${f(5, 'YOUR CHOICES', 'objective, obstacle, turn: on the line', 1)}
+        <p class="faint" style="font-size:12.5px;margin:4px 0 0">Then: run lines, a ledger of every note, a print packet with your lines marked.</p></div></div>
+      <div class="row" style="margin-top:14px"><button class="btn pri" data-a="homebring">BRING IN YOUR SIDES</button><button class="btn" data-a="sample">TRY THE SAMPLE SIDES</button></div>
+      <p class="faint" style="font-size:12.5px;margin:10px 0 0">The example plays when nothing is open. Bring in your sides and your role takes its place.</p></div>`;
+  }
+  function playExample() {
+    clearInterval(EXT);
+    const cap = ['Drop your sides. It reads the page.', 'Your lines, lit', 'Your cues: the line before each of yours', 'The questions put to you, and what they say about you', 'What the page has you do', 'Your choices, tied to the line they came from'];
+    let i = 0;
+    const paint = () => { const box = $('#example'); if (!box) { clearInterval(EXT); return; } const s = i % 6;
+      box.dataset.step = s; $('#excap').textContent = cap[s];
+      box.querySelectorAll('[data-exf]').forEach(e => e.classList.toggle('on', +e.dataset.exf <= s)); i++; };
+    paint(); if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) EXT = setInterval(paint, 2000); else { $('#example').dataset.step = 5; $('#example').querySelectorAll('[data-exf]').forEach(e => e.classList.add('on')); }
+  }
   async function renderHome() {
     S.recent = (await DB.all()).sort((a, b) => (b.updated || '').localeCompare(a.updated || ''));
-    app().innerHTML = `
-      <div class="shell" style="padding-left:0"><main style="max-width:720px;padding-bottom:40px">
-        <div class="hero">
-          <div class="kicker">THEACTORPAGE · ACT</div>
-          <h1>BREAKDOWN</h1>
-          <p>Drop your sides. Pick your role. Every line, cue and note stays tied to the page.</p>
-        </div>
-        <div class="drop" id="drop" data-a="pickfile" role="button" tabindex="0">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 18v-6M9 15l3-3 3 3"/></svg>
-          <b>Drop sides or a script</b>
-          <span class="dim">PDF · Final Draft (.fdx) · Fountain · TXT</span>
-          <span class="btn pri" style="margin-top:6px">Choose file</span>
-        </div>
-        ${S.homeMsg ? `<div class="msg bad">${esc(S.homeMsg)}</div>` : ''}
-        <div class="row" style="margin-bottom:8px">
-          <button class="btn" data-a="togglepaste">${S.homePaste ? 'Hide paste box' : 'Paste text instead'}</button>
-          <button class="btn ghost" data-a="sample">Try the sample sides</button>
-          <button class="btn ghost" data-a="openproj">Open a project file</button>
-        </div>
-        ${S.homePaste ? `<textarea class="paste" id="pastebox" placeholder="Paste the scene. Keep the character names in caps on their own lines."></textarea>
-          <div class="row" style="margin-top:8px"><button class="btn pri" data-a="pastego">Break it down</button></div>` : ''}
-        ${S.recent.length ? `<h3 class="kicker" style="margin-top:28px">On this device</h3>` + S.recent.map(p => `
-          <div class="proj"><button class="open" data-a="openrecent" data-id="${esc(p.id)}"><b>${esc(p.title)}</b>
-            <small>${p.me && p.me.length ? esc(p.me.join(' + ')) + ' · ' : ''}${fmtDate(p.updated)}${p.lastSaved ? '' : ' · <span style="color:var(--tung-text)">never saved to a file</span>'}</small></button>
-            <button class="iconbtn" aria-label="Delete" data-a="delrecent" data-id="${esc(p.id)}">${ICON.trash}</button></div>`).join('') : ''}
-        <p class="faint" style="font-size:13px;margin-top:28px">Offline. Nothing leaves this device unless you save or share a file. ${DB.ok ? '' : '<b>Storage is blocked in this browser mode, so work lasts only until you close the tab. Save a project file.</b>'}</p>
+    const side = shelfSides(), n = S.recent.length + side.length, pend = SH && SH.pending('breakdown');
+    if (S.homeMsg) S.homePanel = 'bring';
+    const P = S.homePanel || '';
+    app().innerHTML = `${bdHeader()}
+      <div class="shell" style="padding-left:0"><main class="home">
+        <div class="tops"><button type="button" class="tpill${P === 'sides' ? ' on' : ''}" data-a="homepanel" data-p="sides" aria-expanded="${P === 'sides'}">YOUR SIDES <i>${n}</i></button>
+          <button type="button" class="tpill add${P === 'bring' ? ' on' : ''}" data-a="homepanel" data-p="bring" aria-expanded="${P === 'bring'}">+ BRING IN SIDES</button></div>
+        ${P === 'sides' ? `<div class="hpanel">
+          ${!n ? '<p class="dim" style="margin:0 2px">Nothing yet. Tap + BRING IN SIDES.</p>' : ''}
+          ${S.recent.length ? `<div class="kicker" style="margin:0 2px">Broken down on this device</div>` + S.recent.map(p => `
+            <div class="proj"><button class="open" data-a="openrecent" data-id="${esc(p.id)}"><b>${esc(p.title)}</b>
+              <small>${p.me && p.me.length ? esc(p.me.join(' + ')) + ' · ' : ''}${fmtDate(p.updated)}${p.lastSaved ? '' : ' · <span style="color:var(--tung-text)">never saved to a file</span>'}</small></button>
+              <button class="iconbtn" aria-label="Delete" data-a="delrecent" data-id="${esc(p.id)}">${ICON.trash}</button></div>`).join('') : ''}
+          ${side.length ? `<div class="kicker" style="margin:8px 2px 0">From your other ACT tools</div>` + side.map(it => `
+            <div class="proj"><button class="open" data-a="openshelf" data-id="${esc(it.id)}"><b>${esc(SH.label(it))}${pend && pend.id === it.id ? ' <span class="newtag">NEW</span>' : ''}</b>
+              <small>${esc(it.from === 'home' ? 'from the home page' : 'from ' + (it.from || 'another tool'))}${it.me ? ' · ' + esc(it.me) : ''}</small><span class="go">OPEN</span></button></div>`).join('') : ''}
+        </div>` : ''}
+        ${P === 'bring' ? `<div class="hpanel">
+          <div class="drop" id="drop" data-a="pickfile" role="button" tabindex="0">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 18v-6M9 15l3-3 3 3"/></svg>
+            <b>Drop sides or a script</b><span class="dim">PDF · Final Draft (.fdx) · Fountain · TXT</span><span class="btn pri" style="margin-top:6px">Choose file</span>
+          </div>
+          ${S.homeMsg ? `<div class="msg bad">${esc(S.homeMsg)}</div>` : ''}
+          <div class="row"><button class="btn" data-a="togglepaste">${S.homePaste ? 'Hide paste box' : 'Paste text instead'}</button><button class="btn ghost" data-a="openproj">Open a project file</button></div>
+          ${S.homePaste ? `<textarea class="paste" id="pastebox" placeholder="Paste the scene. Keep the character names in caps on their own lines."></textarea>
+            <div class="row" style="margin-top:8px"><button class="btn pri" data-a="pastego">Break it down</button></div>` : ''}
+        </div>` : ''}
+        ${exampleHtml()}
+        <p class="faint" style="font-size:13px;margin-top:20px">Offline. Nothing leaves this device unless you save or share a file. ${DB.ok ? '' : '<b>Storage is blocked in this browser mode, so work lasts only until you close the tab. Save a project file.</b>'}</p>
         <p class="faint" style="font-size:12px">BREAKDOWN ${VERSION}</p>
       </main></div>`;
     const drop = $('#drop');
-    ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
-    ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
-    drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) intake(f); });
-    drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') $('#filein').click(); });
+    if (drop) {
+      ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+      ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+      drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) intake(f); });
+      drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') $('#filein').click(); });
+    }
+    playExample();
   }
 
   // ---------------------------------------------------------------- PICK
@@ -510,10 +567,6 @@
     const contradictions = w.ledger.filter(l => l.kind === 'contradiction');
     const otherChars = Object.keys(d.characters).filter(n => !M.isMe(n));
     return `
-      ${!RO() && window.Kit ? Kit.html([
-        { id: 'saynote', dev: 'typewriter', label: 'SAY IT', what: 'Say a note', note: SR ? 'Speech into a new note. Chrome sends it to Google, Safari to Apple' : "This browser can't turn speech into words", off: !SR },
-        { id: 'runout', dev: 'mic', label: 'MIC', what: 'Run lines out loud', note: 'In Memorizer, with these sides and your role' },
-        { id: 'tapeit', dev: 'camera', label: 'CAMERA', what: 'Tape it', note: 'In Actor OS, with these sides and your role' }]) : ''}
       <div class="kicker">Your role</div>
       <div class="row" style="align-items:flex-end;justify-content:space-between">
         <h1 style="font-size:28px;letter-spacing:.06em">${esc(M.names.join(' + '))}</h1>
@@ -582,6 +635,11 @@
       </div></details>
 
       ${RO() || !otherChars.length ? '' : `<p class="faint" style="font-size:13px">Doubling? <button class="btn sm ghost" data-a="addrole">Add another role as you</button></p>`}
+      ${!RO() && window.Kit ? '<div class="kicker" style="margin-top:22px">With these sides</div>' : ''}
+      ${!RO() && window.Kit ? Kit.html([
+        { id: 'saynote', dev: 'typewriter', label: 'SAY IT', what: 'Say a note', note: SR ? 'Speech into a new note. Chrome sends it to Google, Safari to Apple' : "This browser can't turn speech into words", off: !SR },
+        { id: 'runout', dev: 'mic', label: 'MIC', what: 'Run lines out loud', note: 'In Memorizer, with these sides and your role' },
+        { id: 'tapeit', dev: 'camera', label: 'CAMERA', what: 'Tape it', note: 'In Actor OS, with these sides and your role' }]) : ''}
     `;
   }
   function secOpen(k, def) { const v = S.secs[k]; return (v === undefined ? def : v) ? 'open' : ''; }
@@ -1103,6 +1161,9 @@
     switch (a) {
       // home
       case 'pickfile': $('#filein').click(); break;
+      case 'homepanel': S.homePanel = S.homePanel === ds.p ? '' : ds.p; if (S.homePanel !== 'bring') S.homeMsg = null; render(); break;
+      case 'homebring': S.homePanel = 'bring'; render(); setTimeout(() => { const d = $('#drop'); if (d) d.scrollIntoView({ block: 'center' }); }, 30); break;
+      case 'openshelf': await openShelf(ds.id); break;
       case 'togglepaste': S.homePaste = !S.homePaste; render(); if (S.homePaste) setTimeout(() => $('#pastebox') && $('#pastebox').focus(), 50); break;
       case 'pastego': { const t = $('#pastebox').value; if (t.trim()) intake(t, 'pasted text'); break; }
       case 'sample': {
@@ -1115,7 +1176,7 @@
       case 'openproj': $('#projin').click(); break;
       case 'openrecent': { const pr = await DB.get(ds.id); S.tab = 'me'; openProject(pr); if (SH && pr && pr.shelf) try { SH.use(pr.shelf, 'breakdown'); } catch (e) { } break; }
       case 'delrecent': { if (confirm('Delete this project from this device? A saved project file is not affected.')) { await DB.del(ds.id); render(); } break; }
-      case 'home': S.project = null; S.doc = null; S.me = null; S.viewPass = null; S.parseView = false; S.pair = null; render(); break;
+      case 'home': S.homePanel = ''; S.project = null; S.doc = null; S.me = null; S.viewPass = null; S.parseView = false; S.pair = null; render(); break;
       // pick
       case 'pickme': {
         const n = ds.n;
@@ -1319,9 +1380,14 @@
 
   // debug/test hook (harmless)
   window.BREAKDOWN = { S, act, intake, sha256, verifyChain, diffWork, computeMe: () => computeMe(), shelfText: d => shelfText(d), version: VERSION };
-  /* boot: new sides on the shelf from another tool open straight to your role */
+  /* boot: opened with nothing, like every tool. New sides from another tool wait in YOUR SIDES (NEW), not pushed on you.
+     ?sides=<shelf id> opens those sides straight to your role; ?open=1 opens the newest (new sides first, else where you left off). */
   (async function boot() {
-    const pend = SH && SH.pending('breakdown');
+    const q = new URLSearchParams(location.search), want = q.get('sides'), open1 = q.get('open');
+    let pend = null;
+    if (want && SH && SH.get(want)) pend = SH.get(want);
+    else if (open1) { pend = SH && SH.pending('breakdown');
+      if (!pend) { const last = (await DB.all()).sort((a, b) => (b.updated || '').localeCompare(a.updated || ''))[0]; if (last) { await openProject(last); return; } if (SH) pend = SH.all().filter(it => !(SH.kindOf && SH.kindOf(it) === 'script'))[0] || null; } }
     if (!pend) { render(); return; }
     try {
       const have = (await DB.all()).find(x => x.shelf === pend.id);

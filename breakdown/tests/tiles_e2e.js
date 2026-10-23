@@ -11,7 +11,7 @@ await c.addInitScript(()=>{ try{ sessionStorage.setItem('theactorpage_hot_ok','1
  window.__say=t=>{ const r=window.__sr; if(!r||!r.onresult) return; const res=[{transcript:t}]; res.isFinal=true; r.onresult({resultIndex:0,results:[res]}); }; });
 const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
 await p.goto('http://localhost:8811/breakdown/'); await p.evaluate(()=>{ localStorage.clear(); indexedDB.deleteDatabase('breakdown_v03'); }); await p.reload(); await p.waitForTimeout(700);
-await p.click('[data-a="togglepaste"]'); await p.waitForTimeout(150);
+await p.click('[data-p="bring"]'); await p.waitForTimeout(150); await p.click('[data-a="togglepaste"]'); await p.waitForTimeout(150);
 await p.fill('#pastebox','INT. DINER - NIGHT\n\nWren Ashby wipes the counter.\n\nWREN ASHBY\nWe close at ten.\n\nHAL BRODY\nThen I have twenty minutes.\n\nWREN ASHBY\nYou have five.\n');
 await p.click('[data-a="pastego"]'); await p.waitForTimeout(600);
 await p.click('[data-a="pickme"][data-n="WREN ASHBY"]'); await p.waitForTimeout(300);
@@ -34,7 +34,7 @@ await p.click('[data-a="tab"][data-t="me"]'); await p.waitForTimeout(300);
 await p.click('[data-kit="runout"]'); await p.waitForURL(/memorizer/); await p.waitForTimeout(1200);
 want('MIC: Memorizer, with these sides and the role', /WREN ASHBY/.test(await p.innerText('body')));
 await p.goto('http://localhost:8811/breakdown/'); await p.waitForTimeout(900);
-if(!(await p.$('[data-kit="tapeit"]'))){ const r=await p.$('[data-a="openrecent"]'); if(r){ await r.click(); await p.waitForTimeout(800); } }
+if(!(await p.$('[data-kit="tapeit"]'))){ await p.click('[data-p="sides"]').catch(()=>{}); await p.waitForTimeout(200); const r=await p.$('[data-a="openrecent"]'); if(r){ await r.click(); await p.waitForTimeout(800); } }
 await p.click('[data-kit="tapeit"]').catch(()=>{}); await p.waitForURL(/actor-os/).catch(()=>{}); await p.waitForTimeout(1200);
 want('CAMERA: Actor OS, with the sides', /actor-os/.test(p.url())&&/WREN ASHBY/.test(await p.innerText('body')), p.url());
 want('no em dashes on the tiles', true);

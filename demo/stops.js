@@ -13,7 +13,7 @@
 
     { id: 'A00', ch: 'act', path: '', wash: true, hi: '.band.act', line: "ACT. Say your agent sends an audition at six. The tape's due tomorrow by noon." },
     { id: 'A01', ch: 'act', path: 'actor-os/', ready: '#sidesOut button, #sidesOut *', hi: '#sidesOut', line: "Normally you print the sides, grab a pen and mark your lines. Here, that's done. Every line of yours is lit, and every cue that leads into it." },
-    { id: 'A06', ch: 'act', path: 'breakdown/', ready: '#main', hi: '#main', line: "Want to dig in? Breakdown lays out your character scene by scene. What you say, who you say it to, every question somebody asks you. Your notes stay pinned to the page." },
+    { id: 'A06', ch: 'act', path: 'breakdown/?open=1', ready: '#main', hi: '#main', line: "Want to dig in? Breakdown lays out your character scene by scene. What you say, who you say it to, every question somebody asks you. Your notes stay pinned to the page." },
     { id: 'A07', ch: 'act', path: 'memorizer/', ready: '#main', hi: '#main', line: "Then get off book. Say your lines out loud. It listens, and the lines you blow come back first, so you're not drilling the ones you already know." },
     { id: 'A02', ch: 'act', path: 'actor-os/', ready: '[data-kit="partner"]', act: [{ eval: 'window.scrollTo(0,0)' }], hi: '[data-kit="partner"]', line: "Now the hard part. Who reads with you? Asking a friend at nine at night is weird. So read the whole scene once yourself, every part. It keeps the other parts and plays them back as your reader, and it waits for you to finish your line." },
     { id: 'A03', ch: 'act', path: 'actor-os/', hi: '[data-kit="tape"]', line: "Then you shoot, on the phone you've got. It always asks before it turns the camera on, and it always shows you when it's on." },

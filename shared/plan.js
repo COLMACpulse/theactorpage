@@ -134,7 +134,7 @@
     if (tapeDay) {
       const room = diff(day, tapeDay), runDay = room >= 1 ? add(tapeDay, -1) : day;
       const bdDay = room >= 3 ? add(day, 1) : day, learnDay = room >= 3 ? add(bdDay, 1) : room >= 2 ? add(day, 1) : day;
-      S(bdDay, 'Break it down: who you\'re talking to, what you want, scene by scene.', 'breakdown/', 'breakdown');
+      S(bdDay, 'Break it down: who you\'re talking to, what you want, scene by scene.', 'breakdown/?open=1', 'breakdown');
       S(learnDay, 'Get off book in Memorizer. The lines you miss come back first.', 'memorizer/?open=1', 'learn');
       if (h.reader === 'have') S(runDay, 'Run it with your reader, and lock in a time with them for the tape.', 'actor-os/?open=1', 'run');
       else if (h.reader === 'need') S(day, 'Find a reader: read their lines once yourself in Actor OS, or send a friend the link to read in.', 'actor-os/?open=1', 'reader');

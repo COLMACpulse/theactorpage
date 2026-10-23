@@ -1,7 +1,9 @@
 # BREAKDOWN v0.3.2 · Actor Edition
 
 **Asset #5.** Merges SCRIPT BREAKDOWN v0.2, SCENE BREAKDOWN v0.2 and CHARACTER BREAKDOWN v0.2 into one tool.
-Drop your sides, pick your role. Every line, cue and note stays tied to the page. Offline, no account.
+Your role, read off the page. Drop your sides. It does the highlighter work. You make the choices. Offline, no account.
+
+**New (2026-10-23): the front.** Opened with nothing: an example (MARA, made up) reads a page as you watch, with YOUR SIDES and + BRING IN SIDES, lists only when tapped. New sides from another tool wait in YOUR SIDES marked NEW. `?sides=<shelf id>` opens those sides to your role; `?open=1` opens the newest. Your role comes first; SAY IT, MIC and CAMERA sit under it.
 
 ## New in 0.3.2 (2026-10-14)
 - **The sides shelf.** Sides you drop here are on the shelf for Actor OS and MEMORIZER, with your role. Sides dropped in another tool open here straight to your role, with "New sides: …". The original PDF travels with them, so the page view still works. See `../shared/README.md`.

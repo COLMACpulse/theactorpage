@@ -177,7 +177,7 @@ X.unlocks=function(kind,o){
  if(kind==='sides') return [
   ['Actor OS','read it with a scene partner'+me+', tape it, slate it','actor-os/?open=1'],
   ['Memorizer','learn the lines'+me,'memorizer/?open=1'],
-  ['Breakdown','the scene broken down, the real pages','breakdown/'],
+  ['Breakdown','the scene broken down, the real pages','breakdown/?open=1'],
   ['Character Bank','the voices in it','cps/']];
  if(kind==='script') return [
   ['Story Studio','scenes, shot list, shoot day, call sheet, credits','film/'],
