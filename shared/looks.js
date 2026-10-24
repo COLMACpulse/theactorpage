@@ -4,7 +4,9 @@
    THE LOOK BOOK: the looks you tick, in your order (it starts with four), as one page an agent opens. Your union,
    height, sizes and local hire go on it only if you switch that on. Your rep from YOU.
    localStorage theactorpage_looks_v1; photos and clips you add here in IndexedDB theactorpage_looks / media.
-   Photos can also come from YOU (your headshots and stills), by reference. Pure parts run in Node for the tests. */
+   Photos can also come from YOU (your headshots and stills), by reference.
+   LIVE LOOKS (optional): one live one per look, five seconds of you in it on a loop (shared/liveshot.js), kept here.
+   look.live {ref,mime,ext,secs,sound,w,h,added}; look.lead 'live' | 'still'. The book plays it; printed, it's the still. Pure parts run in Node for the tests. */
 (function (g) {
   'use strict';
   const L = {}, KEY = 'theactorpage_looks_v1', DB = 'theactorpage_looks';
@@ -22,7 +24,7 @@
     d.looks.push(it); write(d); return it;
   };
   L.set = function (id, patch) { const d = read(), x = d.looks.find(l => l.id === id); if (!x) return null; Object.assign(x, patch); if (patch.name !== undefined) x.name = clean(patch.name) || x.name; write(d); return x; };
-  L.remove = async function (id) { const x = L.get(id); if (x) { for (const p of x.photos) if (/^lk:/.test(p)) await L.drop(p); for (const s of x.skills) if (s.clip) await L.drop(s.clip); } const d = read(); d.looks = d.looks.filter(l => l.id !== id); write(d); };
+  L.remove = async function (id) { const x = L.get(id); if (x) { for (const p of x.photos) if (/^lk:/.test(p)) await L.drop(p); if (x.live && x.live.ref) await L.drop(x.live.ref); for (const s of x.skills) if (s.clip) await L.drop(s.clip); } const d = read(); d.looks = d.looks.filter(l => l.id !== id); write(d); };
   L.move = function (id, by) { const d = read(), i = d.looks.findIndex(l => l.id === id), j = i + by; if (i < 0 || j < 0 || j >= d.looks.length) return; const [x] = d.looks.splice(i, 1); d.looks.splice(j, 0, x); write(d); };
   L.addPhoto = (id, ref) => { const x = L.get(id); if (!x || !ref || x.photos.includes(ref)) return x; return L.set(id, { photos: x.photos.concat([ref]) }); };
   L.dropPhoto = async (id, ref) => { const x = L.get(id); if (!x) return; if (/^lk:/.test(ref)) await L.drop(ref); L.set(id, { photos: x.photos.filter(p => p !== ref) }); };
@@ -30,6 +32,17 @@
   L.addSkill = (id, name) => { const x = L.get(id), n = clean(name); if (!x || !n) return null; const s = { id: uid('s'), name: n, clip: '' }; L.set(id, { skills: x.skills.concat([s]) }); return s; };
   L.setSkill = (id, sid, patch) => { const x = L.get(id); if (!x) return; L.set(id, { skills: x.skills.map(s => s.id === sid ? Object.assign({}, s, patch) : s) }); };
   L.dropSkill = async (id, sid) => { const x = L.get(id); if (!x) return; const s = x.skills.find(k => k.id === sid); if (s && s.clip) await L.drop(s.clip); L.set(id, { skills: x.skills.filter(k => k.id !== sid) }); };
+  /* ---------- the live one on a look ---------- */
+  L.leadsLive = l => !!(l && l.live && l.live.ref && l.lead === 'live');
+  L.setLive = async function (id, blob, meta) {
+    const x = L.get(id); if (!x || !blob) return null; meta = meta || {};
+    const mid = uid('v'); if (!(await op('readwrite', st => st.put(blob, mid)))) return null;
+    if (x.live && x.live.ref) await L.drop(x.live.ref);
+    const live = { ref: 'lk:' + mid, mime: meta.mime || blob.type || 'video/webm', ext: meta.ext || 'webm', secs: +meta.secs || 0, sound: !!meta.sound, w: meta.w || 0, h: meta.h || 0, added: Date.now() };
+    L.set(id, { live, lead: 'live' }); return live;
+  };
+  L.setLead = (id, k) => { const x = L.get(id); if (!x) return null; return L.set(id, { lead: k === 'live' && x.live ? 'live' : 'still' }); };
+  L.removeLive = async function (id) { const x = L.get(id); if (!x) return; if (x.live && x.live.ref) await L.drop(x.live.ref); L.set(id, { live: null, lead: 'still' }); };
   L.book = () => read().book;
   L.setBook = patch => { const d = read(); d.book = Object.assign({}, d.book, patch); write(d); return d.book; };
   /* the looks that go in the book: ticked, in your order, the first four */
@@ -62,9 +75,10 @@
       + '.dot{display:inline-flex;width:26px;height:26px;border-radius:50%;background:#16161A;color:#F2F0EA;align-items:center;justify-content:center;font-size:10px;flex:none}.sk.none .dot{background:none;border:1px solid #B9B4A8}'
       + '.foot{margin:0 40px;padding:22px 0;border-top:1px solid #D8D4CA;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px}.end{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding:18px 40px 26px;border-top:1px solid #D8D4CA;font:12.5px ui-monospace,Menlo,Consolas,monospace}a{color:#1F3D63}'
       + '.lbx{display:none;position:fixed;inset:0;background:#0a0a0a;z-index:9;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:56px 4vw 4vh}.lbx:target{display:flex}.lbx video{width:min(1000px,100%);max-height:80vh;background:#000}.lbx p{color:#ddd;margin:0;font-size:14px}.lbclose{position:absolute;top:10px;right:18px;color:#fff;font-size:38px;text-decoration:none}'
-      + '@media print{body{background:#fff}.lbx,.dot{display:none!important}.sk a{color:#16161A}}</style></head><body><main><div class="stripe"></div>'
+      + '.lv{position:relative}.snd{position:absolute;right:8px;bottom:8px;font:700 10.5px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.12em;padding:7px 10px;border:0;border-radius:999px;background:rgba(10,10,10,.72);color:#fff;cursor:pointer}.main.pr{display:none}'
+      + '@media print{body{background:#fff}.lbx,.dot,.lv{display:none!important}.main.pr{display:block}.sk a{color:#16161A}}</style></head><body><main><div class="stripe"></div>'
       + '<header><div><div class="k">Look book · commercial</div><h1>' + esc(m.name || '') + '</h1></div>' + ((m.stats || []).length ? '<dl>' + m.stats.map(s => '<dt>' + esc(s[0]) + '</dt><dd>' + esc(s[1]) + '</dd>').join('') + '</dl>' : '') + '</header>'
-      + '<section class="looks">' + looks.map(l => '<article>' + (l.photos[0] ? '<img class="main" src="' + esc(l.photos[0]) + '" alt="' + esc(l.name) + '">' : '<div class="main"></div>') + (l.photos.length > 1 ? '<div class="more">' + l.photos.slice(1, 3).map(p => '<img src="' + esc(p) + '" alt="">').join('') + '</div>' : '')
+      + '<section class="looks">' + looks.map(l => '<article>' + (l.live && l.live.u ? '<div class="lv"><video class="main" src="' + esc(l.live.u) + '"' + (l.photos[0] ? ' poster="' + esc(l.photos[0]) + '"' : '') + ' autoplay muted loop playsinline aria-label="' + esc(l.name) + ', live"></video>' + (l.live.sound ? '<button type="button" class="snd" onclick="var v=this.previousElementSibling;v.muted=!v.muted;v.play();this.textContent=v.muted?\'SOUND OFF\':\'SOUND ON\'">SOUND OFF</button>' : '') + '</div>' + (l.photos[0] ? '<img class="main pr" src="' + esc(l.photos[0]) + '" alt="">' : '') : l.photos[0] ? '<img class="main" src="' + esc(l.photos[0]) + '" alt="' + esc(l.name) + '">' : '<div class="main"></div>') + (l.photos.length > 1 ? '<div class="more">' + l.photos.slice(1, 3).map(p => '<img src="' + esc(p) + '" alt="">').join('') + '</div>' : '')
         + '<h2>' + esc(l.name) + '</h2>' + (clean(l.spots) ? '<p class="spots">' + esc(l.spots) + '</p>' : '') + ((l.skills || []).length ? '<ul>' + l.skills.map(s => clipLink(s, l.name)).join('') + '</ul>' : '') + '</article>').join('') + '</section>'
       + ((all.length || reel) ? '<div class="foot">' + (all.length ? '<div><div class="k">Skills</div><div>' + all.map(esc).join(' · ') + '</div></div>' : '') + (reel ? '<div><div class="k">Commercial reel</div><div>' + reel + '</div></div>' : '') + '</div>' : '')
       + '<div class="end"><span>' + (m.rep ? 'Represented by ' + esc(m.rep) : esc(m.name || '')) + '</span>' + (m.page ? '<a href="' + esc(m.page) + '">' + esc(String(m.page).replace(/^https?:\/\//, '').replace(/\/$/, '')) + '</a>' : '') + '</div>'

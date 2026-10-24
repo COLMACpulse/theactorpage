@@ -244,7 +244,7 @@ svg#ttrace .tbandr{fill:var(--c-then);opacity:.14}
 .bwrap{display:flex;align-items:center;gap:14px;max-width:1100px;margin:0 auto}
 .btx{flex:1;min-width:0}.btx h1{font-size:22px;letter-spacing:.02em;margin:2px 0;font-weight:600}.btx p{margin:0;color:var(--tung-text);font-size:14px}
 .bico{width:52px;height:65px;flex:none}.bico .pg{fill:var(--panel);stroke:var(--line)}.bico .ph{fill:var(--panel2)}.bico .sil{fill:var(--faint);opacity:.6}
-.bico .wb{fill:var(--tung);transform-origin:center;transform-box:fill-box;animation:wbp 1.2s ease-in-out infinite alternate}
+.bico .wb{fill:var(--tung);transform-origin:center;transform-box:fill-box;transform:scaleY(.55)}.bico .wb:nth-of-type(3n){transform:scaleY(1)}.bico .wb:nth-of-type(3n+1){transform:scaleY(.3)}
 @keyframes wbp{0%{transform:scaleY(.25)}100%{transform:scaleY(1)}}
 @media (prefers-reduced-motion:reduce){.bico .wb{animation:none;transform:scaleY(.6)}}
 .bsig{width:46px;height:46px;flex:none;object-fit:contain}

@@ -2896,7 +2896,8 @@ async function pkgExtras(mode,entries){
  const looks={items:[],stats:[]};
  if(window.Looks&&!off.has('looks')){ try{ for(const l of Looks.inBook()){ const ph=[]; for(const r of l.photos.slice(0,3)){ const m=await media(await Looks.blob(r),'look_'+l.name+'_'+ph.length); if(m) ph.push(m); }
    const sk=[]; for(const s of l.skills){ sk.push({n:s.name,clip:s.clip?await media(await Looks.blob(s.clip),'look_'+l.name+'_'+s.name):null}); }
-   looks.items.push({n:l.name,spots:l.spots,photos:ph,skills:sk}); }
+   let lv=null; if(Looks.leadsLive(l)){ const m=await media(await Looks.blob(l.live.ref),'look_'+l.name+'_live'); if(m) lv=Object.assign(m,{sound:!!l.live.sound}); }
+   looks.items.push({n:l.name,spots:l.spots,photos:ph,skills:sk,live:lv}); }
   looks.stats=Looks.stats(window.You?You.get():{},Looks.book()); }catch(e){} }
  /* your socials, the ones you ticked ON YOUR PAGE in YOU: small links at the bottom */
  let socials=[]; try{ if(window.Postcard&&window.You) socials=Postcard.onPage(You.get()).filter(x=>x.url); }catch(e){}
@@ -3558,7 +3559,7 @@ ${VO.voices.length?`<div class="vwrap" id="vlist"><div class="vtog"><a href="#vg
 ${VO.voices.length?`<p class="vnote">Every voice here is ${E(p.name||'one actor')}.</p>`:''}</section>`:''}
 ${LK.items.length?`<section class="looks">${rule('Commercial · looks',LK.items.length)}
 ${LK.stats.length?`<dl class="dl lkdl">${LK.stats.map(s=>`<dt>${E(s[0])}</dt><dd>${E(s[1])}</dd>`).join('')}</dl>`:''}
-<div class="lkgrid">${LK.items.map(l=>`<article>${l.photos[0]?`<a href="#${lbImg(l.photos[0],l.n)}"><img class="lkmain" src="${l.photos[0].u}" alt="${E(l.n)}" loading="lazy"></a>`:'<span class="lkmain lkblank"></span>'}
+<div class="lkgrid">${LK.items.map(l=>`<article>${l.live&&l.live.u?`<div class="livehs"><video class="lkmain" src="${l.live.u}" ${l.photos[0]?`poster="${l.photos[0].u}"`:''} autoplay muted loop playsinline aria-label="${E(l.n)}, live"></video>${l.live.sound?`<button type="button" class="hssound" onclick="var v=this.previousElementSibling;v.muted=!v.muted;v.play();this.textContent=v.muted?'SOUND OFF':'SOUND ON'">SOUND OFF</button>`:''}</div>`:l.photos[0]?`<a href="#${lbImg(l.photos[0],l.n)}"><img class="lkmain" src="${l.photos[0].u}" alt="${E(l.n)}" loading="lazy"></a>`:'<span class="lkmain lkblank"></span>'}
 ${l.photos.length>1?`<div class="lkmore">${l.photos.slice(1,3).map(ph=>`<a href="#${lbImg(ph,l.n)}"><img src="${ph.u}" alt="" loading="lazy"></a>`).join('')}</div>`:''}
 <h3>${E(l.n)}</h3>${l.spots?`<p class="lkspots">${E(l.spots)}</p>`:''}
 ${l.skills.length?`<ul class="lksk">${l.skills.map(s=>s.clip&&s.clip.u?`<li><a href="#${lbVid([s.clip],l.n+' · '+s.n)}"><span class="dot">&#9654;</span>${E(s.n)}</a></li>`:`<li class="none"><span class="dot"></span>${E(s.n)}</li>`).join('')}</ul>`:''}</article>`).join('')}</div></section>`:''}

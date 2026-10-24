@@ -54,7 +54,7 @@ const run=async(vw,vh,scheme,tag)=>{
  const rv=await p.evaluate(()=>({secs:__hs.SH.secs,frames:__hs.SH.frames.length,loop:document.getElementById('shr').loop,on:!!__hs.SH.stream}));
  want(tag+' it stops by itself at 3 s, plays on a loop, the camera off', rv.secs<=3.6&&rv.secs>=2.5&&rv.loop&&!rv.on&&!(await p.evaluate(()=>{ const h=document.getElementById('hotbar'); return !!h&&/CAMERA/.test(h.textContent); })), rv);
  want(tag+' ten frames to pick from', rv.frames>=9, rv);
- await p.click('[data-f="4"]'); want(tag+' a frame picked', /Frame 5 goes with your headshots/.test(await p.innerText('#shpicked')));
+ await p.click('[data-f="4"]'); want(tag+' a frame picked', /Frame 5 is kept as a still/.test(await p.innerText('#shpicked')));
  await shot('review');
  const [dl]=await Promise.all([p.waitForEvent('download'),p.click('#shfile')]);
  want(tag+' SAVE THE FILE', /live_headshot_\d{4}-\d\d-\d\d\.(webm|mp4)$/.test(dl.suggestedFilename()), dl.suggestedFilename());
@@ -62,7 +62,7 @@ const run=async(vw,vh,scheme,tag)=>{
  await p.click('#shkeep'); await p.waitForFunction(()=>!!You.get().live,null,{timeout:5000}); await p.waitForTimeout(900);
  const y=await p.evaluate(()=>{ const d=You.get(); const st=d.photos.find(x=>x.id===d.live.still); return {lead:d.lead,sound:d.live.sound,still:!!st&&st.fromLive,n:d.photos.length,primary:d.primary}; });
  want(tag+' KEEP: the live one leads, no sound, the frame with your headshots', y.lead==='live'&&y.sound===false&&y.still&&y.n===4&&y.primary===ids[1], y);
- want(tag+' the overlay closed, the camera off', await p.$eval('#ov',o=>o.hidden)&&await p.evaluate(()=>!__hs.SH));
+ want(tag+' the overlay closed, the camera off', await p.evaluate(()=>!document.getElementById('lsov')||document.getElementById('lsov').hidden)&&await p.evaluate(()=>!__hs.SH));
  await p.waitForFunction(()=>{ const v=document.querySelector('.hero video'); return v&&v.readyState>=2; },null,{timeout:5000}).catch(()=>{});
  want(tag+' the hero plays it on a loop, with the badge', await p.evaluate(()=>{ const v=document.querySelector('.hero video'); return !!v&&v.loop&&v.muted&&/^blob:/.test(v.src); })&&/LIVE · 0:0\d LOOP/.test(await p.innerText('.hero')));
  want(tag+' the still kept from it, marked', /FROM THE LIVE ONE/.test(await p.innerText('.shots')));

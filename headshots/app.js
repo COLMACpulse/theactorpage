@@ -152,98 +152,18 @@ function tsWire(){
   $('tsadd').onclick=async()=>{ const f=new File([TS.blob],'Test shot '+new Date().toISOString().slice(0,16).replace('T',' ').replace(':','.')+'.jpg',{type:'image/jpeg'}); tsClose(); await addPhotos([f]); };
  };
 }
-/* ---------- SHOOT A LIVE ONE: five seconds of you, on a loop. The camera is on only while this is open, and it says so.
-   Front or back, 3 / 5 / 8 seconds, a timer, sound off unless you turn it on. No filter, no touch-up.
-   Ten frames are kept as it records; tap one to keep it as a still too. Nothing is kept until KEEP. ---------- */
-const SPK='headshots_shoot_v1';
-let SH=null;
-const shPrefs=()=>{ try{ return Object.assign({facing:'user',len:5,timer:3,sound:false},JSON.parse(localStorage.getItem(SPK)||'{}')); }catch(e){ return {facing:'user',len:5,timer:3,sound:false}; } };
-const shSave=()=>{ try{ localStorage.setItem(SPK,JSON.stringify({facing:SH.facing,len:SH.len,timer:SH.timer,sound:SH.sound})); }catch(e){} };
+/* ---------- SHOOT A LIVE ONE (shared/liveshot.js): kept as your live one; a frame you tap goes with your headshots ---------- */
+const LSH=window.LiveShot;
 async function shoot(){
- if(!C) return toast('This browser can\'t open the camera here.');
- const ov=$('ov'); ov.hidden=false; document.body.classList.add('ovopen');
- SH=Object.assign(shPrefs(),{stage:'ready',frames:[],pick:-1});
- ov.innerHTML='<div class="shoot" id="shootbox"><header class="shead"><div class="btx"><div class="kicker" style="margin:0">HEADSHOTS · THE LIVE ONE</div><h2>Five seconds of you. It loops.</h2><p id="shsub"></p></div><span class="campill" id="campill" hidden><i class="dot"></i><span id="camword"></span></span><button type="button" class="btn ghost sm" id="shx">CLOSE</button></header>'
-  +'<div class="sgrid"><div class="sl"><div class="frame" id="sframe"><video id="shv" playsinline muted autoplay class="mirror"></video><video id="shr" playsinline loop hidden></video>'
-  +'<svg class="thirds" viewBox="0 0 400 500" preserveAspectRatio="none" aria-hidden="true"><path d="M133 0V500M267 0V500M0 167H400M0 333H400"/></svg>'
-  +'<span class="bigcount" id="shcount" hidden></span><span class="clock" id="shclock" hidden></span><span class="prog" id="shprog"></span><span class="looptag" id="shloop" hidden>PLAYING ON A LOOP</span><p class="camerr" id="sherr" hidden></p></div>'
-  +'<div class="strip" id="shstrip" hidden></div><p class="dim small" id="shpickwhy" hidden>Tap a frame to keep it as a still too. It goes with your headshots, marked as from the live one.</p></div>'
-  +'<div class="sr"><div class="card opts" id="shopts"></div><div id="shact"></div></div></div></div>';
- $('shx').onclick=shClose; shOpts(); shAct(); await shCam();
+ if(!LSH) return toast('This browser can\'t open the camera here.');
+ await LSH.open({kicker:'HEADSHOTS · THE LIVE ONE',base:'live_headshot',who:Y.get().name,replacing:!!Y.get().live,frameWords:'Tap a frame to keep it as a still too. It goes with your headshots, marked as from the live one.',toast,
+  onKeep:async r=>{ let still='';
+   if(r.frame){ const f=new File([r.frame],'Live one still '+new Date().toISOString().slice(0,16).replace('T',' ').replace(':','.')+'.jpg',{type:'image/jpeg'}); const x=await Y.addPhoto(f,{live:true}); if(x&&x.photo) still=x.photo.id; }
+   const L=await Y.setLive(r.blob,{name:LSH.fileName('live_headshot',Y.get().name,r.ext),mime:r.mime,ext:r.ext,secs:r.secs,sound:r.sound,w:r.w,h:r.h,still});
+   if(!L){ toast('This phone would not keep the clip. It may be out of room.'); return; }
+   render(); checkAll(); toast('Kept. It leads on your page and the postcard. Pick STILL any time.'); }});
 }
-function shOpts(){ const o=$('shopts'); if(!o||!SH) return; const busy=SH.stage!=='ready';
- const b=(k,v,l)=>'<button type="button" class="opt'+(SH[k]===v?' on':'')+'" data-o="'+k+'" data-v="'+v+'" aria-pressed="'+(SH[k]===v)+'"'+(busy?' disabled':'')+'>'+l+'</button>';
- o.innerHTML='<div class="og"><span class="kicker">CAMERA</span><div class="row">'+b('facing','user','Front')+b('facing','environment','Back')+'</div></div>'
-  +'<div class="og"><span class="kicker">LENGTH</span><div class="row">'+b('len',3,'3 s')+b('len',5,'5 s')+b('len',8,'8 s')+'</div></div>'
-  +'<div class="og"><span class="kicker">TIMER</span><div class="row">'+b('timer',0,'Off')+b('timer',3,'3 s')+b('timer',10,'10 s')+'</div></div>'
-  +'<div class="og"><span class="kicker">SOUND</span><div class="row">'+b('sound',false,'Off')+b('sound',true,'On')+'</div></div>'
-  +'<p class="dim small" style="margin:4px 0 0">'+(SH.sound?'The mic is on too, so it keeps your sound. ':'No sound in it. ')+'No filter, no touch-up: it\'s you, as the camera saw you.</p>';
- o.querySelectorAll('[data-o]').forEach(x=>x.onclick=async()=>{ if(SH.stage!=='ready') return; const k=x.dataset.o; let v=x.dataset.v; v=k==='facing'?v:k==='sound'?v==='true':+v; if(SH[k]===v) return; SH[k]=v; shSave(); shOpts(); shAct(); if(k==='facing'||k==='sound') await shCam(); });
-}
-function shPill(){ const p=$('campill'); if(!p||!SH) return; const on=!!SH.stream, rec=SH.stage==='rec'; p.hidden=!on||!!window.Hot; p.classList.toggle('rec',rec);
- $('camword').textContent=(SH.sound?'CAMERA AND MIC ON':'CAMERA ON')+(rec?' · RECORDING':' · NOT RECORDING'); }
-function shAct(){ const a=$('shact'), s=$('shsub'); if(!a||!SH) return; const st=SH.stage; const op=$('shopts'); if(op) op.hidden=st==='review';
- if(s) s.textContent=st==='review'?'There it is. Keep it, or go again.':st==='rec'?'Recording. Just be you.':st==='count'?'Settle in.':'Frame yourself, tap the red button'+(SH.timer?', and the timer gives you time to settle.':'.');
- if(st==='ready') a.innerHTML='<div class="recrow"><button type="button" class="recbtn" id="shgo" aria-label="'+(SH.timer?'Start the timer and record':'Record')+'"'+(SH.stream?'':' disabled')+'></button><span class="dim">'+(SH.timer?'The timer counts '+SH.timer+', then it records '+SH.len+' seconds.':'It records '+SH.len+' seconds.')+'</span></div>';
- else if(st==='count'||st==='rec') a.innerHTML='<div class="recrow"><button type="button" class="recbtn stop" id="shstop" aria-label="Stop"><span></span></button><span class="dim">'+(st==='count'?'Tap to stop the timer.':'Tap to stop early.')+'</span></div>';
- else a.innerHTML='<div class="col"><button type="button" class="btn pri big block" id="shkeep">KEEP IT AS THE LIVE ONE</button><div class="row" style="margin-top:10px"><button type="button" class="btn big" id="shagain" style="flex:1">AGAIN</button><button type="button" class="btn big" id="shfile" style="flex:1">SAVE THE FILE</button></div><p class="dim small" id="shpicked">'+(SH.pick>=0?'Frame '+(SH.pick+1)+' goes with your headshots when you keep it.':'No still from it unless you tap a frame.')+'</p>'+(Y.get().live?'<p class="faint small">Keeping it replaces the live one you have now.</p>':'')+'</div>';
- const go=$('shgo'); if(go) go.onclick=shStart;
- const sp=$('shstop'); if(sp) sp.onclick=()=>{ if(SH.stage==='count'){ clearInterval(SH.cd); SH.stage='ready'; $('shcount').hidden=true; shOpts(); shAct(); shPill(); } else shFinish(); };
- const k=$('shkeep'); if(k) k.onclick=shKeep;
- const ag=$('shagain'); if(ag) ag.onclick=shAgain;
- const f=$('shfile'); if(f) f.onclick=()=>saveFile(SH.blob,SH.ext);
- shPill();
-}
-async function shCam(){
- if(!SH) return; const v=$('shv'), er=$('sherr');
- try{ if(SH.stream) C.stop(SH.stream); SH.stream=null; shPill(); er.hidden=true;
-  const s=await C.open({video:true,audio:!!SH.sound,facing:SH.facing,w:1440,h:1800});
-  if(!SH){ C.stop(s); return; } SH.stream=s; v.srcObject=s; v.classList.toggle('mirror',SH.facing==='user'); v.play().catch(()=>{});
- }catch(e){ er.hidden=false; er.textContent=C.errorWords(e,SH.sound?'camera and mic':'video'); }
- shPill(); shAct();
-}
-function shStart(){ if(!SH||!SH.stream||SH.stage!=='ready') return;
- const go=()=>{ $('shcount').hidden=true; shRecord(); };
- if(!SH.timer) return go();
- SH.stage='count'; let n=SH.timer; const c=$('shcount'); c.hidden=false; c.textContent=n; shOpts(); shAct();
- SH.cd=setInterval(()=>{ n--; if(!SH){ return; } if(n<=0){ clearInterval(SH.cd); go(); } else c.textContent=n; },1000);
-}
-function shRecord(){
- const v=$('shv'); SH.stage='rec'; SH.frames=[]; SH.pick=-1;
- try{ SH.rec=C.record(SH.stream,'video'); }catch(e){ SH.stage='ready'; toast(e.message); shAct(); return; }
- shOpts(); shAct(); const clock=$('shclock'), prog=$('shprog'); clock.hidden=false; const t0=Date.now(), L=SH.len*1000;
- const marks=[...Array(10)].map((_,i)=>L*(i+0.5)/10); let mi=0;
- SH.tick=setInterval(async()=>{ if(!SH||SH.stage!=='rec') return; const t=Date.now()-t0;
-  clock.textContent=mmss(t/1000).replace(/^0:/,'0:')+' / '+mmss(SH.len); prog.style.width=Math.min(100,t/L*100)+'%';
-  while(mi<marks.length&&t>=marks[mi]){ mi++; if(v.videoWidth){ const b=await C.snap(v,false); if(b&&SH) SH.frames.push(b); } }
-  if(t>=L) shFinish(); },100);
-}
-async function shFinish(){ if(!SH||SH.stage!=='rec') return; clearInterval(SH.tick); SH.stage='saving';
- const v=$('shv'), w=v.videoWidth, h=v.videoHeight; const r=await SH.rec.stop(); if(!SH) return;
- C.stop(SH.stream); SH.stream=null;
- SH.blob=r.blob; SH.mime=r.mime; SH.ext=r.ext; SH.secs=Math.min(SH.len,r.secs||SH.len); SH.w=w; SH.h=h; SH.url=URL.createObjectURL(r.blob);
- SH.stage='review'; v.hidden=true; const rv=$('shr'); rv.src=SH.url; rv.hidden=false; rv.muted=!SH.sound; rv.play().catch(()=>{ rv.muted=true; rv.play().catch(()=>{}); });
- $('shclock').hidden=true; $('shprog').style.width='0'; $('shloop').hidden=false; $('sframe').classList.add('review');
- const strip=$('shstrip'); SH.furls=SH.frames.map(b=>URL.createObjectURL(b));
- strip.innerHTML=SH.furls.map((u,i)=>'<button type="button" class="fr" data-f="'+i+'" aria-label="Frame '+(i+1)+'" aria-pressed="false"><img src="'+u+'" alt=""></button>').join(''); strip.hidden=!SH.frames.length; $('shpickwhy').hidden=!SH.frames.length;
- strip.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{ const i=+b.dataset.f; SH.pick=SH.pick===i?-1:i; strip.querySelectorAll('[data-f]').forEach(x=>{ const on=+x.dataset.f===SH.pick; x.classList.toggle('on',on); x.setAttribute('aria-pressed',on); }); shAct(); });
- shOpts(); shAct();
-}
-function shDrop(){ if(!SH) return; if(SH.url) URL.revokeObjectURL(SH.url); (SH.furls||[]).forEach(u=>URL.revokeObjectURL(u)); SH.blob=null; SH.url=''; SH.frames=[]; SH.furls=[]; SH.pick=-1; }
-async function shAgain(){ shDrop(); SH.stage='ready'; const v=$('shv'), rv=$('shr'); rv.pause(); rv.removeAttribute('src'); rv.hidden=true; v.hidden=false; $('shloop').hidden=true; $('shstrip').hidden=true; $('shpickwhy').hidden=true; $('sframe').classList.remove('review'); shOpts(); shAct(); await shCam(); }
-function shClose(){ if(!SH) return; clearInterval(SH.tick); clearInterval(SH.cd); try{ if(SH.rec&&SH.stage==='rec') SH.rec.cancel(); }catch(e){} C.stop(SH.stream); shDrop(); SH=null; const ov=$('ov'); ov.hidden=true; ov.innerHTML=''; document.body.classList.remove('ovopen'); }
-async function shKeep(){ if(!SH||!SH.blob) return; const b=$('shkeep'); if(b) b.disabled=true;
- const nm=H.fileName('live_headshot',Y.get().name).replace(/\.html$/,'.'+SH.ext);
- let still='';
- if(SH.pick>=0&&SH.frames[SH.pick]){ const f=new File([SH.frames[SH.pick]],'Live one still '+new Date().toISOString().slice(0,16).replace('T',' ').replace(':','.')+'.jpg',{type:'image/jpeg'}); const r=await Y.addPhoto(f,{live:true}); if(r&&r.photo) still=r.photo.id; }
- const L=await Y.setLive(SH.blob,{name:nm,mime:SH.mime,ext:SH.ext,secs:SH.secs,sound:SH.sound,w:SH.w,h:SH.h,still});
- shClose(); if(!L){ toast('This phone would not keep the clip. It may be out of room.'); return; }
- render(); checkAll(); toast('Kept. It leads on your page and the postcard. Pick STILL any time.');
-}
-async function saveFile(blob,ext){ if(!blob) return; const f=new File([blob],H.fileName('live_headshot',Y.get().name).replace(/\.html$/,'.'+(ext||'webm')),{type:blob.type||'video/webm'});
- try{ if(/Android|iPhone|iPad/i.test(navigator.userAgent)&&navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:f.name}); return; } }catch(e){ if(e&&e.name==='AbortError') return; }
- const a=document.createElement('a'); a.href=URL.createObjectURL(f); a.download=f.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),60000); toast('Saved '+f.name); }
-
+const saveFile=(blob,ext)=>LSH&&LSH.save(blob,ext,'live_headshot',Y.get().name).then(n=>{ if(n) toast('Saved '+n); });
 function planView(y){
  const V=H.vocab(y.photos,P), cov=H.coverage(P.want,y.photos), ph=y.photos;
  let h='<div class="card"><p class="kicker">What you\'re called in for now</p><div class="row">'+V.map(r=>chip(P.called.some(x=>x.toLowerCase()===r.toLowerCase()),'data-called="'+esc(r)+'"',r)).join('')+'</div>'
@@ -311,9 +231,9 @@ function wire(){
  const bd=$('bdl'); if(bd) bd.onclick=()=>exportBrief('brief');
  const sd=$('sdl'); if(sd) sd.onclick=()=>exportBrief('sheet');
 }
-window.addEventListener('storage',e=>{ if(e.key&&/you_v1|headshots_v1/.test(e.key)){ P=H.plan(); if(!SH) render(); } });
-window.__hs={render,check,testShot,shoot,get P(){return P;},get SH(){return SH;}};
-document.addEventListener('visibilitychange',()=>{ if(document.hidden){ if(TS&&!TS.blob) tsClose(); if(SH&&(SH.stage==='ready'||SH.stage==='count'||SH.stage==='rec')) shClose(); } });
+window.addEventListener('storage',e=>{ if(e.key&&/you_v1|headshots_v1/.test(e.key)){ P=H.plan(); if(!(LSH&&LSH.cur)) render(); } });
+window.__hs={render,check,testShot,shoot,get P(){return P;},get SH(){return LSH&&LSH.cur;}};
+document.addEventListener('visibilitychange',()=>{ if(document.hidden){ if(TS&&!TS.blob) tsClose(); } });
 { const t=new URLSearchParams(location.search).get('tab'); U.tab=t==='plan'||t==='brief'?t:'photos'; }
 render(); checkAll(); if(/[?&]shoot=1/.test(location.search)) shoot();
 })();
