@@ -6,7 +6,7 @@
 */
 (function () {
   'use strict';
-  const VERSION = '0.4.0';
+  const VERSION = '0.5.0';
   const SCHEMA = 'ACT.RESUME/0.3';
   const E = window.ResumeEngine;
 
@@ -40,8 +40,8 @@
   }
   async function peekGet(db, store, key) { if (!db || !db.objectStoreNames.contains(store)) return null; return new Promise(res => { try { const t = db.transaction(store, 'readonly'); const r = t.objectStore(store).get(key); r.onsuccess = () => res(r.result); r.onerror = () => res(null); } catch (e) { res(null); } }); }
 
-  const emptyLib = () => ({ schema: SCHEMA, app: 'VIRTUAL RESUME ' + VERSION, created: now(), updated: now(), me: { name: '', union: '', email: '', phone: '', rep: '', height: '', hair: '', eyes: '', location: '', links: '' }, skills: [], training: [], pieces: [], headshot: null, paper: '8x10', headTop: false, lastSaved: null, dirty: 0 });
-  const S = { lib: null, tab: 'work', urls: {}, blobs: {}, headUrl: null, editing: null, sources: { archbook: null, slate: null } };
+  const emptyLib = () => ({ schema: SCHEMA, app: 'VIRTUAL RESUME ' + VERSION, created: now(), updated: now(), me: { name: '', union: '', email: '', phone: '', rep: '', height: '', hair: '', eyes: '', location: '', links: '' }, skills: [], training: [], pieces: [], roles: [], cwords: {}, headshot: null, paper: '8x10', headTop: false, lastSaved: null, dirty: 0 });
+  const S = { lib: null, tab: 'home', roleId: null, things: [], purl: {}, urls: {}, blobs: {}, headUrl: null, editing: null, sources: { archbook: null, slate: null } };
   let saveT = null;
   function touch() { S.lib.updated = now(); S.lib.dirty = (S.lib.dirty || 0) + 1; clearTimeout(saveT); saveT = setTimeout(() => DB.putLib(S.lib), 250); }
   const piece = id => S.lib.pieces.find(p => p.id === id);
@@ -56,16 +56,131 @@
     close: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>',
     theme: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg>'
   };
-  const TABS = [['work', 'WORK'], ['training', 'TRAINING'], ['you', 'YOU'], ['next', 'NEXT'], ['send', 'SEND']];
+  const HICON = '<svg class="hico" viewBox="0 0 64 80" role="img" aria-label="A role and what backs it up"><rect class="pg" x="2" y="2" width="60" height="76" rx="5"/><rect class="ph" x="9" y="9" width="22" height="28" rx="2"/><circle class="sil" cx="20" cy="19" r="5"/><path class="sil" d="M11 37c1-6 5-9 9-9s8 3 9 9z"/><path class="ln" d="M36 13h19M36 21h15M36 29h17"/><rect class="g" x="9" y="45" width="46" height="8" rx="2"/><rect class="ph" x="9" y="57" width="34" height="6" rx="2"/><rect class="ph" x="9" y="67" width="40" height="6" rx="2"/></svg>';
+  const SUB = { work: 'YOUR WORK', training: 'TRAINING', you: 'YOU', next: 'NEXT', send: 'THE RÉSUMÉ', role: 'WHAT YOU CAN PLAY' };
   function render() {
     closeSheet(true);
+    const views = { home: vHome, work: vWork, training: vTraining, you: vYou, next: vNext, send: vSend, role: vRole };
+    if (!views[S.tab] || (S.tab === 'role' && !roleById(S.roleId))) S.tab = 'home';
     $('#app').innerHTML = `<div class="shell">
-      <header class="top"><div class="title"><b>VIRTUAL RÉSUMÉ</b><span>${esc(S.lib.me.name || 'Make the work. It becomes the résumé.')}</span></div><button class="iconbtn" data-a="theme" aria-label="Light or dark">${ICON.theme}</button></header>
-      <main id="main">${({ work: vWork, training: vTraining, you: vYou, next: vNext, send: vSend }[S.tab])()}</main>
-      <nav class="tabs">${TABS.map(([k, l]) => `<button class="${S.tab === k ? 'on' : ''}" data-a="tab" data-t="${k}">${ICON[k]}<span>${l}</span>${k === 'next' && nextList().length ? '<i class="badge"></i>' : ''}</button>`).join('')}</nav></div>`;
+      <header class="top bhead"><div class="bwrap">${HICON}<div class="btx"><div class="kicker" style="margin:0">ACT · VIRTUAL RÉSUMÉ</div><h1>Your résumé, and what you can play</h1><p>What you can play, and back it up: credits, footage, headshots.</p></div><img class="bsig" src="../img/sigil-film-180.png" alt="THEACTORPAGE" width="64" height="64"><button class="iconbtn" data-a="theme" aria-label="Light or dark">${ICON.theme}</button></div></header>
+      <i class="hstk" aria-hidden="true"></i>
+      <main id="main">${SUB[S.tab] ? `<div class="backbar"><button class="btn ghost sm" data-a="tab" data-t="home">‹ VIRTUAL RÉSUMÉ</button><span class="kicker" style="margin:0">${SUB[S.tab]}</span></div>` : ''}${views[S.tab]()}</main></div>`;
     const drop = $('#drop');
     if (drop) { ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); })); ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); })); drop.addEventListener('drop', e => addClips(e.dataTransfer.files)); }
     if (S.tab === 'send') fitPaper();
+    fillPics();
+  }
+  /* pictures: headshots and looks by reference (img[data-pic="h:<id>"|"l:<ref>"]) */
+  async function fillPics() {
+    for (const im of document.querySelectorAll('img[data-pic]')) { const k = im.dataset.pic; if (!S.purl[k]) { let b = null; try { if (/^h:/.test(k) && window.You) b = await You.photoBlob(k.slice(2)); else if (/^l:/.test(k) && window.Looks) b = await Looks.blob(k.slice(2)); } catch (e) { } if (b) S.purl[k] = URL.createObjectURL(b); } if (S.purl[k]) im.src = S.purl[k]; }
+  }
+
+  // ---------------------------------------------------------------- WHAT YOU CAN PLAY: your roles, and what backs them up
+  const roleById = id => (S.lib.roles || []).find(r => r.id === id);
+  const ckey = c => 'you:' + (String(c.section || '') + '|' + String(c.title || '')).toLowerCase();
+  async function gather() {
+    const T = [], cw = S.lib.cwords || {}, y = window.You ? You.get() : null;
+    if (y) (y.credits || []).forEach(c => { const key = ckey(c); T.push({ key, kind: 'credit', title: c.title, role: c.role || '', character: c.character || '', company: c.by || '', from: 'your credits', words: cw[key] || [], text: [c.title, c.role, c.character].concat(cw[key] || []) }); });
+    S.lib.pieces.filter(p => E.countsCheck(p).counts).forEach(p => { if (T.some(t => t.kind === 'credit' && String(t.title).toLowerCase() === String(p.title || '').toLowerCase())) return; const key = 'vr:' + p.id;
+      T.push({ key, kind: 'credit', title: p.title || 'Untitled', role: p.roleType || '', character: p.character || '', company: E.creditCompany(p), from: 'your work', words: cw[key] || [], text: [p.title, p.character, p.roleType].concat(E.typesOf(p), cw[key] || []) }); });
+    const A = S.arch, lib = A && A.lib;
+    if (lib) { const lbl = k => (lib.tags && lib.tags[k] && lib.tags[k].label) || k;
+      (lib.moments || []).forEach(m => { const c = (lib.clips || []).find(x => x.id === m.clip) || {}, tags = (m.tags || []).map(lbl);
+        T.push({ key: 'm:' + m.id, kind: 'moment', m, clip: c, title: m.label || String(c.name || 'Moment').replace(/\.[^.]+$/, ''), secs: Math.max(0, m.out - m.in), thumb: m.thumb || c.thumb || '', tags, text: tags.concat([m.label]) }); }); }
+    if (y && window.You) You.headshots().forEach(p => T.push({ key: 'h:' + p.id, kind: 'headshot', pic: 'h:' + p.id, title: String(p.name || 'Headshot').replace(/\.[^.]+$/, ''), roles: p.roles || [], text: p.roles || [] }));
+    if (window.Looks) Looks.all().forEach(l => T.push({ key: 'l:' + l.id, kind: 'look', pic: l.photos[0] ? 'l:' + l.photos[0] : '', title: l.name, spots: l.spots || '', text: [l.name] }));
+    S.things = T; return T;
+  }
+  const backs = r => { const f = E.playFor(r, S.things), c = E.playCounts(f.in, S.things); return { f, c, thin: E.playThin(c) }; };
+  const picOf = (r, f) => { const h = S.things.find(t => t.kind === 'headshot' && f.in.includes(t.key)); return h ? h.pic : ''; };
+  function vHome() {
+    const L = S.lib, m = model(), roles = L.roles || [], nx = nextList().length;
+    const credits = m.film.length + m.theatre.length;
+    let h = `<div class="hgrid"><div class="hl">
+      <div class="card rcard"><div class="kicker" style="color:var(--tung-text)">THE RÉSUMÉ</div><b class="rnm">${esc(m.name || 'Your résumé')}</b>
+        <p class="dim" style="margin:4px 0 12px;font-size:14px">${esc([credits + (credits === 1 ? ' credit' : ' credits') + ' on it', m.held.length ? m.held.length + ' not yet' : '', L.training.length ? L.training.length + ' in training' : 'no training yet', L.skills.length ? L.skills.length + ' skills' : ''].filter(Boolean).join(' · '))}</p>
+        <div class="row"><button class="btn pri" data-a="tab" data-t="send">SEE IT, PRINT IT, SEND IT</button><button class="btn" data-a="tab" data-t="work">YOUR WORK · ${L.pieces.length}</button><button class="btn" data-a="tab" data-t="training">TRAINING</button><button class="btn" data-a="tab" data-t="you">YOU</button><button class="btn" data-a="tab" data-t="next">NEXT${nx ? ' · ' + nx : ''}</button></div></div>
+      <div class="lhead"><span class="kicker" style="margin:0">WHAT YOU CAN PLAY · YOUR WORDS</span><button class="btn pri sm" data-a="roleopen">+ A ROLE YOU CAN PLAY</button></div>
+      <div class="card hide" id="roleadd"><label class="lab" for="rolein" style="margin-top:0">A role you can play, in your words</label><div class="row"><input class="field" id="rolein" style="flex:1;min-width:180px" placeholder="Sheriff, tired dad, tech founder" autocomplete="off"><button class="btn pri" data-a="roleadd">ADD IT</button></div></div>`;
+    if (!roles.length) h += `<div class="card how"><ol><li><b>Name a role you can play,</b> in your own words.</li><li><b>See what backs it up:</b> your credits, your moments in REEL ROOM, your headshots and looks, wherever you used the word.</li><li><b>Send it:</b> a page for that role, just what you picked.</li></ol></div>`;
+    else h += roles.map(r => { const b = backs(r), pic = picOf(r, b.f);
+      return `<button class="rolecard" data-a="openrole" data-id="${r.id}"><span class="rph">${pic ? `<img data-pic="${esc(pic)}" alt="">` : ''}</span><span class="rb"><b>${esc(r.name)}</b><span class="chips">${b.c.length ? b.c.map(x => `<span class="pr">${esc(x.label)}</span>`).join('') : ''}${b.thin ? `<span class="pr none">${esc(b.thin.toUpperCase())}</span>` : ''}</span></span></button>`; }).join('');
+    h += `<p class="faint" style="font-size:13px;margin:8px 0 0">You name the roles. Nothing here decides what you can play, and nothing is scored.</p></div><aside class="hr">`;
+    if (roles.length) {
+      const thin = roles.map(r => [r, backs(r).thin]).filter(x => x[1]);
+      h += `<span class="kicker" style="display:block;margin:0 0 8px">SEND IT</span><div class="card"><p style="margin:0 0 4px"><b>One role, for one call</b></p><p class="dim" style="font-size:13.5px;margin:0 0 10px">Open the role and send its page: that role and the work behind it, nothing else.</p><p style="margin:0 0 4px"><b>Every role</b></p><p class="dim" style="font-size:13.5px;margin:0 0 10px">For your reps: every role, each with its own page.</p><button class="btn block" data-a="rolesall">SAVE EVERY ROLE (.zip)</button></div>`;
+      if (thin.length) h += `<span class="kicker" style="display:block;margin:14px 0 8px">WHAT'S THIN</span><div class="card">${thin.map(([r, t]) => `<div class="row" style="justify-content:space-between;flex-wrap:nowrap;padding:4px 0"><span style="flex:1;min-width:0"><b>${esc(r.name)}</b> <span class="dim">· ${esc(t)}</span></span>${S.arch ? `<button class="btn sm ghost" data-a="roleshoot" data-id="${r.id}">${onShootList(r) ? 'ON YOUR SHOOT LIST ✓' : 'ADD TO YOUR SHOOT LIST'}</button>` : ''}</div>`).join('')}<p class="faint" style="font-size:12.5px;margin:8px 0 0">Your shoot list lives in REEL ROOM.</p></div>`;
+    }
+    return h + '</aside></div>';
+  }
+  const onShootList = r => !!(S.arch && S.arch.lib && (S.arch.lib.wants || []).some(w => w.key === 'vr|' + r.name.toLowerCase()));
+  function vRole() {
+    const r = roleById(S.roleId), b = backs(r), T = S.things, inSet = new Set(b.f.in), found = new Set(b.f.found), add = r.add || {};
+    const shown = kind => T.filter(t => t.kind === kind && (found.has(t.key) || add[t.key]));
+    const box = (t, inner) => `<label class="it"><input type="checkbox" class="on" data-a="rtoggle" data-k="${esc(t.key)}"${inSet.has(t.key) ? ' checked' : ''}>${inner}</label>`;
+    const cr = shown('credit').map(t => box(t, `<span class="itb"><b>${esc(t.title)}</b><small>${esc([t.role, t.character].filter(Boolean).join(' · '))}${t.words.length ? ' · your word' + (t.words.length > 1 ? 's' : '') + ': ' + esc(t.words.join(', ')) : ''}</small></span>${t.words.some(w => w.toLowerCase() === r.name.toLowerCase()) ? `<button class="iconbtn" data-a="cwordoff" data-k="${esc(t.key)}" aria-label="Take ${esc(r.name)} off ${esc(t.title)}">${ICON.close}</button>` : ''}`)).join('');
+    const mo = shown('moment').map(t => box(t, `${t.thumb ? `<img class="th" src="${t.thumb}" alt="">` : '<span class="th"></span>'}<span class="itb">${esc(t.title)}<small>${esc(fmtShort(t.secs))}${t.tags.length ? ' · ' + esc(t.tags.join(', ')) : ''}</small></span>`)).join('');
+    const hl = shown('headshot').concat(shown('look')).map(t => box(t, `${t.pic ? `<img class="hs" data-pic="${esc(t.pic)}" alt="">` : '<span class="hs"></span>'}<span class="itb">${esc(t.title)}<small>${t.kind === 'headshot' ? 'headshot' + (t.roles.length ? ' · ' + esc(t.roles.join(', ')) : '') : 'look' + (t.spots ? ' · ' + esc(t.spots) : '')}</small></span>`)).join('');
+    return `<div class="rhead"><div><label class="lab" for="r_name" style="margin-top:0">The role, in your words</label><input class="field big" id="r_name" data-r="name" value="${esc(r.name)}"></div><div><label class="lab" for="r_also" style="margin-top:0">Also called (optional)</label><input class="field" id="r_also" data-r="also" value="${esc(r.also || '')}" placeholder="lawman, deputy"></div></div>
+      <p class="dim" style="font-size:13.5px;margin:6px 0 12px">Found wherever you used these words: your credits, your moments in REEL ROOM, your headshots and looks. Tick what goes in.</p>
+      <div class="pgrid">
+        <div class="card"><div class="kicker">CREDITS${shown('credit').length ? ' · ' + shown('credit').length : ''}</div>${cr || '<p class="faint" style="font-size:14px;margin:0">None found with these words.</p>'}<button class="btn sm ghost" data-a="addsheet" data-v="credit" style="margin-top:8px">+ PUT YOUR WORD ON A CREDIT</button></div>
+        <div class="card"><div class="kicker">FOOTAGE${shown('moment').length ? ' · ' + shown('moment').length + (shown('moment').length === 1 ? ' MOMENT' : ' MOMENTS') : ''}</div>${mo || `<p class="faint" style="font-size:14px;margin:0">${S.arch ? 'No moment in REEL ROOM has these words yet.' : 'Mark moments in REEL ROOM and they show here.'}</p>`}${S.arch && (S.arch.lib.moments || []).length ? '<button class="btn sm ghost" data-a="addsheet" data-v="moment" style="margin-top:8px">+ ADD A MOMENT</button>' : ''}</div>
+        <div class="card"><div class="kicker">HEADSHOTS AND LOOKS</div>${hl || '<p class="faint" style="font-size:14px;margin:0">None tagged with these words.</p>'}${T.some(t => t.kind === 'headshot' || t.kind === 'look') ? '<button class="btn sm ghost" data-a="addsheet" data-v="pics" style="margin-top:8px">+ ADD ONE BY HAND</button>' : ''}</div>
+      </div>
+      <div class="row" style="margin-top:6px"><button class="btn pri" data-a="rolezip" ${b.f.in.length ? '' : 'disabled'}>SEND THIS ROLE (.zip)</button>${S.arch ? '<button class="btn" data-a="rolecut">CUT A REEL FOR IT</button>' : ''}<button class="btn ghost bad" data-a="roledel">DELETE THIS ROLE</button></div>
+      <p class="faint" style="font-size:13px;margin:8px 0 0">SEND THIS ROLE is a folder: open index.html to see the page casting gets. Put it online like your page. CUT A REEL FOR IT opens REEL ROOM on these words.</p>`;
+  }
+  function addSheet(kind) {
+    const r = roleById(S.roleId), b = backs(r), inSet = new Set(b.f.in);
+    const list = S.things.filter(t => (kind === 'pics' ? (t.kind === 'headshot' || t.kind === 'look') : t.kind === kind) && !inSet.has(t.key));
+    const row = t => `<button class="pickrow" data-a="${kind === 'credit' ? 'cwordon' : 'radd'}" data-k="${esc(t.key)}">${t.thumb ? `<img src="${t.thumb}" alt="">` : t.pic ? `<img data-pic="${esc(t.pic)}" alt="">` : ''}<span><b>${esc(t.title)}</b><small>${esc(t.kind === 'credit' ? [t.role, t.character].filter(Boolean).join(' · ') : t.kind === 'moment' ? (t.tags.join(', ') || 'not tagged yet') : t.kind)}</small></span></button>`;
+    openSheet(`<div class="kicker">${kind === 'credit' ? 'Put "' + esc(r.name) + '" on a credit' : 'Add to ' + esc(r.name)}</div>${kind === 'credit' ? '<p class="dim" style="font-size:13.5px;margin:0 0 8px">Your word goes on the credit, and it counts for this role from now on.</p>' : ''}${list.length ? list.map(row).join('') : '<p class="dim">Nothing else to add.</p>'}`);
+    fillPics();
+  }
+  /* the role's page, and its media, for the zip. base: folder; one media file per clip, cut with #t=in,out */
+  async function rolePage(r, entries, base, mediaDone, others) {
+    const b = backs(r), inSet = new Set(b.f.in), m = model(), T = S.things.filter(t => inSet.has(t.key));
+    const put = async (name, blob) => { if (!mediaDone[name]) { mediaDone[name] = true; entries.push({ name: base + name, bytes: new Uint8Array(await blob.arrayBuffer()) }); } return name; };
+    let head = '';
+    const h = T.find(t => t.kind === 'headshot'); if (h && window.You) { const bl = await You.photoBlob(h.key.slice(2)); if (bl) head = await put('media/headshot_' + h.key.slice(-6) + '.jpg', bl); }
+    if (!head && S.blobs.__head) head = await put('media/headshot.jpg', S.blobs.__head);
+    const moments = []; let missing = 0;
+    for (const t of T.filter(t => t.kind === 'moment')) {
+      const c = t.clip || {}; let bl = null;
+      try { bl = c.take && window.Takes ? await Takes.blob(c.take) : await peekGet(S.arch.db, 'media', c.id); } catch (e) { }
+      if (!bl) { missing++; continue; }
+      const ext = (String(c.name || '').match(/\.[a-z0-9]+$/i) || [/webm/.test(bl.type) ? '.webm' : '.mp4'])[0].toLowerCase();
+      const f = await put('media/' + slug(String(c.name || 'clip').replace(/\.[^.]+$/, '')) + '_' + String(c.id).slice(-4) + ext, bl);
+      moments.push({ src: f + '#t=' + (+t.m.in).toFixed(2) + ',' + (+t.m.out).toFixed(2), label: t.title, secs: fmtShort(t.secs), poster: t.thumb });
+    }
+    const credits = T.filter(t => t.kind === 'credit').map(t => ({ title: t.title, role: [t.role, t.character].filter(Boolean).join(' · '), company: t.company }));
+    const page = (window.You && You.get().page) || '';
+    return { html: E.castPage(m, r, { headshot: head, moments, credits, page, others }), head, missing, backs: b.c.map(x => x.label.toLowerCase()).join(' · ') };
+  }
+  async function roleZip(r) {
+    const m = model(), base = slug(m.name || 'my') + '_' + slug(r.name) + '/', entries = [];
+    const pg = await rolePage(r, entries, base, {}, []);
+    entries.unshift({ name: base + 'index.html', bytes: E.enc(pg.html) });
+    await deliver(new Blob([E.makeZip(entries)], { type: 'application/zip' }), base.replace(/\/$/, '') + '.zip');
+    toast('Saved: the page for ' + r.name + (pg.missing ? '. ' + pg.missing + (pg.missing === 1 ? ' moment\'s' : ' moments\'') + ' video isn\'t on this device, so it\'s left out.' : '.'));
+  }
+  async function rolesZip() {
+    const m = model(), roles = S.lib.roles || [], base = slug(m.name || 'my') + '_what_i_can_play/', entries = [], done = {}, list = [];
+    const href = r => 'role-' + slug(r.name) + '.html';
+    for (const r of roles) { const pg = await rolePage(r, entries, base, done, roles.filter(x => x !== r).map(x => ({ name: x.name, href: href(x) })).concat([{ name: 'Every role', href: 'index.html' }]));
+      entries.push({ name: base + href(r), bytes: E.enc(pg.html) }); list.push({ name: r.name, href: href(r), pic: pg.head, backs: pg.backs }); }
+    entries.unshift({ name: base + 'index.html', bytes: E.enc(E.rolesPage(m, list)) });
+    await deliver(new Blob([E.makeZip(entries)], { type: 'application/zip' }), base.replace(/\/$/, '') + '.zip');
+    toast('Saved: every role, each with its own page.');
+  }
+  async function shootAdd(r) {
+    const A = S.arch; if (!A) return; const lib = A.lib, k = 'vr|' + r.name.toLowerCase();
+    lib.wants = lib.wants || []; const i = lib.wants.findIndex(w => w.key === k);
+    if (i >= 0) lib.wants.splice(i, 1); else lib.wants.push({ key: k, text: r.name, at: now() });
+    try { await new Promise((res, rej) => { const t = A.db.transaction('lib', 'readwrite'); t.objectStore('lib').put(JSON.parse(JSON.stringify(lib)), 'main'); t.oncomplete = res; t.onerror = () => rej(t.error); }); } catch (e) { toast('REEL ROOM would not take it. Add it there.'); }
+    render();
   }
   function status(p) {
     const c = E.countsCheck(p);
@@ -77,9 +192,7 @@
   // ---------------------------------------------------------------- WORK
   function vWork() {
     const L = S.lib, credits = L.pieces.filter(p => E.countsCheck(p).counts).length;
-    return `${L.pieces.length ? '' : `<div style="padding:12px 0 4px"><div class="kicker">THEACTORPAGE · ACT</div><h1 style="font-size:30px;letter-spacing:.1em">VIRTUAL RÉSUMÉ</h1>
-        <div style="color:var(--tung-text);letter-spacing:.04em;margin-top:2px">Make the work. It becomes the résumé.</div>
-        <p class="dim" style="margin:8px 0 0;max-width:36em">No credits yet? Shoot your own: a scene with a friend, a short, a monologue. Drop it here. Finish it and show it, and it stands on your résumé as a real credit. The rest goes on your page as clips.</p></div>`}
+    return `${L.pieces.length ? '' : `<p class="dim" style="margin:0 0 10px;max-width:36em">No credits yet? Shoot your own: a scene with a friend, a short, a monologue. Drop it here. Finish it and show it, and it stands on your résumé as a real credit. The rest goes on your page as clips.</p>`}
       <div class="drop" id="drop" data-a="addclip" role="button" tabindex="0"><b>Drop your work</b><span class="dim" style="font-size:14px">Scenes, shorts, monologues, self-tapes.</span><span class="btn pri">Choose videos</span></div>
       <div class="row" style="margin-bottom:14px"><button class="btn" data-a="addblank">Add without a video</button>${S.sources.archbook ? `<button class="btn ghost" data-a="fromarch">Bring in from REEL ROOM</button>` : ''}</div>
       ${L.pieces.length ? `<div class="kicker">${L.pieces.length} ${L.pieces.length === 1 ? 'piece' : 'pieces'} · ${credits} ${credits === 1 ? 'credit' : 'credits'}</div>` + L.pieces.map(p => `<button class="piece" data-a="edit" data-id="${p.id}">${p.clip && p.clip.thumb ? `<img src="${p.clip.thumb}" alt="">` : `<span class="ph">${p.link ? 'LINK' : 'NO VIDEO'}</span>`}
@@ -177,7 +290,7 @@
   }
 
   // ---------------------------------------------------------------- SEND
-  function model() { return E.resumeModel(S.lib.me, S.lib.pieces, S.lib.training, S.lib.skills); }
+  function model() { return E.resumeModel(S.lib.me, S.lib.pieces, S.lib.training, S.lib.skills, window.You ? You.get().credits : []); }
   function paperHtml(m) {
     const rows = rs => rs.map(r => `<tr><td>${esc(r.title)}${r.unfinished ? ' <small>(in progress)</small>' : ''}</td><td>${esc(r.role)}</td><td>${esc(r.company)}</td></tr>`).join('');
     const head = `<div class="nm">${esc(m.name || 'YOUR NAME')}</div>${m.union ? `<div class="un">${esc(m.union)}</div>` : ''}
@@ -204,7 +317,7 @@
       ${aud === 'rep' && shoot.length ? `<button class="flag ${snd.shootNext ? 'on' : ''}" data-a="shootnext" style="margin-top:10px">Include what I'm shooting next (${shoot.length})</button>` : ''}
       <div class="kicker" style="margin-top:14px">On the page, in this order</div>
       <div id="sendorder">${sendOrderHtml(aud, order, fit)}</div></div>`;
-    return `<div class="kicker">Send</div><h1 style="font-size:24px;margin-bottom:8px">Your résumé and your page</h1>
+    return `<h1 style="font-size:24px;margin-bottom:8px">Your résumé and your page</h1>
       <div class="card" id="yourpage"><div class="kicker">Your page, all in one</div><p class="dim" style="font-size:14px;margin:4px 0 10px">Your finished work here goes on your page in the Project Hub, under your acting: the credits that count with the rest of your films, and your clips in Selected work. Use this tab for a one-off page aimed at one reader, or for the résumé.</p><a class="btn" href="../hub/?tab=package#online">OPEN YOUR PAGE</a></div>
       ${whoCard}
       <div class="row"><span class="dim" style="font-size:14px">Paper</span>${[['8x10', '8×10 (back of headshot)'], ['letter', 'Letter']].map(([k, l]) => `<button class="chip ${L.paper === k ? 'on' : ''}" data-a="paper" data-v="${k}">${l}</button>`).join('')}
@@ -275,7 +388,7 @@
   // ---------------------------------------------------------------- imports from the other ACT tools
   async function scanSources() {
     const ab = await peek('archbook_v03');
-    if (ab) { const lib = await peekGet(ab, 'lib', 'main'); if (lib && lib.clips && lib.clips.length) S.sources.archbook = { db: ab, lib }; S.shootList = lib ? (lib.wants || []) : []; }
+    if (ab) { const lib = await peekGet(ab, 'lib', 'main'); if (lib) S.arch = { db: ab, lib }; if (lib && lib.clips && lib.clips.length) S.sources.archbook = { db: ab, lib }; S.shootList = lib ? (lib.wants || []) : []; }
     const sl = await peek('slate_v04');
     if (sl) { const kit = await peekGet(sl, 'kv', 'kit'); if (kit && kit.name) S.sources.slate = { db: sl, kit }; }
   }
@@ -336,7 +449,7 @@
   async function act(a, ds, el) {
     ds = ds || {}; const L = S.lib, p = S.editing ? piece(S.editing) : null;
     switch (a) {
-      case 'tab': S.tab = ds.t; S.editing = null; render(); window.scrollTo(0, 0); break;
+      case 'tab': S.tab = ds.t; S.editing = null; if (ds.t === 'home') await gather(); render(); window.scrollTo(0, 0); break;
       case 'theme': { const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'); const nx = cur === 'light' ? 'dark' : 'light'; document.documentElement.dataset.theme = nx; try { localStorage.setItem('resume_theme', nx); } catch (e) { } break; }
       case 'addclip': $('#clipin').click(); break;
       case 'addblank': { const q = { id: rid(), type: 'short', title: '', character: '', roleType: 'Lead', company: '', year: String(new Date().getFullYear()), did: ['Acted'], finished: false, link: '', shownAt: '', note: '', onPage: true, clip: null, at: now() }; L.pieces.unshift(q); touch(); render(); editSheet(q.id); break; }
@@ -370,6 +483,21 @@
       case 'savelib': L.lastSaved = now(); L.dirty = 0; await DB.putLib(L); deliver(new Blob([JSON.stringify(Object.assign({}, L, { note: 'Videos and headshot are not inside this file.' }))], { type: 'application/json' }), slug(L.me.name || 'my') + '_virtual_resume.json'); render(); break;
       case 'openlib': $('#libin').click(); break;
       case 'noop': break;
+      case 'roleopen': { const b = $('#roleadd'); if (b) { b.classList.remove('hide'); $('#rolein').focus(); } break; }
+      case 'roleadd': { const v = ($('#rolein').value || '').trim(); if (!v) { toast('Name it first, in your words.'); break; } L.roles = L.roles || []; const r = { id: rid(), name: v, also: '', off: {}, add: {}, at: now() }; L.roles.push(r); touch(); S.roleId = r.id; S.tab = 'role'; await gather(); render(); window.scrollTo(0, 0); break; }
+      case 'openrole': S.roleId = ds.id; S.tab = 'role'; await gather(); render(); window.scrollTo(0, 0); break;
+      case 'rtoggle': { const r = roleById(S.roleId), b = backs(r), k = ds.k; r.off = r.off || {}; r.add = r.add || {};
+        if (b.f.in.includes(k)) { if (r.add[k]) delete r.add[k]; if (b.f.found.includes(k)) r.off[k] = true; } else { if (b.f.found.includes(k)) delete r.off[k]; else r.add[k] = true; }
+        touch(); render(); break; }
+      case 'addsheet': addSheet(ds.v); break;
+      case 'radd': { const r = roleById(S.roleId); r.add = r.add || {}; r.add[ds.k] = true; if (r.off) delete r.off[ds.k]; touch(); closeSheet(true); render(); break; }
+      case 'cwordon': { const r = roleById(S.roleId); L.cwords = L.cwords || {}; const w = L.cwords[ds.k] = L.cwords[ds.k] || []; if (!w.some(x => x.toLowerCase() === r.name.toLowerCase())) w.push(r.name); if (r.off) delete r.off[ds.k]; touch(); await gather(); closeSheet(true); render(); break; }
+      case 'cwordoff': { const r = roleById(S.roleId); L.cwords = L.cwords || {}; L.cwords[ds.k] = (L.cwords[ds.k] || []).filter(x => x.toLowerCase() !== r.name.toLowerCase()); touch(); await gather(); render(); break; }
+      case 'rolezip': roleZip(roleById(S.roleId)); break;
+      case 'rolesall': rolesZip(); break;
+      case 'roleshoot': shootAdd(roleById(ds.id)); break;
+      case 'rolecut': { const r = roleById(S.roleId); try { localStorage.setItem('theactorpage_handoff_cut', JSON.stringify({ from: 'vresume', text: [r.name, r.also].filter(Boolean).join('. '), role: r.name, at: Date.now() })); } catch (e) { } location.href = '../archbook/'; break; }
+      case 'roledel': if (confirm('Delete this role? Your credits, moments and headshots stay where they are.')) { L.roles = (L.roles || []).filter(r => r.id !== S.roleId); touch(); S.tab = 'home'; render(); } break;
     }
   }
 
@@ -379,11 +507,13 @@
     const t = e.target, L = S.lib;
     if (t.dataset.p && S.editing) { const p = piece(S.editing); p[t.dataset.p] = t.value; touch(); const st = $('#steps'); if (st) st.innerHTML = stepsHtml(p); return; }
     if (t.dataset.s !== undefined && t.dataset.s) { sendCfg()[t.dataset.s] = t.value; touch(); const o = $('#sendorder'); if (o) { const snd = sendCfg(), pieces = S.lib.pieces.filter(p => p.onPage !== false && (S.blobs[p.id] || p.link)).map(p => Object.assign({}, p, { media: S.blobs[p.id] ? 'x' : '' })); o.innerHTML = sendOrderHtml(snd.aud, E.orderFor(snd.aud, pieces, { breakdown: snd.breakdown }), new Map(E.roleMatch(snd.breakdown, pieces).map(x => [x.p.id, x.hits]))); } return; }
-    if (t.dataset.m) { L.me[t.dataset.m] = t.value; touch(); if (t.dataset.m === 'name') { const s = document.querySelector('.top .title span'); if (s) s.textContent = t.value || 'Make the work. It becomes the résumé.'; } return; }
+    if (t.dataset.r && S.tab === 'role') { const r = roleById(S.roleId); if (r) { r[t.dataset.r] = t.value; touch(); clearTimeout(S.rt); S.rt = setTimeout(() => { const f = document.activeElement && document.activeElement.id; render(); const el = f && document.getElementById(f); if (el) { el.focus(); const n = el.value.length; try { el.setSelectionRange(n, n); } catch (e) { } } }, 600); } return; }
+    if (t.dataset.m) { L.me[t.dataset.m] = t.value; touch(); if (t.dataset.m === 'name') { const s = document.querySelector('.top .title span'); } return; }
     if (t.dataset.t !== undefined && t.dataset.k) { L.training[+t.dataset.t][t.dataset.k] = t.value; touch(); return; }
   });
   document.addEventListener('keydown', e => {
     if (e.target.dataset && e.target.dataset.sk && e.key === 'Enter') { e.preventDefault(); const v = e.target.value.trim(); if (v && !S.lib.skills.includes(v)) { S.lib.skills.push(v); touch(); render(); const n = $('#skin'); if (n) n.focus(); } }
+    if (e.target.id === 'rolein' && e.key === 'Enter') { e.preventDefault(); act('roleadd'); }
     if (e.key === 'Escape' && $('.sheet')) act('closesheet');
   });
   $('#clipin').addEventListener('change', e => { const fs = Array.from(e.target.files); e.target.value = ''; addClips(fs); });
@@ -406,8 +536,9 @@
     await loadMedia();
     await scanSources().catch(() => { });
     await fromYou().catch(() => { });
+    await gather().catch(() => { });
     try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { }
     render();
-    window.RESUME = { S, act, E, version: VERSION };
+    window.RESUME = { S, act, E, gather, version: VERSION };
   })();
 })();

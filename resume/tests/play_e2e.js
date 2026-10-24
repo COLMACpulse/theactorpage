@@ -1,0 +1,80 @@
+/* VIRTUAL RÉSUMÉ front: the résumé first, then WHAT YOU CAN PLAY. Made-up credits, a made-up headshot, look and clip.
+   A role in your words finds what backs it up (credits, REEL ROOM moments, headshots, looks); you tick what goes in;
+   your own word on a credit; what's thin, to your REEL ROOM shoot list; a page per role, and every role; CUT A REEL FOR IT.
+   Server on :8811.  NODE_PATH=$(npm root -g) node resume/tests/play_e2e.js [shots-dir] */
+const {chromium}=require('playwright'); const fs=require('fs'), path=require('path'), os=require('os'); const SHOTS=process.argv[2]||'';
+const Z=require(path.join(__dirname,'..','..','shared','zipw.js'));
+(async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,400))); if(!x) ok=false; };
+const clip=fs.readFileSync(path.join(__dirname,'..','..','shared','fixtures','made_up_clip.mp4')).toString('base64');
+const face=fs.readFileSync(path.join(__dirname,'..','..','shared','fixtures','made_up_face.jpg')).toString('base64');
+const run=async(vw,vh,scheme,tag)=>{
+ const c=await b.newContext({viewport:{width:vw,height:vh},colorScheme:scheme,acceptDownloads:true}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
+ const shot=async n=>{ if(SHOTS) await p.screenshot({path:SHOTS+'/vr_'+tag+'_'+n+'.png',fullPage:true}); };
+ await p.goto('http://localhost:8811/resume/sw.js'); await p.evaluate(()=>{ localStorage.clear(); ['vresume_v03','archbook_v03','theactorpage_takes','theactorpage_you','theactorpage_looks'].forEach(n=>indexedDB.deleteDatabase(n)); });
+ // made-up material in YOU, LOOKS and REEL ROOM
+ await p.goto('http://localhost:8811/resume/'); await p.waitForFunction(()=>window.RESUME&&RESUME.S.lib,null,{timeout:8000});
+ await p.evaluate(async([clip,face])=>{ const bin=x=>{ const s=atob(x),u=new Uint8Array(s.length); for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; };
+  You.fill({name:'Riley Hart',union:'SAG-AFTRA',rep:'Northgate Talent',credits:[{section:'Television',title:'Dust Road',role:'Guest star',character:'Deputy Hale'},{section:'Film',title:'Harbor Lights',role:'Supporting',character:'Sheriff'},{section:'Film',title:'Coffee Run',role:'Lead',character:'Barista'}]},'test');
+  const r=await You.addPhoto(new File([bin(face)],'grey_crew.jpg',{type:'image/jpeg'})); You.setPhoto(r.photo.id,{roles:['Sheriff']});
+  await Takes.put(new Blob([bin(clip)],{type:'video/mp4'}),{kind:'video',mime:'video/mp4',ext:'mp4',name:'Gate_scene.mp4',secs:6,for:{type:'clip',title:'Gate scene'}}); },[clip,face]);
+ await p.goto('http://localhost:8811/archbook/'); await p.waitForFunction(()=>window.ARCHBOOK&&ARCHBOOK.S.lib,null,{timeout:8000});
+ await p.evaluate(async()=>{ await ARCHBOOK.act('usetake',{id:Takes.all('clip')[0].id}); });
+ await p.waitForFunction(()=>ARCHBOOK.S.lib.clips.length===1,null,{timeout:8000});
+ await p.evaluate(()=>{ const L=ARCHBOOK.S.lib, k=ARCHBOOK.E.addTag(L.tags,'Lawman'); L.moments.push({id:'mo1',clip:L.clips[0].id,in:1,out:4,tags:[k],open:true,button:false,label:'Gate scene, the long look',thumb:L.clips[0].thumb||'',at:''}); ARCHBOOK.save(); });
+ await p.waitForTimeout(500);
+ await p.goto('http://localhost:8811/looks/'); await p.evaluate(()=>Looks.add('Ranch hand'));
+ await p.goto('http://localhost:8811/resume/'); await p.waitForFunction(()=>window.RESUME&&RESUME.S.lib,null,{timeout:8000}); await p.waitForTimeout(400);
+ const t0=await p.innerText('#main');
+ want(tag+' the résumé counts your credits from YOU', /3 credits on it/.test(t0), t0.slice(0,200));
+ want(tag+' the front: the résumé first, then what you can play', t0.indexOf('THE RÉSUMÉ')>=0&&t0.indexOf('THE RÉSUMÉ')<t0.indexOf('WHAT YOU CAN PLAY')&&!!(await p.$('.how'))&&!(await p.$('nav.tabs')), t0.slice(0,300));
+ want(tag+' the header: and back it up; nothing says "the proof"; the icon does not move', /back it up/.test(await p.innerText('header'))&&!/the proof/i.test(await p.innerText('body'))&&await p.evaluate(()=>[...document.querySelectorAll('.hico *')].every(e=>getComputedStyle(e).animationName==='none')));
+ want(tag+' no score anywhere', !/\bscores?\b|%|castability/i.test(await p.innerText('body')));
+ await shot('empty');
+ await p.click('[data-a="roleopen"]'); await p.fill('#rolein','Sheriff'); await p.press('#rolein','Enter'); await p.waitForTimeout(500);
+ const ks=()=>p.$$eval('.it input:checked',x=>x.map(e=>e.dataset.k));
+ let k1=await ks();
+ want(tag+' SHERIFF: the credit that says sheriff, the headshot tagged Sheriff', k1.some(k=>/harbor lights/.test(k))&&k1.some(k=>/^h:/.test(k))&&!k1.some(k=>/dust road/.test(k)), k1);
+ await p.fill('#r_also','lawman, deputy'); await p.waitForTimeout(1000);
+ k1=await ks();
+ want(tag+' also called lawman, deputy: Dust Road (Deputy Hale) and the REEL ROOM moment tagged Lawman', k1.some(k=>/dust road/.test(k))&&k1.includes('m:mo1'), k1);
+ await p.click('.it input[data-k*="dust road"]'); await p.waitForTimeout(300);
+ want(tag+' untick: it stays out, and stays found', !(await ks()).some(k=>/dust road/.test(k))&&!!(await p.$('.it input[data-k*="dust road"]')));
+ await p.click('.it input[data-k*="dust road"]'); await p.waitForTimeout(300);
+ await p.click('[data-a="addsheet"][data-v="credit"]'); await p.waitForTimeout(300); await p.click('.sheet [data-k*="coffee run"]'); await p.waitForTimeout(500);
+ want(tag+' your word on a credit: Coffee Run counts for Sheriff, says so', (await ks()).some(k=>/coffee run/.test(k))&&/your word: Sheriff/.test(await p.innerText('.pgrid'))&&await p.evaluate(()=>Object.values(RESUME.S.lib.cwords).some(w=>w.includes('Sheriff'))));
+ await shot('role');
+ await p.click('.backbar [data-t="home"]'); await p.waitForTimeout(400);
+ want(tag+' the role card: 3 credits, 1 moment, 1 headshot', /3 CREDITS/.test(await p.innerText('.rolecard'))&&/1 MOMENT/.test(await p.innerText('.rolecard'))&&/1 HEADSHOT/.test(await p.innerText('.rolecard')), await p.innerText('.rolecard'));
+ await p.click('[data-a="roleopen"]'); await p.fill('#rolein','Rancher'); await p.click('[data-a="roleadd"]'); await p.waitForTimeout(400);
+ await p.click('.backbar [data-t="home"]'); await p.waitForTimeout(400);
+ const rc=await p.innerText('.rolecard >> nth=1');
+ want(tag+' RANCHER: the look found by its name, no footage yet', /1 LOOK/.test(rc)&&/NO FOOTAGE YET/.test(rc), rc);
+ want(tag+' WHAT\'S THIN: Rancher', /Rancher/.test(await p.innerText('.hr'))&&/no footage yet/.test(await p.innerText('.hr')));
+ await p.click('[data-a="roleshoot"]'); await p.waitForTimeout(500);
+ const wants=await p.evaluate(()=>new Promise(res=>{ const r=indexedDB.open('archbook_v03'); r.onsuccess=()=>{ const q=r.result.transaction('lib').objectStore('lib').get('main'); q.onsuccess=()=>res((q.result.wants||[]).map(w=>w.text)); }; }));
+ want(tag+' on your REEL ROOM shoot list', wants.includes('Rancher')&&/ON YOUR SHOOT LIST/.test(await p.innerText('.hr')), wants);
+ await shot('front');
+ // a page per role
+ await p.click('.rolecard >> nth=0'); await p.waitForTimeout(400);
+ const [d1]=await Promise.all([p.waitForEvent('download'),p.click('[data-a="rolezip"]')]); const z1=path.join(os.tmpdir(),'vr_role_'+tag+'.zip'); await d1.saveAs(z1);
+ const f1=Z.read(new Uint8Array(fs.readFileSync(z1))), h1=new TextDecoder().decode(f1.find(x=>/index\.html$/.test(x.name)).data);
+ want(tag+' SEND THIS ROLE: its own page, the role, the moment cut to its marks, the headshot, the credits ticked', d1.suggestedFilename()==='riley_hart_sheriff.zip'&&/<h1>Sheriff<\/h1>/.test(h1)&&/src="media\/[^"]+\.mp4#t=1\.00,4\.00"/.test(h1)&&/class="hs" src="media\/headshot_/.test(h1)&&/Harbor Lights/.test(h1)&&/Coffee Run/.test(h1)&&/Represented by Northgate Talent/.test(h1)&&f1.some(x=>/media\/.*\.mp4$/.test(x.name)), [d1.suggestedFilename(), f1.map(x=>x.name)]);
+ want(tag+' the page holds only that role', !/Rancher|Ranch hand/.test(h1));
+ await p.click('.backbar [data-t="home"]'); await p.waitForTimeout(300);
+ const [d2]=await Promise.all([p.waitForEvent('download'),p.click('[data-a="rolesall"]')]); const z2=path.join(os.tmpdir(),'vr_all_'+tag+'.zip'); await d2.saveAs(z2);
+ const f2=Z.read(new Uint8Array(fs.readFileSync(z2))).map(x=>x.name);
+ want(tag+' EVERY ROLE: an index and a page for each', f2.some(n=>/what_i_can_play\/index\.html$/.test(n))&&f2.some(n=>/role-sheriff\.html$/.test(n))&&f2.some(n=>/role-rancher\.html$/.test(n)), f2);
+ // the résumé is still there
+ await p.click('[data-a="tab"][data-t="send"]'); await p.waitForTimeout(400);
+ want(tag+' SEE IT, PRINT IT, SEND IT: the one-page résumé, your credits from YOU on it', !!(await p.$('#paper'))&&/Dust Road/.test(await p.innerText('#paper'))&&/Harbor Lights/.test(await p.innerText('#paper'))&&/Coffee Run/.test(await p.innerText('#paper')));
+ await p.click('.backbar [data-t="home"]'); await p.waitForTimeout(300);
+ want(tag+' no sideways scroll', (await p.evaluate(()=>document.documentElement.scrollWidth-innerWidth))<=0);
+ want(tag+' no em dashes', !/—/.test(await p.innerText('body')));
+ await p.click('.rolecard >> nth=0'); await p.waitForTimeout(300); await p.click('[data-a="rolecut"]'); await p.waitForURL(/archbook/); await p.waitForFunction(()=>window.ARCHBOOK&&ARCHBOOK.S.lib,null,{timeout:8000}); await p.waitForTimeout(500);
+ want(tag+' CUT A REEL FOR IT: REEL ROOM on those words', await p.evaluate(()=>ARCHBOOK.S.tab==='match'&&/Sheriff/.test(ARCHBOOK.S.lib.lastBreakdown)&&/lawman/.test(ARCHBOOK.S.lib.lastBreakdown))&&/YOU HAVE FOOTAGE FOR/.test(await p.innerText('#main')));
+ want(tag+' no page errors', !errs.length, errs);
+ await c.close();
+};
+await run(390,844,'dark','phone'); await run(1280,900,'light','computer');
+await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();

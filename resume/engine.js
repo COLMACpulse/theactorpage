@@ -85,13 +85,18 @@
   }
 
   // the résumé model: only what counts, unless you choose to include it (then it's marked)
-  function resumeModel(me, pieces, training, skills) {
+  /* credits: your credits from YOU ({section, title, role, character, by}); they go first, they're the work you've done */
+  function resumeModel(me, pieces, training, skills, credits) {
     const film = [], theatre = [], held = [];
+    (credits || []).forEach(c => { const t = clean(c && c.title); if (!t) return; const line = { title: t, role: clean(c.role) || clean(c.character), company: clean(c.by) };
+      (/theat|stage|play/i.test(c.section || '') ? theatre : film).push(line); });
+    const have = new Set(film.concat(theatre).map(l => l.title.toLowerCase()));
     (pieces || []).forEach(p => {
       const c = countsCheck(p);
       if (c.section === 'clip') return;
       const include = p.include === undefined ? c.counts : !!p.include;
       if (!include) { held.push({ id: p.id, title: p.title, missing: c.steps.filter(s => !s.ok).map(s => s.label) }); return; }
+      if (have.has(clean(p.title).toLowerCase())) return;
       const line = creditLine(p); line.unfinished = !c.counts; line.id = p.id;
       (c.section === 'theatre' ? theatre : film).push(line);
     });
@@ -208,6 +213,76 @@ ${shoot}
     return `Hi,\n\nMy page, with my work and résumé.\n\n${who}${m.contact.length ? '\n' + m.contact.join(' · ') : ''}`;
   }
 
+
+  // ---------------------------------------------------------------- WHAT YOU CAN PLAY
+  /* The roles you can play, in your words, and the work that backs each one up. Nothing decides
+     what you can play, and nothing is scored: a role shows what's behind it and what isn't yet.
+     Matched by word root on your own words only: a credit's character, role and title (and any
+     words you added to it), a moment's tags in REEL ROOM, a headshot's roles, a look's name. */
+  const toks = t => (String(t || '').toLowerCase().match(/[a-z][a-z'-]*/g) || []).map(w => w.replace(/'s$/, '').replace(/[-']/g, '')).filter(w => w.length >= 3);
+  const root5 = w => w.length > 5 ? w.slice(0, 5) : w;
+  function playRoots(name, also) {
+    const out = [];
+    [name].concat(String(also || '').split(/[,;\n]/)).map(clean).filter(Boolean).forEach(ph => { const t = toks(ph).map(root5); if (t.length) out.push(t); });
+    return out;   // phrases, each a list of roots: every root of a phrase has to be there
+  }
+  function playHit(roots, texts) {
+    const have = new Set([].concat(texts || []).map(x => toks(x)).reduce((a, b) => a.concat(b), []).map(root5));
+    return (roots || []).some(ph => ph.length && ph.every(r => have.has(r)));
+  }
+  /* things: [{key, kind:'credit'|'moment'|'headshot'|'look', text:[...]}]; role: {name, also, off:{}, add:{}}
+     -> {found:[keys], in:[keys]} : found = your words matched; in = found and not ticked off, plus what you added by hand */
+  function playFor(role, things) {
+    const roots = playRoots(role && role.name, role && role.also), off = (role && role.off) || {}, add = (role && role.add) || {};
+    const found = (things || []).filter(t => playHit(roots, t.text)).map(t => t.key);
+    const inc = (things || []).map(t => t.key).filter(k => (found.includes(k) && !off[k]) || add[k]);
+    return { found, in: inc };
+  }
+  const KIND_WORDS = { credit: ['CREDIT', 'CREDITS'], moment: ['MOMENT', 'MOMENTS'], headshot: ['HEADSHOT', 'HEADSHOTS'], look: ['LOOK', 'LOOKS'] };
+  /* what backs it up, as counts; and what's thin, in plain words */
+  function playCounts(inc, things) {
+    const by = {}; (things || []).forEach(t => { if ((inc || []).includes(t.key)) by[t.kind] = (by[t.kind] || 0) + 1; });
+    return ['credit', 'moment', 'headshot', 'look'].filter(k => by[k]).map(k => ({ kind: k, n: by[k], label: by[k] + ' ' + KIND_WORDS[k][by[k] === 1 ? 0 : 1] }));
+  }
+  function playThin(counts) {
+    if (!counts.length) return 'nothing behind it yet';
+    if (!counts.some(c => c.kind === 'moment')) return 'no footage yet';
+    return '';
+  }
+  /* one role, the page casting opens. d: {headshot, moments:[{src, label, secs, poster}], credits:[{title, role, company}], page, others:[{name, href}]} */
+  function castPage(m, role, d) {
+    d = d || {};
+    const contact = [m.union, m.rep && 'Represented by ' + m.rep].filter(Boolean).join(' · ');
+    const moments = (d.moments || []).map(x => `<figure><video controls playsinline preload="metadata"${x.poster ? ` poster="${esc(x.poster)}"` : ''} src="${esc(x.src)}"></video><figcaption>${esc(x.label || '')}${x.secs ? ' · ' + esc(x.secs) : ''}</figcaption></figure>`).join('');
+    const credits = (d.credits || []).map(c => `<tr><td><b>${esc(c.title)}</b></td><td>${esc(c.role)}</td><td>${esc(c.company || '')}</td></tr>`).join('');
+    const others = (d.others || []).length ? `<p class="rest">Also: ${d.others.map(o => `<a href="${esc(o.href)}">${esc(o.name)}</a>`).join(' · ')}</p>` : '';
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${esc(m.name || '')} · ${esc(role.name)}</title><style>
+body{margin:0;background:#F2F0EA;color:#16161A;font:16px/1.5 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}main{max-width:1000px;margin:0 auto;padding:0 20px 40px}.stripe{height:6px;background:#D2694E;margin:0 -20px}
+header{display:grid;grid-template-columns:minmax(140px,240px) 1fr;gap:26px;align-items:end;padding:28px 0 22px;border-bottom:1px solid #D8D4CA}.hs{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;background:#E4E0D6}
+.k{font:700 12px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.22em;color:#6E6A63;text-transform:uppercase}h1{font-weight:800;font-size:clamp(40px,8vw,68px);line-height:.94;letter-spacing:-.035em;margin:6px 0 4px;text-transform:uppercase}
+.nm{font-size:22px;font-weight:600}.ct{font:13px ui-monospace,Menlo,Consolas,monospace;color:#6E6A63;margin-top:4px}section{padding:22px 0;border-bottom:1px solid #D8D4CA}
+.work{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;margin-top:10px}figure{margin:0}video{width:100%;aspect-ratio:16/9;background:#000;display:block}figcaption{font-size:14px;margin-top:6px}
+table{width:100%;border-collapse:collapse;margin-top:8px}td{padding:7px 4px;border-bottom:1px solid #E4E0D6;vertical-align:top;font-size:15px}td:nth-child(n+2){font:13px ui-monospace,Menlo,Consolas,monospace;color:#3d3d44}
+.rest{font-size:14px;color:#6E6A63}a{color:#16161A}.end{padding:16px 0;font:12.5px ui-monospace,Menlo,Consolas,monospace;color:#6E6A63;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+@media(max-width:560px){header{grid-template-columns:1fr}}@media print{video{display:none}}</style></head><body><main><div class="stripe"></div>
+<header>${d.headshot ? `<img class="hs" src="${esc(d.headshot)}" alt="${esc(m.name || '')}">` : '<div></div>'}<div><div class="k">For the role of</div><h1>${esc(role.name)}</h1><div class="nm">${esc(m.name || '')}</div>${contact ? `<div class="ct">${esc(contact)}</div>` : ''}${m.contact && m.contact.length ? `<div class="ct">${esc(m.contact.join(' · '))}</div>` : ''}</div></header>
+${moments ? `<section><div class="k">The work</div><div class="work">${moments}</div></section>` : ''}
+${credits ? `<section><div class="k">Credits for it</div><table>${credits}</table></section>` : ''}
+${others}<div class="end"><span>${esc(m.name || '')}</span>${d.page ? `<a href="${esc(d.page)}">${esc(String(d.page).replace(/^https?:\/\//, '').replace(/\/$/, ''))}</a>` : ''}</div></main></body></html>`;
+  }
+  /* every role on one page, for your reps: each role, what backs it, a link to its own page */
+  function rolesPage(m, list, d) {
+    d = d || {};
+    const contact = [m.union, m.rep && 'Represented by ' + m.rep].filter(Boolean).join(' · ');
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${esc(m.name || '')} · What I can play</title><style>
+body{margin:0;background:#F2F0EA;color:#16161A;font:16px/1.5 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}main{max-width:1000px;margin:0 auto;padding:0 20px 40px}.stripe{height:6px;background:#D2694E;margin:0 -20px}
+header{padding:28px 0 18px;border-bottom:1px solid #D8D4CA}.k{font:700 12px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.22em;color:#6E6A63;text-transform:uppercase}h1{font-weight:800;font-size:clamp(34px,6vw,56px);line-height:.94;letter-spacing:-.035em;margin:6px 0 4px;text-transform:uppercase}
+.ct{font:13px ui-monospace,Menlo,Consolas,monospace;color:#6E6A63}ul{list-style:none;margin:0;padding:0}li{display:flex;gap:16px;align-items:center;padding:14px 0;border-bottom:1px solid #D8D4CA}li img{width:72px;aspect-ratio:4/5;object-fit:cover;background:#E4E0D6}
+li b{font-size:22px;display:block}li span{font:12.5px ui-monospace,Menlo,Consolas,monospace;color:#3d3d44}a{color:#16161A}</style></head><body><main><div class="stripe"></div>
+<header><div class="k">What I can play</div><h1>${esc(m.name || '')}</h1>${contact ? `<div class="ct">${esc(contact)}</div>` : ''}</header>
+<ul>${(list || []).map(r => `<li>${r.pic ? `<img src="${esc(r.pic)}" alt="">` : ''}<div><a href="${esc(r.href)}"><b>${esc(r.name)}</b></a><span>${esc(r.backs || '')}</span></div></li>`).join('')}</ul></main></body></html>`;
+  }
+
   // ---------------------------------------------------------------- ZIP (store only)
   const CRC = (function () { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c >>> 0; } return t; })();
   function crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = (c >>> 8) ^ CRC[(c ^ b[i]) & 0xFF]; return (c ^ 0xFFFFFFFF) >>> 0; }
@@ -227,7 +302,7 @@ ${shoot}
     let n = 0; parts.forEach(p => n += p.length); const out = new Uint8Array(n); let q = 0; parts.forEach(c => { out.set(c, q); q += c.length; }); return out;
   }
 
-  const api = { TYPES, ROLES, AUDIENCES, roleMatch, orderFor, groupByType, typesOf, sendNote, countsCheck, creditLine, creditCompany, resumeModel, resumeText, nextToMake, pageHTML, makeZip, crc32, enc };
+  const api = { playRoots, playHit, playFor, playCounts, playThin, castPage, rolesPage, TYPES, ROLES, AUDIENCES, roleMatch, orderFor, groupByType, typesOf, sendNote, countsCheck, creditLine, creditCompany, resumeModel, resumeText, nextToMake, pageHTML, makeZip, crc32, enc };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.ResumeEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);

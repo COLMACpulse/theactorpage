@@ -979,6 +979,8 @@
       const q = new URLSearchParams(location.search), h = JSON.parse(localStorage.getItem('theactorpage_handoff_cut') || 'null');
       if (h && h.from === 'spotted' && h.text && Date.now() - (h.at || 0) < 2 * 3600e3) {
         S.lib.lastBreakdown = h.text; S.forSpotted = { spotted: h.spotted, project: h.project, role: h.role, src: h.src }; S.match = null; S.tab = 'match'; localStorage.removeItem('theactorpage_handoff_cut');
+      } else if (h && h.from === 'vresume' && h.text && Date.now() - (h.at || 0) < 2 * 3600e3) {
+        S.lib.lastBreakdown = h.text; S.match = null; S.editRole = false; S.tab = 'match'; localStorage.removeItem('theactorpage_handoff_cut');
       } else if (q.get('reel') && S.lib.reels.some(r => r.id === q.get('reel'))) { S.reelId = q.get('reel'); S.tab = 'reel'; }
       if (q.toString()) history.replaceState(null, '', location.pathname);
     } catch (e) { }
