@@ -71,6 +71,9 @@
     const take = (i, k) => { used.add(i); h.from[k] = (h.from[k] ? h.from[k] + ' / ' : '') + sents[i]; };
     /* known titles first */
     (known.titles || []).forEach(t => { if (!h.title && t && new RegExp('\\b' + String(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i').test(raw)) h.title = t; });
+    /* "an audition for Harbor Lights, ..." : the name right after it, unless that's a day */
+    if (!h.title) { const m = raw.match(/\b(?:audition|self[- ]?tape|callback)\s+(?:for|on)\s+(?:the\s+)?([^,.;\n]+?)(?=,|\.|;|\n|\s+(?:the role|as\s|for the role|co-?star|guest star)|$)/i);
+      if (m && !/\b(next|this|tomorrow|today|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun|week|\d)\b/i.test(m[1]) && m[1].split(/\s+/).length <= 6) h.title = title(m[1]); }
     (known.offices || []).forEach(o => { const base = String(o || '').replace(/\s*casting\s*$/i, '').trim(); if (!h.office && base.length > 2 && new RegExp('\\b' + base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i').test(raw)) h.office = o; });
     sents.forEach((s, i) => {
       const lo = s.toLowerCase();
@@ -153,8 +156,8 @@
   };
 
   /* ---------- kept plans ---------- */
-  const blank = () => ({ plans: [], at: 0 });
-  function read() { try { const d = JSON.parse(localStorage.getItem(KEY) || 'null'); if (d && Array.isArray(d.plans)) return Object.assign(blank(), d); } catch (e) { } return blank(); }
+  const blank = () => ({ plans: [], todos: [], at: 0 });
+  function read() { try { const d = JSON.parse(localStorage.getItem(KEY) || 'null'); if (d && Array.isArray(d.plans)) { const o = Object.assign(blank(), d); if (!Array.isArray(o.todos)) o.todos = []; return o; } } catch (e) { } return blank(); }
   function write(d) { d.at = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(d)); return true; } catch (e) { return false; } }
   P.all = () => read().plans.slice().sort((a, b) => String(a.heard.due || '9').localeCompare(String(b.heard.due || '9')) || b.made - a.made);
   P.get = id => read().plans.find(p => p.id === id) || null;
@@ -171,6 +174,65 @@
     (list || P.all()).filter(p => p.agenda && (!p.heard.due || p.heard.due >= day)).forEach(p => (p.plan.steps || []).forEach((s, i) => { if (p.done && p.done[i]) return;
       out.push({ date: s.date, kind: 'plan', href: 'plan/?p=' + encodeURIComponent(p.id), line: (p.heard.title || 'Your audition') + ': ' + s.what.replace(/ Actor OS names it, sizes it and checks it\.$/, '') }); }));
     return out;
+  };
+
+
+  /* ---------- EVERYTHING ELSE YOU HAVE TO DO (from GSD): today, this week, this month, in lanes ---------- */
+  P.LANES = [['auditions', 'Auditions'], ['study', 'Study'], ['research', 'Research'], ['shoot', 'Shoot'], ['other', 'Other']];
+  P.WHEN = [['today', 'Today'], ['week', 'This week'], ['month', 'This month']];
+  P.laneName = k => (P.LANES.find(x => x[0] === k) || ['', 'Other'])[1];
+  /* an audition: a role, casting, a tape or a callback, a deadline. Then it gets the days laid out. */
+  P.isAudition = t => /\b(audition|self[- ]?tape|callback|eco ?cast|casting\b|the role of|tape (?:is )?due|sides)\b/i.test(String(t || ''));
+  /* "today, ...", "this week: ...", "this month ..." up front, or whole words in it; "weekend" and "monthly" don't count */
+  const LEAD = /^\s*(?:reminder\b[\s,:.\-]*)?(today|tonight|tomorrow|this\s+week|next\s+week|this\s+month|next\s+month)?\s*[:,\-\u2013.]*\s*/i;
+  const HW = h => /month/i.test(h) ? 'month' : /week|tomorrow/i.test(h) ? 'week' : 'today';
+  P.whenOf = function (text, fallback) {
+    const m = String(text || '').match(LEAD); if (m && m[1]) return HW(m[1]);
+    const t = String(text || '').toLowerCase();
+    if (/\b(this|next)\s+month\b|\bby the end of the month\b/.test(t)) return 'month';
+    if (/\b(this|next)\s+week\b/.test(t)) return 'week';
+    if (/\b(today|tonight)\b/.test(t)) return 'today';
+    return fallback || 'today';
+  };
+  /* words that start a new thing to do: "call Bob and Sue" stays one, "tape it and send it" is two */
+  const DOING = 'call|text|email|send|buy|pay|fix|clean|book|finish|write|rewrite|tape|record|pick|drop|get|go|make|take|file|submit|order|schedule|cancel|renew|read|learn|practice|rehearse|run|edit|shoot|cut|post|update|return|plan|print|pack|mail|check|answer|reply|sign|apply|meet|start|try|look|find|ask|tell|follow|set|move|memorize|prep|research|watch|listen|draft|outline|upload|organize|pitch|reach|contact|confirm|grab|bring|see|visit|work|study|scout|rent|charge';
+  const SPLIT = new RegExp('\\s+(?:and\\s+then|then|and|plus)\\s+(?=(?:' + DOING + ')\\b)', 'i');
+  const tidy = x => x.replace(/^[\s:;,.\-–]+|[\s;,.]+$/g, '').replace(/^(and\s+then|then|and|plus|also)\s+/i, '').replace(/\s+(today|tonight|this week|this month|next week|next month)$/i, '').replace(/^(to|i need to|i have to|i want to|gotta|need to)\s+/i, '').trim();
+  P.items = function (text) {
+    const body = String(text || '').replace(LEAD, ''), out = [];
+    body.split(/\n|,|;/).forEach(p => p.split(SPLIT).forEach(x => { x = tidy(x); if (x.length > 1) out.push(x.charAt(0).toUpperCase() + x.slice(1)); }));
+    return out;
+  };
+  /* a first guess at the lane, from the words; you can move anything */
+  const LW = { auditions: /\b(audition|self-?tape|sides|callback|casting|slate)\b/i, shoot: /\b(shoot|film|camera|gear|lens|location|scout|b-?roll|footage|edit|cut|reel|light(s|ing)?|crew|call sheet|shot list)\b/i,
+    study: /\b(class|coach|lesson|study|learn|practice|accent|dialect|memori[sz]e|lines|workshop|rehears\w*|monologue|scene work|voice|warm.?up)\b/i, research: /\b(research|watch|look (up|into)|find out|listen to|episodes?|read up|the show|the director|the writer|the casting director)\b/i };
+  P.laneOf = function (title, fallback) { for (const k of ['auditions', 'shoot', 'study', 'research']) if (LW[k].test(title)) return k; return fallback || 'other'; };
+  const tid = () => 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  P.todos = () => read().todos.slice();
+  P.addTodos = function (text, opts) {
+    opts = opts || {}; const when = opts.when || P.whenOf(text, 'today'), d = read(), made = [];
+    P.items(text).forEach(t => { const it = { id: tid(), title: t, lane: opts.lane || P.laneOf(t), when, done: false, at: Date.now() }; d.todos.push(it); made.push(it); });
+    write(d); return made;
+  };
+  P.setTodo = function (id, patch) { const d = read(), t = d.todos.find(x => x.id === id); if (!t) return null; Object.assign(t, patch); if (patch.done === true) t.doneAt = Date.now(); write(d); return t; };
+  P.dropTodo = function (id) { const d = read(); d.todos = d.todos.filter(x => x.id !== id); write(d); };
+  P.clearDone = function () { const d = read(), n = d.todos.filter(x => x.done).length; d.todos = d.todos.filter(x => !x.done); write(d); return n; };
+  /* the old GSD list, once: what's still open comes over, in Other unless its words say a lane */
+  P.fromGsd = function () {
+    let L = []; try { L = JSON.parse(localStorage.getItem('gsd_v1_1_tasks') || localStorage.getItem('gsd_v1_tasks') || '[]') || []; } catch (e) { return 0; }
+    const d = read(); if (d.gsdIn || !Array.isArray(L) || !L.length) return 0;
+    let n = 0; L.forEach(x => { if (!x || !x.title || x.status === 'done' || x.status === 'killed') return; d.todos.push({ id: tid(), title: String(x.title), lane: P.laneOf(String(x.title)), when: ['today', 'week', 'month'].includes(x.horizon) ? x.horizon : 'today', done: false, at: Date.parse(x.createdAt) || Date.now() }); n++; });
+    d.gsdIn = Date.now(); write(d); return n;
+  };
+  /* one list: your to-dos and the steps of the auditions on your list, by when. A step is today when its day has come. */
+  P.board = function (day) {
+    day = day || iso(new Date()); const B = { today: [], week: [], month: [] };
+    read().todos.forEach(t => B[t.when || 'today'].push({ kind: 'todo', id: t.id, title: t.title, lane: t.lane, done: !!t.done }));
+    P.all().filter(p => p.agenda && (!p.heard.due || p.heard.due >= day)).forEach(p => (p.plan.steps || []).forEach((s, i) => {
+      const n = diff(day, s.date), w = n <= 0 ? 'today' : n < 7 ? 'week' : 'month';
+      B[w].push({ kind: 'step', pid: p.id, i, title: (p.heard.title || 'Your audition') + ': ' + s.what.split('. ')[0].replace(/\.$/, ''), date: s.date, lane: 'auditions', done: !!(p.done && p.done[i]), due: p.heard.due, dueTime: p.heard.dueTime }); }));
+    ['today', 'week', 'month'].forEach(k => B[k].sort((a, b) => (a.done - b.done) || String(a.date || '').localeCompare(String(b.date || ''))));
+    return B;
   };
 
   /* for your calendar (shared/ics.js): each step on its day, the send at its time, the deadline at its time */

@@ -43,4 +43,17 @@ want('after the due day, it leaves the agenda', P.agenda(null, '2026-10-30').len
 const h5 = Object.assign({}, h, { due: '2026-10-30' }); P.rebuild(p.id, h5, D);
 want('fix what it heard: the plan follows', P.get(p.id).plan.steps.find(s => s.kind === 'send').date === '2026-10-30');
 want('no em dashes, no "thing", no score', !/—|\bthings?\b|score/i.test(require('fs').readFileSync(__dirname + '/plan.js', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')));
+/* everything else (from GSD) */
+want('to-dos: one line, split where a new thing to do starts', JSON.stringify(P.items('Today, call my agent and fix the gate, tape it and send it')) === JSON.stringify(['Call my agent', 'Fix the gate', 'Tape it', 'Send it']));
+want('"call Bob and Sue" stays one', P.items('call Bob and Sue').length === 1);
+want('when: from the front, or whole words', P.whenOf('This week: dialect class') === 'week' && P.whenOf('this month update my reel') === 'month' && P.whenOf('fix the weekend gate') === 'today');
+want('lanes: a first guess from the words', P.laneOf('Watch two episodes of the show') === 'research' && P.laneOf('Rent a lens for the shoot') === 'shoot' && P.laneOf('Dialect class') === 'study' && P.laneOf('Pick up the self tape sides') === 'auditions' && P.laneOf('Fix the gate') === 'other');
+want('an audition, not a to-do', P.isAudition('I got an audition for Harbor Lights') && !P.isAudition('call my agent'));
+want('"an audition for Harbor Lights": the title', P.hear('I got an audition for Harbor Lights, the role of Ray, due Friday at 5pm.', '2026-10-22', {}).title === 'Harbor Lights' && P.hear('i got an audition for next thursday.', '2026-10-22', {}).title !== 'Next Thursday');
+localStorage.setItem('gsd_v1_1_tasks', JSON.stringify([{ title: 'Mow the lawn', horizon: 'week', status: 'open' }, { title: 'Old', status: 'done' }]));
+want('the old GSD list comes over once, what\'s still open', P.fromGsd() === 1 && P.fromGsd() === 0 && P.todos().some(t => t.title === 'Mow the lawn' && t.when === 'week'));
+const tw = P.addTodos('today, read the new pages'); P.setTodo(tw[0].id, { done: true });
+const bd = P.board('2026-10-22');
+want('the board: to-dos by when, done ones last', bd.today.some(x => x.title === 'Read the new pages' && x.done) && bd.week.some(x => x.title === 'Mow the lawn'));
+want('clear what\'s done', P.clearDone() === 1 && !P.todos().some(t => t.done));
 console.log(ok ? 'ALL PASS' : 'SOME FAILED'); process.exit(ok ? 0 : 1);

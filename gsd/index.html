@@ -1,83 +1,15 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-<script src="../shared/tour.js"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GSD: Get Shit Done</title>
-  <script src="../shared/hot.js"></script>
-  <link rel="stylesheet" href="styles.css" />
-  <meta name="theme-color" content="#0e1116">
-  <meta name="description" content="What do you want to do? What do you need to get done? Say it, sort it, finish it. Free.">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>GSD is part of THE PLAN now</title>
+<meta http-equiv="refresh" content="0; url=../plan/">
+<style>body{margin:0;background:#121110;color:#ece7dc;font:16px/1.5 Jost,system-ui,sans-serif;padding:24px}a{color:#e9b25a}@media (prefers-color-scheme: light){body{background:#ece7dc;color:#1d1a15}a{color:#8a5a08}}</style>
 </head>
 <body>
-  <div class="app-shell">
-    <!--site-->
-    <nav class="gsdnav"><a href="../">&lsaquo; THEACTORPAGE</a><a class="dl" href="GSD-Get-Shit-Done.html" download>DOWNLOAD IT FREE</a></nav>
-    <p class="gsdnote">Free. One file you keep: it opens in any browser, works without the internet. Its list is its own; EXPORT here and IMPORT there to move yours.</p>
-    <!--/site-->
-    <header class="topbar">
-      <div>
-        <div class="eyebrow">GSD v1.1.1</div>
-        <h1>GET SHIT DONE</h1>
-        <p class="tagline">What do you want to do? What do you need to get done? Say it. Sort it. Apply pressure. Finish the right shit first.</p>
-      </div>
-      <div class="scorebox">
-        <span id="globalPressure">0</span>
-        <small>FIELD PRESSURE</small>
-      </div>
-    </header>
-
-    <section class="capture-panel">
-      <button id="micBtn" class="mic-btn" aria-label="Say it"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button>
-      <div class="capture-copy">
-        <h2>Say it</h2>
-        <p>Say “shit I need done today”, “this week” or “this month”, then list it. Self-tape, call my agent, fix the gate, finish the draft.</p>
-        <div id="speechStatus" class="status-line"></div>
-      </div>
-    </section>
-
-    <section class="manual-entry">
-      <textarea id="taskInput" placeholder="Shit I need done today: tape the audition, call my agent, fix the gate"></textarea>
-      <div class="entry-row">
-        <select id="horizonSelect">
-          <option value="today">Today</option>
-          <option value="week">This Week</option>
-          <option value="month">This Month</option>
-        </select>
-        <select id="categorySelect" aria-label="Lane"></select>
-        <button id="lanesBtn" type="button" title="Name your own lanes">Lanes</button>
-        <label class="mini-label">I <input id="importanceInput" type="number" min="1" max="10" value="5" title="Importance 1-10" /></label>
-        <label class="mini-label">U <input id="urgencyInput" type="number" min="1" max="10" value="5" title="Urgency 1-10" /></label>
-      </div>
-      <div class="entry-row option-row">
-        <label class="toggle"><input id="severityEnabled" type="checkbox" /> Severity</label>
-        <label class="mini-label">S <input id="severityInput" type="number" min="0" max="5" value="0" title="Optional severity 0-5" disabled /></label>
-        <label class="toggle"><input id="timeboundEnabled" type="checkbox" /> TIMEBOUND</label>
-        <input id="dueAtInput" type="datetime-local" title="Optional deadline / timebound target" disabled />
-        <button id="addBtn">Add / Parse</button>
-      </div>
-    </section>
-
-    <section class="command-row">
-      <button id="dailyReceiptBtn">Daily Receipt</button>
-      <button id="reminderBtn">Reminder</button>
-      <button id="exportBtn">Export JSON</button>
-      <button id="importBtn">Import JSON</button><input id="importFile" type="file" accept=".json,application/json" hidden>
-      <button id="clearDoneBtn">Clear Done</button>
-    </section>
-
-    <main class="boards">
-      <section class="board" data-horizon="today"><h2>TODAY</h2><div id="todayList" class="task-list"></div></section>
-      <section class="board" data-horizon="week"><h2>THIS WEEK</h2><div id="weekList" class="task-list"></div></section>
-      <section class="board" data-horizon="month"><h2>THIS MONTH</h2><div id="monthList" class="task-list"></div></section>
-    </main>
-
-    <section class="receipt-panel">
-      <h2>COMMAND OUTPUT</h2>
-      <pre id="output">Ready.</pre>
-    </section>
-  </div>
-  <script src="app.js"></script>
+<p>GSD is part of THE PLAN now. Your list comes with it. <a href="../plan/">Open THE PLAN</a>.</p>
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>{ if(/\/gsd\/$/.test(r.scope)) r.unregister(); })).catch(()=>{}); location.replace('../plan/');</script>
 </body>
 </html>
