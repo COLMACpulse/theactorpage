@@ -69,7 +69,7 @@ select.field{appearance:auto}
 .top .k{font-size:11px;letter-spacing:.22em;color:var(--faint)}
 .top b{display:block;font-size:16px;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .top .count{font-size:13px;color:var(--tung-text);margin-top:1px}
-main{flex:1;min-width:0;padding:16px 16px calc(var(--nav) + 24px + env(safe-area-inset-bottom));max-width:720px;width:100%;margin:0 auto}
+main{flex:1;min-width:0;padding:16px 16px calc(32px + env(safe-area-inset-bottom));max-width:1040px;width:100%;margin:0 auto}
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(3,1fr);background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
 nav.tabs button{min-height:var(--nav);border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;letter-spacing:.12em;color:var(--faint)}
 nav.tabs button svg{width:22px;height:22px}
@@ -106,25 +106,38 @@ details.rep{border-bottom:1px solid var(--line);padding:8px 0}details.rep summar
 .recbox{max-width:640px;margin:0 auto}
 body.ovopen{overflow:hidden}
 .bad{color:var(--bad)}
-.toast{position:fixed;left:50%;bottom:calc(var(--nav) + 18px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(10px);background:var(--panel2);border:1px solid var(--tung);color:var(--ink);padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;transition:.2s;pointer-events:none;z-index:70;max-width:calc(100vw - 32px)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(10px);background:var(--panel2);border:1px solid var(--tung);color:var(--ink);padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;transition:.2s;pointer-events:none;z-index:70;max-width:calc(100vw - 32px)}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 body:has(#hotbar) .top{padding-top:calc(env(safe-area-inset-top) + 50px)}
+
+/* the front */
+.top.bhead{position:relative;padding:calc(env(safe-area-inset-top) + 12px) 16px 10px;background:var(--bg);border:0;backdrop-filter:none;-webkit-backdrop-filter:none}
+.bwrap{display:flex;align-items:center;gap:14px;max-width:1040px;margin:0 auto}
+.btx{flex:1;min-width:0}.btx h1{font-size:22px;letter-spacing:.02em;margin:2px 0}.btx p{margin:0;color:var(--tung-text);font-size:14px}.top .count{color:var(--dim);font-size:12.5px;margin-top:2px}
+.hico{width:52px;height:65px;flex:none}.hico .pg{fill:var(--panel);stroke:var(--line)}.hico .ph{fill:var(--panel2)}.hico .ln{stroke:var(--dim);stroke-width:2.4;stroke-linecap:round}.hico .pp{fill:var(--faint);opacity:.8}.hico .g{fill:var(--tung)}
+.bsig{width:46px;height:46px;flex:none;object-fit:contain}
+@media (min-width:900px){.hico{width:66px;height:82px}.bsig{width:64px;height:64px}.btx h1{font-size:24px}}
+.hstk{display:block;height:26px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='176' height='30' viewBox='0 0 176 30'%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232b3038' transform='translate%28-22%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%231f8a5c' transform='translate%280%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23d9b23a' transform='translate%2822%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232a5fa8' transform='translate%2844%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23c0392b' transform='translate%2866%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23e8e6e0' transform='translate%2888%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%239aa0a8' transform='translate%28110%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%235c636d' transform='translate%28132%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232b3038' transform='translate%28154%29'/%3E%3C/svg%3E") repeat-x 0 50%/auto 100%;box-shadow:inset 0 0 0 1px #00000055;opacity:.92}
+body:has(#hotbar) .top.bhead{padding-top:calc(env(safe-area-inset-top) + 50px)}
+.backbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.hgrid{display:grid;gap:20px}@media (min-width:900px){.hgrid{grid-template-columns:7fr 5fr;align-items:start}}
+.hl>.btn.big{margin-bottom:14px}.backroom{justify-content:space-between;margin-bottom:10px}.backroom .dim{font-weight:400}
+.lhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 8px}
+.how ol{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px}
+.rep1{border-color:var(--tung)}.rep1 .rep summary{display:flex;flex-direction:column;gap:2px;cursor:pointer;padding:6px 0;list-style:none}.rep1 .rep summary::-webkit-details-marker{display:none}
+.q{font:17px/1.45 var(--mono)}.who{font-size:12.5px;color:var(--dim)}
+.prow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}.prow:first-child{border-top:0;padding-top:0}.pt{flex:1;min-width:0}.pt small{display:block;color:var(--dim);font-size:12.5px}
+.tag{font:600 10px var(--sans);letter-spacing:.14em;padding:3px 8px;border-radius:999px;background:var(--panel2);color:var(--dim);white-space:nowrap}
+.roomh{font-size:22px;margin:0}.notebox{border-color:var(--tung)}.bigta{min-height:120px;font:16px/1.45 var(--mono)}
+details.fold{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:0 16px;margin-bottom:12px}details.fold>summary{min-height:52px;display:flex;align-items:center;font:600 12.5px var(--sans);letter-spacing:.12em;cursor:pointer}details.fold[open]{padding-bottom:14px}
 </style>
 </head>
 <body>
 <div class="shell">
-  <header class="top">
-    <div class="k">NOTES</div>
-    <b id="title">A room you're in</b>
-    <div class="count" id="count"></div>
-  </header>
+  <header class="top bhead"><div class="bwrap"><svg class="hico" viewBox="0 0 64 80" role="img" aria-label="A note from the room"><rect class="pg" x="2" y="2" width="60" height="76" rx="5"/><path class="ph" d="M10 14h44v24H24l-8 8v-8h-6z"/><path class="ln" d="M16 22h30M16 30h22"/><circle class="pp" cx="18" cy="60" r="6"/><circle class="pp" cx="32" cy="60" r="6"/><circle class="g" cx="46" cy="60" r="6"/></svg><div class="btx"><div class="kicker" style="margin:0">YOU · NOTES</div><h1>What they told you</h1><p>Casting, coaches, directors: who you met, what they said, and what more than one of them said.</p><div class="count" id="count"></div></div><img class="bsig" src="../img/sigil-film-180.png" alt="THEACTORPAGE" width="64" height="64"></div></header>
+  <i class="hstk" aria-hidden="true"></i>
   <main id="main"></main>
 </div>
-<nav class="tabs" id="tabs">
-  <button data-t="session"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="13" height="12" rx="2"/><path d="M16 9l5-3v10l-5-3"/></svg><span>SESSION</span></button>
-  <button data-t="notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg><span>NOTES</span></button>
-  <button data-t="people"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.3c2.9.3 5.5 2.6 5.5 5.7"/></svg><span>PEOPLE</span></button>
-</nav>
 <div class="ov" id="ov" hidden></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="../shared/kit.js"></script>

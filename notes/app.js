@@ -1,5 +1,7 @@
-/* NOTES: for the actor who takes a class, a workshop, a callback on Zoom. We don't run the room; we keep what you get from it.
-   SESSION  who's in the room, the sides (onto the shelf), a 30-second Zoom check, TAPE IT (this phone records you while
+/* NOTES: what they told you. Casting, coaches, directors: who you met, what they said, what more than one of them said.
+   We don't run the room; we keep what you get from it.
+   FRONT    + A ROOM YOU WERE IN; what more than one of them said; lately; the people you've met (and if they're in Contacts)
+   SESSION  (a room) who's in the room, the sides (onto the shelf), a 30-second Zoom check, TAPE IT (this phone records you while
             you perform on Zoom) with MARK when a note starts, then NOTE IT: their words, typed or said, tied to the moment
    NOTES    every note, newest first, or by scene
    PEOPLE   everyone you've been in a room with, what each told you, and what more than one person told you
@@ -9,7 +11,8 @@ const N=window.Notes, C=window.Capture, T=window.Takes, Sh=window.Shelf, X=windo
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const UK='notes_ui_v1';
-let U=(()=>{ try{ return Object.assign({tab:'session',cur:'',view:'all',stt:false},JSON.parse(localStorage.getItem(UK)||'{}')); }catch(e){ return {tab:'session',cur:'',view:'all',stt:false}; } })();
+let U=(()=>{ try{ return Object.assign({tab:'home',cur:'',view:'all',stt:false},JSON.parse(localStorage.getItem(UK)||'{}')); }catch(e){ return {tab:'home',cur:'',view:'all',stt:false}; } })();
+if(!['home','new','session','notes','people'].includes(U.tab)) U.tab='home';
 const saveU=()=>{ try{ localStorage.setItem(UK,JSON.stringify(U)); }catch(e){} };
 function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('on'),3000); }
 const roomName=r=>((N.ROOMS.find(x=>x[0]===r)||[0,'Session'])[1]);
@@ -118,71 +121,74 @@ function showSides(){ const s=N.session(U.cur), t=sidesText(s); if(!t) return to
  ov.innerHTML='<div class="recbox"><button class="btn block" id="sdx">CLOSE</button><pre class="sides">'+esc(t)+'</pre></div>'; $('sdx').onclick=()=>{ ov.hidden=true; ov.innerHTML=''; document.body.classList.remove('ovopen'); }; }
 
 /* ---------- show it ---------- */
+const SUB={new:'A ROOM YOU WERE IN',session:'THE ROOM',notes:'ALL YOUR NOTES',people:'THE PEOPLE YOU\'VE MET'};
 function render(){
- document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===U.tab));
  const s=U.cur?N.session(U.cur):null; if(U.cur&&!s){ U.cur=''; saveU(); }
- $('title').textContent=U.tab==='session'&&s?(s.who.map(w=>w.name).join(', ')||roomName(s.room)):U.tab==='people'?'People':U.tab==='notes'?'Your notes':'A room you\'re in';
+ if(U.tab==='session'&&!s) U.tab='home';
  const all=N.all(); $('count').textContent=all.notes.length?all.notes.length+' note'+(all.notes.length===1?'':'s')+' · '+(n=>n+(n===1?' person':' people'))(N.people().filter(p=>!N.SELF.test(p.name)).length):'';
  const m=$('main');
- m.innerHTML=U.tab==='notes'?notesView():U.tab==='people'?peopleView():(s?sessionView(s):newView());
+ m.innerHTML=(SUB[U.tab]?'<div class="backbar"><button class="btn sm ghost" data-t="home">‹ NOTES</button><span class="kicker" style="margin:0">'+SUB[U.tab]+'</span></div>':'')+(U.tab==='notes'?notesView():U.tab==='people'?peopleView():U.tab==='session'?sessionView(s):U.tab==='new'?newView():homeView());
  wire();
 }
-/* ---------- the front: camera, mic and speech, as tiles, before you go looking ---------- */
-const SPEECH='Speech goes through your browser (Chrome: Google, Safari: Apple)';
-function front(s){
- if(!window.Kit) return '';
- const pre=s?'':'Starts a session. ';
- return Kit.html([
-  {id:'tape',dev:'camera',label:'CAMERA',what:REC?'Stop the tape':'Tape the session',note:s?'Only you on the tape':'Starts a session'},
-  {id:'memo',dev:'mic',label:'MIC',what:MEMO&&MEMOKEY==='new'?'Stop the memo':'Voice memo',note:s?'Stays on this phone':'Starts a session'},
-  {id:'say',dev:'typewriter',label:'SAY IT',what:SR?'Stop':'Say a note',note:pre+SPEECH}
- ]);
+/* ---------- the front: the people you've met and what they told you ---------- */
+function inContacts(name){ try{ if(!window.Contacts) return false; const k=N.key(name); return Contacts.mine().some(p=>N.key(p.name)===k); }catch(e){ return false; } }
+function homeView(){
+ const all=N.all(), P=N.people().filter(p=>!N.SELF.test(p.name)), R=N.repeats(2), cur=U.cur?N.session(U.cur):null;
+ let h='<div class="hgrid"><div class="hl">';
+ if(cur) h+='<button class="btn block backroom" data-open="'+cur.id+'">BACK TO THE ROOM <span class="dim">'+esc(cur.who.map(w=>w.name).filter(Boolean).join(', ')||roomName(cur.room))+'</span></button>';
+ h+='<button class="btn pri big block" id="newroom">+ A ROOM YOU WERE IN</button>';
+ if(!all.notes.length&&!P.length){
+  h+='<div class="card how"><ol><li><b>A class, a workshop, a callback:</b> say who was in the room.</li><li><b>Keep what they told you,</b> in their words, typed or said. Tape yourself if you want.</li><li><b>Over time:</b> what each person told you, and what more than one of them said.</li></ol><p class="faint small" style="margin:8px 0 0">When one of them calls you in, home tells you that you\'ve met, and what they said.</p></div>';
+  return h+'</div></div>';
+ }
+ if(R.length) h+='<div class="card rep1"><p class="kicker" style="color:var(--tung-text)">MORE THAN ONE OF THEM SAID IT</p>'+R.slice(0,3).map(r=>{ const ns=all.notes.filter(n=>r.notes.includes(n.id)), who=[...new Set(ns.map(n=>n.giver).filter(Boolean))];
+   return '<details class="rep"><summary><span class="q">"'+esc(N.spell(r.term))+'"</span><span class="who">said by '+r.people+(who.length?' · '+esc(who.slice(0,4).join(' · ')):'')+'</span></summary>'+ns.map(noteRow).join('')+'</details>'; }).join('')
+  +'<p class="faint small" style="margin:6px 0 0">Plain matching on your own notes. Nothing is guessed or scored.</p></div>';
+ const late=all.notes.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))||b.t-a.t).slice(0,5);
+ if(late.length) h+='<div class="lhead"><span class="kicker" style="margin:0">LATELY</span><button class="btn sm ghost" data-t="notes">ALL YOUR NOTES · '+all.notes.length+'</button></div><div class="card">'+late.map(noteRow).join('')+'</div>';
+ h+='</div><aside class="hr"><div class="lhead" style="margin-top:0"><span class="kicker" style="margin:0">THE PEOPLE YOU\'VE MET</span>'+(P.length?'<button class="btn sm ghost" data-t="people">EVERYONE · '+P.length+'</button>':'')+'</div>';
+ h+='<div class="card">'+(P.length?P.slice().sort((a,b)=>String(b.last).localeCompare(String(a.last))).slice(0,8).map(p=>{ const L=N.byPerson(p.name); return '<div class="prow"><span class="pt"><b>'+esc(p.name)+'</b><small>'+esc([p.role?roleName(p.role).toLowerCase():'',p.sessions+(p.sessions===1?' room':' rooms'),L.length+(L.length===1?' note':' notes')].filter(Boolean).join(' · '))+'</small></span>'+(inContacts(p.name)?'<span class="tag">IN CONTACTS</span>':'')+'</div>'; }).join(''):'<p class="faint small" style="margin:0">Nobody yet.</p>')+'</div>';
+ h+='<div class="card"><p class="kicker">WHEN ONE OF THEM CALLS YOU IN</p><p class="small" style="margin:0">A request from someone you\'ve met says so on home: when you met, and what they told you.</p></div></aside></div>';
+ return h;
 }
 function startSession(){ const s=N.addSession(DRAFT); U.cur=s.id; U.tab='session'; saveU(); DRAFT={who:[{name:'',role:'casting'}],room:'class',date:new Date().toISOString().slice(0,10),title:'',part:'',shelfId:'',file:''}; return s; }
-const toSlot=()=>{ const t=document.querySelector('[data-text="new"]'); if(t) t.scrollIntoView({block:'center'}); };
-const KITFN={
- tape:async()=>{ if(!U.cur){ startSession(); render(); } await tapeTap(); const b=$('tape'); if(b) b.scrollIntoView({block:'center'}); },
- memo:async()=>{ if(!U.cur){ startSession(); render(); } await memoTap('new'); toSlot(); },
- say:()=>{ if(!SR&&!sttOk()) return; if(!U.cur){ startSession(); render(); } sayTap('new'); toSlot(); }
-};
 function newView(){
  const d=DRAFT, ch=(k,v,l,cur)=>'<button class="chip sm'+(cur===v?' on':'')+'" data-d="'+k+'|'+v+'">'+esc(l)+'</button>';
- let h=front(null)+'<div class="card"><p class="kicker">New session</p><p class="dim small">A class or workshop on Zoom, a callback, a day on set. Who\'s in the room, and the sides if you have them. All of it optional.</p>'
+ let h='<div class="card"><p class="dim small" style="margin-top:0">A class or workshop, a callback, a day on set. Say who was in the room. Everything else is optional.</p>'
   +'<p class="lab">What kind</p><div class="row">'+N.ROOMS.map(r=>ch('room',r[0],r[1],d.room)).join('')+'</div>'
   +'<p class="lab" style="margin-top:12px">Who\'s in the room</p>';
  d.who.forEach((w,i)=>{ h+='<div class="whorow"><input class="field" data-wn="'+i+'" placeholder="Name (the guest: casting, director, coach)" value="'+esc(w.name)+'" list="peoplelist"><div class="row">'+N.ROLES.slice(0,4).map(r=>'<button class="chip sm'+(w.role===r[0]?' on':'')+'" data-wr="'+i+'|'+r[0]+'">'+r[1]+'</button>').join('')+'</div></div>'; });
  h+='<datalist id="peoplelist">'+(()=>{ const seen={}, out=[]; const add=n=>{ const k=N.key(n); if(!k||seen[k]||N.SELF.test(n)) return; seen[k]=1; out.push(n); }; N.people().forEach(p=>add(p.name)); try{ if(window.Contacts) Contacts.mine().filter(p=>!p.dnc).forEach(p=>add(p.name)); }catch(e){} return out.map(n=>'<option value="'+esc(n)+'">').join(''); })()+'</datalist>'
   +'<button class="btn sm ghost" id="addwho">+ SOMEONE ELSE</button>'
-  +'<p class="lab" style="margin-top:12px">Date</p><input class="field" type="date" id="dd" value="'+esc(d.date)+'">'
+  +'<details class="fold" id="more"'+(U.more?' open':'')+'><summary>THE DATE, THE SCENE AND THE SIDES (OPTIONAL)</summary><p class="lab" style="margin-top:8px">Date</p><input class="field" type="date" id="dd" value="'+esc(d.date)+'">'
   +'<p class="lab" style="margin-top:12px">Scene or project, and your part</p><div class="row"><input class="field half" id="dt" placeholder="LOW TIDE" value="'+esc(d.title)+'"><input class="field half" id="dp" placeholder="ANNA" value="'+esc(d.part)+'"></div>'
   +'<p class="lab" style="margin-top:12px">Sides</p>'+(d.shelfId?'<p class="dim small">On the shelf: <b>'+esc(d.file)+'</b>. Actor OS and MEMORIZER have them too.</p>':'')
-  +'<label class="btn block"><input type="file" id="sf" accept=".pdf,.docx,.txt,.fdx,.fountain" hidden>'+(d.shelfId?'OTHER SIDES':'ADD SIDES')+'</label>'
-  +'<p class="faint small">Rehearse or don\'t. Nothing here asks you to.</p>'
-  +'<button class="btn pri big block" id="start" style="margin-top:12px">START</button></div>';
+  +'<label class="btn block"><input type="file" id="sf" accept=".pdf,.docx,.txt,.fdx,.fountain" hidden>'+(d.shelfId?'OTHER SIDES':'ADD SIDES')+'</label><p class="faint small">Sides go on the shelf, so Actor OS and MEMORIZER have them too.</p>'
+  +'<p class="faint small">Rehearse or don\'t. Nothing here asks you to.</p></details>'
+  +'<button class="btn pri big block" id="start" style="margin-top:12px">INTO THE ROOM</button></div>';
  const recent=N.sessions().slice(0,8);
- if(recent.length) h+='<div class="card"><p class="kicker">Recent</p>'+recent.map(r=>'<button class="pc" data-open="'+r.id+'"><b>'+esc(r.who.map(w=>w.name).join(', ')||roomName(r.room))+'</b><small>'+esc(day(r.date))+' · '+esc(roomName(r.room))+(r.title?' · '+esc(r.title):'')+' · '+N.notesOf(r.id).length+' note'+(N.notesOf(r.id).length===1?'':'s')+'</small></button>').join('')+'</div>';
+ if(recent.length) h+='<div class="card"><p class="kicker">Rooms you were in</p>'+recent.map(r=>'<button class="pc" data-open="'+r.id+'"><b>'+esc(r.who.map(w=>w.name).join(', ')||roomName(r.room))+'</b><small>'+esc(day(r.date))+' · '+esc(roomName(r.room))+(r.title?' · '+esc(r.title):'')+' · '+N.notesOf(r.id).length+' note'+(N.notesOf(r.id).length===1?'':'s')+'</small></button>').join('')+'</div>';
  return h;
 }
 function sessionView(s){
  const notes=N.notesOf(s.id), marks=(s.marks||[]), open=marks.filter(m=>!m.noted), tapes=s.tapes||[];
- let h=front(s)+'<p class="dim small">'+esc(day(s.date))+' · '+esc(roomName(s.room))+(s.title?' · '+esc(s.title):'')+(s.part?' · '+esc(s.part):'')+'</p>'
-  +'<div class="row" style="margin:6px 0 12px">'+(sidesText(s)?'<button class="btn sm" id="sides">YOUR SIDES</button>':'')+'<button class="btn sm ghost" id="endses">DONE WITH THIS SESSION</button></div>';
- h+='<div class="card"><p class="kicker">Before you join</p><p class="dim small">30 seconds: how you\'re framed, the light on you, the mic moving.</p><button class="btn block" id="zcgo">ZOOM CHECK</button></div>';
- h+='<div class="card"><p class="kicker">In the room</p><p class="dim small"><b>TAPE IT</b> records you on this phone while you perform on Zoom. Headphones in, and only you are on the tape. Some rooms don\'t allow any recording: check first.</p>'
-  +'<div class="row"><button class="recb big'+(REC?' on':'')+'" id="tape">'+(REC?'■ STOP':'● TAPE IT')+'</button>'+(REC?'<span class="rt" id="rt">0:00</span>':'')+'</div>'
-  +'<button class="btn pri big block" id="mark" style="margin-top:12px">MARK<small> a note starts</small></button>'
-  +'<p class="faint small">'+(marks.length?marks.length+' mark'+(marks.length===1?'':'s'):'No marks yet')+(tapes.length?' · '+tapes.length+' tape'+(tapes.length===1?'':'s')+' ('+mmss(tapes.reduce((a,t)=>a+(t.secs||0),0))+')':'')+'</p></div>';
+ const names=s.who.map(w=>w.name).filter(Boolean);
+ let h='<h2 class="roomh" id="title">'+esc(names.join(', ')||roomName(s.room))+'</h2><p class="dim small" style="margin:2px 0 12px">'+esc(day(s.date))+' · '+esc(roomName(s.room))+(s.title?' · '+esc(s.title):'')+(s.part?' · '+esc(s.part):'')+'</p>';
  const who=s.who.map(w=>w.name);
- const giverSel=key=>'<select class="field sel" data-giver="'+key+'">'+who.concat(['Me']).map(n=>'<option>'+esc(n)+'</option>').join('')+'</select>';
- const slot=(key,mark,label)=>{ const sl=slots[key]||{}, rec=MEMOKEY===key;
-  return '<div class="slot">'+(label?'<p class="lab">'+label+'</p>':'')+'<textarea class="field" data-text="'+key+'" placeholder="Their words, as close as you remember them">'+esc(sl.text||'')+'</textarea>'
-   +'<div class="row">'+(who.length?giverSel(key):'')+'<button class="btn sm'+(rec?' rec':'')+'" data-memo="'+key+'">'+(rec?'■ STOP MEMO':'● VOICE MEMO')+'</button><button class="btn sm'+(SR?' rec':'')+'" data-say="'+key+'">'+(SR?'■ STOP':'SAY IT')+'</button>'+(sl.memoId?'<button class="btn sm ghost" data-pm="'+sl.memoId+'">▶ memo</button>':'')+'</div>'
-   +'<button class="btn block" data-save="'+key+'"'+(mark?' data-mk="'+mark.id+'"':'')+'>KEEP THIS NOTE</button></div>'; };
- h+='<div class="card"><p class="kicker">Note it</p>';
- if(open.length) open.forEach((m,i)=>{ h+=slot('m'+m.id,m,'Mark '+(marks.indexOf(m)+1)+(m.takeId?' · '+mmss(m.at||0)+' on your tape <button class="lnk" data-play="'+m.takeId+'|'+(m.at||0)+'">▶ watch</button>':' · '+new Date(m.t).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}))); });
- h+=slot('new',null,open.length?'Another note':'');
- h+='</div>';
- if(notes.length) h+='<div class="card"><p class="kicker">Kept from this session</p>'+notes.map(noteRow).join('')+'</div>';
+ const giverSel=key=>'<select class="field sel" data-giver="'+key+'" aria-label="Who said it">'+who.concat(['Me']).map(n=>'<option>'+esc(n)+'</option>').join('')+'</select>';
+ const slot=(key,mark,label,big)=>{ const sl=slots[key]||{}, rec=MEMOKEY===key;
+  return '<div class="slot">'+(label?'<p class="lab">'+label+'</p>':'')+'<textarea class="field'+(big?' bigta':'')+'" data-text="'+key+'" placeholder="Their words, as close as you remember them">'+esc(sl.text||'')+'</textarea>'
+   +'<div class="row">'+(who.length?giverSel(key):'')+'<button class="btn sm'+(SR?' rec':'')+'" data-say="'+key+'">'+(SR?'■ STOP':'SAY IT')+'</button><button class="btn sm'+(rec?' rec':'')+'" data-memo="'+key+'">'+(rec?'■ STOP MEMO':'● VOICE MEMO')+'</button>'+(sl.memoId?'<button class="btn sm ghost" data-pm="'+sl.memoId+'">▶ memo</button>':'')+'</div>'
+   +'<button class="btn '+(big?'pri big ':'')+'block" data-save="'+key+'"'+(mark?' data-mk="'+mark.id+'"':'')+'>KEEP IT</button></div>'; };
+ h+='<div class="card notebox"><p class="kicker" style="color:var(--tung-text)">WHAT DID THEY SAY?</p>'+slot('new',null,'',true)+'</div>';
+ if(open.length){ h+='<div class="card"><p class="kicker">Your marks, to note</p>'; open.forEach(m=>{ h+=slot('m'+m.id,m,'Mark '+(marks.indexOf(m)+1)+(m.takeId?' · '+mmss(m.at||0)+' on your tape <button class="lnk" data-play="'+m.takeId+'|'+(m.at||0)+'">▶ watch</button>':' · '+new Date(m.t).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}))); }); h+='</div>'; }
+ if(notes.length) h+='<div class="card"><p class="kicker">From this room · '+notes.length+'</p>'+notes.map(noteRow).join('')+'</div>';
+ h+='<details class="fold" id="tapebox"'+(REC||U.tapeOpen?' open':'')+'><summary>TAPE IT (OPTIONAL)</summary><p class="dim small">Your phone records you while you perform. MARK pins the moment a note starts, so the note plays back with what you did. Headphones in, only you on the tape. Some rooms don\'t allow any recording: check first.</p>'
+  +'<button class="btn block" id="zcgo">A 30-SECOND ZOOM CHECK</button>'
+  +'<div class="row" style="margin-top:10px"><button class="recb big'+(REC?' on':'')+'" id="tape">'+(REC?'■ STOP':'● TAPE IT')+'</button>'+(REC?'<span class="rt" id="rt">0:00</span>':'')+'</div>'
+  +'<button class="btn big block" id="mark" style="margin-top:10px">MARK<small> a note starts</small></button>'
+  +'<p class="faint small">'+(marks.length?marks.length+' mark'+(marks.length===1?'':'s'):'No marks yet')+(tapes.length?' · '+tapes.length+' tape'+(tapes.length===1?'':'s')+' ('+mmss(tapes.reduce((a,t)=>a+(t.secs||0),0))+')':'')+'</p></details>';
+ h+='<div class="row" style="margin-top:12px">'+(sidesText(s)?'<button class="btn sm" id="sides">YOUR SIDES</button>':'')+'<button class="btn sm ghost" id="endses">DONE WITH THIS ROOM</button></div>';
  return h;
 }
 function noteRow(n){
@@ -191,7 +197,7 @@ function noteRow(n){
 }
 function notesView(){
  const all=N.all().notes.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))||b.t-a.t);
- if(!all.length) return '<div class="msg">No notes yet. Start a session on SESSION, and after the room, note what they told you.</div>';
+ if(!all.length) return '<div class="msg">No notes yet. Start with + A ROOM YOU WERE IN on the front.</div>';
  let h='<div class="row" style="margin-bottom:10px"><button class="chip sm'+(U.view==='all'?' on':'')+'" data-view="all">Newest first</button><button class="chip sm'+(U.view==='scene'?' on':'')+'" data-view="scene">By scene</button></div>';
  if(U.view==='scene'){ const by=N.byScene(); Object.keys(by).sort().forEach(k=>{ h+='<div class="card"><p class="kicker">'+esc(k)+'</p>'+by[k].sort((a,b)=>String(b.date).localeCompare(String(a.date))).map(noteRow).join('')+'</div>'; }); }
  else h+='<div class="card">'+all.map(noteRow).join('')+'</div>';
@@ -199,12 +205,12 @@ function notesView(){
 }
 function peopleView(){
  const P=N.people().filter(p=>!N.SELF.test(p.name)), R=N.repeats(2);
- if(!P.length) return '<div class="msg">Nobody yet. The people in your sessions show up here with what each one told you.</div>';
+ if(!P.length) return '<div class="msg">Nobody yet. The people in your rooms show up here with what each one told you.</div>';
  let h='';
  if(R.length) h+='<div class="card"><p class="kicker">More than one person told you</p><p class="faint small">Words and phrases in notes from different people. Plain matching on your own notes; nothing is guessed or scored.</p>'
   +R.slice(0,12).map(r=>'<details class="rep"><summary><b>"'+esc(N.spell(r.term))+'"</b> <span class="dim small">'+r.people+' people</span></summary>'+N.all().notes.filter(n=>r.notes.includes(n.id)).map(noteRow).join('')+'</details>').join('')+'</div>';
- h+='<div class="card"><p class="kicker">People</p>'+P.map(p=>{ const L=N.byPerson(p.name);
-  return '<details class="rep"><summary><b>'+esc(p.name)+'</b> <span class="dim small">'+(p.role?roleName(p.role)+' · ':'')+p.sessions+' session'+(p.sessions===1?'':'s')+' · '+L.length+' note'+(L.length===1?'':'s')+' · last '+esc(day(p.last))+'</span></summary>'+(L.length?L.map(noteRow).join(''):'<p class="faint small">No notes from them yet.</p>')+'</details>'; }).join('')+'</div>';
+ h+='<div class="card"><p class="kicker">Everyone</p>'+P.map(p=>{ const L=N.byPerson(p.name);
+  return '<details class="rep"><summary><b>'+esc(p.name)+'</b> <span class="dim small">'+(p.role?roleName(p.role)+' · ':'')+p.sessions+' room'+(p.sessions===1?'':'s')+(inContacts(p.name)?' · in Contacts':'')+' · '+L.length+' note'+(L.length===1?'':'s')+' · last '+esc(day(p.last))+'</span></summary>'+(L.length?L.map(noteRow).join(''):'<p class="faint small">No notes from them yet.</p>')+'</details>'; }).join('')+'</div>';
  return h;
 }
 function wire(){
@@ -218,9 +224,12 @@ function wire(){
  const dp=$('dp'); if(dp) dp.oninput=()=>{ DRAFT.part=dp.value; };
  const sf=$('sf'); if(sf) sf.onchange=async()=>{ const f=sf.files[0]; sf.value=''; if(!f) return; const it=await sidesFile(f); if(it){ DRAFT.shelfId=it.id; DRAFT.file=f.name; if(!DRAFT.title) DRAFT.title=String(f.name).replace(/\.[a-z0-9]+$/i,'').replace(/[_-]+/g,' '); toast('Sides on the shelf. Actor OS and MEMORIZER have them.'); render(); } };
  const st=$('start'); if(st) st.onclick=()=>{ startSession(); render(); };
- if(window.Kit) Kit.wire($('main'),KITFN);
+ const nr=$('newroom'); if(nr) nr.onclick=()=>{ U.tab='new'; saveU(); render(); window.scrollTo(0,0); };
+ q('[data-t]',b=>b.onclick=()=>{ if(U.tab==='session'&&b.dataset.t!=='session'&&!REC) camOff(); U.tab=b.dataset.t; saveU(); render(); window.scrollTo(0,0); });
+ const mo=$('more'); if(mo) mo.ontoggle=()=>{ U.more=mo.open; saveU(); };
+ const tb=$('tapebox'); if(tb) tb.ontoggle=()=>{ U.tapeOpen=tb.open; saveU(); };
  q('[data-open]',b=>b.onclick=()=>{ U.cur=b.dataset.open; U.tab='session'; saveU(); render(); });
- const es=$('endses'); if(es) es.onclick=async()=>{ if(REC) await stopTape(); camOff(); U.cur=''; saveU(); render(); };
+ const es=$('endses'); if(es) es.onclick=async()=>{ if(REC) await stopTape(); camOff(); U.cur=''; U.tab='home'; saveU(); render(); window.scrollTo(0,0); };
  const sd=$('sides'); if(sd) sd.onclick=showSides;
  const zg=$('zcgo'); if(zg) zg.onclick=zoomCheck;
  const tp=$('tape'); if(tp) tp.onclick=tapeTap;
@@ -235,7 +244,6 @@ function wire(){
  q('[data-ed]',b=>b.onclick=()=>{ const n=N.all().notes.find(x=>x.id===b.dataset.ed); if(!n) return; const t=prompt('The note',n.text); if(t===null) return; N.setNote(n.id,{text:t.trim()}); render(); });
  q('[data-view]',b=>b.onclick=()=>{ U.view=b.dataset.view; saveU(); render(); });
 }
-$('tabs').addEventListener('click',e=>{ const b=e.target.closest('button[data-t]'); if(!b) return; if(U.tab==='session'&&b.dataset.t!=='session'&&!REC) camOff(); U.tab=b.dataset.t; saveU(); render(); window.scrollTo(0,0); });
 window.addEventListener('pagehide',()=>{ C.stop(CAM); C.stop(memoStream); });
 window.__notes={get U(){return U;},render};
 render();
