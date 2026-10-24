@@ -169,6 +169,7 @@ small.note{display:block;padding:0 15px 13px;color:var(--faint);font-size:10.5px
 <script src="../shared/you.js"></script>
 <script src="../shared/postcard.js"></script>
 <script src="../shared/looks.js"></script>
+<script src="../shared/press.js"></script>
 <script src="../shared/vodemo.js"></script>
 <script src="../shared/workedwith.js"></script>
 <script src="../shared/offices.js"></script>
@@ -2903,7 +2904,9 @@ async function pkgExtras(mode,entries){
  let socials=[]; try{ if(window.Postcard&&window.You) socials=Postcard.onPage(You.get()).filter(x=>x.url); }catch(e){}
  /* THE LIVE ONE (HEADSHOTS): five seconds of you, on a loop, where your headshot shows. Only when you lead with it. */
  let live=null; try{ if(window.You&&You.leadsLive()){ const lb=await You.liveBlob(); const m=lb?await media(lb,'headshot_live'):null; if(m) live=Object.assign(m,{sound:!!You.get().live.sound}); } }catch(e){}
- return {made:{films,writing},vlinks,xclips:xclips.filter(x=>x.u),heads,photos,showRoles:!!profile.pageRoles,voice,looks,socials,live};
+ /* IN THE PRESS (PRESS): only the hits you switched ON YOUR PAGE */
+ let press=[]; try{ if(window.Press&&!off.has('press')) press=Press.onPage().map(h=>({t:h.title,o:h.outlet,d:h.date?Press.day(h.date):'',u:Press.safeUrl(h.url),l:h.line})); }catch(e){}
+ return {made:{films,writing},vlinks,xclips:xclips.filter(x=>x.u),heads,photos,showRoles:!!profile.pageRoles,voice,looks,socials,live,press};
 }
 function primaryName(){ const a=ARTS.find(x=>x.id===(pkgSel.headshot||profile.primaryHeadshot)); return a?(a.filename||a.label||''):''; }
 /* VOICE OVER and COMMERCIAL on your page: only when you've made them, each one off with a tap */
@@ -3476,6 +3479,7 @@ section:last-of-type{border-bottom:0}
 .vgal{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:18px}.vtile{margin:0}.vtile img,.vnopic{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:#E4E0D6}.vtile figcaption{margin:8px 0 6px}.vtile b{display:block;font-family:var(--disp);font-size:17px}.vtile figcaption span,.vrow span{font-size:13px;color:var(--grey)}.vtile audio{width:100%;height:36px}
 .vlist{display:none}.vwrap:target .vlist{display:block}.vwrap:target .vgal{display:none}.vrow{display:grid;grid-template-columns:200px 1fr 260px;gap:14px;align-items:center;padding:8px 0;border-top:1px solid var(--hair)}.vrow audio{width:100%;height:34px}@media(max-width:640px){.vrow{grid-template-columns:1fr}}
 .vnote{font-family:var(--mono);font-size:11.5px;color:var(--grey);margin:16px 0 0}
+.plist{list-style:none;margin:0;padding:0;display:grid;gap:14px}.plist li{display:flex;flex-direction:column;gap:3px}.plist .po{font-size:12px;letter-spacing:.12em;text-transform:uppercase;opacity:.7}.plist a{color:inherit;font-weight:600;text-decoration:none;border-bottom:1px solid currentColor}.plist q{font-style:italic;opacity:.85}
 .lkdl{margin:0 0 16px}.lkgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:22px}.looks article{display:flex;flex-direction:column;gap:8px}.lkmain{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;background:var(--black)}.lkblank{background:#E4E0D6}.lkmore{display:grid;grid-template-columns:1fr 1fr;gap:6px}.lkmore img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
 .looks h3{margin:2px 0 0;font-family:var(--disp);font-size:19px}.lkspots{margin:0;font-family:var(--mono);font-size:12px;color:var(--grey)}.lksk{list-style:none;margin:0;padding:0;display:grid;gap:6px}.lksk a{display:flex;gap:8px;align-items:center;color:var(--ink);text-decoration:none;font-size:14px}.lksk .none{display:flex;gap:8px;align-items:center;color:var(--grey);font-size:14px}.lksk .dot{display:inline-flex;width:24px;height:24px;border-radius:50%;background:var(--ink);color:var(--bond);align-items:center;justify-content:center;font-size:9px;flex:none}.lksk .none .dot{background:none;border:1px solid #B9B4A8}
 .mvids{margin-top:22px}
@@ -3580,6 +3584,7 @@ ${credits.length?`<section>${rule('Credits',credits.length)}
  </div>
 </section>`:''}
 
+${(d.press||[]).length?`<section class="press">${rule('In the press',d.press.length)}<ul class="plist">${d.press.map(x=>`<li><span class="po">${E([x.o,x.d].filter(Boolean).join(' · '))}</span>${x.u?`<a href="${E(x.u)}" target="_blank" rel="noopener">${E(x.t||x.o||x.u)}</a>`:`<b>${E(x.t)}</b>`}${x.l?`<q>${E(x.l)}</q>`:''}</li>`).join('')}</ul></section>`:''}
 ${(mFilms.length||mWrite.length)?`<section class="made">${rule('Made by me',mFilms.length+mWrite.length)}
  ${mFilms.length?`<div class="credlist">${mFilms.map(f=>`<article class="crow">
    <div class="cart">${f.poster&&f.poster.u?`<img src="${f.poster.u}" alt="${E(f.title)}" loading="lazy">`:`<span class="noart">${E((f.title||'').slice(0,2).toUpperCase())}</span>`}</div>

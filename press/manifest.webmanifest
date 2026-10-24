@@ -1,0 +1,11 @@
+{
+  "name": "PRESS · What's been written about you",
+  "short_name": "PRESS",
+  "start_url": "./", "scope": "./", "display": "standalone",
+  "background_color": "#121110", "theme_color": "#121110",
+  "share_target": { "action": "./", "method": "GET", "params": { "title": "title", "text": "text", "url": "url" } },
+  "icons": [
+    { "src": "../spotted/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "../spotted/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

@@ -1,4 +1,6 @@
-/* THEACTORPAGE PRESS: a publicity department of one, kept lean. Press starts from real news, not "here I am".
+/* THEACTORPAGE PRESS: what's been written about you, and a press kit for when you have news.
+   YOUR PRESS: P.hits (below). Searching is done by Google in your browser, when you tap; nothing here searches on its own.
+   The rest of this file is the press kit, from the old campaigns. Press starts from real news, not "here I am".
    A CAMPAIGN: the milestone (a premiere, a festival, a booking, a release), the project, the date, and the news in
    your own words. WHO COVERS IT: press people from CONTACTS, each one marked confirmed only once you've checked who
    they are and what they cover from their own work. For each: when you reached them, how, and what came back.
@@ -84,6 +86,33 @@
     return L.join('\n') + '\n';
   };
   P.photoName = (c, ph, i) => (clean(c.title) || 'press').replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_|_$/g, '') + '_photo_' + (i + 1) + '.jpg';
+  /* YOUR PRESS: what's been written about you, the hits you kept. {id, url, title, outlet, date, line, project, onPage, added}
+     onPage: off until you switch it on; only then does it show on your page in the Hub. */
+  const hitsOf = d => Array.isArray(d.hits) ? d.hits : (d.hits = []);
+  P.hits = () => hitsOf(read()).slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || b.added - a.added);
+  P.hit = id => hitsOf(read()).find(h => h.id === id) || null;
+  P.safeUrl = u => /^https?:\/\/[^\s]+$/i.test(String(u || '').trim()) ? String(u).trim() : '';
+  P.outletOf = u => { try { return new URL(u).hostname.replace(/^(www|m|amp)\./, ''); } catch (e) { return ''; } };
+  P.addHit = function (h) {
+    const d = read(), L = hitsOf(d), url = P.safeUrl(h && h.url); if (!url && !clean(h && h.title)) return null;
+    const had = url && L.find(x => x.url === url); if (had) return had;
+    const it = { id: uid(), url, title: clean(h.title), outlet: clean(h.outlet) || P.outletOf(url), date: /^\d{4}-\d\d-\d\d$/.test(h.date || '') ? h.date : '', line: String(h.line || '').trim(), project: clean(h.project), onPage: false, added: now() };
+    L.push(it); write(d); return it;
+  };
+  P.setHit = function (id, patch) { const d = read(), x = hitsOf(d).find(h => h.id === id); if (!x) return null;
+    Object.keys(patch || {}).forEach(k => { if (k === 'id' || k === 'added') return; const v = patch[k]; x[k] = k === 'url' ? P.safeUrl(v) : k === 'onPage' ? !!v : k === 'line' ? String(v || '').trim() : typeof v === 'string' ? clean(v) : v; }); write(d); return x; };
+  P.dropHit = function (id) { const d = read(); d.hits = hitsOf(d).filter(h => h.id !== id); write(d); };
+  P.onPage = () => P.hits().filter(h => h.onPage);
+  /* the search: your name in quotes, then the words you picked. Opened in your own browser; Google does the searching. */
+  P.query = (name, words) => [name ? '"' + clean(name).replace(/"/g, '') + '"' : ''].concat((words || []).map(w => { w = clean(w).replace(/"/g, ''); return /\s/.test(w) ? '"' + w + '"' : w; })).filter(Boolean).join(' ');
+  P.searchUrl = (q, where) => where === 'web' ? 'https://www.google.com/search?q=' + encodeURIComponent(q) : 'https://news.google.com/search?q=' + encodeURIComponent(q);
+  P.alertUrl = q => 'https://www.google.com/alerts?q=' + encodeURIComponent(q);
+  /* the list, for your reps or anywhere: outlet, date, headline, the link, the line */
+  P.hitsText = function (list, name) {
+    const L = [(name ? name + ': ' : '') + 'press', ''];
+    (list || []).forEach(h => { L.push([h.outlet, h.date ? P.day(h.date) : ''].filter(Boolean).join(', ') + (h.title ? ': ' + h.title : '')); if (h.line) L.push('"' + h.line + '"'); if (h.url) L.push(h.url); L.push(''); });
+    return L.join('\n').trim() + '\n';
+  };
   /* your pitch, to your own mail app */
   P.mailto = function (to, subject, body) { return 'mailto:' + encodeURIComponent(to || '') + '?subject=' + encodeURIComponent(subject || '') + '&body=' + encodeURIComponent(body || ''); };
   g.Press = P;

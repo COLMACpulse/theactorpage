@@ -13,7 +13,7 @@ await p.evaluate(()=>{ const d=n=>{ const x=new Date(Date.now()+n*864e5); return
  Inbox.put?Inbox.put('request',{title:'Harbor Lights',role:'Deckhand',due:d(2)+'T12:00'}):null; });
 await p.reload(); await p.waitForTimeout(1200);
 let v=await p.innerText('#week').catch(()=>'');
-want('YOUR AGENDA: the follow-up and the press, each a line; footage never nags', /YOUR AGENDA/.test(v)&&/Follow up with Morgan Lee/.test(v)&&!/Ask for your footage/.test(v)&&/Low Tide: your news is/.test(v)&&/Low Tide: 1 on your press list not reached yet\./.test(v), v);
+want('YOUR AGENDA: the follow-up and the press, each a line; footage never nags', /YOUR AGENDA/.test(v)&&/Follow up with Morgan Lee/.test(v)&&!/Ask for your footage/.test(v)&&/Low Tide: your news is/.test(v)&&!/on your press list not reached yet/.test(v), v);
 want('COMING UP on a timeline, earliest first: still open, then by day; press on its day', /COMING UP\n+STILL OPEN\n+Follow up with Morgan Lee[^\n]*\n+[A-Z]+\n+Tape due[\s\S]*Low Tide: your news is/.test(v)&&!/Nothing needs you/.test(v), v);
 const hrefs=await p.$$eval('#week a',x=>x.map(a=>a.getAttribute('href')));
 want('each line goes to its tool', hrefs.some(h=>/^contacts\//.test(h))&&hrefs.some(h=>/^press\//.test(h)), hrefs);
