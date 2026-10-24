@@ -24,6 +24,7 @@ for(const [nm,vp,cs] of [['desk',{width:1280,height:900},'light'],['phone',{widt
  want(nm+': one tap: the eleven speech places, Story Studio in it, LISTENING stays here', /Eleven places/.test(sp)&&/Story Studio/.test(sp)&&/THE PLAN/.test(sp)&&/LISTENING/.test(sp)&&/stays on the device/.test(sp), sp);
  await p.click('.lv:has-text("Check the news") summary'); await p.waitForTimeout(200);
  want(nm+': the news is Picture It now, nothing about you', /CHECK THE NEWS in Picture It/.test(await p.innerText('.lv:has-text("Check the news") .more'))&&!/postcard/i.test(await p.innerText('body')));
+ want(nm+': your page online: says it isn\'t switched on yet', /Not switched on yet/.test(await p.innerText('.lv:has-text("Put your page online") summary')));
  want(nm+': the rest folded', (await p.$$('details.fold')).length===5&&await p.$$eval('details.fold',x=>x.every(d=>!d.open)));
  const t=await p.evaluate(()=>document.body.textContent);
  want(nm+': no em dashes, never "thing"', !/—/.test(t)&&!/\bthings?\b/i.test(t));

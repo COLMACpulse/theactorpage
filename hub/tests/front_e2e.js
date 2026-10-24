@@ -63,6 +63,7 @@ const [pop]=await Promise.all([c.waitForEvent('page'),p.click('#seeit')]); await
 const html=await pop.content().catch(()=>'');
 want('SEE IT: your page in a new tab, your name and the credit on it', /Riley Hart/.test(html)&&/Harbor Lights/.test(html), html.slice(0,200));
 await pop.close();
+want('put it online: not switched on yet, no Publish button, the file instead', /isn.t switched on yet/.test(await p.innerText('#online'))&&!(await p.$('#onpub')));
 await p.screenshot({path:SHOTS+'/hub_desk_page.png'});
 // your material: only what you have; masters in Reel Room
 await p.evaluate(()=>go('profile')); await p.waitForTimeout(500);
