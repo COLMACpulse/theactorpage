@@ -51,11 +51,7 @@
     if (g.Plan && src.plans) g.Plan.agenda(src.plans, day).forEach(l => L.push(l));
     /* PICTURE IT: in the room, waiting to hear */
     if (g.Viz && src.wishes) src.wishes.forEach(w => { const at = g.Viz.at(w); if (at.step === 'room' && at.date) L.push({ date: '', kind: 'viz', href: 'picture/?w=' + encodeURIComponent(w.id), line: w.title + ': in the room ' + W.when(at.date, day) + '. On your wall, waiting to hear.' }); });
-    /* your work lives on this phone only: a backup line when it's been a while (two weeks), or never, after a few days with work here */
-    const B = src.backup; if (B && B.have) {
-      if (!B.last) { if (B.since && diff(B.since, day) >= 3) L.push({ date: '', kind: 'backup', href: 'device/', line: 'Your work lives only on this phone. Make a backup: one file, two taps.' }); }
-      else { const n = Math.floor((Date.parse(day + 'T12:00:00') - B.last) / 864e5); if (n >= 14) L.push({ date: '', kind: 'backup', href: 'device/', line: 'Back up your work: it\u2019s been ' + n + ' days.' }); }
-    }
+    /* no backup reminder on home (Col). On This Device shows when you last backed up. */
     L.sort((a, b) => (a.date ? 0 : 1) - (b.date ? 0 : 1) || String(a.date).localeCompare(String(b.date)));
     const goal = src.goal && String(src.goal.text || '').trim() ? { text: String(src.goal.text).trim(), by: src.goal.by || '', left: src.goal.by ? diff(day, src.goal.by) : null } : null;
     return { goal, lines: L };
@@ -76,12 +72,6 @@
     try { if (g.Press) src.press = g.Press.all().map(c => ({ id: c.id, title: c.title, date: c.date, outlets: [] })); } catch (e) { }
     try { if (g.Viz) { src.wishes = g.Viz.all(); src.plugs = g.Viz.plugs(); } } catch (e) { }
     try { if (g.Plan) src.plans = g.Plan.all(); } catch (e) { }
-    try {
-      const own = JSON.parse(localStorage.getItem('theactorpage_device_v1') || '{}') || {};
-      const have = !!((g.Shelf && g.Shelf.all().length) || (g.You && g.You.has()) || (g.Contacts && g.Contacts.mine().length) || (src.plans && src.plans.length) || (src.wishes && src.wishes.length) || (src.requests && src.requests.length));
-      let since = ''; if (have && !own.lastBackup) { since = localStorage.getItem('theactorpage_backup_since') || ''; if (!since) { since = iso(new Date()); localStorage.setItem('theactorpage_backup_since', since); } }
-      src.backup = { last: own.lastBackup || 0, have, since };
-    } catch (e) { }
     try { const y = g.You && g.You.get(); if (y) src.goal = { text: y.goal || '', by: y.goalBy || '' }; } catch (e) { }
     try {
       const hp = await hubProfile(); const reps = hp && hp.reps;

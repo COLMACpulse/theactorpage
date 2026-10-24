@@ -8,16 +8,16 @@ const D={};
 /* ---------- whose is it ---------- */
 D.TOOLS=[
  {id:'actoros', name:'Actor OS', href:'../actor-os/', ls:[/^actor_os_/,/^aos_/], db:[/^actor_os_/]},
- {id:'hub', name:'Hub', href:'../hub/', ls:[], db:[/^colmac_hub$/]},
- {id:'memorizer', name:'Memorizer', href:'../memorizer/', ls:[/^memorizer/], db:[]},
+ {id:'hub', name:'Project Hub', href:'../hub/', ls:[/^hub_online_v1$/], db:[/^colmac_hub$/]},
+ {id:'memorizer', name:'Memorizer', href:'../memorizer/', ls:[/^memorizer/], db:[/^memorizer_media$/]},
  {id:'breakdown', name:'Breakdown', href:'../breakdown/', ls:[/^bd_/], db:[/^breakdown_/]},
  {id:'cps', name:'Character Bank', href:'../cps/', ls:[/^cps_/,/^colmac_voxbootprint/,/^colmac_os_outbox$/,/^colmac_aos_integrator$/], db:[/^cps_/]},
  {id:'slate', name:'Slate Maker', href:'../slate/', ls:[/^slate_/], db:[/^slate_/]},
- {id:'resume', name:'Virtual Resume', href:'../resume/', ls:[/^resume_/], db:[/^vresume_/]},
+ {id:'resume', name:'Virtual Résumé', href:'../resume/', ls:[/^resume_/], db:[/^vresume_/]},
  {id:'gsd', name:'GSD (now in The Plan)', href:'../plan/', ls:[/^gsd_/], db:[]},
  {id:'wb', name:'THEACTORPAGES', href:'../write/writers-blockage.html', ls:[/^writers-blockage/,/^wb_go_v1$/], db:[/^writers-blockage$/]},
  {id:'papertrail', name:'Paper Trail', href:'../papertrail/', ls:[/^paper_trail/], db:[/^paper_trail$/]},
- {id:'archbook', name:'ArchBook', href:'../archbook/', ls:[/^archbook_/], db:[/^archbook_/]},
+ {id:'archbook', name:'Reel Room', href:'../archbook/', ls:[/^archbook_/,/^theactorpage_cuts_v1$/], db:[/^archbook_/]},
  {id:'film', name:'Story Studio', href:'../film/', ls:[/^film_os/], db:[/^film_os/]},
  {id:'shelf', name:'Sides shelf', href:'', ls:[/^theactorpage_shelf/], db:[/^theactorpage_shelf/]},
  {id:'daily', name:'Today\'s scene', href:'../', ls:[/^theactorpage_daily/], db:[]},
@@ -26,26 +26,28 @@ D.TOOLS=[
  {id:'takes', name:'Takes shelf', href:'../', ls:[/^theactorpage_takes/], db:[/^theactorpage_takes$/]},
  {id:'inbox', name:'Requests and drafts on home', href:'../', ls:[/^theactorpage_inbox/], db:[]},
  {id:'notes', name:'Notes', href:'../notes/', ls:[/^theactorpage_notes/,/^notes_ui/], db:[]},
- {id:'spotted', name:'Spotted', href:'../spotted/', ls:[/^theactorpage_spotted/,/^spotted_ui/], db:[]},
- {id:'headshots', name:'Headshots', href:'../headshots/', ls:[/^theactorpage_headshots/,/^headshots_ui/], db:[/^theactorpage_headshot_refs$/]},
- {id:'booth', name:'VO Booth', href:'../booth/', ls:[/^booth_/], db:[/^booth_media$/]},
+ {id:'spotted', name:'Spotted', href:'../spotted/', ls:[/^theactorpage_spotted/,/^spotted_ui/], db:[/^theactorpage_spotted_pics$/]},
+ {id:'headshots', name:'Headshots', href:'../headshots/', ls:[/^theactorpage_headshots/,/^headshots_ui/,/^headshots_shoot_v1$/], db:[/^theactorpage_headshot_refs$/]},
+ {id:'booth', name:'VO Booth', href:'../booth/', ls:[/^booth_/,/^theactorpage_wave_v1$/], db:[/^booth_media$/]},
  {id:'setlist', name:'Set List', href:'../setlist/', ls:[/^setlist_/], db:[/^setlist_media$/]},
  {id:'filmhub', name:'Film Hub', href:'../filmhub/', ls:[/^filmhub_/], db:[/^filmhub$/]},
  {id:'backlot', name:'Backlot', href:'../backlot/', ls:[/^backlot_/], db:[]},
- {id:'contacts', name:'Contacts', href:'../contacts/', ls:[/^theactorpage_contacts/,/^contacts_ui/], db:[]},
+ {id:'contacts', name:'Contacts', href:'../contacts/', ls:[/^theactorpage_contacts/,/^contacts_ui/,/^theactorpage_workedwith_v1$/], db:[]},
  {id:'footage', name:'Footage', href:'../footage/', ls:[/^theactorpage_footage/,/^theactorpage_copycheck/], db:[]},
  {id:'press', name:'Press', href:'../press/', ls:[/^theactorpage_press/], db:[]},
  {id:'expenses', name:'Expenses (no longer a tool)', href:'../expenses/', ls:[/^theactorpage_expenses/], db:[/^theactorpage_receipts$/]},
- {id:'picture', name:'Picture It', href:'../picture/', ls:[/^theactorpage_viz/], db:[/^theactorpage_viz$/]},
+ {id:'picture', name:'Picture It', href:'../picture/', ls:[/^theactorpage_viz/,/^theactorpage_postcard_v1$/], db:[/^theactorpage_viz$/]},
  {id:'plan', name:'The Plan', href:'../plan/', ls:[/^theactorpage_plan/], db:[/^theactorpage_plan$/]},
  {id:'looks', name:'Looks', href:'../looks/', ls:[/^theactorpage_looks/], db:[/^theactorpage_looks$/]},
- {id:'vodemo', name:'Voice demos', href:'../booth/', ls:[/^theactorpage_vodemo/], db:[/^theactorpage_vodemo$/]}
+ {id:'vodemo', name:'Voice demos', href:'../booth/', ls:[/^theactorpage_vodemo/], db:[/^theactorpage_vodemo$/]},
+ {id:'readin', name:'Read In', href:'../read/', ls:[/^theactorpage_readin/], db:[/^theactorpage_readin$/]},
+ {id:'settings', name:'Your settings', href:'../', ls:[/^theactorpage_lang$/,/^theactorpage_view$/,/^theactorpage_ios_note$/], db:[]}
 ];
 D.OWN_KEY='theactorpage_device_v1';
 /* passing notes between tools (gone in minutes) and things that can't go in a file */
 const SKIP_LS=[/^theactorpage_handoff_/, /^rooms_seen_/, new RegExp('^'+D.OWN_KEY+'$')];   // rooms_seen_: home's 'is this new' marks, nothing of yours
 const SKIP_STORES={'writers-blockage':['handles']};   // links to files on this computer; they only work here
-D.KNOWN_DBS=['theactorpage_receipts','actor_os_reader','colmac_hub','breakdown_v03','cps_v02','slate_v04','vresume_v03','writers-blockage','paper_trail','archbook_v03','film_os','theactorpage_shelf','theactorpage_you','theactorpage_takes','theactorpage_headshot_refs','booth_media','setlist_media','filmhub'];
+D.KNOWN_DBS=['theactorpage_receipts','actor_os_reader','colmac_hub','breakdown_v03','cps_v02','slate_v04','vresume_v03','writers-blockage','paper_trail','archbook_v03','film_os','theactorpage_shelf','theactorpage_you','theactorpage_takes','theactorpage_headshot_refs','booth_media','setlist_media','filmhub','memorizer_media','theactorpage_spotted_pics','theactorpage_readin','theactorpage_viz','theactorpage_plan','theactorpage_looks','theactorpage_vodemo','actor_os_angles'];
 D.toolOfKey=k=>{ if(SKIP_LS.some(r=>r.test(k))) return null; return D.TOOLS.find(t=>t.ls.some(r=>r.test(k)))||null; };
 D.toolOfDb=n=>D.TOOLS.find(t=>t.db.some(r=>r.test(n)))||null;
 D.skipStore=(db,st)=>(SKIP_STORES[db]||[]).includes(st);

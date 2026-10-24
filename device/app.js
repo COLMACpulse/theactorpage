@@ -43,7 +43,7 @@ function inventory(s){
 }
 
 /* ---------- one backup file ---------- */
-async function makeBackup(why){
+async function makeBackup(why,how){
  const s=await scan(), media=[], skipped=[];
  const m={app:'THEACTORPAGE',kind:'device-backup',version:1,made:new Date().toISOString(),why:why||'',ls:{},idb:[],media:[]};
  s.ls.forEach(x=>m.ls[x.k]=x.v);
@@ -57,10 +57,12 @@ async function makeBackup(why){
  const zip=await D.zip(entries);
  const items=Object.keys(m.ls).length+m.idb.reduce((n,d)=>n+d.stores.reduce((a,st)=>a+st.records.length,0),0);
  const name='theactorpage_'+(why==='before-restore'?'before_restore_':'backup_')+new Date().toISOString().slice(0,10)+'.zip';
- const a=document.createElement('a'); a.href=URL.createObjectURL(zip); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),60000);
+ let shared=false;
+ if(how==='share'){ try{ const f=new File([zip],name,{type:'application/zip'}); if(navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:name}); shared=true; } }catch(e){ if(e&&e.name==='AbortError') throw new Error('not sent. Nothing was saved'); } }
+ if(!shared){ const a=document.createElement('a'); a.href=URL.createObjectURL(zip); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),60000); }
  setOwn({lastBackup:Date.now(),lastSize:zip.size,lastItems:items});
  const files=s.dbs.reduce((n,d)=>n+d.stores.reduce((a,st)=>a+st.records.reduce((b,x)=>b+D.mediaIn(x.v),0),0),0);
- return {name:name,size:zip.size,items:items,media:files};
+ return {name:name,size:zip.size,items:items,media:files,shared:shared};
 }
 
 /* ---------- restore: add what's missing ---------- */
@@ -125,51 +127,72 @@ async function apply(P,replace){
 }
 
 /* ---------- the page ---------- */
-let LAST=null;
+let LAST=null, ALL=false;
+const plural=(n,w,ws)=>n+' '+(n===1?w:(ws||w+'s'));
+function ago(t){ const d0=new Date(); d0.setHours(12,0,0,0); const d1=new Date(t); d1.setHours(12,0,0,0); const n=Math.round((d0-d1)/864e5);
+ return n<=0?'Today':n===1?'Yesterday':n<45?n+' days ago':day(t); }
+const canShare=()=>{ try{ return !!(navigator.canShare&&navigator.canShare({files:[new File(['x'],'x.zip',{type:'application/zip'})]})); }catch(e){ return false; } };
 async function render(){
- const s=await scan(), inv=inventory(s), o=own(), used=inv.filter(x=>x.items);
- const total=used.reduce((n,x)=>n+x.size,0), media=used.reduce((n,x)=>n+x.media,0);
+ if(PLAN) return restoreView();
+ const s=await scan(), inv=inventory(s), o=own(), used=inv.filter(x=>x.items).sort((a,b)=>(b.items+b.media*3)-(a.items+a.media*3));
+ const media=used.reduce((n,x)=>n+x.media,0);
  let est=null, kept=null; try{ est=navigator.storage&&navigator.storage.estimate?await navigator.storage.estimate():null; kept=navigator.storage&&navigator.storage.persisted?await navigator.storage.persisted():null; }catch(e){}
- let h='<div class="stats"><div><b>'+used.length+'</b><span>tools with your work</span></div><div><b>'+bytes(total)+'</b><span>saved here</span></div><div><b>'+media+'</b><span>takes, photos and files</span></div>'
-  +'<div><b>'+(o.lastBackup?esc(day(o.lastBackup)):'Never')+'</b><span>last backup</span></div></div>';
- h+='<div class="panel"><div class="eyebrow" style="margin-top:0">Back up</div><p style="margin-top:0">One file with everything below: your work, takes, photos and settings. Keep it somewhere that isn\'t this phone or this computer.</p>'
-  +'<div class="row"><button class="btn pri" id="bk"'+(used.length?'':' disabled')+'>BACK UP EVERYTHING (.zip)</button></div>'
-  +(o.lastBackup?'<p class="note">Last one: '+esc(day(o.lastBackup))+', '+bytes(o.lastSize||0)+', '+(o.lastItems||0)+' saved items. This page can\'t tell whether you still have that file.</p>':'<p class="note">You have not backed up from this browser.</p>')
-  +'<p class="note">The file holds everything you saved, including anything private. Nothing is uploaded.</p></div>';
- h+='<div class="eyebrow">What each tool keeps here</div>';
- if(s.lsBlocked) h+='<div class="msg bad">This browser won\'t let the page read saved data (private window, or site data blocked). Nothing below is the whole story.</div>';
- h+='<div class="list">'+(used.length?used.map(x=>'<div class="li"><div class="w"><b>'+esc(x.tool.name)+'</b><small>'+x.items+' saved item'+(x.items===1?'':'s')+(x.media?' · '+x.media+' take'+(x.media===1?'':'s')+', photo'+(x.media===1?'':'s')+' or file'+(x.media===1?'':'s'):'')+'</small></div><span class="tag">'+bytes(x.size)+'</span>'+(x.tool.href?'<a class="btn sm ghost" href="'+x.tool.href+'">OPEN</a>':'')+'</div>').join(''):'<div class="li"><div class="w">Nothing saved in this browser yet.</div></div>')+'</div>';
- const none=inv.filter(x=>!x.items).map(x=>x.tool.name);
- if(used.length&&none.length) h+='<p class="note">Nothing here yet from: '+esc(none.join(', '))+'.</p>';
- const skips=s.dbs.filter(d=>d.skipped);
- if(skips.length) h+='<p class="note">Not in the backup: THEACTORPAGES links to files on this computer. They only work here; the scripts themselves are in the backup.</p>';
- h+='<div class="eyebrow">Keep it here</div><div class="panel">'
-  +(kept===true?'<p style="margin:0">Kept. This browser was asked to keep THEACTORPAGE\'s data and said yes.</p>'
-   :'<p style="margin-top:0">'+(kept===false?'Not kept yet. The browser may clear this when the device runs low on space.':'This browser doesn\'t say whether it keeps site data.')+'</p><div class="row"><button class="btn" id="keep">ASK THE BROWSER TO KEEP IT</button></div>')
-  +(est&&est.quota?'<p class="note">This site is using '+bytes(est.usage||0)+' of the '+bytes(est.quota)+' the browser allows it.</p>':'')
-  +'<p class="note">On iPhone and iPad, Safari can clear a site\'s saved data after 7 days without a visit. Added to the Home Screen, it doesn\'t. A backup file is the only copy that doesn\'t depend on the browser.</p></div>';
- h+='<div class="eyebrow">Restore</div><div class="drop" id="drop"><b>DROP A BACKUP</b><span class="note">The .zip this page made. Restoring adds what this browser doesn\'t have. It never removes anything.</span></div>';
- if(PLAN){
-  const P=Object.values(PLAN).filter(p=>p.add.length||p.differ.length||p.same||p.cant.length);
-  h+='<div class="panel" style="margin-top:12px"><div class="eyebrow" style="margin-top:0">From '+esc(BK.file)+' · made '+esc(day(BK.m.made))+'</div><div class="list">'
-   +P.map(p=>'<div class="li"><div class="w"><b>'+esc(p.tool.name)+'</b><small>'+[p.add.length+' to add',p.same+' already the same',p.differ.length?p.differ.length+' different here':''].filter(Boolean).join(' · ')+'</small>'
-    +p.cant.map(c=>'<small style="color:var(--grease)">'+esc(c)+'</small>').join('')+'</div>'
-    +(p.differ.length?'<label class="note"><input type="checkbox" data-rep="'+p.tool.id+'"> use the backup\'s for the '+p.differ.length+' different</label>':'')+'</div>').join('')+'</div>'
-   +'<p class="note">Different here: this browser has its own version of it. Left alone unless you tick it. If you tick any, this browser\'s copy is saved to a file first.</p>'
-   +'<div class="row"><button class="btn pri" id="go">RESTORE</button><button class="btn ghost" id="cancel">NOT NOW</button></div></div>';
+ let h='<div class="grid"><div class="colA">';
+ h+='<div class="card status"><p class="kicker">LAST BACKUP</p><p class="when" id="when">'+(o.lastBackup?esc(ago(o.lastBackup)):'Never')+'</p>'
+  +'<p class="dim" style="margin:0 0 14px">'+(o.lastBackup?esc(day(o.lastBackup))+' · '+plural(o.lastItems||0,'saved item')+' · '+bytes(o.lastSize||0)
+    :used.length?plural(used.length,'tool has','tools have')+' your work in this browser, and only here.':'Nothing saved here yet. When you make something in any tool, it shows up below.')+'</p>'
+  +'<div class="row"><button class="btn pri huge" id="bk"'+(used.length?'':' disabled')+'>BACK UP EVERYTHING</button>'
+  +(canShare()?'<button class="btn huge" id="send"'+(used.length?'':' disabled')+'>SEND IT TO MYSELF</button>':'')+'</div>'
+  +(canShare()?'<p class="note">SEND IT TO MYSELF opens your share sheet: save it to Files or Drive, or email it to yourself.</p>':'')
+  +'<p class="note">One .zip with everything: your work, takes, photos and settings. Keep it somewhere that isn\'t this '+(matchMedia('(pointer:coarse)').matches?'phone':'computer')+'. It holds private things too. Nothing is uploaded.</p></div>';
+ if(LAST) h+='<div class="msg" id="last">'+esc(LAST)+'</div>';
+ if(s.lsBlocked) h+='<div class="msg bad">This browser won\'t let the page read saved data (a private window, or site data blocked). What\'s below isn\'t the whole story.</div>';
+ if(used.length){
+  const show=ALL?used:used.slice(0,5);
+  h+='<div class="card list"><p class="kicker" style="padding-top:12px">WHAT\'S HERE · '+plural(used.length,'TOOL')+'</p>'
+   +show.map(x=>'<div class="li"><div class="w"><b>'+esc(x.tool.name)+'</b><small>'+plural(x.items,'saved item')+(x.media?' · '+plural(x.media,'take, photo or file','takes, photos and files'):'')+'</small></div>'
+    +(x.tool.href?'<a class="mini" href="'+esc(x.tool.href)+'">OPEN</a>':'')+'</div>').join('')
+   +(used.length>5?'<div class="li"><button class="more" id="alltools">'+(ALL?'Show fewer':'and '+(used.length-5)+' more')+'</button></div>':'')+'</div>';
  }
- if(LAST) h+='<div class="msg">'+esc(LAST)+'</div>';
+ h+='</div><div class="colB">';
+ h+='<button class="drop" id="drop" type="button"><b>RESTORE FROM A BACKUP</b><span>Drop the .zip here, or tap to pick it. It adds what this browser doesn\'t have. It never removes anything.</span></button>';
+ h+='<details class="fold" id="keepfold"><summary>KEEP IT ON THIS DEVICE</summary>'
+  +(kept===true?'<p style="margin:0">Kept. This browser was asked to keep THEACTORPAGE\'s data and said yes.</p>'
+   :'<p style="margin:0 0 10px">'+(kept===false?'Not kept yet. The browser may clear it when the device runs low on space.':'This browser doesn\'t say whether it keeps site data.')+'</p><button class="btn" id="keep">ASK THE BROWSER TO KEEP IT</button>')
+  +(est&&est.quota?'<p class="note">Using '+bytes(est.usage||0)+' of the '+bytes(est.quota)+' this browser allows.</p>':'')
+  +'<p class="note">On iPhone and iPad, Safari can clear a site\'s data after 7 days without a visit. Added to the Home Screen, it doesn\'t. A backup file is the only copy that doesn\'t depend on the browser.</p></details>';
+ const skips=s.dbs.filter(d=>d.skipped);
+ if(skips.length) h+='<details class="fold"><summary>WHAT ISN\'T IN THE FILE</summary><p class="note" style="margin:0">Links to files on this computer from THEACTORPAGES. They only work here. The scripts themselves are in the file.</p></details>';
+ h+='</div></div>';
+ $('main').innerHTML=h; wire();
+}
+function restoreView(){
+ const ALLP=Object.values(PLAN), P=ALLP.filter(p=>p.add.length||p.differ.length||p.cant.length);
+ const adds=P.reduce((n,p)=>n+p.add.length,0), same=ALLP.filter(p=>p.same&&!p.add.length&&!p.differ.length&&!p.cant.length);
+ let h='<div class="backbar"><button class="btn" id="cancel">‹ YOUR BACKUP</button></div>'
+  +'<p class="kicker">RESTORE · '+esc(BK.file)+' · MADE '+esc(day(BK.m.made).toUpperCase())+'</p>'
+  +'<p class="big2">'+(adds?'This file adds '+plural(adds,'saved item')+' this browser doesn\'t have.':'This browser already has everything in this file.')+'</p>'
+  +(P.length?'<div class="card list">'+P.map(p=>'<div class="li"><div class="w"><b>'+esc(p.tool.name)+'</b><small>'+[p.add.length?p.add.length+' to add':'',p.same?p.same+' already the same':'',p.differ.length?p.differ.length+' different here':''].filter(Boolean).join(' · ')+'</small>'
+   +p.cant.map(c=>'<small class="warn2">'+esc(c)+'</small>').join('')+'</div>'
+   +(p.differ.length?'<label class="ck"><input type="checkbox" data-rep="'+p.tool.id+'"> Use the backup\'s for the '+p.differ.length+' different</label>':'')+'</div>').join('')+'</div>':'')
+  +(same.length?'<p class="note">Already the same here: '+esc(same.map(p=>p.tool.name).join(', '))+'.</p>':'')
+  +(P.some(p=>p.differ.length)?'<p class="note">Different here: this browser has its own version. Left alone unless you tick it. If you tick any, this browser\'s copy is saved to a file first.</p>':'')
+  +'<div class="row" style="margin-top:14px"><button class="btn pri huge" id="go">RESTORE</button><button class="btn ghost" id="cancel2">NOT NOW</button></div>';
  $('main').innerHTML=h; wire();
 }
 function wire(){
- const b=$('bk'); if(b) b.onclick=async()=>{ b.disabled=true; b.textContent='BUILDING THE FILE...';
-  try{ const r=await makeBackup(); LAST='Backed up: '+r.name+', '+bytes(r.size)+', '+r.items+' saved items, '+r.media+' takes, photos or files.'; }catch(e){ LAST='Could not back up: '+e.message; } render(); };
- const k=$('keep'); if(k) k.onclick=async()=>{ let ok=false; try{ ok=await navigator.storage.persist(); }catch(e){} toast(ok?'Kept. The browser said yes.':'The browser said no for now. It often says yes once the site is installed or used more. Back up either way.'); render(); };
+ const run=async(btn,how)=>{ btn.disabled=true; const t=btn.textContent; btn.textContent=how==='share'?'GETTING IT READY...':'BUILDING THE FILE...';
+  try{ const r=await makeBackup('',how); LAST=(r.shared?'Sent: ':'Saved: ')+r.name+', '+bytes(r.size)+', '+plural(r.items,'saved item')+(r.media?', '+plural(r.media,'take, photo or file','takes, photos and files'):'')+'.'; }
+  catch(e){ LAST='Could not back up: '+e.message+'.'; } btn.textContent=t; render(); };
+ const b=$('bk'); if(b) b.onclick=()=>run(b);
+ const sd=$('send'); if(sd) sd.onclick=()=>run(sd,'share');
+ const al=$('alltools'); if(al) al.onclick=()=>{ ALL=!ALL; render(); };
+ const k=$('keep'); if(k) k.onclick=async()=>{ let ok=false; try{ ok=await navigator.storage.persist(); }catch(e){} toast(ok?'Kept. The browser said yes.':'The browser said no for now. It often says yes once the site is added to your Home Screen or used more. Back up either way.'); if(ok){ $('keepfold').open=true; render(); } };
  const d=$('drop'); if(d){ d.onclick=()=>$('file').click(); d.ondragover=e=>{e.preventDefault();d.classList.add('over');}; d.ondragleave=()=>d.classList.remove('over'); d.ondrop=e=>{ e.preventDefault(); d.classList.remove('over'); if(e.dataTransfer.files[0]) load(e.dataTransfer.files[0]); }; }
  const g=$('go'); if(g) g.onclick=async()=>{ const rep=new Set([...document.querySelectorAll('[data-rep]:checked')].map(x=>x.dataset.rep)); g.disabled=true; g.textContent='RESTORING...';
-  try{ const r=await apply(PLAN,rep); LAST='Restored '+r.n+' saved item'+(r.n===1?'':'s')+'.'+(r.replaced?' Replaced '+r.replaced+'; this browser\'s copy went to '+r.safety.name+' first.':'')+' Nothing removed.'; }catch(e){ LAST='Restore stopped: '+e.message+'. What was written before it stopped stays.'; }
+  try{ const r=await apply(PLAN,rep); LAST='Restored '+plural(r.n,'saved item')+'.'+(r.replaced?' Replaced '+r.replaced+'; this browser\'s copy went to '+r.safety.name+' first.':'')+' Nothing removed.'; }catch(e){ LAST='Restore stopped: '+e.message+'. Nothing was removed.'; }
   PLAN=null; BK=null; render(); };
- const c=$('cancel'); if(c) c.onclick=()=>{ PLAN=null; BK=null; render(); };
+ ['cancel','cancel2'].forEach(i=>{ const c=$(i); if(c) c.onclick=()=>{ PLAN=null; BK=null; render(); }; });
 }
 async function load(f){ try{ BK=await readBackup(f); PLAN=await plan(BK); LAST=null; }catch(e){ BK=null; PLAN=null; LAST='Could not read that: '+e.message+'.'; } render(); }
 $('file').addEventListener('change',e=>{ const f=e.target.files[0]; e.target.value=''; if(f) load(f); });

@@ -13,18 +13,14 @@ const ics=fs.readFileSync(await dl.path(),'utf8');
 want('THE PLAN: ADD TO MY CALENDAR makes one calendar file', /\.ics$/.test(dl.suggestedFilename())&&/^BEGIN:VCALENDAR/.test(ics)&&/Open it and your calendar adds the steps/.test(await p.innerText('#msg')), dl.suggestedFilename());
 want('every step on its day, the deadline at 11, send at 10, reminders on', (ics.match(/BEGIN:VEVENT/g)||[]).length>=6&&ics.includes('DTSTART:'+d(4).replace(/-/g,'')+'T110000')&&ics.includes('DTSTART:'+d(4).replace(/-/g,'')+'T100000')&&(ics.match(/BEGIN:VALARM/g)||[]).length>=6&&/SUMMARY:DUE: Harbor Lights \(Guest star\)/.test(ics));
 want('each event links back to the plan', /URL:http:\/\/localhost:8811\/plan\/\?p=p/.test(ics.replace(/\r\n /g,'')));
-/* home: YOUR AGENDA to the calendar, and the backup line */
+/* home: YOUR AGENDA to the calendar, and no backup line */
 await p.goto('http://localhost:8811/'); await p.waitForTimeout(1200);
 const [dl2]=await Promise.all([p.waitForEvent('download'),p.click('#wkcal')]);
 const ics2=fs.readFileSync(await dl2.path(),'utf8');
 want('YOUR AGENDA: ADD TO MY CALENDAR, the dated lines', /your_agenda\.ics$/.test(dl2.suggestedFilename())&&(ics2.match(/BEGIN:VEVENT/g)||[]).length>=4&&/SUMMARY:Harbor Lights: /.test(ics2)&&/MADE/.test(await p.innerText('#wkcal')));
-want('no backup line on the first day', !/backup/i.test(await p.innerText('#week')));
-await p.evaluate(()=>localStorage.setItem('theactorpage_backup_since','2026-01-01')); await p.reload(); await p.waitForTimeout(1200);
-want('after a few days with work and no backup: the line, to On This Device', /Your work lives only on this phone\. Make a backup/.test(await p.innerText('#week'))&&await p.$$eval('#week a',x=>x.some(a=>a.getAttribute('href')==='device/')));
-await p.evaluate(()=>localStorage.setItem('theactorpage_device_v1',JSON.stringify({lastBackup:Date.now()-3*864e5}))); await p.reload(); await p.waitForTimeout(1200);
-want('backed up 3 days ago: no line', !/backup/i.test(await p.innerText('#week')));
+want('no backup line on home, ever (Col)', !/backup/i.test(await p.innerText('#week')));
 await p.evaluate(()=>localStorage.setItem('theactorpage_device_v1',JSON.stringify({lastBackup:Date.now()-20*864e5}))); await p.reload(); await p.waitForTimeout(1200);
-want('20 days: says how long', /Back up your work: it’s been (19|20) days\./.test(await p.innerText('#week')));
+want('20 days since a backup: still no line on home', !/backup/i.test(await p.innerText('#week')));
 /* SEND: the sites and their limits */
 await p.goto('http://localhost:8811/actor-os/'); await p.waitForTimeout(900);
 await p.evaluate(()=>goTab('send')); await p.waitForTimeout(300);

@@ -19,6 +19,7 @@ await p.evaluate(async()=>{
  await new Promise(res=>{ const r=indexedDB.open('filmhub',1); r.onupgradeneeded=()=>r.result.createObjectStore('posters'); r.onsuccess=()=>{ const t=r.result.transaction('posters','readwrite'); t.objectStore('posters').put(blob,'f1'); t.oncomplete=()=>{ r.result.close(); res(); }; }; });
 });
 await p.goto('http://localhost:8811/device/index.html'); await p.waitForTimeout(1500);
+if(await p.$('#alltools')){ await p.click('#alltools'); await p.waitForTimeout(500); }
 const page=await p.innerText('body');
 want('the page lists the newer tools', ['Your profile (headshots, résumé)','Spotted','Notes','VO Booth','Film Hub'].every(t=>page.includes(t)), page.slice(0,800));
 const btn=await p.$$eval('button',x=>x.map(y=>y.id+':'+y.textContent.trim()).filter(t=>/back/i.test(t)));

@@ -1691,9 +1691,8 @@ function intakeView(){
 
  h+=`<details class="more"><summary>Other tools</summary>
    <div class="panel"><h2>Backup</h2>
-    <small class="note">A .zip of everything - data and media. Useful for moving to another machine or sending your material to your rep.</small>
-    <div class="row"><button class="act" onclick="exportBackup()">Save a backup (.zip)</button>
-     <button class="ghost act" onclick="$('bkin').click()">Restore from a backup</button></div></div>
+    <small class="note">One backup holds the Hub and every other tool: your data, takes and photos. It lives on On This Device.</small>
+    <div class="row"><a class="act" href="../device/" style="text-decoration:none;display:inline-flex;align-items:center">Back up or restore everything</a></div></div>
    <div class="panel"><h2>Audition request &rarr; project</h2>
     <small class="note">Paste a rep email and the hub builds the audition around it - role, casting office, deadline. Sides are never ingested.</small>
     <div class="form"><div><textarea id="email" placeholder="Subject: Audition Request - ..."></textarea></div>
@@ -3874,7 +3873,7 @@ function homeView(){
  h+='<button class="hrowlink" onclick="go(\'reps\')">For my reps<small></small></button>';
  h+='<button class="hrowlink" onclick="go(\'keyart\')">Credits and key art<small>'+(credits.length||'')+'</small></button>';
  h+='<button class="hrowlink" onclick="go(\'intake\')">Setup and backup<small></small></button>';
- h+='<div class="hrow2" style="margin-top:4px"><button class="hbtn sm" onclick="exportBackup()">BACK UP NOW</button><button class="hbtn sm" onclick="$(\'bkin\').click()">RESTORE</button></div>';
+ h+='<div class="hrow2" style="margin-top:4px"><a class="hbtn sm" href="../device/" style="text-decoration:none">BACK UP EVERYTHING</a></div><p class="hnote" style="font-size:12.5px;margin:6px 0 0;opacity:.8">One file with the Hub and every other tool, on On This Device.</p>';
  h+='</div></div>';
  $('view').innerHTML=h;
 }
