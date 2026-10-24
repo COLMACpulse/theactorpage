@@ -39,7 +39,7 @@
         + '<div class="row"><button class="btn" id="tr_make"' + (TR.busy ? ' disabled' : '') + '>' + (TR.busy ? 'MAKING IT…' : 'MAKE THE CLIP') + '</button></div>'
         + '<div class="prog" id="tr_prog"' + (TR.busy ? '' : ' hidden') + '><i id="tr_bar"></i></div><p class="mut small" id="tr_wait"' + (TR.busy ? '' : ' hidden') + '>It plays the clip through once to make it, so it takes as long as the clip runs.</p>';
     }
-    if (TR.made) h += '<div class="card" style="margin-top:10px" id="tr_done"><p class="kick">YOUR CLIP</p><p class="small">' + esc(TR.made.name) + ' · ' + TR.made.secs + ' seconds.' + (TR.made.hub ? ' It’s in your Hub’s library too, ready for your page.' : '') + '</p><div class="row"><a class="btn" id="tr_save" href="' + TR.made.url + '" download="' + esc(TR.made.name) + '">SAVE TO PHONE</a><a class="btn ghost" href="../archbook/">TAG IT IN ARCHBOOK</a></div></div>';
+    if (TR.made) h += '<div class="card" style="margin-top:10px" id="tr_done"><p class="kick">YOUR CLIP</p><p class="small">' + esc(TR.made.name) + ' · ' + TR.made.secs + ' seconds.' + (TR.made.hub ? ' It’s in your Hub’s library too, ready for your page.' : '') + '</p><div class="row"><a class="btn" id="tr_save" href="' + TR.made.url + '" download="' + esc(TR.made.name) + '">SAVE TO PHONE</a><a class="btn ghost" href="../archbook/">TAG IT IN REEL ROOM</a></div></div>';
     return h + '<div class="row" style="margin-top:10px"><button class="btn quiet" id="tr_close">CLOSE</button></div></div>';
   }
   function jobRow(j) {

@@ -1,11 +1,13 @@
 /*
-  ARCHBOOK v0.3 · Actor Edition
-  Your footage, sorted by the character it expresses. Outputs reels. Footage first, tags by tapping, breakdown in, reel out.
+  REEL ROOM (was ARCHBOOK; the folder, storage and library files keep the old name) · Actor Edition
+  Start from the role: paste it, see what footage you've got for it and what you don't, cut a reel that fits.
+  Your moments are sorted by the character they show, in your own words. Videos come from a drop, the camera,
+  or FROM YOUR FOOTAGE (clips you made in Footage, used where they are, not copied again).
   Vanilla JS, offline, no account.
 */
 (function () {
   'use strict';
-  const VERSION = '0.3.2';
+  const VERSION = '0.4.0';
   const SCHEMA = 'ACT.ARCHBOOK/0.3';
   const OLD_SCHEMAS = ['ACT.REEL/0.3']; // REEL MAKER library files still open
   const E = window.ReelEngine;
@@ -65,7 +67,7 @@
 
   // ---------------------------------------------------------------- state
   const S = {
-    lib: null, tab: 'clips', clipId: null, reelId: null, lane: 'all', focusMoment: null, newMoment: null,
+    lib: null, tab: 'home', clipId: null, reelId: null, lane: 'all', focusMoment: null, newMoment: null,
     urls: {}, files: {}, linkNote: {}, mk: { in: null, out: null, thumb: null }, match: null, busy: null,
     fps: '30', res: '720', rendered: null
   };
@@ -135,13 +137,14 @@
       S.busy.n++; renderBusy();
     }
     S.busy = null; touch();
+    if (S.tab === 'home') S.tab = 'clips';
     render();
     toast((added ? plural(added, 'clip') + ' added' : '') + (relinked ? (added ? ', ' : '') + plural(relinked, 'clip') + ' re-linked' : '') + (bad ? '. ' + plural(bad, 'clip') + " won't play in this browser." : '.'));
   }
   async function link(c, file, url) {
     if (S.urls[c.id] && S.urls[c.id] !== url) URL.revokeObjectURL(S.urls[c.id]);
     S.urls[c.id] = url || URL.createObjectURL(file); S.files[c.id] = file;
-    if (S.lib.keep) { try { await DB.putMedia(c.id, file); c.kept = true; } catch (e) { c.kept = false; toast('Not enough space to keep a copy of ' + c.name + '. It stays linked until you close the app.'); } }
+    if (S.lib.keep && !c.take) { try { await DB.putMedia(c.id, file); c.kept = true; } catch (e) { c.kept = false; toast('Not enough space to keep a copy of ' + c.name + '. It stays linked until you close the app.'); } }
   }
   async function relinkFiles(files) {
     files = Array.from(files || []);
@@ -182,18 +185,17 @@
     down: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>',
     theme: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg>'
   };
-  const TABS = [['clips', 'CLIPS'], ['proof', 'FOOTAGE'], ['match', 'FOR A ROLE'], ['reels', 'REELS'], ['pack', 'PACK']];
-
+  const HICON = '<svg class="hico" viewBox="0 0 64 80" role="img" aria-label="Moments sorted into a reel"><rect class="pg" x="2" y="2" width="60" height="76" rx="5"/><rect class="a" x="9" y="12" width="20" height="13" rx="2"/><rect class="b" x="33" y="12" width="20" height="13" rx="2"/><rect class="b" x="9" y="30" width="20" height="13" rx="2"/><rect class="a" x="33" y="30" width="20" height="13" rx="2"/><path class="ln" d="M12 56h40"/><rect class="a" x="12" y="51" width="9" height="10" rx="1.5"/><rect class="a" x="24" y="51" width="9" height="10" rx="1.5"/><rect class="g" x="36" y="51" width="9" height="10" rx="1.5"/></svg>';
+  const SUB = { clips: 'YOUR VIDEOS', proof: 'YOUR MOMENTS', match: 'FOR A ROLE', reels: 'YOUR REELS', pack: 'KEEP IT SAFE' };
   function render() {
     closeSheet(true);
     if (S.tab === 'clip' && clipById(S.clipId)) return renderMarker();
-    const tabKey = S.tab === 'reel' ? 'reels' : S.tab;
-    const unsaved = S.lib.clips.length && (!S.lib.lastSaved || S.lib.dirty);
+    const views = { home: vHome, clips: vClips, proof: vProof, match: vMatch, reels: vReels, reel: vReel, pack: vPack };
+    if (!views[S.tab]) S.tab = 'home';
     app().innerHTML = `<div class="shell">
-      <header class="top"><div class="title"><b>ARCHBOOK</b><span>${esc(S.lib.profile.name || 'Your footage, sorted by archetype')}</span></div>
-        <button class="iconbtn" data-a="theme" aria-label="Light or dark">${ICON.theme}</button></header>
-      <main id="main">${({ clips: vClips, proof: vProof, match: vMatch, reels: vReels, reel: vReel, pack: vPack }[S.tab] || vClips)()}</main>
-      <nav class="tabs">${TABS.map(([k, l]) => `<button class="${tabKey === k ? 'on' : ''}" data-a="tab" data-t="${k}">${ICON[k]}<span>${l}</span>${k === 'pack' && unsaved ? '<i class="badge"></i>' : ''}</button>`).join('')}</nav>
+      <header class="top bhead"><div class="bwrap">${HICON}<div class="btx"><div class="kicker" style="margin:0">ACT · REEL ROOM</div><h1>Your reel, cut for the role</h1><p>A role comes in. See what footage you've got for it, and cut a reel that fits.</p></div><img class="bsig" src="../img/sigil-film-180.png" alt="THEACTORPAGE" width="64" height="64"><button class="iconbtn" data-a="theme" aria-label="Light or dark">${ICON.theme}</button></div></header>
+      <i class="hstk" aria-hidden="true"></i>
+      <main id="main">${SUB[S.tab] ? `<div class="backbar"><button class="btn ghost sm" data-a="tab" data-t="home">‹ REEL ROOM</button><span class="kicker" style="margin:0">${SUB[S.tab]}</span></div>` : ''}${views[S.tab]()}</main>
     </div>`;
     afterRender();
   }
@@ -208,6 +210,48 @@
   function renderBusy() {
     const b = $('#busy'); if (!b || !S.busy) return;
     b.innerHTML = `<div class="dim" style="font-size:14px;margin-bottom:6px">${esc(S.busy.label)} ${S.busy.n}/${S.busy.of}</div><div class="prog"><i style="width:${S.busy.n / S.busy.of * 100}%"></i></div>`;
+  }
+
+  // ---------------------------------------------------------------- HOME: start from the role
+  function laneList() {
+    const L = S.lib, cnt = k => L.moments.filter(m => m.tags.includes(k)).length;
+    const keys = Object.keys(L.tags).filter(k => cnt(k)).sort((a, b) => cnt(b) - cnt(a));
+    const out = keys.map(k => ({ v: k, name: tagLabel(k), ms: L.moments.filter(m => m.tags.includes(k)) }));
+    const un = L.moments.filter(m => !m.tags.length); if (un.length) out.push({ v: 'untagged', name: 'Not tagged yet', ms: un, faint: true });
+    return out;
+  }
+  const thumbOf = m => { const c = clipById(m.clip) || {}; return m.thumb || c.thumb || ''; };
+  function vHome() {
+    const L = S.lib, lanes = laneList(), unsaved = L.clips.length && (!L.lastSaved || L.dirty);
+    const role = `<div class="card rolebox"><div class="kicker" style="color:var(--tung-text)">A ROLE CAME IN</div><label for="bdtext" class="rq">What do you have for it?</label>
+      <textarea class="field" id="bdtext" data-f="breakdown" rows="3" placeholder="Paste the role description">${esc(L.lastBreakdown)}</textarea>
+      <div class="row" style="margin-top:10px"><button class="btn pri" data-a="domatch">SHOW ME WHAT I'VE GOT</button>${L.moments.length ? '' : '<span class="faint" style="font-size:13px">Works best once you have a few moments marked, below.</span>'}</div></div>`;
+    const moments = `<div class="lhead"><span class="kicker" style="margin:0">YOUR MOMENTS · BY THE CHARACTER THEY SHOW</span><span class="row"><button class="btn sm" data-a="tab" data-t="clips">YOUR VIDEOS · ${L.clips.length}</button>${window.Takes ? '<button class="btn sm" data-a="fromfootage">FROM YOUR FOOTAGE</button>' : ''}<button class="btn sm" data-a="addclips">+ ADD A VIDEO</button></span></div>
+      ${lanes.length ? `<div class="card lanesbox">${lanes.map(l => `<button class="lanerow" data-a="lanego" data-v="${esc(l.v)}"><span class="ln${l.faint ? ' faint' : ''}">${esc(l.name)}<i>${plural(l.ms.length, 'moment')}</i></span><span class="lth">${l.ms.slice(0, 6).map(m => thumbOf(m) ? `<img src="${thumbOf(m)}" alt="">` : '<span></span>').join('')}</span></button>`).join('')}</div>
+        <p class="faint" style="font-size:13px;margin:6px 0 0">The words are yours. A moment is a few seconds you marked in one of your videos. Open a video to mark more.</p>`
+      : `<div class="card how"><ol><li><b>Bring in a video:</b> a scene, a self tape, set footage, or a clip from your footage.</li><li><b>Mark a moment</b> and say, in your words, what character it shows.</li><li><b>Paste a role</b> above. You see what you've got for it, and cut a reel that fits.</li></ol></div>`}`;
+    const reels = `<span class="kicker" style="display:block;margin:0 0 8px">YOUR REELS</span><div class="card">${L.reels.length ? L.reels.slice(0, 6).map(r => `<button class="reelmini" data-a="openreel" data-id="${r.id}"><span><b>${esc(r.name)}</b><small>${fmtShort(reelLen(r))} · ${plural(r.items.length, 'moment')}</small></span></button>`).join('') + (L.reels.length > 6 ? `<button class="btn sm ghost" data-a="tab" data-t="reels">ALL ${L.reels.length} REELS</button>` : '') : '<p class="faint" style="font-size:14px;margin:0">None yet. Paste a role and build one, or start one yourself.</p>'}<div class="row" style="margin-top:8px"><button class="btn sm" data-a="newreel">+ A NEW REEL</button></div></div>`;
+    const wants = `<span class="kicker" style="display:block;margin:14px 0 8px">YOUR SHOOT LIST</span><div class="card">${L.wants.length ? L.wants.map(w => `<div class="row" style="justify-content:space-between;flex-wrap:nowrap;padding:4px 0"><span style="flex:1;min-width:0">${esc(w.text)}</span><button class="btn sm ghost" data-a="scene" data-k="${esc(w.key)}">A SCENE TO SHOOT</button><button class="iconbtn" data-a="unwant" data-k="${esc(w.key)}" aria-label="Take ${esc(w.text)} off the shoot list">${ICON.close}</button></div>`).join('') : '<p class="faint" style="font-size:14px;margin:0">What a role asked for that you don\'t have on video yet. Empty for now.</p>'}</div>`;
+    const keep = `<button class="btn block keepbtn" data-a="tab" data-t="pack" style="margin-top:14px">KEEP IT SAFE <span class="faint">${unsaved ? 'not saved to a file yet' : 'backup, your name card'}</span></button>`;
+    return `<div class="hgrid"><div class="hl">${role}${moments}</div><aside class="hr">${reels}${wants}${keep}</aside></div>${window.Kit ? `<div style="margin-top:18px">${Kit.html([{ id: 'shoot', dev: 'camera', label: 'CAMERA', what: 'Shoot a clip', note: 'Straight into your videos here. Kept in this app; save it to the phone too' }])}</div>` : ''}`;
+  }
+  /* FROM YOUR FOOTAGE: the clips you made in Footage (and other reel clips), used where they are */
+  function footageSheet() {
+    const T = window.Takes; if (!T) return;
+    const have = new Set(S.lib.clips.filter(c => c.take).map(c => c.take));
+    const list = T.all('clip').filter(t => t.kept && /^video/.test(t.mime || t.kind || 'video'));
+    openSheet(`<div class="kicker">From your footage</div><h3 style="margin:4px 0 8px">Your clips</h3>
+      ${list.length ? list.map(t => `<div class="row" style="justify-content:space-between;flex-wrap:nowrap;padding:6px 0;border-bottom:1px solid var(--line)"><span style="flex:1;min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc((t.for && t.for.title) || t.name || 'Clip')}</b><small class="faint">${esc([t.for && t.for.role, t.secs ? fmtShort(t.secs) : '', t.name].filter(Boolean).join(' · '))}</small></span>${have.has(t.id) ? '<span class="faint" style="font-size:13px">HERE</span>' : `<button class="btn sm" data-a="usetake" data-id="${esc(t.id)}">USE IT</button>`}</div>`).join('')
+        : '<p class="dim" style="font-size:14px">No clips yet. Trim one in <a href="../footage/">Footage</a> and it shows here.</p>'}
+      <p class="faint" style="font-size:13px;margin:10px 0 0">Used where it is: nothing is copied again.</p>`);
+  }
+  async function useTake(id) {
+    const T = window.Takes, t = T && T.get(id); if (!t) return;
+    if (S.lib.clips.some(c => c.take === id)) { toast('Already here.'); return; }
+    const b = await T.blob(id); if (!b) { toast('That clip isn\'t on this device any more.'); return; }
+    const url = URL.createObjectURL(b), p = await probe(url);
+    const c = { id: rid(), take: id, from: 'footage', name: t.name || ((t.for && t.for.title) || 'Clip') + '.' + (t.ext || 'mp4'), size: b.size, type: b.type || '', lastModified: t.at || 0, dur: p.dur, w: p.w, h: p.h, thumb: p.thumb, playable: p.playable, added: now(), kept: true };
+    S.lib.clips.push(c); S.urls[c.id] = url; S.files[c.id] = b; touch(); closeSheet(true); render(); toast('In your videos. Open it to mark a moment.');
   }
 
   // ---------------------------------------------------------------- CLIPS
@@ -250,11 +294,10 @@
     const L = S.lib, unl = L.clips.filter(c => !linked(c)).length;
     const counts = {}; L.moments.forEach(m => counts[m.clip] = (counts[m.clip] || 0) + 1);
     return `
-      ${L.clips.length ? '' : `<div style="padding:12px 0 4px"><div class="kicker">THEACTORPAGE · ACT</div><h1 style="font-size:32px;letter-spacing:.12em">ARCHBOOK</h1><div style="color:var(--tung-text);letter-spacing:.06em;margin-top:2px">Your footage, sorted by archetype.</div>
-        <p class="dim" style="margin:6px 0 0;max-width:34em">Drop your footage. Mark your best moments and what character each one expresses. Paste a breakdown and see what footage you've got for the role, then play the reel and hand it off.</p></div>`}
-      ${window.Kit ? Kit.html([{ id: 'shoot', dev: 'camera', label: 'CAMERA', what: 'Shoot a clip', note: 'Straight into your footage. Kept in this app; save it to the phone too' }]) : ''}
+      ${window.Kit ? Kit.html([{ id: 'shoot', dev: 'camera', label: 'CAMERA', what: 'Shoot a clip', note: 'Straight into your videos here. Kept in this app; save it to the phone too' }]) : ''}
+      ${window.Takes ? '<div class="row" style="margin:4px 0 10px"><button class="btn" data-a="fromfootage">FROM YOUR FOOTAGE</button><span class="faint" style="font-size:13px">Clips you made in Footage, used where they are.</span></div>' : ''}
       <div class="drop" id="drop" data-a="addclips" role="button" tabindex="0">
-        <b>${L.clips.length ? 'Add more footage' : 'Drop footage'}</b>
+        <b>${L.clips.length ? 'Add more videos' : 'Drop a video'}</b>
         <span class="dim" style="font-size:14px">Scenes, self tapes, set footage. From your camera roll or a folder.</span>
         <span class="btn pri">Choose videos</span>
       </div>
@@ -263,7 +306,7 @@
       ${L.clips.length ? `<div class="kicker">${plural(L.clips.length, 'clip')} · ${plural(L.moments.length, 'moment')}</div>
       <div class="grid">${L.clips.map(c => `<button class="clip" data-a="openclip" data-id="${c.id}">
         <span class="thumbwrap">${c.thumb ? `<img class="thumb" src="${c.thumb}" alt="">` : '<span class="thumb"></span>'}<span class="t">${fmtShort(c.dur)}</span>${!c.playable ? '<span class="st">WON\'T PLAY HERE</span>' : !linked(c) ? '<span class="st">NOT LINKED</span>' : ''}</span>
-        <span class="meta"><b>${esc(c.name)}</b><small>${counts[c.id] ? plural(counts[c.id], 'moment') : 'no moments yet'}${S.linkNote[c.id] ? ' · ' + esc(S.linkNote[c.id]) : ''}</small></span></button>`).join('')}</div>` : ''}`;
+        <span class="meta"><b>${esc(c.name)}</b><small>${c.take ? 'from your footage · ' : ''}${counts[c.id] ? plural(counts[c.id], 'moment') : 'no moments yet'}${S.linkNote[c.id] ? ' · ' + esc(S.linkNote[c.id]) : ''}</small></span></button>`).join('')}</div>` : ''}`;
   }
 
   // ---------------------------------------------------------------- MARKER (one clip)
@@ -272,9 +315,9 @@
     const c = clipById(S.clipId);
     S.mk = { in: null, out: null, thumb: null };
     app().innerHTML = `<div class="shell" style="padding-left:0"><main style="max-width:900px;padding-bottom:40px">
-      <div class="row" style="flex-wrap:nowrap;margin-bottom:8px"><button class="iconbtn" data-a="tab" data-t="${S.backTo || 'clips'}" aria-label="Back">${ICON.back}</button>
+      <div class="row" style="flex-wrap:nowrap;margin-bottom:8px"><button class="iconbtn" data-a="tab" data-t="${S.backTo || 'home'}" aria-label="Back">${ICON.back}</button>
         <div style="flex:1;min-width:0"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name)}</b><span class="faint" style="font-size:13px">${fmtShort(c.dur)} · ${c.w}x${c.h}</span></div>
-        <button class="iconbtn" data-a="delclip" aria-label="Remove clip">${ICON.close}</button></div>
+        <button class="iconbtn" data-a="delclip" aria-label="Take this video out">${ICON.close}</button></div>
       ${!c.playable ? `<div class="msg bad">This browser can't play ${esc(c.name)}. iPhone footage (HEVC) plays in Safari and on Macs; on Windows Chrome it needs the HEVC extension. Your other clips are fine.</div>` :
         !linked(c) ? `<div class="msg">This clip isn't linked on this device. <button class="btn sm" data-a="relink">Re-link videos</button></div>` : `
       <div class="stage"><video id="mv" playsinline preload="auto" src="${S.urls[c.id]}"></video></div>
@@ -341,11 +384,11 @@
         <div class="h">${opts.showClip ? esc(c.name) + ' · ' : ''}${fmt(m.in)} to ${fmt(m.out)} · ${fmt(dur(m))}</div>
         <input class="field" style="min-height:40px;padding:6px 10px;font-size:15px;margin-top:4px" data-f="label" data-id="${m.id}" value="${esc(m.label || '')}" placeholder="Name it (optional)" aria-label="Moment name">
         <div class="tagbox">${m.tags.map(k => `<button class="chip tag" data-a="untag" data-id="${m.id}" data-k="${esc(k)}">${esc(tagLabel(k))}<span class="x">×</span></button>`).join('')}
-          <input class="tagin" data-f="tagin" data-id="${m.id}" placeholder="${m.tags.length ? 'Add' : 'What character does this express? e.g. authority'}" enterkeyhint="done" aria-label="Add a tag"></div>
+          <input class="tagin" data-f="tagin" data-id="${m.id}" placeholder="${m.tags.length ? 'Add' : 'What character does this show? Your words'}" enterkeyhint="done" aria-label="Add a tag"></div>
         ${sugg.length ? `<div class="sugg">${sugg.map(k => `<button class="chip" data-a="tagadd" data-id="${m.id}" data-k="${esc(k)}">+ ${esc(tagLabel(k))}</button>`).join('')}</div>` : ''}
         <div class="row" style="margin-top:8px">
-          <button class="flag ${m.open ? 'on' : ''}" data-a="flag" data-id="${m.id}" data-f2="open">Opener</button>
-          <button class="flag ${m.button ? 'on' : ''}" data-a="flag" data-id="${m.id}" data-f2="button">Button</button>
+          <button class="flag ${m.open ? 'on' : ''}" data-a="flag" data-id="${m.id}" data-f2="open">A good first moment</button>
+          <button class="flag ${m.button ? 'on' : ''}" data-a="flag" data-id="${m.id}" data-f2="button">A good last moment</button>
           <button class="btn sm" data-a="playmoment" data-id="${m.id}">Play</button>
           ${opts.showClip ? `<button class="btn sm ghost" data-a="gomoment" data-id="${m.id}">Open clip</button>` : ''}
           <button class="iconbtn" data-a="delmoment" data-id="${m.id}" aria-label="Delete moment">${ICON.close}</button>
@@ -355,7 +398,7 @@
   function renderMoments() {
     const box = $('#mlist'); if (!box) return;
     const ms = S.lib.moments.filter(m => m.clip === S.clipId).sort((a, b) => a.in - b.in);
-    box.innerHTML = ms.length ? `<div class="kicker">${plural(ms.length, 'moment')} in this clip</div>` + ms.map(m => momentCard(m)).join('') : `<p class="faint" style="font-size:14px">Play it, tap IN where the moment starts and OUT where it lands, then save. Tag it with the character it expresses.</p>`;
+    box.innerHTML = ms.length ? `<div class="kicker">${plural(ms.length, 'moment')} in this clip</div>` + ms.map(m => momentCard(m)).join('') : `<p class="faint" style="font-size:14px">Play it, tap IN where the moment starts and OUT where it lands, then save. Say what character it shows, in your words.</p>`;
     drawMarks();
   }
 
@@ -367,15 +410,15 @@
     let list = L.moments;
     if (lane === 'open') list = list.filter(m => m.open); else if (lane === 'button') list = list.filter(m => m.button); else if (lane === 'untagged') list = list.filter(m => !m.tags.length); else if (lane !== 'all') list = list.filter(m => m.tags.includes(lane));
     const untagged = L.moments.filter(m => !m.tags.length).length;
-    return `<div class="kicker">Footage</div><h1 style="font-size:24px;margin-bottom:10px">${plural(L.moments.length, 'moment')}${keys.length ? ' · ' + plural(keys.length, 'character note') : ''}</h1>
+    return `<h1 style="font-size:24px;margin-bottom:10px">${plural(L.moments.length, 'moment')}${keys.length ? ' · ' + plural(keys.length, 'of your words', 'of your words') : ''}</h1>
       ${L.moments.length ? `<div class="lanes">
         <button class="chip ${lane === 'all' ? 'on' : ''}" data-a="lane" data-v="all">All ${L.moments.length}</button>
-        <button class="chip ${lane === 'open' ? 'on' : ''}" data-a="lane" data-v="open">Openers ${L.moments.filter(m => m.open).length}</button>
-        <button class="chip ${lane === 'button' ? 'on' : ''}" data-a="lane" data-v="button">Buttons ${L.moments.filter(m => m.button).length}</button>
-        ${untagged ? `<button class="chip ${lane === 'untagged' ? 'on' : ''}" data-a="lane" data-v="untagged">Untagged ${untagged}</button>` : ''}
+        <button class="chip ${lane === 'open' ? 'on' : ''}" data-a="lane" data-v="open">First moments ${L.moments.filter(m => m.open).length}</button>
+        <button class="chip ${lane === 'button' ? 'on' : ''}" data-a="lane" data-v="button">Last moments ${L.moments.filter(m => m.button).length}</button>
+        ${untagged ? `<button class="chip ${lane === 'untagged' ? 'on' : ''}" data-a="lane" data-v="untagged">Not tagged yet ${untagged}</button>` : ''}
         ${keys.map(k => `<button class="chip ${lane === k ? 'on' : ''}" data-a="lane" data-v="${esc(k)}">${esc(tagLabel(k))} ${count(k)}</button>`).join('')}
-      </div>` + list.map(m => momentCard(m, { showClip: true })).join('') : `<p class="dim">Nothing marked yet. Open a clip in CLIPS and mark a moment.</p>`}
-      ${L.wants.length ? `<div class="card" style="margin-top:16px"><div class="kicker">Shoot list</div>${L.wants.map(w => `<div class="row" style="justify-content:space-between;flex-wrap:nowrap"><span style="flex:1;min-width:0">${esc(w.text)}</span><button class="btn ghost" data-a="scene" data-k="${esc(w.key)}" style="min-height:40px">Give me a scene</button><button class="iconbtn" data-a="unwant" data-k="${esc(w.key)}" aria-label="Remove">${ICON.close}</button></div>`).join('')}
+      </div>` + list.map(m => momentCard(m, { showClip: true })).join('') : `<p class="dim">Nothing marked yet. Open one of your videos and mark a moment.</p>`}
+      ${L.wants.length ? `<div class="card" style="margin-top:16px"><div class="kicker">Your shoot list</div>${L.wants.map(w => `<div class="row" style="justify-content:space-between;flex-wrap:nowrap"><span style="flex:1;min-width:0">${esc(w.text)}</span><button class="btn ghost" data-a="scene" data-k="${esc(w.key)}" style="min-height:40px">A scene to shoot</button><button class="iconbtn" data-a="unwant" data-k="${esc(w.key)}" aria-label="Remove">${ICON.close}</button></div>`).join('')}
         <p class="faint" style="font-size:13px;margin:10px 0 0">No footage of it yet? Get a scene you can write tonight and tape tomorrow.</p></div>` : ''}`;
   }
 
@@ -389,24 +432,38 @@
   function cutsAll() { try { const a = JSON.parse(localStorage.getItem(CUTS) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
   function cutSave(r) { if (!r || !r.spotted) return; const a = cutsAll().filter(c => c.reel !== r.id); a.push({ spotted: r.spotted, reel: r.id, name: r.name, secs: Math.round(reelLen(r)), from: r.spottedFrom || 'role', at: Date.parse(r.at) || Date.now() }); try { localStorage.setItem(CUTS, JSON.stringify(a.slice(-200))); } catch (e) { } }
   function forBanner(f) { return `<div class="msg" id="forspotted" style="font-size:14px"><b>For ${esc(f.project || 'this project')}${f.role ? ' · ' + esc(f.role) : ''}</b>, from Spotted. ${f.src === 'role' ? 'Read from the role\'s own words.' : 'There\'s no role description on this one, so it\'s read from the project\'s kind and your types. Paste the breakdown if your reps have it.'}<div class="row" style="margin-top:8px"><button class="btn ghost" data-a="tospotted" data-id="${esc(f.spotted)}">‹ Back to Spotted</button></div></div>`; }
+  /* the role, with what you have footage for lit, and what you don't underlined */
+  function litRole(t, M) {
+    let h = esc(t); if (!M) return h;
+    const re = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const mark = (txt, cls) => { const w = String(txt || '').split(/[\s-]+/).filter(Boolean).map(re); if (!w.length) return;
+      h = h.replace(new RegExp('(^|[^\\w>])(' + w.join('[\\s-]+') + ')(?![\\w<])', 'i'), '$1<span class="' + cls + '">$2</span>'); };
+    M.covered.forEach(r => mark(r.text, 'hi')); M.missing.forEach(r => mark(r.text, 'no'));
+    return h;
+  }
   function vMatch() {
     if (S.match === null && S.lib.lastBreakdown) runMatch();
-    const M = S.match;
-    return `${S.forSpotted ? forBanner(S.forSpotted) : ''}<div class="kicker">For a role</div><h1 style="font-size:24px;margin-bottom:6px">Do you have footage for this?</h1>
-      <p class="dim" style="font-size:14px;margin:0 0 10px">Paste the role description. Your tags are matched by word root ("menacing" finds "menace"). Nothing is assumed.</p>
-      <textarea class="field" id="bdtext" data-f="breakdown" placeholder="[SHERIFF DALE] 40s-50s. Weathered small-town sheriff with quiet authority and a dry sense of humor. Menacing when pushed.">${esc(S.lib.lastBreakdown)}</textarea>
-      <div class="row" style="margin:8px 0 16px"><button class="btn pri" data-a="domatch">Read it</button>${S.lib.lastBreakdown ? '<button class="btn ghost" data-a="clearmatch">Clear</button>' : ''}</div>
-      ${M ? `
-        <div class="card">
-          <div class="row" style="justify-content:space-between;margin-bottom:8px"><b>${M.covered.length} of ${M.rows.length} covered</b><span class="faint" style="font-size:13px">${Math.round(M.coverage * 100)}%</span></div>
-          <div class="kicker" style="margin-top:4px">You've got footage</div>
-          <div class="row">${M.covered.map(r => `<button class="chip got" data-a="showrow" data-k="${esc(r.key)}">${esc(r.text)} <b>${r.moments.length}</b></button>`).join('') || '<span class="faint">Nothing yet.</span>'}</div>
-          <div class="kicker" style="margin-top:14px">No footage yet</div>
-          <div class="row">${M.missing.map(r => `<button class="chip miss" data-a="missrow" data-k="${esc(r.key)}">${esc(r.text)}${S.lib.wants.some(w => w.key === r.key) ? ' · on shoot list' : ''}</button>`).join('') || '<span class="faint">Nothing missing.</span>'}</div>
-          <p class="faint" style="font-size:13px;margin:10px 0 0">Tap a missing one to say which of your tags covers it, or put it on your shoot list.</p>
+    const M = S.match, L = S.lib;
+    const words = r => [...new Set(r.tags.map(tagLabel))].join(', ');
+    const thumbs = r => r.moments.slice(0, 3).map(id => momentById(id)).filter(Boolean).map(m => thumbOf(m) ? `<img src="${thumbOf(m)}" alt="">` : '').join('');
+    return `${S.forSpotted ? forBanner(S.forSpotted) : ''}
+      ${M && !S.editRole ? `<div class="card roletext"><div class="row" style="justify-content:space-between;margin-bottom:6px"><span class="kicker" style="margin:0">THE ROLE</span><button class="btn sm ghost" data-a="editrole">CHANGE IT</button></div><div>${litRole(L.lastBreakdown, M)}</div></div>`
+      : `<h1 style="font-size:24px;margin-bottom:6px">What do you have for it?</h1>
+      <p class="dim" style="font-size:14px;margin:0 0 10px">Paste the role description. It's matched on your own words, by the root of the word ("menacing" finds "menace"). Nothing is assumed.</p>
+      <textarea class="field" id="bdtext" data-f="breakdown" placeholder="Paste the role description">${esc(L.lastBreakdown)}</textarea>
+      <div class="row" style="margin:8px 0 16px"><button class="btn pri" data-a="domatch">SHOW ME WHAT I'VE GOT</button>${L.lastBreakdown ? '<button class="btn ghost" data-a="clearmatch">Clear</button>' : ''}</div>`}
+      ${M ? `<div class="mgrid"><div>
+        <div class="card"><div class="kicker">YOU HAVE FOOTAGE FOR</div>
+          ${M.covered.map(r => `<button class="mrow" data-a="showrow" data-k="${esc(r.key)}"><span class="mt"><b>${esc(r.text)}</b><small>your word${r.tags.length > 1 ? 's' : ''}: ${esc(words(r))}</small></span><span class="lth">${thumbs(r)}</span><span class="mn">${r.moments.length}</span></button>`).join('') || '<p class="faint" style="margin:0;font-size:14px">Nothing yet.</p>'}</div>
+        <div class="card"><div class="kicker">NO FOOTAGE YET</div>
+          ${M.missing.map(r => { const w = L.wants.some(x => x.key === r.key); return `<div class="mrow miss"><b class="mt">${esc(r.text)}</b><span class="row"><button class="btn sm ghost" data-a="missrow" data-k="${esc(r.key)}">MY WORD COVERS IT</button><button class="btn sm ghost" data-a="want" data-k="${esc(r.key)}" data-t="${esc(r.text)}">${w ? 'ON YOUR SHOOT LIST ✓' : 'ADD TO SHOOT LIST'}</button><button class="btn sm ghost" data-a="scenefor" data-k="${esc(r.key)}" data-t="${esc(r.text)}">A SCENE TO SHOOT</button></span></div>`; }).join('') || '<p class="faint" style="margin:0;font-size:14px">Nothing missing.</p>'}</div>
+        <p class="faint" style="font-size:13px;margin:0">Matched on your own words. No score, nothing guessed about you.</p>
+      </div><div>
+        <div class="card"><div class="kicker">THE CUT FOR THIS ROLE</div>
+          ${M.covered.length ? `<p class="dim" style="font-size:14px;margin:0 0 10px">A good first moment first, a good last moment last, the most of the role covered in between. Change anything after.</p>
+          <div class="row">${[60, 90, 120].map(s => `<button class="btn ${s === 90 ? 'pri' : ''}" data-a="buildreel" data-s="${s}">BUILD ${fmtShort(s)}</button>`).join('')}</div>` : '<p class="faint" style="font-size:14px;margin:0">Once you have footage for any of it, the cut builds here.</p>'}
         </div>
-        ${M.covered.length ? `<div class="card"><b>Build a reel from this</b><p class="dim" style="font-size:14px;margin:4px 0 10px">Opener first, button last, the most descriptors covered in between. You can change everything after.</p>
-          <div class="row">${[60, 90, 120].map(s => `<button class="btn ${s === 90 ? 'pri' : ''}" data-a="buildreel" data-s="${s}">${s / 60 === 1 ? '1:00' : fmtShort(s)}</button>`).join('')}</div></div>` : ''}` : ''}`;
+      </div></div>` : ''}`;
   }
 
   // ---------------------------------------------------------------- REELS
@@ -416,7 +473,7 @@
     return `<div class="row" style="justify-content:space-between;align-items:flex-end;margin-bottom:12px"><div><div class="kicker">Reels</div><h1 style="font-size:24px">${plural(L.reels.length, 'reel')}</h1></div><button class="btn pri" data-a="newreel">New reel</button></div>
       ${L.reels.map(r => `<button class="reelrow" style="width:100%;text-align:left" data-a="openreel" data-id="${r.id}">
         ${(() => { const m = momentById(r.items[0]); const c = m && clipById(m.clip); return m && (m.thumb || (c && c.thumb)) ? `<img src="${m.thumb || c.thumb}" alt="">` : '<span class="cardthumb">EMPTY</span>'; })()}
-        <span class="b"><b>${esc(r.name)}</b><small>${plural(r.items.length, 'moment')} · ${fmtShort(reelLen(r))} of ${fmtShort(r.target)}</small></span></button>`).join('') || '<p class="dim">No reels yet. Build one from a breakdown in MATCH, or start one here.</p>'}`;
+        <span class="b"><b>${esc(r.name)}</b><small>${plural(r.items.length, 'moment')} · ${fmtShort(reelLen(r))} of ${fmtShort(r.target)}</small></span></button>`).join('') || '<p class="dim">No reels yet. Paste a role on the front and build one, or start one here.</p>'}`;
   }
   function seqFor(r) {
     const p = S.lib.profile, seq = [];
@@ -432,7 +489,7 @@
     const M = r.breakdown ? E.matchBreakdown(r.breakdown, S.lib.moments.filter(m => r.items.includes(m.id)), S.lib.tags, S.lib.aliases) : null;
     const p = S.lib.profile;
     if (r.spotted) cutSave(r);
-    return `${r.spotted ? `<div class="msg" id="cutfor" style="font-size:14px">A cut for <b>${esc(r.spottedProject || 'a card in Spotted')}</b>. Spotted's card and the notes to your reps say it's ready. <button class="btn ghost" style="margin-left:6px" data-a="tospotted" data-id="${esc(r.spotted)}">‹ Back to Spotted</button></div>` : ''}<div class="row" style="flex-wrap:nowrap;margin-bottom:8px"><button class="iconbtn" data-a="tab" data-t="reels" aria-label="All reels">${ICON.back}</button>
+    return `${r.spotted ? `<div class="msg" id="cutfor" style="font-size:14px">A cut for <b>${esc(r.spottedProject || 'a card in Spotted')}</b>. Spotted's card and the notes to your reps say it's ready. <button class="btn ghost" style="margin-left:6px" data-a="tospotted" data-id="${esc(r.spotted)}">‹ Back to Spotted</button></div>` : ''}<div class="row" style="flex-wrap:nowrap;margin-bottom:8px"><button class="iconbtn" data-a="tab" data-t="home" aria-label="Back to the Reel Room">${ICON.back}</button>
         <input class="field" style="flex:1" data-f="reelname" value="${esc(r.name)}" aria-label="Reel name"><button class="iconbtn" data-a="delreel" aria-label="Delete reel">${ICON.close}</button></div>
       <div class="len ${over ? 'over' : ''}"><i style="width:${Math.min(100, len / (r.target * 1.3) * 100)}%"></i><span class="tgt" style="left:${100 / 1.3}%"></span></div>
       <div class="row" style="justify-content:space-between;font-size:14px"><span>${fmtShort(len)} <span class="faint">of ${fmtShort(r.target)} target</span></span>
@@ -441,21 +498,21 @@
       <div class="row" style="margin:12px 0">
         <button class="flag ${r.slate ? 'on' : ''}" data-a="slate" data-v="slate">Name card first</button>
         <button class="flag ${r.endcard ? 'on' : ''}" data-a="slate" data-v="endcard">Name card last</button>
-        ${(r.slate || r.endcard) && !p.name ? `<button class="btn sm ghost" data-a="tab" data-t="pack">Set your name in PACK</button>` : ''}
+        ${(r.slate || r.endcard) && !p.name ? `<button class="btn sm ghost" data-a="tab" data-t="pack">Set your name in KEEP IT SAFE</button>` : ''}
       </div>
       ${r.slate ? `<div class="reelrow"><span class="cardthumb">NAME CARD</span><span class="b"><b>${esc(p.name || 'Your name')}</b><small>2.5s</small></span></div>` : ''}
       ${r.items.map((id, i) => { const m = momentById(id); if (!m) return ''; const c = clipById(m.clip) || {};
-        return `<div class="reelrow">${m.thumb || c.thumb ? `<img src="${m.thumb || c.thumb}" alt="">` : ''}<span class="b"><b>${esc(m.label || c.name)}</b><small>${fmt(dur(m))} · ${esc(m.tags.map(tagLabel).join(', ') || 'untagged')}${m.open ? ' · opener' : ''}${m.button ? ' · button' : ''}${!linked(c) ? ' · not linked' : ''}</small></span>
+        return `<div class="reelrow">${m.thumb || c.thumb ? `<img src="${m.thumb || c.thumb}" alt="">` : ''}<span class="b"><b>${esc(m.label || c.name)}</b><small>${fmt(dur(m))} · ${esc(m.tags.map(tagLabel).join(', ') || 'untagged')}${m.open ? ' · first' : ''}${m.button ? ' · last' : ''}${!linked(c) ? ' · not linked' : ''}</small></span>
           <button class="iconbtn" data-a="mv" data-i="${i}" data-d="-1" ${i === 0 ? 'disabled' : ''} aria-label="Move up">${ICON.up}</button>
           <button class="iconbtn" data-a="mv" data-i="${i}" data-d="1" ${i === r.items.length - 1 ? 'disabled' : ''} aria-label="Move down">${ICON.down}</button>
           <button class="iconbtn" data-a="rmitem" data-i="${i}" aria-label="Remove from reel">${ICON.close}</button></div>`; }).join('')}
       ${r.endcard ? `<div class="reelrow"><span class="cardthumb">NAME CARD</span><span class="b"><b>${esc(p.name || 'Your name')}</b><small>2.5s</small></span></div>` : ''}
       <div class="row" style="margin:10px 0 16px"><button class="btn" data-a="additems">Add moments</button></div>
       ${unl ? `<div class="msg">${plural(unl, 'moment')} can't play on this device right now (not linked, or a format this browser can't play). They're skipped in playback and the video file, and kept in the cut list.</div>` : ''}
-      <div class="row"><button class="btn pri big" style="flex:1" data-a="playreel" ${r.items.length ? '' : 'disabled'}>Play the reel</button></div>
+      <div class="row"><button class="btn pri big" style="flex:1" data-a="playreel" ${r.items.length ? '' : 'disabled'}>PLAY IT</button></div>
       <div class="card" style="margin-top:16px">
-        <b>Hand it off</b>
-        <p class="dim" style="font-size:14px;margin:4px 0 10px">Cut list: your editor opens it with every cut placed. Source media relinks by file name.</p>
+        <b>For an editor</b>
+        <p class="dim" style="font-size:14px;margin:4px 0 10px">A cut list: your editor opens it with every cut placed. The videos relink by file name.</p>
         <label class="lab" for="fps">Frame rate of your footage</label>
         <select class="field" id="fps" data-f="fps">${Object.keys(E.RATES).map(k => `<option ${S.fps === k ? 'selected' : ''}>${k}</option>`).join('')}</select>
         <div class="row" style="margin-top:10px">
@@ -465,10 +522,10 @@
         </div>
       </div>
       <div class="card">
-        <b>Make the video file</b> <span class="faint" style="font-size:12px;letter-spacing:.1em">EXPERIMENT</span>
+        <b>Make the file</b>
         <p class="dim" style="font-size:14px;margin:4px 0 10px">Records the reel in real time inside the browser. ${fmtShort(len)} reel = about ${fmtShort(len + 3)} to make. Keep this screen open.</p>
         <div class="row"><button class="chip ${S.res === '720' ? 'on' : ''}" data-a="res" data-v="720">720p</button><button class="chip ${S.res === '1080' ? 'on' : ''}" data-a="res" data-v="1080">1080p</button>
-          <button class="btn pri" data-a="renderreel" ${r.items.length && typeof MediaRecorder !== 'undefined' ? '' : 'disabled'}>Make it</button></div>
+          <button class="btn pri" data-a="renderreel" ${r.items.length && typeof MediaRecorder !== 'undefined' ? '' : 'disabled'}>MAKE THE FILE</button></div>
         ${typeof MediaRecorder === 'undefined' ? '<p class="msg bad">This browser has no MediaRecorder. Use the cut list.</p>' : ''}
         <div id="renderout">${S.rendered && S.rendered.reel === r.id ? renderedBox() : ''}</div>
       </div>`;
@@ -486,19 +543,19 @@
   // ---------------------------------------------------------------- PACK
   function vPack() {
     const L = S.lib, p = L.profile, unl = L.clips.filter(c => !linked(c)).length;
-    return `<div class="kicker">Pack</div><h1 style="font-size:24px;margin-bottom:12px">Keep it, carry it</h1>
+    return `<h1 style="font-size:24px;margin-bottom:12px">Keep it safe</h1>
       <div class="card"><b>Name card</b><p class="dim" style="font-size:14px;margin:4px 0 0">Shown first and last on reels when you turn it on.</p>
         <label class="lab" for="pn">Name</label><input class="field" id="pn" data-f="p.name" value="${esc(p.name)}" placeholder="Your name">
         <label class="lab" for="p2">Line 2</label><input class="field" id="p2" data-f="p.line2" value="${esc(p.line2)}" placeholder="Phone or email">
         <label class="lab" for="p3">Line 3</label><input class="field" id="p3" data-f="p.line3" value="${esc(p.line3)}" placeholder="Rep, or your site"></div>
       <div class="card"><b>Library file</b>
-        <p class="dim" style="font-size:14px;margin:4px 0 10px">${L.lastSaved ? 'Last saved ' + new Date(L.lastSaved).toLocaleString() + '.' + (L.dirty ? ' ' + plural(L.dirty, 'change') + ' since.' : '') : '<b style="color:var(--tung-text)">Never saved to a file.</b>'} Holds every mark, tag and reel. The videos themselves are not inside it, they stay in your camera roll or folders.</p>
+        <p class="dim" style="font-size:14px;margin:4px 0 10px">${L.lastSaved ? 'Last saved ' + new Date(L.lastSaved).toLocaleString() + '.' + (L.dirty ? ' ' + plural(L.dirty, 'change') + ' since.' : '') : '<b style="color:var(--tung-text)">Never saved to a file.</b>'} Holds every moment, your words and your reels. The videos themselves are not inside it; they stay in your camera roll or folders.</p>
         <div class="row"><button class="btn pri" data-a="savelib">${isPhone() && navigator.canShare ? 'Save or share file' : 'Save library file'}</button><button class="btn" data-a="openlib">Open a library file</button></div></div>
       <div class="card"><b>Videos on this device</b>
         <p class="dim" style="font-size:14px;margin:4px 0 10px" id="storeinfo">${L.keep ? 'Copies are kept in this app so clips open without re-picking.' : 'Copies are not kept. Clips need re-linking each time.'} ${unl ? plural(unl, 'clip') + ' not linked right now.' : 'All clips linked.'}</p>
         <div class="row"><button class="flag ${L.keep ? 'on' : ''}" data-a="keep">Keep copies in this app</button><button class="btn" data-a="relink">Re-link videos</button>${window.showDirectoryPicker ? '<button class="btn ghost" data-a="relinkdir">Link a folder</button>' : ''}</div></div>
       <div class="row" style="margin:16px 0"><button class="btn ghost bad" data-a="wipe">Erase everything on this device</button></div>
-      <p class="faint" style="font-size:12px">ARCHBOOK ${VERSION}</p>`;
+      <p class="faint" style="font-size:12px">REEL ROOM ${VERSION}</p>`;
   }
   async function storeInfo() {
     try { const e = await navigator.storage.estimate(); const el = $('#storeinfo'); if (el) el.innerHTML += ` Using ${(e.usage / 1048576).toFixed(0)} MB of ${(e.quota / 1073741824).toFixed(1)} GB.`; } catch (e) { }
@@ -770,6 +827,11 @@
         break;
       }
       case 'lane': S.lane = ds.v; render(); break;
+      case 'lanego': S.lane = ds.v; S.tab = 'proof'; render(); window.scrollTo(0, 0); break;
+      case 'fromfootage': footageSheet(); break;
+      case 'usetake': useTake(ds.id); break;
+      case 'editrole': S.editRole = true; render(); break;
+      case 'scenefor': { if (!L.wants.some(w => w.key === ds.k)) { L.wants.push({ key: ds.k, text: ds.t, at: now() }); touch(); } sceneSheet(ds.k, 0); break; }
       case 'scene': sceneSheet(ds.k, 0); break;
       case 'scenenext': sceneSheet(ds.k, (+ds.i || 0) + 1); break;
       case 'sceneadd': { const id = ds.k + '|' + ds.id; S.sceneAdds = S.sceneAdds || {}; S.sceneOpen = S.sceneOpen || {}; (S.sceneOpen[id] = S.sceneOpen[id] || {})[ds.f] = true; sceneSheet(ds.k, +ds.i || 0, ds.f); break; }
@@ -785,8 +847,8 @@
       }
       case 'unwant': L.wants = L.wants.filter(w => w.key !== ds.k); touch(); render(); break;
       // match
-      case 'domatch': { const t = $('#bdtext'); L.lastBreakdown = t ? t.value : L.lastBreakdown; touch(true); runMatch(); render(); break; }
-      case 'clearmatch': L.lastBreakdown = ''; S.match = null; S.forSpotted = null; touch(true); render(); break;
+      case 'domatch': { const t = $('#bdtext'); L.lastBreakdown = t ? t.value : L.lastBreakdown; if (!L.lastBreakdown.trim()) { toast('Paste the role first.'); break; } touch(true); runMatch(); S.editRole = false; S.tab = 'match'; render(); window.scrollTo(0, 0); break; }
+      case 'clearmatch': L.lastBreakdown = ''; S.match = null; S.forSpotted = null; S.editRole = false; touch(true); render(); break;
       case 'showrow': {
         const r = S.match && S.match.rows.find(x => x.key === ds.k); if (!r) break;
         openSheet(`<div class="kicker">"${esc(r.text)}" · matched by ${esc(r.tags.map(tagLabel).join(', '))}</div>${r.moments.map(id => momentById(id)).filter(Boolean).map(m => momentCard(m, { showClip: true })).join('')}`);
@@ -797,7 +859,7 @@
         const keys = Object.keys(L.tags).sort((a, b) => L.tags[b].n - L.tags[a].n);
         const wanted = L.wants.some(w => w.key === r.key);
         openSheet(`<div class="kicker">No footage yet</div><h3 style="margin-bottom:10px">"${esc(r.text)}"</h3>
-          ${keys.length ? `<p class="dim" style="font-size:14px;margin:0 0 8px">Already have it under another name? Tap the tag that covers it. ARCHBOOK remembers it next time.</p><div class="row">${keys.map(k => `<button class="chip" data-a="alias" data-k="${esc(r.key)}" data-t="${esc(k)}">${esc(tagLabel(k))}</button>`).join('')}</div>` : '<p class="dim">No tags yet. Tag some moments first.</p>'}
+          ${keys.length ? `<p class="dim" style="font-size:14px;margin:0 0 8px">Already have it under another name? Tap the word of yours that covers it. It's remembered next time.</p><div class="row">${keys.map(k => `<button class="chip" data-a="alias" data-k="${esc(r.key)}" data-t="${esc(k)}">${esc(tagLabel(k))}</button>`).join('')}</div>` : '<p class="dim">No words yet. Mark a moment and say what it shows first.</p>'}
           <div class="row" style="margin-top:14px"><button class="btn ${wanted ? '' : 'pri'}" data-a="want" data-k="${esc(r.key)}" data-t="${esc(r.text)}">${wanted ? 'Take off shoot list' : 'Add to shoot list'}</button></div>`);
         break;
       }
@@ -817,7 +879,7 @@
       case 'newreel': { const r = { id: rid(), name: 'Reel ' + (L.reels.length + 1), items: [], target: 90, slate: !!L.profile.name, endcard: false, at: now() }; L.reels.unshift(r); touch(); S.reelId = r.id; S.tab = 'reel'; render(); break; }
       case 'openreel': S.reelId = ds.id; S.tab = 'reel'; render(); window.scrollTo(0, 0); break;
       case 'tospotted': { try { const u = JSON.parse(localStorage.getItem('spotted_ui_v1') || '{}'); u.tab = 'list'; u.open = ds.id; localStorage.setItem('spotted_ui_v1', JSON.stringify(u)); } catch (e) { } location.href = '../spotted/'; break; }
-      case 'delreel': if (confirm('Delete this reel? Your moments stay in the library.')) { L.reels = L.reels.filter(r => r.id !== S.reelId); touch(); act('tab', { t: 'reels' }); } break;
+      case 'delreel': if (confirm('Delete this reel? Your moments stay.')) { L.reels = L.reels.filter(r => r.id !== S.reelId); touch(); act('tab', { t: 'home' }); } break;
       case 'target': reelById(S.reelId).target = +ds.s; touch(); render(); break;
       case 'slate': { const r = reelById(S.reelId); r[ds.v] = !r[ds.v]; touch(); render(); break; }
       case 'mv': { const r = reelById(S.reelId), i = +ds.i, j = i + (+ds.d); if (j < 0 || j >= r.items.length) break; [r.items[i], r.items[j]] = [r.items[j], r.items[i]]; touch(); render(); break; }
@@ -846,7 +908,7 @@
       }
       case 'openlib': $('#libin').click(); break;
       case 'keep': L.keep = !L.keep; touch(); if (L.keep) { for (const c of L.clips) if (S.files[c.id] && !c.kept) { try { await DB.putMedia(c.id, S.files[c.id]); c.kept = true; } catch (e) { } } } else { for (const c of L.clips) { DB.delMedia(c.id).catch(() => { }); c.kept = false; } } touch(); render(); storeInfo(); break;
-      case 'wipe': if (confirm('Erase every clip copy, mark, tag and reel on this device? Save a library file first if you want to keep your work.')) { await DB.clearAll(); Object.values(S.urls).forEach(u => URL.revokeObjectURL(u)); S.urls = {}; S.files = {}; S.lib = emptyLib(); await DB.putLib(S.lib); S.tab = 'clips'; render(); } break;
+      case 'wipe': if (confirm('Erase every clip copy, mark, tag and reel on this device? Save a library file first if you want to keep your work.')) { await DB.clearAll(); Object.values(S.urls).forEach(u => URL.revokeObjectURL(u)); S.urls = {}; S.files = {}; S.lib = emptyLib(); await DB.putLib(S.lib); S.tab = 'home'; render(); } break;
       case 'closesheet': closeSheet(); break;
     }
   }
@@ -893,13 +955,13 @@
   $('#libin').addEventListener('change', async e => {
     const f = e.target.files[0]; e.target.value = ''; if (!f) return;
     try {
-      const d = JSON.parse(await f.text()); if (d.schema !== SCHEMA && !OLD_SCHEMAS.includes(d.schema)) throw new Error('Not an ARCHBOOK library file.'); d.schema = SCHEMA;
+      const d = JSON.parse(await f.text()); if (d.schema !== SCHEMA && !OLD_SCHEMAS.includes(d.schema)) throw new Error('Not a Reel Room library file.'); d.schema = SCHEMA;
       if (S.lib.clips.length && !confirm('Replace the library on this device with this file? Kept video copies stay and re-link by name and size.')) return;
       delete d.cco; delete d.note;
       const keepMedia = {}; S.lib.clips.forEach(c => { if (S.urls[c.id]) keepMedia[c.name + '|' + c.size] = { url: S.urls[c.id], file: S.files[c.id], id: c.id }; });
       S.lib = Object.assign(emptyLib(), d); S.urls = {}; S.files = {};
       for (const c of S.lib.clips) { const k = keepMedia[c.name + '|' + c.size]; if (k) { S.urls[c.id] = k.url; S.files[c.id] = k.file; if (S.lib.keep && k.id !== c.id) { try { await DB.putMedia(c.id, k.file); } catch (er) { } } } }
-      await DB.putLib(S.lib); S.match = null; S.tab = 'clips'; render(); toast('Library opened.');
+      await DB.putLib(S.lib); S.match = null; S.tab = 'home'; render(); toast('Library opened.');
     } catch (er) { toast(er.message); }
   });
   window.addEventListener('dragover', e => e.preventDefault());
@@ -911,7 +973,7 @@
     if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { });
     let lib = null; try { lib = await DB.getLib(); } catch (e) { }
     S.lib = lib && lib.schema === SCHEMA ? Object.assign(emptyLib(), lib) : emptyLib();
-    for (const c of S.lib.clips) { try { const b = await DB.getMedia(c.id); if (b) { S.urls[c.id] = URL.createObjectURL(b); S.files[c.id] = b; } } catch (e) { } }
+    for (const c of S.lib.clips) { try { const b = c.take && window.Takes ? await window.Takes.blob(c.take) : await DB.getMedia(c.id); if (b) { S.urls[c.id] = URL.createObjectURL(b); S.files[c.id] = b; } } catch (e) { } }
     try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { }
     try {
       const q = new URLSearchParams(location.search), h = JSON.parse(localStorage.getItem('theactorpage_handoff_cut') || 'null');

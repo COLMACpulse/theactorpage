@@ -447,8 +447,8 @@ S.addStory=function(it,card,raw,at){ at=at||Date.now(); const c=it.card, st=card
 /* what changed, for the reps sheet: your calls, new stories, cuts you built; never your status taps or notes */
 S.news=function(items){ const out=[]; (items||[]).forEach(it=>(it.log||[]).forEach(e=>{ if(/^(stage|story|casting|cut)$/.test(e.k)) out.push({id:it.id,project:(it.card&&it.card.project)||'(no title)',at:e.at,k:e.k,t:e.t}); })); return out.sort((a,b)=>a.at-b.at); };
 
-/* ---------- a cut for this one (ARCHBOOK) ----------
-   What Archbook reads to find your footage: the role's own words when the card has them (a notice, a breakdown),
+/* ---------- a cut for this one (REEL ROOM) ----------
+   What Reel Room reads to find your footage: the role's own words when the card has them (a notice, a breakdown),
    else the project's kind and genre with your types. It says which, so you know what the cut was built from. */
 S.cutText=function(card,types){
  card=card||{}; const r=(card.roles||[]).find(x=>x.name===card.role)||{}, desc=[r.desc,(card.musts||[]).join(' ')].filter(Boolean).join(' ').trim();
@@ -458,7 +458,7 @@ S.cutText=function(card,types){
  return {from:'project',text:head+' '+[bits,ty.length?'Right for: '+ty.join(', ')+'.':''].filter(Boolean).join('. ').replace(/\.\./g,'.')};
 };
 S.CUTS='theactorpage_cuts_v1';
-/* the cuts Archbook built for cards here: [{spotted, reel, name, secs, from, at}] */
+/* the cuts Reel Room built for cards here: [{spotted, reel, name, secs, from, at}] */
 S.cuts=function(){ try{ const a=JSON.parse(localStorage.getItem(S.CUTS)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } };
 S.cutFor=id=>S.cuts().filter(c=>c.spotted===id).sort((a,b)=>b.at-a.at)[0]||null;
 const mmss=n=>{ n=Math.round(n||0); return Math.floor(n/60)+':'+String(n%60).padStart(2,'0'); };

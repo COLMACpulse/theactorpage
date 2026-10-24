@@ -1,5 +1,5 @@
 /*
-  ARCHBOOK v0.3 ENGINE
+  REEL ROOM v0.3 ENGINE
   Pure functions. No DOM, no network. Browser (window.ReelEngine) and Node (module.exports).
     - tags:      normalize and keep a vocabulary that grows from use
     - match:     read a casting breakdown, find what you have footage for and what you don't

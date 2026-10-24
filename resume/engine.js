@@ -34,7 +34,7 @@
   const STOP = new Set('the and for with that this from have will your they them their about into over under than then when what who whom which while were been being also just very more most some such only into onto upon must should could would role character actor actors age ages range seeking looking type plays play playing scene scenes series film feature lead supporting male female man woman men women person people any all ethnicities ethnicity open'.split(' '));
   const words = t => (String(t || '').toLowerCase().match(/[a-z][a-z'-]{3,}/g) || []).map(w => w.replace(/'s$/, '').replace(/[-']/g, '')).filter(w => w.length >= 4 && !STOP.has(w));
   const r5 = w => w.slice(0, 5);
-  /* Which pieces fit a breakdown. Word roots, the same rule ARCHBOOK uses ("authoritative"
+  /* Which pieces fit a breakdown. Word roots, the same rule REEL ROOM uses ("authoritative"
      finds "authority"). A piece only matches on what it actually carries: its types,
      title, character and the line about it. An empty field matches nothing. */
   function roleMatch(breakdown, pieces) {
@@ -136,7 +136,7 @@
     const credits = (pieces || []).filter(p => countsCheck(p).counts).length;
     const clips = (pieces || []).filter(p => countsCheck(p).section === 'clip').length;
     if (!credits) out.push({ kind: 'finish', text: clips ? 'Turn your best scene into a short: give it a title, finish the edit, credit who helped, put it online.' : 'Shoot a scene with a friend, finish it as a short, and put it online. That is your first credit.' });
-    (shootList || []).forEach(w => out.push({ kind: 'shoot', text: `Shoot: ${clean(w.text)} (from your ARCHBOOK shoot list).` }));
+    (shootList || []).forEach(w => out.push({ kind: 'shoot', text: `Shoot: ${clean(w.text)} (from your REEL ROOM shoot list).` }));
     if (!(training || []).length) out.push({ kind: 'training', text: 'Add a class or coach. Even one line belongs on the résumé.' });
     if (!(skills || []).length) out.push({ kind: 'skills', text: 'List special skills: accents, languages, sports, instruments, stage combat, licences.' });
     return out;

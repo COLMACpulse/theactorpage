@@ -1,5 +1,5 @@
 /*
-  ARCHBOOK · scenes to shoot
+  REEL ROOM · scenes to shoot
   When the shoot list says you have no footage of something, this hands you a
   premise you can write in an evening and tape in a room: two people, one place,
   something you want and something in the way. Every role works for any actor.
@@ -223,7 +223,7 @@
       .map(a => '[[' + a.label.toUpperCase() + ': ' + String(adds[a.k]).trim().replace(/\]\]/g, ']') + ']]');
     return [
       'Title: ' + p.title, '',
-      '[[From your ARCHBOOK shoot list: "' + String(wantText || '').replace(/"/g, "'") + '"]]', '',
+      '[[From your REEL ROOM shoot list: "' + String(wantText || '').replace(/"/g, "'") + '"]]', '',
       '[[YOU: ' + p.you + '. ACROSS FROM YOU: ' + p.them + '.]]', '',
       '[[' + p.situation + ']]', '',
       '[[YOU WANT: ' + p.want + ' IN THE WAY: ' + p.way + ']]', '',

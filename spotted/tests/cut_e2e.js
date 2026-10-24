@@ -22,8 +22,8 @@ let box=await p.innerText('#cutbox');
 want('the card: A CUT FOR THIS, from the role\'s own words', /A CUT FOR THIS/i.test(box)&&/from the role's own words/.test(box)&&!!(await p.$('#buildcut')), box);
 await p.click('#buildcut'); await p.waitForURL(/archbook/); await p.waitForFunction(()=>window.ARCHBOOK&&ARCHBOOK.S.lib,null,{timeout:8000}); await p.waitForTimeout(500);
 const fb=await p.innerText('#forspotted');
-want('Archbook opens on FOR A ROLE, for Dust Road, read from the role', /For Dust Road · SHERIFF COLE/i.test(fb)&&/from Spotted/.test(fb)&&/role's own words/.test(fb)&&/WEATHERED|Weathered/.test(await p.inputValue('#bdtext')), fb);
-want('it sees the footage you have for the role', /covered/.test(await p.innerText('#main'))&&(await p.$$('.chip.got')).length>=2);
+want('Reel Room opens on FOR A ROLE, for Dust Road, read from the role', /For Dust Road · SHERIFF COLE/i.test(fb)&&/from Spotted/.test(fb)&&/role's own words/.test(fb)&&/WEATHERED|Weathered/.test(await p.evaluate(()=>ARCHBOOK.S.lib.lastBreakdown)), fb);
+want('it sees the footage you have for the role', /YOU HAVE FOOTAGE FOR/.test(await p.innerText('#main'))&&(await p.$$('[data-a="showrow"]')).length>=2);
 await p.click('[data-a="buildreel"][data-s="90"]'); await p.waitForTimeout(700);
 const cf=await p.innerText('#cutfor');
 want('build: a cut named for the project and role, tied to the card', /A cut for Dust Road/.test(cf)&&(await p.inputValue('[data-f="reelname"]'))==='Dust Road · SHERIFF COLE cut', [cf, await p.inputValue('[data-f="reelname"]')]);
@@ -31,14 +31,14 @@ const rec=await p.evaluate(()=>JSON.parse(localStorage.getItem('theactorpage_cut
 want('the cut is on record for the card, with its length', rec.length===1&&rec[0].spotted==='s1'&&rec[0].secs>=60&&rec[0].from==='role', rec);
 await p.click('#cutfor [data-a="tospotted"]'); await p.waitForURL(/spotted/); await p.waitForTimeout(800);
 box=await p.innerText('#cutbox');
-want('back in Spotted, on the card: the cut, its length, OPEN IN ARCHBOOK', /Dust Road · SHERIFF COLE cut/.test(box)&&/1:\d\d|2:00/.test(box)&&/OPEN IN ARCHBOOK/.test(box), box);
+want('back in Spotted, on the card: the cut, its length, OPEN IN REEL ROOM', /Dust Road · SHERIFF COLE cut/.test(box)&&/1:\d\d|2:00/.test(box)&&/OPEN IN REEL ROOM/.test(box), box);
 const pa=await p.inputValue('#t_pa'), pt=await p.inputValue('#t_pt');
 want('the notes to your reps say it\'s ready', /I put together a \d:\d\d cut for this role\. Say the word and I'll send it\./.test(pa)&&/There's a \d:\d\d cut for this role, ready to send\./.test(pt), [pa.slice(-160),pt.slice(-160)]);
-want('what changed: the cut, logged once', (await p.innerText('#changed')).match(/Built a \d:\d\d cut in Archbook\./g).length===1);
+want('what changed: the cut, logged once', (await p.innerText('#changed')).match(/Built a \d:\d\d cut in Reel Room\./g).length===1);
 await p.reload(); await p.waitForTimeout(600);
-want('still logged once after a reload', (await p.innerText('#changed')).match(/Built a \d:\d\d cut in Archbook\./g).length===1);
+want('still logged once after a reload', (await p.innerText('#changed')).match(/Built a \d:\d\d cut in Reel Room\./g).length===1);
 const href=await p.getAttribute('#cutbox a','href'); await p.click('#cutbox a'); await p.waitForURL(/archbook/); await p.waitForTimeout(800);
-want('OPEN IN ARCHBOOK: straight to that cut', /reel=/.test(href)&&(await p.inputValue('[data-f="reelname"]'))==='Dust Road · SHERIFF COLE cut');
+want('OPEN IN REEL ROOM: straight to that cut', /reel=/.test(href)&&(await p.inputValue('[data-f="reelname"]'))==='Dust Road · SHERIFF COLE cut');
 // FOR MY REPS
 await p.goto('http://localhost:8811/hub/?tab=reps'); await p.waitForTimeout(1500);
 await p.evaluate(()=>{ repsState().last={at:Date.now()-86400000*3,snap:{at:Date.now()-86400000*3,offices:{},want:[],rightFor:[],wantMore:[],wantSeen:[],fits:[],nets:[]}}; saveProfile(); render(); }); await p.waitForTimeout(400);
@@ -47,7 +47,7 @@ await p.evaluate(()=>{ repsState().last={at:Date.now()-86400000*3,snap:{at:Date.
 await p.goto('http://localhost:8811/spotted/index.html'); await p.evaluate(()=>{ You.setList('types',['rancher','authority']); const d=JSON.parse(localStorage.getItem('theactorpage_spotted_v1')); d.items.push({id:'s2',at:Date.now(),raw:'',card:Spotted.read('Netflix orders western series "Salt Flat".'),status:'spotted',history:[],note:'',mine:''}); localStorage.setItem('theactorpage_spotted_v1',JSON.stringify(d)); localStorage.setItem('spotted_ui_v1',JSON.stringify({tab:'list',open:'s2'})); }); await p.reload(); await p.waitForTimeout(700);
 want('no role description: it says the cut is built from the project and your types', /from the project's kind and your types \(there's no role description on this one\)/.test(await p.innerText('#cutbox')));
 await p.click('#buildcut'); await p.waitForURL(/archbook/); await p.waitForFunction(()=>window.ARCHBOOK&&ARCHBOOK.S.lib,null,{timeout:8000}); await p.waitForTimeout(500);
-want('Archbook says so too, and asks for the breakdown if your reps have it', /no role description on this one/.test(await p.innerText('#forspotted'))&&/Paste the breakdown if your reps have it/.test(await p.innerText('#forspotted'))&&/Right for: rancher, authority/.test(await p.inputValue('#bdtext')));
+want('Reel Room says so too, and asks for the breakdown if your reps have it', /no role description on this one/.test(await p.innerText('#forspotted'))&&/Paste the breakdown if your reps have it/.test(await p.innerText('#forspotted'))&&/Right for: rancher, authority/.test(await p.evaluate(()=>ARCHBOOK.S.lib.lastBreakdown)));
 want('the handoff is used once, then gone', await p.evaluate(()=>!localStorage.getItem('theactorpage_handoff_cut')));
 want('no em dashes', !/—/.test(pa+pt+box));
 want('no page errors', !errs.length, errs);

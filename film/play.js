@@ -1,5 +1,5 @@
 /* STORY STUDIO: play the cut, and make it into one video file, in this browser.
-   The sequencer is ARCHBOOK's (proven there: order, cuts within a frame, sound in sync), without the name cards.
+   The sequencer is REEL ROOM's (proven there: order, cuts within a frame, sound in sync), without the name cards.
    seq: [{url, in, out, label, adr?:{buffer, at, under}}] in seconds; adr = your re-recorded line starting at clip time `at`, original sound at `under` (0..1). Nothing leaves the device. */
 (function (g) {
   'use strict';

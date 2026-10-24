@@ -1,4 +1,4 @@
-# ARCHBOOK v0.3.2 · Actor Edition
+# REEL ROOM v0.3.2 · Actor Edition
 
 *Your footage, sorted by archetype.*
 
@@ -17,7 +17,7 @@ Your footage, sorted by the character each moment expresses. Footage first, tags
 6. **PACK** · Name card, library file, video copies, re-link.
 
 ## v0.2 → v0.3
-| REEL MAKER v0.2 | ARCHBOOK |
+| REEL MAKER v0.2 | REEL ROOM |
 |---|---|
 | No video anywhere. An 11-field form per clip | Real playback. Mark in/out by tapping while it plays |
 | Typed timecodes ("1:5:x" gave NaN; out before in gave 0s) | Marks come from the player. OUT with no IN sets IN 5s back. Under 0.3s can't save |
@@ -62,3 +62,6 @@ Every item on the shoot list has **Give me a scene**: a premise you can write in
 
 ## 0.3.4 (2026-10-14): make it yours
 The scene sheet has **Make it yours**: tap to add a secret, the history between the two, higher stakes, another obstacle or a reveal. One line each, all optional, nothing shown until you tap. Whatever you add goes into the notes at the top of the script in THEACTORPAGES. Mined from the Contribution Graph: the premise starts something, you add to it.
+
+## 0.4.0 (2026-10-24): REEL ROOM
+Renamed REEL ROOM on screen (the folder, storage and library files keep the archbook name). It starts from the role: the front is one box, "A role came in. What do you have for it?", with your moments sorted by your own words, your reels and your shoot list beside it. FOR A ROLE shows the role with what you have footage for lit, what you don't with MY WORD COVERS IT / ADD TO SHOOT LIST / A SCENE TO SHOOT, and BUILD 1:00 / 1:30 / 2:00. No bottom tabs, no percent. FROM YOUR FOOTAGE uses clips you made in Footage where they are (not copied again). Plain words: a good first moment / a good last moment, KEEP IT SAFE.

@@ -1,6 +1,6 @@
 {
-  "name": "ARCHBOOK",
-  "short_name": "ARCHBOOK",
+  "name": "REEL ROOM",
+  "short_name": "REEL ROOM",
   "description": "Your footage, sorted by archetype. Drop your footage, mark the moments, paste the breakdown. See what footage you've got for the role, play the reel, hand it off.",
   "start_url": "./",
   "scope": "./",

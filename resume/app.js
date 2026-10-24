@@ -81,7 +81,7 @@
         <div style="color:var(--tung-text);letter-spacing:.04em;margin-top:2px">Make the work. It becomes the résumé.</div>
         <p class="dim" style="margin:8px 0 0;max-width:36em">No credits yet? Shoot your own: a scene with a friend, a short, a monologue. Drop it here. Finish it and show it, and it stands on your résumé as a real credit. The rest goes on your page as clips.</p></div>`}
       <div class="drop" id="drop" data-a="addclip" role="button" tabindex="0"><b>Drop your work</b><span class="dim" style="font-size:14px">Scenes, shorts, monologues, self-tapes.</span><span class="btn pri">Choose videos</span></div>
-      <div class="row" style="margin-bottom:14px"><button class="btn" data-a="addblank">Add without a video</button>${S.sources.archbook ? `<button class="btn ghost" data-a="fromarch">Bring in from ARCHBOOK</button>` : ''}</div>
+      <div class="row" style="margin-bottom:14px"><button class="btn" data-a="addblank">Add without a video</button>${S.sources.archbook ? `<button class="btn ghost" data-a="fromarch">Bring in from REEL ROOM</button>` : ''}</div>
       ${L.pieces.length ? `<div class="kicker">${L.pieces.length} ${L.pieces.length === 1 ? 'piece' : 'pieces'} · ${credits} ${credits === 1 ? 'credit' : 'credits'}</div>` + L.pieces.map(p => `<button class="piece" data-a="edit" data-id="${p.id}">${p.clip && p.clip.thumb ? `<img src="${p.clip.thumb}" alt="">` : `<span class="ph">${p.link ? 'LINK' : 'NO VIDEO'}</span>`}
           <span class="b"><b>${esc(p.title || 'Untitled')}</b><span class="faint" style="font-size:13px">${esc((E.TYPES[p.type] || {}).label || 'Pick a type')}${p.character ? ' · ' + esc(p.character) : ''}${p.clip ? ' · ' + fmtShort(p.clip.dur) : ''}</span><br>${status(p)}</span></button>`).join('') : ''}`;
   }
@@ -172,7 +172,7 @@
     const N = nextList();
     const kind = { onestep: 'Close', finish: 'Make', shoot: 'Shoot', training: 'Add', skills: 'Add' };
     return `<div class="kicker">Next to make</div><h1 style="font-size:24px;margin-bottom:6px">What moves your résumé</h1>
-      <p class="dim" style="font-size:14px;margin:0 0 12px">Nearest win first. SLATE MAKER and ACTOR OS shoot it; ARCHBOOK files it.</p>
+      <p class="dim" style="font-size:14px;margin:0 0 12px">Nearest win first. SLATE MAKER and ACTOR OS shoot it; REEL ROOM files it.</p>
       ${N.map(n => `<button class="next" data-a="${n.kind === 'onestep' ? 'edit' : n.kind === 'training' ? 'tab' : n.kind === 'skills' ? 'tab' : 'noop'}" ${n.id ? `data-id="${n.id}"` : ''} ${n.kind === 'training' ? 'data-t="training"' : n.kind === 'skills' ? 'data-t="you"' : ''}><span class="k">${kind[n.kind]}</span><span>${esc(n.text)}</span></button>`).join('') || '<p class="dim">Nothing pressing. Your résumé is in shape.</p>'}`;
   }
 
@@ -283,7 +283,7 @@
     const A = S.sources.archbook; if (!A) return;
     const have = new Set(S.lib.pieces.map(p => p.clip && p.clip.name + '|' + p.clip.size));
     const list = A.lib.clips.filter(c => !have.has(c.name + '|' + c.size));
-    openSheet(`<div class="kicker">Your ARCHBOOK clips</div>${list.length ? list.map(c => `<button class="piece" data-a="archadd" data-id="${c.id}">${c.thumb ? `<img src="${c.thumb}" alt="">` : '<span class="ph">CLIP</span>'}<span class="b"><b>${esc(c.name)}</b><span class="faint" style="font-size:13px">${fmtShort(c.dur)}</span></span></button>`).join('') : '<p class="dim">Every ARCHBOOK clip is already here.</p>'}`);
+    openSheet(`<div class="kicker">Your REEL ROOM clips</div>${list.length ? list.map(c => `<button class="piece" data-a="archadd" data-id="${c.id}">${c.thumb ? `<img src="${c.thumb}" alt="">` : '<span class="ph">CLIP</span>'}<span class="b"><b>${esc(c.name)}</b><span class="faint" style="font-size:13px">${fmtShort(c.dur)}</span></span></button>`).join('') : '<p class="dim">Every REEL ROOM clip is already here.</p>'}`);
   }
   async function archAdd(id, el) {
     const A = S.sources.archbook, c = A.lib.clips.find(x => x.id === id); if (!c) return;
