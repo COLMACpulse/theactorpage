@@ -18,7 +18,7 @@ await p.evaluate(()=>{
 });
 await p.reload(); await p.waitForTimeout(1200);
 const t1=await p.$$eval('#yours .ytile',x=>x.map(e=>({k:e.dataset.y,tag:e.classList.contains('mine')?'YOURS':'SAMPLE',t:e.querySelector('.yart').innerText.replace(/\s+/g,' ')})));
-want('with yours: the section shows, Expenses and Footage as plain links', await p.evaluate(()=>!document.getElementById('yours').hidden)&&/Expenses/.test(await p.innerText('#yours .yrow'))&&/Footage/.test(await p.innerText('#yours .yrow')));
+want('with yours: the section shows, Footage a plain link, no Expenses', await p.evaluate(()=>!document.getElementById('yours').hidden)&&!/Expenses/.test(await p.innerText('#yours .yrow'))&&/Footage/.test(await p.innerText('#yours .yrow')));
 const by=k=>t1.find(x=>x.k===k)||{};
 want('Notes: no tile, a plain link', !t1.some(x=>x.k==='notes')&&/Notes/.test(await p.innerText('#yours .yrow')));
 want('Spotted: the last thing you spotted, where it came from', by('spotted').tag==='YOURS'&&/Dry Creek/.test(by('spotted').t)&&/EXAMPLE\.COM/.test(by('spotted').t), by('spotted'));

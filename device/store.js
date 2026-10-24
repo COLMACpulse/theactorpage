@@ -35,7 +35,7 @@ D.TOOLS=[
  {id:'contacts', name:'Contacts', href:'../contacts/', ls:[/^theactorpage_contacts/,/^contacts_ui/], db:[]},
  {id:'footage', name:'Footage', href:'../footage/', ls:[/^theactorpage_footage/,/^theactorpage_copycheck/], db:[]},
  {id:'press', name:'Press', href:'../press/', ls:[/^theactorpage_press/], db:[]},
- {id:'expenses', name:'Expenses', href:'../expenses/', ls:[/^theactorpage_expenses/], db:[/^theactorpage_receipts$/]},
+ {id:'expenses', name:'Expenses (no longer a tool)', href:'../expenses/', ls:[/^theactorpage_expenses/], db:[/^theactorpage_receipts$/]},
  {id:'picture', name:'Picture It', href:'../picture/', ls:[/^theactorpage_viz/], db:[/^theactorpage_viz$/]},
  {id:'plan', name:'The Plan', href:'../plan/', ls:[/^theactorpage_plan/], db:[/^theactorpage_plan$/]},
  {id:'looks', name:'Looks', href:'../looks/', ls:[/^theactorpage_looks/], db:[/^theactorpage_looks$/]},

@@ -20,5 +20,5 @@ want('the file for your tax preparer: every line, oldest first, the receipt name
 want('commas and quotes in a line are kept safe', /"Coach, \"\"the\"\" one"/.test((E.add({date:'2026-05-01',cat:'training',amount:'1',what:'Coach, "the" one'}),E.csv(2026))));
 want('a receipt file name: date, what, short id', /^2026-03-02_New_headshots_\w{4}\.jpg$/.test(E.receiptName(a,'jpg')));
 E.remove(a.id); want('remove', !E.get(a.id));
-want('no em dashes', !/—/.test(require('fs').readFileSync(__dirname+'/expenses.js','utf8')+require('fs').readFileSync(__dirname+'/../expenses/app.js','utf8')));
+want('no em dashes', !/—/.test(require('fs').readFileSync(__dirname+'/expenses.js','utf8')+require('fs').readFileSync(__dirname+'/../expenses/index.html','utf8')));
 console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1);
