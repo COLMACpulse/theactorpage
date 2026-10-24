@@ -37,9 +37,9 @@ await ci.close();
 // the privacy page
 const c3=await b.newContext(); const r=await c3.newPage(); const out2=[]; r.on('request',x=>{ const u=new URL(x.url()); if(!/^(localhost|127\.0\.0\.1)$/.test(u.hostname)) out2.push(x.url()); });
 const resp=await r.goto('http://localhost:8811/privacy/'); await r.waitForTimeout(500);
-const txt=await r.innerText('main');
+const txt=await r.evaluate(()=>document.querySelector('main').textContent);
 want('privacy page loads, asks nobody else for anything', resp.ok()&&!out2.length, out2);
-want('it names the speech places, Google and Apple, and LISTENING staying on the device', /Ten places/.test(txt)&&/Google/.test(txt)&&/Apple/.test(txt)&&/LISTENING/.test(txt));
+want('it names the speech places, Google and Apple, and LISTENING staying on the device', /Eleven places/.test(txt)&&/Google/.test(txt)&&/Apple/.test(txt)&&/LISTENING/.test(txt));
 want('no em dashes', !/—/.test(await r.content()));
 const links=await r.$$eval('main a',x=>x.map(a=>a.getAttribute('href')).filter(h=>!/^https?:/.test(h)));
 const bad=[]; for(const h of links){ const u=new URL(h,'http://localhost:8811/privacy/').href; const s=await (await r.request.get(u)).status(); if(s!==200) bad.push(h+' '+s); }

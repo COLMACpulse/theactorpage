@@ -4,85 +4,140 @@
 <meta charset="utf-8">
 <script src="../shared/tour.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Privacy · THEACTORPAGE</title>
-<meta name="description" content="What THEACTORPAGE keeps, where it keeps it, and the few times something can leave your device.">
-<meta name="theme-color" content="#0d0f12">
-<link rel="icon" href="../notes/icons/icon-192.png">
+<title>PRIVACY · Your work stays with you</title>
+<meta name="description" content="What THEACTORPAGE keeps, where it keeps it, and each time something can leave your device: only when you do it.">
+<meta name="theme-color" content="#121110">
+<link rel="icon" href="../img/sigil-film-64.png">
+<style>
 <style>
 @font-face{font-family:Jost;font-weight:400;font-display:swap;src:url(../fonts/jost-latin-400-normal.woff2) format('woff2')}
 @font-face{font-family:Jost;font-weight:500;font-display:swap;src:url(../fonts/jost-latin-500-normal.woff2) format('woff2')}
 @font-face{font-family:Jost;font-weight:600;font-display:swap;src:url(../fonts/jost-latin-600-normal.woff2) format('woff2')}
 @font-face{font-family:'Courier Prime';font-weight:400;font-display:swap;src:url(../fonts/courier-prime-latin-400-normal.woff2) format('woff2')}
 @font-face{font-family:'Courier Prime';font-weight:700;font-display:swap;src:url(../fonts/courier-prime-latin-700-normal.woff2) format('woff2')}
-:root{--bg:#0d0f12;--ink:#ece7dc;--dim:#a8adb5;--faint:#6b727c;--line:#23272e;--acc:#e0a23c;color-scheme:dark}
-@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){--bg:#f6f2ea;--ink:#1d1a15;--dim:#5f584b;--faint:#8a8273;--line:#d3cab8;--acc:#8a5a08;color-scheme:light} }
-:root[data-theme="light"]{--bg:#f6f2ea;--ink:#1d1a15;--dim:#5f584b;--faint:#8a8273;--line:#d3cab8;--acc:#8a5a08;color-scheme:light}
+:root{
+  --bg:#121110; --panel:#1b1916; --panel2:#24211d; --ink:#ece7dc; --dim:#a39c8e; --faint:#6e675c; --line:#2f2b26;
+  --tung:#e0a23c; --tung-ink:#1a1206; --tung-soft:rgba(224,162,60,.14); --tung-text:#e9b25a;
+  --bad:#e0785f; --good:#8fbf8a; --blue:#7fa6d6;
+  --sans:Jost,system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"Courier Prime","Courier New",Courier,monospace;
+  --r:12px; --tap:44px; --nav:64px; color-scheme:dark;
+}
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){
+  --bg:#ece7dc; --panel:#f6f2ea; --panel2:#e3dccd; --ink:#1d1a15; --dim:#5f584b; --faint:#8a8273; --line:#d3cab8;
+  --tung-soft:rgba(224,162,60,.22); --tung-text:#8a5a08; --bad:#a8432c; --good:#3d7a3a; --blue:#2f5f99; color-scheme:light;
+}}
+:root[data-theme="light"]{
+  --bg:#ece7dc; --panel:#f6f2ea; --panel2:#e3dccd; --ink:#1d1a15; --dim:#5f584b; --faint:#8a8273; --line:#d3cab8;
+  --tung-soft:rgba(224,162,60,.22); --tung-text:#8a5a08; --bad:#a8432c; --good:#3d7a3a; --blue:#2f5f99; color-scheme:light;
+}
 *{box-sizing:border-box}
 html,body{margin:0}
-body{background:var(--bg);color:var(--ink);font:17px/1.6 Jost,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-text-size-adjust:100%}
-main{max-width:720px;margin:0 auto;padding:40px 16px 80px}
-.k{font:700 .78rem 'Courier Prime',ui-monospace,monospace;letter-spacing:.18em;color:var(--faint);text-transform:uppercase;margin:0}
-h1{font-weight:500;font-size:2.2rem;letter-spacing:.06em;margin:6px 0 4px}
-.d{color:var(--faint);font:.85rem 'Courier Prime',ui-monospace,monospace;margin:0 0 28px}
-h2{font-weight:600;font-size:1.15rem;margin:34px 0 8px;padding-top:18px;border-top:1px solid var(--line)}
-p,li{color:var(--dim)}
-strong{color:var(--ink);font-weight:600}
-ul{padding-left:20px;margin:8px 0}li{margin:6px 0}
-a{color:var(--acc)}
-.big{font-size:1.15rem;color:var(--ink);line-height:1.55}
-.back{display:inline-block;margin-bottom:22px;font:.85rem 'Courier Prime',ui-monospace,monospace;letter-spacing:.08em;text-decoration:none}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--sans);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+h1,h2,h3{font-weight:600;letter-spacing:.02em;margin:0}
+.dim{color:var(--dim)} .faint{color:var(--faint)} .hide{display:none!important}
+.btn{min-height:var(--tap);padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:500;text-align:center}
+.btn:active{transform:translateY(1px)}
+.btn.pri{background:var(--tung);color:var(--tung-ink);border-color:var(--tung)}
+.btn.ghost{background:transparent} .btn.block{width:100%} .btn.sm{padding:0 12px;font-size:14px}
+.btn.big{min-height:60px;font-size:17px}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{min-height:var(--tap);padding:0 14px;border-radius:999px;border:1px solid var(--line);background:transparent;display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--dim)}
+.chip.on{background:var(--tung);color:var(--tung-ink);border-color:var(--tung)}
+.chip i{font-style:normal;font-size:12px;opacity:.75}
+.kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 8px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.msg{padding:12px 14px;border-radius:10px;background:var(--panel2);border-left:3px solid var(--tung);margin:12px 0;font-size:14px}
+.msg.bad{border-left-color:var(--bad)}
+.field{width:100%;border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:10px 12px;font-size:16px;min-height:var(--tap)}
+textarea.field{min-height:120px;resize:vertical;font-size:15px}
+select.field{appearance:auto}
+
+.shell{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
+.top.bhead{position:relative;padding:calc(env(safe-area-inset-top) + 12px) 16px 10px;background:var(--bg);border:0;backdrop-filter:none;-webkit-backdrop-filter:none}
+.bwrap{display:flex;align-items:center;gap:14px;max-width:1040px;margin:0 auto}
+.btx{flex:1;min-width:0}.btx h1{font-size:22px;letter-spacing:.02em;margin:2px 0}.btx p{margin:0;color:var(--tung-text);font-size:14px}.top .count{color:var(--dim);font-size:12.5px;margin-top:2px}
+.hico{width:52px;height:65px;flex:none}.hico .pg{fill:var(--panel);stroke:var(--line)}.hico .ph{fill:var(--panel2)}.hico .ln{stroke:var(--dim);stroke-width:2.4;stroke-linecap:round}.hico .pp{fill:var(--faint);opacity:.8}.hico .g{fill:var(--tung)}
+.bsig{width:46px;height:46px;flex:none;object-fit:contain}
+@media (min-width:900px){.hico{width:66px;height:82px}.bsig{width:64px;height:64px}.btx h1{font-size:24px}}
+.hstk{display:block;height:26px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='176' height='30' viewBox='0 0 176 30'%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232b3038' transform='translate%28-22%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%231f8a5c' transform='translate%280%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23d9b23a' transform='translate%2822%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232a5fa8' transform='translate%2844%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23c0392b' transform='translate%2866%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23e8e6e0' transform='translate%2888%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%239aa0a8' transform='translate%28110%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%235c636d' transform='translate%28132%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232b3038' transform='translate%28154%29'/%3E%3C/svg%3E") repeat-x 0 50%/auto 100%;box-shadow:inset 0 0 0 1px #00000055;opacity:.92}
+body:has(#hotbar) .top.bhead{padding-top:calc(env(safe-area-inset-top) + 50px)}
+.backbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+details.fold{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:0 16px;margin-bottom:12px}details.fold>summary{min-height:52px;display:flex;align-items:center;font:600 12.5px var(--sans);letter-spacing:.12em;cursor:pointer}details.fold[open]{padding-bottom:14px}
+.small{font-size:13.5px}.lab{display:block;font-size:13px;color:var(--dim);margin:10px 0 4px}
+.lnk{background:none;border:0;color:var(--tung-text);padding:6px 4px;font-size:13.5px}.lnk.faint{color:var(--faint)}
+#view a:not(.btn){color:var(--tung-text)}
+
+main{flex:1;min-width:0;padding:16px 16px calc(48px + env(safe-area-inset-bottom));max-width:1040px;width:100%;margin:0 auto}
+main a{color:var(--tung-text)}
+.facts{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin:0 0 22px}
+.fact{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.fact b{display:block;font-size:17px;font-weight:600;margin-bottom:4px}.fact span{display:block;font-size:14px;color:var(--dim);line-height:1.45}
+.leave{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px 18px;margin:0 0 22px}
+.lv{border-top:1px solid var(--line)}.lv:first-of-type{border-top:0}
+.lh,.lv>summary{display:grid;grid-template-columns:3fr 6fr 3fr 18px;gap:16px;align-items:start;padding:13px 0;font-size:14.5px;line-height:1.45}
+.lh{font:500 11px var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);padding-bottom:4px}
+.lv>summary{list-style:none;cursor:pointer;min-height:var(--tap)}.lv>summary::-webkit-details-marker{display:none}
+.lv>summary b{font-weight:600}.lv>summary .who{color:var(--dim)}
+.lv>summary:after{content:"+";font:500 18px var(--sans);color:var(--faint);width:18px;text-align:center}
+.lv[open]>summary:after{content:"\2212"}
+.lv .more{padding:0 0 16px;color:var(--dim);font-size:14.5px;line-height:1.6;max-width:760px}
+.lv .more p{margin:0 0 8px}
+@media (max-width:700px){.lh{display:none}.lv>summary{grid-template-columns:1fr auto;gap:2px 10px}.lv>summary b{grid-column:1}.lv>summary span{grid-column:1}.lv>summary:after{grid-column:2;grid-row:1}.lv>summary .who{font-size:13.5px}}
+.folds{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));align-items:start}
+details.fold{margin:0}details.fold p,details.fold li{color:var(--dim);font-size:14.5px;line-height:1.6}details.fold ul{padding-left:20px;margin:6px 0}
+details.fold strong,.more strong{color:var(--ink);font-weight:600}
+.kicker.sec{margin:0 0 10px}
+.small{font-size:13.5px;color:var(--faint)}
 </style>
 </head>
 <body>
-<main>
-<a class="back" href="../">&lsaquo; THEACTORPAGE</a>
-<p class="k">Privacy</p>
-<h1>Your things stay with you</h1>
-<p class="d">What the site does today. Last changed 20 Oct 2026.</p>
-
-<p class="big">There's no account, no sign-in, no tracking, no ads and no analytics. What you put in (your sides, scripts, takes, headshots, résumé, notes, voice) is kept in this browser, on this device. We don't have a copy (except a page you choose to put online), and nothing is sent anywhere unless you send it.</p>
-
-<h2>Where your things are kept</h2>
-<p>In this browser's own storage on this device. Each tool keeps its part, and the tools read each other on the same device, so you drop a thing once and every tool has it. Another phone or computer doesn't see it.</p>
-<p>The pages themselves come from GitHub Pages, which hosts the site. Like any web host, GitHub sees that a page was asked for (an address and a time). It never sees what you put in. Their terms are in the <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub Privacy Statement</a>.</p>
-<p>No cookies are set, and the pages load nothing from anyone else: the fonts and code are all served from this site.</p>
-
-<h2>The few times something can leave</h2>
-<p>Only when you do it:</p>
-<ul>
-<li><strong>You send it.</strong> A note to your reps or a pitch opens in your own mail app, or your share sheet, for you to send. A take, a page or a backup you save is a file on your device, and you choose where it goes.</li>
-<li><strong>You speak to a tool that types for you.</strong> Ten places can turn speech into words: Actor OS's MATCHING WORDS, MEMORIZER's SAY IT, NOTES, Paper Trail's SAY IT, BREAKDOWN's SAY IT (a note in your words), THEACTORPAGES's voice and its GO, the Hub's Speak the audition, THE PLAN's mic, and WORDS on a video or voice note (FILM HUB and Paper Trail), which is off until you turn it on. That uses the browser's own speech service: Chrome sends what you say to Google, Safari to Apple. Each one says so where you use it. Actor OS's LISTENING (hearing when your line ends) stays on the device, and it's the one that's on by default.</li>
-<li><strong>You put your page online.</strong> In the Project Hub, PUT IT ONLINE sends that one page, with what you picked for it (headshots, videos, credits, your contact block if you leave it on), to our host on Cloudflare, at an address you choose. Anyone with the address can see it. Nothing else from your device goes. TAKE IT DOWN deletes it from the host. The key that can change your page stays on your device, with a backup code you keep; the host keeps only a scrambled copy of each. Like any web host, Cloudflare sees that a page was asked for (an address and a time).</li>
-<li><strong>You check THE WIRE.</strong> CHECK THE NEWS on your postcard goes online only when you tap it. A bar at the top says ONLINE while it does. It downloads one public file from GitHub, the same file for every phone: the California Film Commission's tax-credit list and recent headlines, links, tags and short summaries from Deadline, Variety and The Hollywood Reporter. Nothing about you is sent with it: no name, no types, no offices. What fits you is worked out on your device. Like any download, GitHub sees that the file was asked for (an address and a time). The file is made once an hour by a feed reader that names itself, reads only those four sites, and follows their robots rules.</li>
-<li><strong>You ask a friend to read in.</strong> The link you send has the scene's lines inside it, after the #, which browsers never send to a server. Anyone who has the link can read those lines, so send it only to someone you trust with the sides. Their recordings stay on their phone until they send you the file themselves.</li>
-<li><strong>The people in your work stay here.</strong> CONTACTS keeps names, emails and phone numbers on this device. They never go on a sheet you send, and the sheet for your reps never lists anyone's details. The SAG-AFTRA and talent-agent links on REPS open those sites, the way any link does.</li>
-<li><strong>Press searches only when you tap.</strong> SEARCH THE NEWS, SEARCH THE WEB and SET UP A GOOGLE ALERT open Google in your browser with your name and the words you picked; Google sees that search, like any search you type. The press you keep stays on this device, and shows on your page only if you switch it on. The press kit is a file you save and send yourself.</li>
-<li><strong>Your clips stay here.</strong> FOOTAGE trims your clip on this device and never downloads from a streaming site.</li>
-<li><strong>You look something up in the Hub.</strong> If you give the Hub your own TMDB key, the IMDb ID or title you look up is sent to The Movie Database to fetch credits and key art. Without a key, nothing is sent.</li>
-<li><strong>You open a link.</strong> A reel link, a trade story or a casting site opens where it goes, like any link.</li>
-</ul>
-
-<h2>Camera and mic</h2>
-<p>They only come on when you ask, and a bar at the top says so whenever they're on, and whether they're recording. They go off when you leave that step. What they record stays on the device until you send it.</p>
-
-<h2>Other people's details</h2>
-<p>Your reps, casting directors, cast and crew are kept the same way, on your device. Their phone numbers and emails never go on the pages the site makes for you to send (the list for your manager, your film page).</p>
-
-<h2>Keeping it, and losing it</h2>
-<ul>
-<li><strong>Back up.</strong> <a href="../device/">On This Device</a> makes one file of everything, every tool, that you keep. We never see it. Restoring adds what's missing and never removes.</li>
-<li><strong>The browser can clear it.</strong> Clearing this site's data in your browser settings deletes it all. Safari on an iPhone can clear a site's saved things after a stretch of not visiting; a site added to the Home Screen is kept. The site asks the browser to keep your things, and the browser decides.</li>
-<li><strong>Delete it yourself</strong> any time: remove it in the tool, or clear this site's data in the browser.</li>
-</ul>
-
-<h2>What's inside</h2>
-<p>Made by COLMAC TOOLWORKS (Range Art and Design LLC). Built with:</p>
-<ul>
-<li><a href="../actor-os/vendor/pdfjs-LICENSE">PDF.js</a>, to read PDFs on your device (Apache License 2.0).</li>
-<li><a href="../shared/vendor/LAME-LICENSE.txt">LAME</a> (lamejs), to make MP3s in VO Booth (GNU LGPL, unchanged, its own file).</li>
-<li>The fonts Jost (<a href="../fonts/LICENSE_Jost_OFL.txt">OFL</a>) and Courier Prime (<a href="../fonts/LICENSE_CourierPrime_OFL.txt">OFL</a>).</li>
-</ul>
-<p>This page changes when the site does. When there's an account and hosted pages, it will say exactly what those keep.</p>
-</main>
+<div class="shell">
+  <header class="top bhead"><div class="bwrap"><svg class="hico" viewBox="0 0 64 80" role="img" aria-label="A lock"><rect class="pg" x="2" y="2" width="60" height="76" rx="5"/><path d="M22 38v-8a10 10 0 0 1 20 0v8" fill="none" class="ln" style="stroke-width:3"/><rect class="g" x="16" y="38" width="32" height="26" rx="4"/></svg><div class="btx"><div class="kicker" style="margin:0">YOU · PRIVACY</div><h1>Your work stays with you</h1><p>What the site does today. Last changed Oct 24, 2026.</p></div><img class="bsig" src="../img/sigil-film-180.png" alt="THEACTORPAGE" width="64" height="64"></div></header>
+  <i class="hstk" aria-hidden="true"></i>
+  <main>
+  <p class="kicker sec">THE SHORT VERSION</p>
+  <div class="facts">
+   <div class="fact"><b>No account</b><span>No sign-in, no tracking, no ads, no analytics, no cookies.</span></div>
+   <div class="fact"><b>Kept on this device</b><span>Your sides, scripts, takes, headshots, résumé, notes, contacts and voice live in this browser. We don&rsquo;t have a copy.</span></div>
+   <div class="fact"><b>Nothing leaves on its own</b><span>Only when you tap to send, speak, search, check the news or put your page online. Each one is below.</span></div>
+   <div class="fact"><b>You hold the backup</b><span>One file from <a href="../device/">On This Device</a>. We never see it.</span></div>
+  </div>
+  <p class="kicker sec">WHEN SOMETHING CAN LEAVE · ONLY WHEN YOU DO IT</p>
+  <div class="leave"><div class="lh"><span>When you</span><span>What goes</span><span>Who sees it</span><span></span></div>
+  <details class="lv"><summary><b>Send it</b><span>A note, a pitch, a card, a page or a backup, from your own mail app or share sheet.</span><span class="who">Whoever you send it to.</span></summary><div class="more"><p>A note to your reps or a pitch opens in your own mail app, or your share sheet, for you to send. A take, a page, a card or a backup you save is a file on your device, and you choose where it goes. SEND IT TO MYSELF on On This Device opens your share sheet with the backup file. Nothing goes out on its own, and nothing reports back who opened it.</p></div></details>
+  <details class="lv"><summary><b>Speak to a tool that types</b><span>What you say, while the mic is on. Eleven places; each says so where you use it.</span><span class="who">Google (in Chrome) or Apple (in Safari).</span></summary><div class="more"><p>Eleven places can turn speech into words: Actor OS&rsquo;s MATCHING WORDS, MEMORIZER&rsquo;s SAY IT, NOTES, Paper Trail&rsquo;s SAY IT, BREAKDOWN&rsquo;s SAY IT (a note in your words), THEACTORPAGES&rsquo;s voice and its GO, Project Hub&rsquo;s Speak the audition, THE PLAN&rsquo;s mic, Story Studio&rsquo;s SAY IT (a note on a take), and WORDS on a video or voice note (FILM HUB and Paper Trail), which is off until you turn it on.</p><p>That uses the browser&rsquo;s own speech service: Chrome sends what you say to Google, Safari to Apple. Actor OS&rsquo;s LISTENING (hearing when your line ends) stays on the device, and it&rsquo;s the one that&rsquo;s on by default.</p></div></details>
+  <details class="lv"><summary><b>Put your page online</b><span>That one page, with what you picked for it. TAKE IT DOWN deletes it.</span><span class="who">Anyone with the address. Our host, Cloudflare.</span></summary><div class="more"><p>In Project Hub, PUT IT ONLINE sends that one page, with what you picked for it (headshots, videos, credits, your contact block if you leave it on), to our host on Cloudflare, at an address you choose. Anyone with the address can see it. Nothing else from your device goes. TAKE IT DOWN deletes it from the host.</p><p>The key that can change your page stays on your device, with a backup code you keep; the host keeps only a scrambled copy of each. Like any web host, Cloudflare sees that a page was asked for (an address and a time).</p></div></details>
+  <details class="lv"><summary><b>Put a video on your page</b><span>A YouTube or Vimeo link plays from that site.</span><span class="who">YouTube or Vimeo, for whoever watches.</span></summary><div class="more"><p>A YouTube link plays from YouTube&rsquo;s no-cookie player, a Vimeo link from Vimeo&rsquo;s. When someone presses play, that site sees it, like any video it serves. A video you upload yourself plays from your page, not from them. Any other link is a plain link.</p></div></details>
+  <details class="lv"><summary><b>Check the news</b><span>Nothing about you. One public file of headlines, the same for everyone.</span><span class="who">GitHub sees the file was asked for.</span></summary><div class="more"><p>CHECK THE NEWS in Picture It goes online only when you tap it. A bar at the top says ONLINE while it does. It downloads one public file from GitHub, the same file for every phone: the California Film Commission&rsquo;s tax-credit list and recent headlines, links, tags and short summaries from Deadline, Variety and The Hollywood Reporter.</p><p>Nothing about you is sent with it: no name, no wall, no offices. Which stories match the shows and films on your wall is worked out on your device. Like any download, GitHub sees that the file was asked for (an address and a time). The file is made once an hour by a feed reader that names itself, reads only those four sites, and follows their robots rules.</p></div></details>
+  <details class="lv"><summary><b>Search for your press</b><span>Your name and the words you picked, in a Google search.</span><span class="who">Google, like any search you type.</span></summary><div class="more"><p>SEARCH THE NEWS, SEARCH THE WEB and SET UP A GOOGLE ALERT open Google in your browser with your name and the words you picked; Google sees that search, like any search you type. The press you keep stays on this device, and shows on your page only if you switch it on. The press kit is a file you save and send yourself.</p></div></details>
+  <details class="lv"><summary><b>Ask a friend to read in</b><span>The scene&rsquo;s lines, inside the link you send.</span><span class="who">Anyone who has that link.</span></summary><div class="more"><p>The link you send has the scene&rsquo;s lines inside it, after the #, which browsers never send to a server. Anyone who has the link can read those lines, so send it only to someone you trust with the sides. Their recordings stay on their phone until they send you the file themselves.</p></div></details>
+  <details class="lv"><summary><b>Look up a credit in the Hub</b><span>The title or IMDb ID, only if you added your own TMDB key.</span><span class="who">The Movie Database.</span></summary><div class="more"><p>If you give Project Hub your own TMDB key, the IMDb ID or title you look up is sent to The Movie Database to fetch credits and key art. Without a key, nothing is sent.</p></div></details>
+  <details class="lv"><summary><b>Open a link</b><span>Wherever the link goes.</span><span class="who">That site, like any link.</span></summary><div class="more"><p>A reel link, a trade story, a casting site, or the SAG-AFTRA and talent-agent links on REPS open where they go, like any link. FOOTAGE trims your clip on this device and never downloads from a streaming site.</p></div></details>
+  </div>
+  <div class="folds">
+   <details class="fold"><summary>WHERE YOUR WORK IS KEPT</summary>
+    <p>In this browser&rsquo;s own storage on this device. Each tool keeps its part, and the tools read each other on the same device, so you add something once and every tool has it. Another phone or computer doesn&rsquo;t see it.</p>
+    <p>The pages themselves come from GitHub Pages, which hosts the site. Like any web host, GitHub sees that a page was asked for (an address and a time). It never sees what you put in. Their terms are in the <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub Privacy Statement</a>.</p>
+    <p>No cookies are set, and the pages load nothing from anyone else: the fonts and code are all served from this site.</p></details>
+   <details class="fold"><summary>CAMERA AND MIC</summary>
+    <p>They only come on when you ask, and a bar at the top says so whenever they&rsquo;re on, and whether they&rsquo;re recording. They go off when you leave that step. What they record stays on the device until you send it.</p></details>
+   <details class="fold"><summary>OTHER PEOPLE&rsquo;S DETAILS</summary>
+    <p>Your reps, casting directors, cast and crew are kept the same way, on your device. CONTACTS keeps names, emails and phone numbers here. Their phone numbers and emails never go on the pages the site makes for you to send (the sheet for your reps, your film page).</p></details>
+   <details class="fold"><summary>KEEPING IT, AND LOSING IT</summary>
+    <ul><li><strong>Back up.</strong> <a href="../device/">On This Device</a> makes one file of everything, every tool, that you keep. We never see it. Restoring adds what&rsquo;s missing and never removes.</li>
+    <li><strong>The browser can clear it.</strong> Clearing this site&rsquo;s data in your browser settings deletes it all. Safari on an iPhone can clear a site&rsquo;s saved data after a stretch of not visiting; a site added to the Home Screen is kept. The site asks the browser to keep your work, and the browser decides.</li>
+    <li><strong>Delete it yourself</strong> any time: remove it in the tool, or clear this site&rsquo;s data in the browser.</li></ul></details>
+   <details class="fold"><summary>WHAT&rsquo;S INSIDE · WHO MADE IT</summary>
+    <p>Made by COLMAC TOOLWORKS (Range Art and Design LLC). Built with:</p>
+    <ul><li><a href="../actor-os/vendor/pdfjs-LICENSE">PDF.js</a>, to read PDFs on your device (Apache License 2.0).</li>
+    <li><a href="../shared/vendor/LAME-LICENSE.txt">LAME</a> (lamejs), to make MP3s in VO Booth (GNU LGPL, unchanged, its own file).</li>
+    <li>The fonts Jost (<a href="../fonts/LICENSE_Jost_OFL.txt">OFL</a>) and Courier Prime (<a href="../fonts/LICENSE_CourierPrime_OFL.txt">OFL</a>).</li></ul></details>
+  </div>
+  <p class="small" style="margin-top:22px">This page changes when the site does. When there&rsquo;s an account and hosted pages, it will say exactly what those keep.</p>
+  </main>
+</div>
 </body>
 </html>
