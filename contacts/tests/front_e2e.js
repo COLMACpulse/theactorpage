@@ -1,0 +1,62 @@
+/* CONTACTS, who knows you: find an office, see your history with it from every tool; your reps with EMAIL and CALL.
+   Computer (light) and phone (dark). Made-up people only. Server on :8811.  NODE_PATH=... node contacts/tests/front_e2e.js */
+const {chromium}=require('playwright');
+(async()=>{ const SHOTS=process.env.SHOTS||'/tmp';
+const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,400))); if(!x) ok=false; };
+const errs=[];
+const cx=await b.newContext({viewport:{width:1280,height:900},colorScheme:'light',serviceWorkers:'block'});
+const h=await cx.newPage(); h.on('pageerror',e=>errs.push('hub '+e.message)); h.on('dialog',d=>d.accept());
+await h.goto('http://localhost:8811/hub/index.html'); await h.waitForTimeout(900);
+await h.evaluate(async()=>{ localStorage.clear(); if(isDemo()) await dropDemoData();
+ const a=newProject({aaid:'T1',project:'LOW TIDE',title:'LOW TIDE',role:'DOCK COP',casting_office:'Dana Pell Casting',kind:'audition',status:'Confirmed',date:'2026-03-01'}); a.outcome={callback:true}; projects.push(a);
+ projects.push(newProject({aaid:'T2',project:'DRY CREEK',title:'DRY CREEK',role:'DEPUTY',casting_office:'Dana Pell Casting',kind:'audition',status:'Confirmed',date:'2026-06-10'}));
+ saveProjects();
+ const s=Notes.addSession({date:'2026-05-12',room:'class',who:[{name:'Dana Pell',role:'casting'}],title:'Scene night'}); Notes.addNote({sid:s.id,text:'Let the silence sit.'});
+ localStorage.setItem('theactorpage_spotted_v1',JSON.stringify({items:[{id:'s1',at:Date.now(),status:'passed',sentAt:Date.now(),card:{project:'Salt Flat',role:'SHERIFF BEN',casting:['Dana Pell Casting']}}],me:{reps:[]},held:[]})); });
+await h.waitForTimeout(600);
+const p=await cx.newPage(); p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
+await p.goto('http://localhost:8811/contacts/'); await p.waitForTimeout(1000);
+let v=await p.innerText('#view');
+want('header: who knows you', /YOU · CONTACTS/i.test(await p.textContent('header'))&&/Who knows you/.test(await p.innerText('header')));
+want('no tabs, no KEPT or FROM YOUR TOOLS tags', !(await p.$('.tabs'))&&!/FROM YOUR TOOLS|\bKEPT\b/.test(v));
+want("the office shows up on its own, one entry, with how you know them", /Dana Pell/.test(v)&&(await p.$$("#plist .person")).length===1&&/Hub: 2 auditions, last DRY CREEK/.test(v), v.slice(0,500));
+want('light theme', await p.evaluate(()=>getComputedStyle(document.body).backgroundColor)==='rgb(236, 231, 220)');
+// your rep, signed, with email and phone
+await p.click('#addmine'); await p.fill('#r_name','Pat Agent'); await p.fill('#r_company','Made Up Talent'); await p.fill('#r_email','pat@example.com'); await p.fill('#r_phone','(555) 010-0199');
+want('add your rep: signed is ticked for you', await p.isChecked('#r_signed'));
+await p.click('#keeprep'); await p.waitForTimeout(300);
+const rb=await p.innerText('#repsbox');
+want('your reps: name, EMAIL and CALL', /Pat Agent/.test(rb)&&await p.getAttribute('#repsbox a[href^="mailto:"]','href')==='mailto:pat@example.com'&&await p.getAttribute('#repsbox a[href^="tel:"]','href')==='tel:5550100199', rb);
+want('Spotted sees them', await p.evaluate(()=>Contacts.myReps()[0].email)==='pat@example.com');
+// find the office
+await p.fill('#q','pell'); await p.waitForTimeout(200);
+want('find: keeps the focus while you type', await p.evaluate(()=>document.activeElement.id)==='q');
+const rows=await p.$$eval('#plist .person',x=>x.map(e=>e.innerText));
+want('find "pell": the office and the person', rows.length>=1&&rows.some(r=>/Dana Pell/.test(r)), rows);
+await p.click('#plist .person:has-text("Dana Pell")'); await p.waitForTimeout(300);
+v=await p.innerText('#view');
+want('one: the Hub auditions, newest first, with the callback', /The Hub · 2 auditions/i.test(v)&&/DRY CREEK · DEPUTY[\s\S]*LOW TIDE · DOCK COP · callback/.test(v), v.slice(0,800));
+want('one: what they said in NOTES', /Let the silence sit\./.test(v)&&/1 session/.test(v), v);
+want('one: what you spotted they are casting, and when you sent it', /Casting SHERIFF BEN, Salt Flat\. You passed it along/.test(v), v);
+want('one: not kept yet, KEEP THEM is open', await p.evaluate(()=>document.getElementById('detfold').open)&&/KEEP THEM/i.test(v));
+await p.fill('#f_email','office@example.com'); await p.fill('#f_phone','555-0150'); await p.fill('#f_note','Ask for the casting associate.'); await p.click('#keep'); await p.waitForTimeout(300);
+v=await p.innerText('#view');
+want('kept: EMAIL and CALL up top, your note shown, details folded', /Dana Pell kept\./.test(v)&&!!(await p.$('#detail a[href="mailto:office@example.com"]'))&&!!(await p.$('#detail a[href^="tel:"]'))&&/Ask for the casting associate\./.test(v)&&!(await p.evaluate(()=>document.getElementById('detfold').open)), v.slice(0,400));
+await p.screenshot({path:SHOTS+'/ct_desk_one.png'});
+await p.click('[data-close]'); await p.waitForTimeout(200); await p.fill('#q',''); await p.waitForTimeout(150);
+await p.screenshot({path:SHOTS+'/ct_desk_front.png'});
+// phone, dark
+const ph=await b.newContext({viewport:{width:390,height:844},colorScheme:'dark',isMobile:true,hasTouch:true,serviceWorkers:'block'});
+const q=await ph.newPage(); q.on('pageerror',e=>errs.push('phone '+e.message));
+await q.goto('http://localhost:8811/contacts/'); await q.evaluate(()=>{ Contacts.add({name:'Jo Coach',role:'coach',phone:'555-0111'}); }); await q.reload(); await q.waitForTimeout(800);
+want('phone: dark', await q.evaluate(()=>getComputedStyle(document.body).backgroundColor)==='rgb(18, 17, 16)');
+want('phone: nothing runs off the side', await q.evaluate(()=>document.documentElement.scrollWidth<=390));
+await q.screenshot({path:SHOTS+'/ct_phone_front.png'});
+await q.tap('.person:has-text("Jo Coach")'); await q.waitForTimeout(300);
+want('phone: one person, CALL right there', !!(await q.$('#detail a[href="tel:5550111"]'))&&await q.evaluate(()=>document.documentElement.scrollWidth<=390));
+await q.screenshot({path:SHOTS+'/ct_phone_one.png'});
+const all=await p.innerText('body')+await q.innerText('body');
+want('no em dashes, no "thing", no scores', !/—/.test(all)&&!/\bthing\b/i.test(all)&&!/\bscores?\b/i.test(all));
+want('no page errors', !errs.length, errs);
+await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();
