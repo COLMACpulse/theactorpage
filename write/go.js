@@ -56,7 +56,7 @@ const css=`
 function ensure(){
  if($('go')) return $('go');
  const st=document.createElement('style'); st.textContent=css; document.head.appendChild(st);
- const o=document.createElement('div'); o.id='go'; o.setAttribute('role','dialog'); o.setAttribute('aria-label','GO');
+ const o=document.createElement('div'); o.id='go'; o.setAttribute('role','dialog'); o.setAttribute('aria-label','GO-MODE');
  document.body.appendChild(o); return o;
 }
 function say(t,bad){ const m=$('gomsg'); if(m){ m.textContent=t||''; m.className='msg'+(bad?' bad':''); } }
@@ -108,9 +108,9 @@ function listHtml(){
 function draw(){
  const o=ensure(), c=cur();
  if(LIST||!c){
-  o.innerHTML='<header><b>GO</b><span class="nm">Your captures</span>'+(c?'<button id="goback">BACK</button>':'')+'<button id="gox">CLOSE</button></header>'+listHtml();
+  o.innerHTML='<header><b>GO-MODE</b><span class="nm">Your captures</span>'+(c?'<button id="goback">BACK</button>':'')+'<button id="gox">CLOSE</button></header>'+listHtml();
  } else {
-  o.innerHTML='<header><b>GO</b><span class="nm" title="'+esc(G.name(c))+'">'+esc(G.name(c))+'</span>'+(c.frozen?'<span class="frozen">FROZEN</span>':'')+'<span class="sp"></span>'
+  o.innerHTML='<header><b>GO-MODE</b><span class="nm" title="'+esc(G.name(c))+'">'+esc(G.name(c))+'</span>'+(c.frozen?'<span class="frozen">FROZEN</span>':'')+'<span class="sp"></span>'
    +'<button id="gofreeze">'+(c.frozen?'UNFREEZE':'FREEZE')+'</button><button id="golist">CAPTURES</button><button id="gox">CLOSE</button></header>'
    +'<div class="views" role="tablist" aria-label="See it as">'+G.VIEWS.map(([k,l])=>'<button role="tab" data-view="'+k+'"'+(VIEW===k?' class="on" aria-selected="true"':'')+'>'+l+'</button>').join('')+'</div>'
    +'<div class="page" id="gopage">'+viewHtml(c)+'</div>'+actsHtml(c)+inHtml(c);
@@ -164,7 +164,7 @@ function wire(){
  on('goscript',()=>{ const W=window.WB; if(!W||!W.openText){ toastWB('Could not open it here.'); return; } close(); W.openText(viewText(c),(c.title||G.name(c).replace(/…$/,''))+'.fountain'); toastWB('Opened as a new script. Your capture is still in GO, as it was.'); });
  on('gotrail',()=>{ const I=window.Inbox; if(!I){ toastWB('Paper Trail is not on this page.'); return; }
   const t=viewText(c), nm=(c.title||G.name(c).replace(/…$/,'')), lab={clean:'Clean',script:'Script',letter:'Letter',deck:'Deck'}[VIEW]||'GO';
-  I.put('draft',{title:nm,label:'GO: '+lab,file:nm+(VIEW==='script'?'.fountain':'.txt'),text:t,source:'GO'},'go|'+c.id+'|'+VIEW+'|'+t.length);
+  I.put('draft',{title:nm,label:'GO-MODE: '+lab,file:nm+(VIEW==='script'?'.fountain':'.txt'),text:t,source:'GO'},'go|'+c.id+'|'+VIEW+'|'+t.length);
   toastWB('In Paper Trail as a draft ('+lab.toLowerCase()+'). Open Paper Trail to see it.'); });
 }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&$('go')&&$('go').classList.contains('on')){ close(); } });

@@ -46,8 +46,36 @@ const css=`
 #vw .card i{color:var(--mark-text);font-style:normal}
 #vw .alts{padding:0 14px 6px;font-size:13px;color:var(--chrome-text)}
 #vw .alts button{min-height:34px;padding:4px 8px;margin:4px 6px 0 0}
-#vwFab{position:fixed;right:16px;bottom:16px;z-index:800;min-height:56px;padding:0 20px;border-radius:28px;font:600 15px system-ui;letter-spacing:.1em;background:var(--mark);color:#1b1206;border:0;box-shadow:0 4px 14px rgba(0,0,0,.35);display:none}
-@media (max-width:900px){ #vwFab{display:block} }`;
+#vwFab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:800;min-height:64px;padding:0 24px 0 18px;border-radius:32px;font:600 16px var(--sans,system-ui);letter-spacing:.12em;background:var(--mark);color:var(--mark-ink,#1a1206);border:0;box-shadow:0 6px 18px rgba(0,0,0,.35);display:none;align-items:center;gap:10px}
+#vwFab svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+/* VOICE is in the top bar on every screen now; this one stays out of the way */
+/* VOICE ON THE PAGE: the mic bar at the bottom, the real page above it */
+#vdock{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:850;width:min(820px,calc(100vw - 24px));background:var(--desk-2);color:var(--chrome-text);border:1px solid var(--rule);border-radius:20px;padding:12px 14px;display:none;align-items:center;gap:12px;box-shadow:0 14px 36px rgba(0,0,0,.4);font-family:var(--sans,system-ui)}
+body.vdock #vdock{display:flex}
+#vdock button{font:inherit;color:inherit;background:var(--desk-3);border:1px solid var(--rule);border-radius:10px;min-height:44px;padding:0 12px;cursor:pointer;font-size:13.5px;font-weight:500}
+#vdock .vmic{width:64px;height:64px;min-height:64px;border-radius:50%;padding:0;flex:none;background:var(--mark);border:0;color:var(--mark-ink,#1a1206);display:inline-flex;align-items:center;justify-content:center}
+#vdock .vmic svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+#vdock .vmic.live{background:#b23a2f;color:#fff}
+#vdock .vmic span{display:none}
+#vdock .vmid{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+#vdock .vnext{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mark-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vdock .vheard{font-size:14.5px;color:var(--chrome-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:20px}
+#vdock .vmodes{display:flex;gap:6px}
+#vdock .vmodes button.on{border-color:var(--mark);color:var(--mark-text);font-weight:600}
+#vdock .vrow{display:flex;gap:6px;align-items:center}
+#vghost{position:absolute;z-index:6;pointer-events:none;white-space:pre-wrap;color:#8a8273;font-style:italic;display:none}
+#vghost::after{content:"";display:inline-block;width:2px;height:1em;background:#e0a23c;vertical-align:-.15em;margin-left:2px}
+#vtag{position:absolute;z-index:6;pointer-events:none;font:600 10.5px/1.2 var(--sans,system-ui);letter-spacing:.12em;color:#8a5a08;background:rgba(224,162,60,.22);border-radius:4px;padding:3px 6px;display:none;white-space:normal;text-align:left}
+.stack .b.vjust{background:rgba(224,162,60,.24);border-radius:3px;transition:background 1.2s ease}
+.stack .b.vfade{background:transparent}
+@media (max-width:700px){
+ #vdock{left:0;right:0;transform:none;width:auto;bottom:0;border-radius:18px 18px 0 0;flex-wrap:wrap;padding:10px 12px calc(12px + env(safe-area-inset-bottom,0px))}
+ #vdock .vmid{order:-1;flex:1 1 100%}
+ #vdock .vmodes{flex:1 1 100%}#vdock .vmodes button{flex:1}
+ #vdock .vmic{width:auto;flex:1 1 auto;border-radius:16px;height:64px;gap:10px;font-weight:600;letter-spacing:.12em}
+ #vdock .vmic span{display:inline}
+}
+@media (prefers-reduced-motion:reduce){.stack .b.vjust{transition:none}}`;
 const st=document.createElement('style'); st.textContent=css; document.head.appendChild(st);
 const el=document.createElement('div'); el.id='vw';
 el.innerHTML=`<header><b>VOICE</b><span class="next" id="vwNext"></span><button id="vwPasteOpen" title="Paste what you said: dictation, a transcript">Paste</button><button id="vwHelp">What to say</button><button id="vwClose" aria-label="Close">Done</button></header>
@@ -66,7 +94,16 @@ el.innerHTML=`<header><b>VOICE</b><span class="next" id="vwNext"></span><button 
 <button id="vwPasteFile">A file</button><button id="vwPasteGo" style="background:var(--mark);border-color:var(--mark);color:var(--mark-ink);font-weight:600">CLEAN IT UP</button></div>
 <div id="vwPasteOut"></div><button id="vwPasteClose">Done</button></div>`;
 document.body.appendChild(el);
-const fab=document.createElement('button'); fab.id='vwFab'; fab.textContent='VOICE'; document.body.appendChild(fab);
+const MICSVG='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+const fab=document.createElement('button'); fab.id='vwFab'; fab.innerHTML=MICSVG+'VOICE'; fab.setAttribute('aria-label','Voice: talk it onto the page'); document.body.appendChild(fab);
+const dock=document.createElement('div'); dock.id='vdock'; dock.setAttribute('role','region'); dock.setAttribute('aria-label','Voice on the page');
+dock.innerHTML='<button class="vmic" id="vdMic" aria-label="Tap to talk">'+MICSVG+'<span id="vdMicT">TAP TO TALK</span></button>'
+ +'<div class="vmid"><span class="vnext" id="vdNext"></span><span class="vheard" id="vdHeard" aria-live="polite"></span></div>'
+ +'<div class="vmodes"><button data-vd="Scene Heading">Heading</button><button data-vd="Action">Action</button><button data-vd="Dialogue">Dialogue</button></div>'
+ +'<div class="vrow"><button id="vdUndo">Undo</button><button id="vdFull" title="The full-screen Voice">Full screen</button><button id="vdDone">Done</button></div>';
+document.body.appendChild(dock);
+const ghost=document.createElement('div'); ghost.id='vghost'; const tag=document.createElement('div'); tag.id='vtag';
+let DOCK=false, SAID='';
 $('vwCard').innerHTML='<p style="margin-top:0">Say it like this. Capitals and punctuation don\'t matter, and your phone adding a full stop doesn\'t break a command.</p>'
  +V.SAY.map(([a,b])=>'<div><span>"'+esc(a)+'"</span><i>'+esc(b)+'</i></div>').join('')
  +'<p>A name only starts a speech when you say <b>says</b> (or asks, whispers, yells). "Rennie walks to the bench" is action.</p>'
@@ -94,7 +131,7 @@ function handle(raw){
  const typing=document.activeElement===$('vwType');
  const before=new Map(blocks().map(b=>[b.id,b.type+'|'+b.text]));
  try{ act(raw); } finally {
-  JUST=new Set(blocks().filter(b=>before.get(b.id)!==b.type+'|'+b.text).map(b=>b.id)); draw();
+  JUST=new Set(blocks().filter(b=>before.get(b.id)!==b.type+'|'+b.text).map(b=>b.id)); SAID=String(raw||'').trim(); draw(); if(DOCK) glow();
   // the editor puts its caret on the new line; on a phone that pops the keyboard over the voice screen
   const a=document.activeElement; if(a&&!el.contains(a)&&a!==document.body) a.blur();
   if(typing) $('vwType').focus();
@@ -148,6 +185,7 @@ function lastLine(){ const {B,i}=at(); for(let k=i;k>=0;k--) if(String(B[k].text
 const CL={'Scene Heading':'sh','Action':'ac','Character':'ch','Parenthetical':'pa','Dialogue':'di','Transition':'tr'};
 let HEAR='';
 function draw(){
+ if(DOCK) drawDock();
  if(!el.classList.contains('on')) return;
  const {B,i}=at(); let s=i; while(s>0&&B[s].type!=='Scene Heading'&&i-s<14) s--; s=Math.max(0,Math.min(s,i-14));
  const show=B.slice(s,i+1);
@@ -164,6 +202,45 @@ function draw(){
  $('vwAlts').innerHTML=alts.length?'Earlier takes of this line: '+[...new Set(alts)].slice(-4).map((t,k)=>'<button data-alt="'+k+'">'+esc(t.length>40?t.slice(0,38)+' …':t)+'</button>').join(''):'';
  [...$('vwAlts').querySelectorAll('[data-alt]')].forEach((x,k)=>x.onclick=()=>{ const u=[...new Set(alts)].slice(-4)[k]; api.record({tool:'Voice',kind:'alternate',raw:l.text,ids:[l.id]}); api.setText(l.id,u); say('Swapped. The other take is kept.'); draw(); });
 }
+
+/* ---------- VOICE ON THE PAGE: your words on the real page, where they land ---------- */
+const TYPECL={'Scene Heading':'sceneheading','Action':'action','Dialogue':'dialogue','Character':'character'};
+function elOf(id){ return id?document.querySelector('.stack [data-bid="'+(window.CSS&&CSS.escape?CSS.escape(id):id)+'"]'):null; }
+function scrollBox(){ return document.getElementById('scroll'); }
+function place(){
+ const sc=scrollBox(); if(!sc){ return; }
+ if(ghost.parentNode!==sc){ sc.appendChild(ghost); sc.appendChild(tag); }
+ const {B,i,b}=at(); const cur=elOf(b&&b.id);
+ if(!DOCK||!cur){ ghost.style.display='none'; tag.style.display='none'; return; }
+ const base=sc.getBoundingClientRect(), r=cur.getBoundingClientRect();
+ const kind=MODE==='Dialogue'?'dialogue':MODE==='Scene Heading'?'sceneheading':'action';
+ const like=document.querySelector('.stack .b.'+kind)||cur, lr=like.getBoundingClientRect(), cs=getComputedStyle(cur);
+ const empty=!String(b.text||'').trim();
+ const top=(empty?r.top:r.bottom+parseFloat(cs.fontSize)*0.9)-base.top+sc.scrollTop, left=lr.left-base.left+sc.scrollLeft;
+ const sp=speakerAt(B,i), label=MODE==='Scene Heading'?'SCENE HEADING':MODE==='Dialogue'?((sp||'SAY WHO SPEAKS')+' · DIALOGUE'):'ACTION';
+ const paper=cur.closest('.stack'), pr=paper?paper.getBoundingClientRect():r, gap=lr.left-pr.left;
+ tag.textContent=label;
+ if(gap>=120&&pr.left>=base.left-2){ tag.style.left=(pr.left-base.left+sc.scrollLeft+10)+'px'; tag.style.maxWidth=(gap-20)+'px'; tag.style.top=(top+1)+'px'; tag.style.display='block'; }
+ else tag.style.display='none';
+ if(HEAR){ ghost.textContent=HEAR; ghost.style.cssText+=';display:block;left:'+left+'px;top:'+top+'px;width:'+Math.max(120,lr.width)+'px;font:'+cs.font+';font-style:italic'; }
+ else ghost.style.display='none';
+ // keep where you're talking in view, above the bar
+ const bar=dock.getBoundingClientRect(), need=r.bottom+parseFloat(cs.fontSize)*3;
+ if(need>bar.top-12) sc.scrollTop+=need-(bar.top-12);
+ else if(r.top<base.top+8) sc.scrollTop-=base.top+8-r.top;
+}
+function glow(){ setTimeout(()=>{ JUST.forEach(id=>{ const e=elOf(id); if(e){ e.classList.add('vjust'); setTimeout(()=>e.classList.add('vfade'),1600); setTimeout(()=>e.classList.remove('vjust','vfade'),3000); } }); },30); }
+function drawDock(){
+ const {B,i}=at(), sp=speakerAt(B,i);
+ $('vdNext').textContent=MODE==='Scene Heading'?'Next: a scene heading':MODE==='Dialogue'?(sp?'Next: '+sp+' speaking':'Next: say who speaks, "Ross says"'):'Next: action';
+ $('vdHeard').textContent=HEAR?'"'+HEAR+'"':(SAID?'Last: "'+SAID+'"':(SR?'Say it. Your words go on the page where you see the tag.':'This browser can\'t listen. Use the full screen Voice and your keyboard\'s mic.'));
+ dock.querySelectorAll('[data-vd]').forEach(x=>x.classList.toggle('on',x.dataset.vd===MODE));
+ const m=$('vdMic'); m.classList.toggle('live',LIVE); $('vdMicT').textContent=LIVE?'LISTENING · TAP TO STOP':'TAP TO TALK'; m.setAttribute('aria-label',LIVE?'Stop listening':'Tap to talk'); m.disabled=!SR;
+ document.body.classList.toggle('vlive',LIVE);
+ place();
+}
+function openDock(){ refreshNames(); MODE=modeFromScript(); DOCK=true; document.body.classList.add('vdock'); drawDock(); }
+function closeDock(){ stop(); DOCK=false; document.body.classList.remove('vdock','vlive'); ghost.style.display='none'; tag.style.display='none'; }
 
 /* ---------- listening ---------- */
 function start(){
@@ -195,7 +272,14 @@ function make(){
 /* ---------- wiring ---------- */
 function open(){ refreshNames(); MODE=modeFromScript(); el.classList.add('on'); say(SR?'':'This browser can\'t listen. Use your keyboard\'s mic in the box below: the same words work.'); draw(); }
 function close(){ stop(); el.classList.remove('on'); }
-const vb=$('btnVoice'); if(vb) vb.onclick=open; fab.onclick=open;
+const vb=$('btnVoice'); if(vb) vb.onclick=()=>DOCK?closeDock():openDock(); fab.onclick=openDock;
+$('vdMic').onclick=()=>WANT?stop():start();
+$('vdUndo').onclick=()=>{ api.undo(); MODE=modeFromScript(); SAID=''; drawDock(); };
+$('vdDone').onclick=closeDock;
+$('vdFull').onclick=()=>{ const was=WANT; closeDock(); open(); if(was) start(); };
+dock.querySelectorAll('[data-vd]').forEach(x=>x.onclick=()=>{ MODE=x.dataset.vd; drawDock(); });
+const scr=document.getElementById('scroll'); if(scr) scr.addEventListener('scroll',()=>{ if(DOCK&&!LIVE) place(); },{passive:true});
+window.addEventListener('resize',()=>{ if(DOCK) place(); });
 $('vwClose').onclick=close;
 $('vwMic').onclick=()=>WANT?stop():start();
 $('vwUndo').onclick=()=>{ api.undo(); MODE=modeFromScript(); say('Undone.'); draw(); };
@@ -223,5 +307,5 @@ $('vwPasteGo').onclick=()=>{ const raw=$('vwPasteIn').value, SC=window.SignalCle
 el.addEventListener('click',e=>{ if(e.target&&e.target.id==='vwCardClose') $('vwCard').classList.remove('on'); });
 document.addEventListener('visibilitychange',()=>{ if(document.hidden&&WANT) stop(); });
 if(/[?&]voice\b/.test(location.search)) setTimeout(open,300);
-window.__voice={handle:handle,open:open,close:close,state:()=>({MODE,WANT,LIVE,NAMES})};
+window.__voice={handle:handle,open:open,close:close,openDock:openDock,closeDock:closeDock,hear:t=>{ HEAR=t||''; draw(); },state:()=>({MODE,WANT,LIVE,NAMES,DOCK})};
 })();

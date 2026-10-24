@@ -9,7 +9,7 @@ const c=await b.newContext({viewport:{width:390,height:844}}); await c.grantPerm
 await c.addInitScript(()=>{ class FakeSR extends EventTarget{ start(){ window.__sr=this; } stop(){ this.dispatchEvent(new Event('end')); if(this.onend) this.onend(); } abort(){ this.stop(); } }; window.webkitSpeechRecognition=FakeSR; window.SpeechRecognition=FakeSR; });
 const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
 await p.goto('http://localhost:8811/write/writers-blockage.html'); await p.evaluate(()=>{ localStorage.removeItem('wb_go_v1'); localStorage.removeItem('theactorpage_inbox_v1'); sessionStorage.clear(); You.set('name','Sam Actor'); }); await p.reload(); await p.waitForTimeout(800);
-want('GO is on the toolbar', !!(await p.$('#btnGo'))&&(await p.innerText('#btnGo')).trim()==='GO');
+want('GO-MODE is on the toolbar', !!(await p.$('#btnGo'))&&(await p.innerText('#btnGo')).trim()==='GO-MODE');
 await p.click('#btnGo'); await p.waitForTimeout(300);
 let m=await p.innerText('#go');
 want('GO opens on RAW: no choices, a box, ADD', /Get it down\. No form, no rules\./.test(m)&&!!(await p.$('#gobox'))&&!!(await p.$('#goadd')), m.slice(0,300));
@@ -42,7 +42,7 @@ want('DECK: slides', await p.$$eval('#gopage .slide',x=>x.length)===3);
 want('seeing it every way changed nothing in the raw', await p.evaluate(()=>JSON.stringify(window.__go.D().caps[0].entries))===raw0);
 // to Paper Trail
 await p.click('[data-view="clean"]'); await p.click('#gotrail'); await p.waitForTimeout(150);
-want('KEEP IN PAPER TRAIL: a draft waits for Paper Trail', await p.evaluate(()=>Inbox.pending('papertrail','draft').some(x=>x.data.label==='GO: Clean'&&/So she never comes back/.test(x.data.text))));
+want('KEEP IN PAPER TRAIL: a draft waits for Paper Trail', await p.evaluate(()=>Inbox.pending('papertrail','draft').some(x=>x.data.label==='GO-MODE: Clean'&&/So she never comes back/.test(x.data.text))));
 const q=await c.newPage(); await q.goto('http://localhost:8811/papertrail/'); await q.waitForTimeout(1200);
 want('Paper Trail takes it in', /INT\. PAWN SHOP/i.test(await q.innerText('body')), (await q.innerText('body')).slice(0,300)); await q.close();
 // open as a script

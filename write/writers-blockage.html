@@ -82,7 +82,7 @@ select,input[type=text]{background:var(--desk-2);border:1px solid var(--rule);bo
 .castrow span:last-child{color:var(--chrome-dim);font-variant-numeric:tabular-nums}
 .note-hint{padding:8px 12px;font-size:11.5px;color:var(--chrome-dim);line-height:1.5}
 
-#scroll{flex:1;overflow:auto;padding:26px 0 40vh;background:var(--well)}
+#scroll{flex:1;overflow:auto;padding:26px 0 40vh;background:var(--well);position:relative}
 #flow{margin:0 auto;width:max-content;font-family:"Courier New",Courier,monospace}
 .stack{background:var(--paper);color:var(--ink);outline:none;position:relative;
   box-shadow:var(--shadow);width:var(--pw)}
@@ -189,6 +189,14 @@ body{display:flex;flex-direction:column}
 body.focus #body{height:auto}
 #top #btnGo{color:var(--mark-ink);background:var(--mark);border-color:var(--mark);font-weight:600;letter-spacing:.12em}
 #top #btnGo:hover{background:#eab04e}
+/* the two big ones: GO-MODE and VOICE stand out */
+#top .hb{min-height:48px;padding:0 18px;border-radius:14px;font-size:14.5px;font-weight:600;letter-spacing:.1em;display:inline-flex;align-items:center;gap:9px;white-space:nowrap;flex:none}
+#top #elpick{max-width:160px}
+#top .hb .hb-i{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+#top #btnVoice{background:var(--desk-2);color:var(--mark-text);border:2px solid var(--mark)}
+#top #btnVoice:hover{background:var(--desk-3)}
+body.vlive #top #btnVoice{background:#b23a2f;border-color:#b23a2f;color:#fff}
+@media (max-width:700px){#top .hb{min-height:44px;padding:0 12px;font-size:13px}#top .hb .hb-i{width:20px;height:20px}}
 #top #bD{width:auto;padding:0 12px}
 #top{gap:8px;padding:8px 14px;background:var(--desk);flex-wrap:nowrap;min-height:58px}
 #top button,#top select{min-height:40px;border-radius:10px;border-color:var(--rule);background:var(--desk-2);padding:0 13px;font-size:13.5px;font-weight:500}
@@ -229,11 +237,14 @@ dialog .primary:hover{background:#eab04e;border-color:#eab04e}
   #brand{display:none}
   #docname{flex:1 1 0;min-width:0;max-width:none;order:0}
   #btnGo{order:1}
-  #btnVoice{display:none}
-  .tmenu{order:2}
+  #btnVoice{order:1}
+  .tmenu{order:5}
+  #top #elpick{max-width:none;order:3;flex:1 1 0;min-width:0;padding:0 8px}
+  #bU{display:none}
   .tmenu>summary{padding:0 11px}
-  #elpick{order:3;flex:1 1 auto}
+  #top::after{content:"";order:2;flex-basis:100%;height:0}
   .tools{order:4}
+  #top .tools button{width:38px;min-width:38px}
   #bD{display:none}
   .grow,.topsave{display:none}
   .tmpanel{position:fixed;left:10px;right:10px;top:auto;min-width:0;max-height:70vh;overflow:auto}
@@ -257,8 +268,8 @@ dialog .primary:hover{background:#eab04e;border-color:#eab04e}
   </span>
   <span class="grow"></span>
   <span id="saveinfo2" class="topsave" aria-live="polite"></span>
-  <button id="btnGo" title="Get it down first. Decide what it is later.">GO</button>
-  <button id="btnVoice" title="Write by talking (phone or computer)">Voice</button>
+  <button id="btnGo" class="hb" title="Get it down first. Decide what it is later."><svg class="hb-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></svg><span>GO-MODE</span></button>
+  <button id="btnVoice" class="hb" title="Talk the script out and watch it land on the page"><svg class="hb-i" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>VOICE</span></button>
   <details class="tmenu" id="mScript"><summary>Script</summary><div class="tmpanel" role="menu">
     <button id="btnProjects" role="menuitem">Your scripts</button>
     <button id="btnNew" role="menuitem">New</button>
