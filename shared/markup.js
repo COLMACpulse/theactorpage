@@ -48,6 +48,8 @@
   };
   /* a revision kept beside its line: what it said before */
   M.wasNote = (anchorId, before) => ({ id: uid(), a: anchorId, tool: 'was', text: String(before || ''), pts: [[0, 0]], at: Date.now() });
+  /* typed words placed on the page (REVISE on a PDF, where the words themselves can't change) */
+  M.textMark = (anchor, p, text, color, scale) => ({ id: uid(), a: anchor.id, tool: 'text', text: String(text || ''), color: color || '#c0392b', pts: [[r1((p[0] - anchor.left) / scale), r1((p[1] - anchor.top) / scale)]], at: Date.now() });
 
   /* ---------- on a page ---------- */
   /* opts: surface (the element the page scrolls in, position:relative), anchors() -> [{id, el}],
@@ -71,6 +73,13 @@
       const B = boxes(), byId = new Map(B.map(b => [b.id, b])), sc = opts.scale();
       for (const m of marks) {
         const a = byId.get(m.a); if (!a) continue;
+        if (m.tool === 'text') {
+          const q = M.place(m, a, sc)[0], t = doc.createElementNS(NS, 'text');
+          t.setAttribute('x', q[0]); t.setAttribute('y', q[1]); t.setAttribute('fill', m.color || '#c0392b');
+          t.setAttribute('font-size', 11 * sc); t.setAttribute('font-family', 'Jost, system-ui, sans-serif'); t.setAttribute('font-style', 'italic'); t.setAttribute('data-mk', m.id);
+          String(m.text).split('\n').forEach((ln, k) => { const ts = doc.createElementNS(NS, 'tspan'); ts.setAttribute('x', q[0]); ts.setAttribute('dy', k ? 13 * sc : 0); ts.textContent = ln; t.appendChild(ts); });
+          svg.appendChild(t); continue;
+        }
         if (m.tool === 'was') {
           const t = doc.createElementNS(NS, 'text'), wp = opts.wasPos ? opts.wasPos(a) : { x: a.right + 10 * sc, y: a.top + 10 * sc };
           t.setAttribute('x', wp.x); t.setAttribute('y', wp.y); t.setAttribute('fill', '#c0392b');
@@ -93,7 +102,7 @@
       if (!on || tool === 'move') return;
       e.preventDefault(); const p = pt(e);
       if (tool === 'erase') { eraseAt(p); return; }
-      if (tool === 'revise') { const a = M.anchorAt(boxes(), p[0], p[1]); if (a && opts.onRevise) opts.onRevise(a.id, a.el); return; }
+      if (tool === 'revise') { const a = M.anchorAt(boxes(), p[0], p[1]); if (a && opts.onRevise) opts.onRevise(a.id, a.el, p, a, opts.scale()); return; }
       cur = { tool, pts: [p] }; try { svg.setPointerCapture(e.pointerId); } catch (er) { } draw();
     }
     function move(e) { if (!cur) return; e.preventDefault(); const p = pt(e);
@@ -104,6 +113,7 @@
       marks.push(M.toMark(c.tool, color, a, c.pts, opts.scale())); save(); draw(); }
     function eraseAt(p) { const B = boxes(), byId = new Map(B.map(b => [b.id, b])), sc = opts.scale();
       const hit = marks.slice().reverse().find(m => { const a = byId.get(m.a); if (!a) return false;
+        if (m.tool === 'text') { const q = M.place(m, a, sc)[0], n = String(m.text).split('\n'), w = Math.max(...n.map(l => l.length)) * 6 * sc; return p[0] >= q[0] - 6 && p[0] <= q[0] + w && p[1] >= q[1] - 12 * sc && p[1] <= q[1] + n.length * 13 * sc; }
         if (m.tool === 'was') { const wp = opts.wasPos ? opts.wasPos(a) : { x: a.right + 10 * sc, y: a.top + 10 * sc }; return p[0] >= wp.x - 6 && p[1] >= wp.y - 14 * sc && p[1] <= wp.y + 4 * sc; }
         return M.near(M.place(m, a, sc), p[0], p[1], Math.max(10, M.width(m.tool, sc))); });
       if (hit) { marks = marks.filter(m => m !== hit); save(); draw(); } }

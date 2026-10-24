@@ -2333,7 +2333,7 @@ function sceneTabs(){
    never does - the handwritten START and END marks, the FYI notes, whatever
    casting scrawled on it. So the original is kept and shown as the real page,
    using the browser's own PDF viewer. No library, no reflow, no interpretation.
-   Mark-up is not built: this is read-only. */
+   MARK UP THE SIDES opens the same pages with pen, highlight, cross out and your own words on top. */
 async function sidesDocState(){
  const el=$('sidesDoc'); if(!el||el===_NULLEL)return;
  const name=(typeof SIDES!=='undefined'&&SIDES.file)||window.SIDES_DOC||'';
@@ -2344,6 +2344,7 @@ async function sidesDocState(){
    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
      <path d="M5 3h9l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/></svg>
    <span><b>${esc2(name)}</b>Look at your sides, every page</span></button>
+   <button class="docalt" onclick="markUpSides()">mark up the sides: draw, highlight, cross out, write in</button>
    <button class="docalt" onclick="readSides()">or read the text version, sized to this screen</button>`;
 }
 /* ===== THE ORIGINAL PAGES =====
@@ -2383,7 +2384,7 @@ async function openSides(){
        <button class="sBtn" onclick="pageFit()">FIT</button>
        <button class="sBtn closebtn" onclick="closePages()">&times; CLOSE</button></span></div>
    <div class="pagebody" id="pageBody"><div class="am" style="margin:0">Opening your sides&hellip;</div></div>
-   <div class="sheetfoot"><button class="openpdf" onclick="saveSidesFile()">SAVE A COPY TO THIS DEVICE</button></div>
+   <div class="sheetfoot"><button class="openpdf" id="markSides" onclick="closePages();markUpSides()">MARK UP THE SIDES</button> <button class="openpdf" onclick="saveSidesFile()">SAVE A COPY TO THIS DEVICE</button></div>
  </div>`;
  sheetBackdrop(w,closePages);
  document.body.appendChild(w);
@@ -2406,6 +2407,15 @@ async function openSides(){
   if(body)body.innerHTML='<div class="am" style="border-color:#d9694e;margin:0"><b>Could not open the pages.</b><br>'
     +esc2(e.message)+'<br><br>Use SAVE A COPY below and open it in your own viewer.</div>';
  }
+}
+/* the shared mark-up viewer, loaded only when asked for */
+function loadOnce(src){ return new Promise((res,rej)=>{ if(document.querySelector('script[src="'+src+'"]')) return res(); const sc=document.createElement('script'); sc.src=src; sc.onload=res; sc.onerror=()=>rej(new Error('could not load')); document.head.appendChild(sc); }); }
+async function markUpSides(){
+ const name=(typeof SIDES!=='undefined'&&SIDES.file)||window.SIDES_DOC||'';
+ const blob=await ActorReader.getDoc(name).catch(()=>null);
+ if(!blob) return alert('That PDF is no longer stored.');
+ await loadOnce('../shared/markup.js'); await loadOnce('../shared/pdfmark.js');
+ PDFMark.open({blob,name,pdfjs:'vendor/pdf.min.js',worker:'vendor/pdf.worker.min.js'});
 }
 async function paintPage(n,cvs){
  const doc=window.__doc; if(!doc)return;

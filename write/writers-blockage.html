@@ -297,6 +297,7 @@ dialog .primary:hover{background:#eab04e;border-color:#eab04e}
     <button id="btnSave" role="menuitem">Save a copy</button>
     <button id="btnExport" role="menuitem">Export <small>PDF and more</small></button>
     <button id="btnSides" role="menuitem">Sides for the shoot day <small>half-letter</small></button>
+    <button id="btnPdfMark" role="menuitem">Mark up a PDF someone sent <small>your original stays as it was</small></button><input type="file" id="pdfMarkIn" accept=".pdf,application/pdf" hidden>
     <button id="btnTitle" role="menuitem">Title page</button>
     <button id="btnPage" role="menuitem">Page setup</button>
   </div></details>
@@ -4428,6 +4429,12 @@ function openSides(){
 $("sdCall").onchange = () => { saveDay(); drawSides(); };
 document.querySelectorAll('input[name="sdPaper"]').forEach(r => r.onchange = saveDay);
 $("btnSides").onclick = openSides;
+/* MARK UP A PDF: the shared viewer (shared/pdfmark.js), pages drawn by the PDF.js copy kept in breakdown/vendor */
+function loadOnce(src){ return new Promise((res,rej)=>{ const sc=document.createElement('script'); sc.src=src; sc.onload=res; sc.onerror=()=>rej(new Error('could not load')); document.head.appendChild(sc); }); }
+$("btnPdfMark").onclick = () => { $("pdfMarkIn").click(); };
+$("pdfMarkIn").onchange = async e => { const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  if(!window.Markup) await loadOnce('../shared/markup.js'); if(!window.PDFMark) await loadOnce('../shared/pdfmark.js');
+  PDFMark.open({blob:f, name:f.name, pdfjs:'../breakdown/vendor/pdf.min.js', worker:'../breakdown/vendor/pdf.worker.min.js'}); };
 $("sdGo").onclick = () => {
   saveDay(); const d = doc.sidesDay;
   if(!d.order.length){ toast("Pick the scenes you shoot this day first."); return; }

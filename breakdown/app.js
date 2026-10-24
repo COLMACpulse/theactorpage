@@ -868,6 +868,12 @@
         ${S.compare ? viewCompare() : ''}
       </div>
 
+      ${p.shelf && /\.pdf$/i.test((p.source && p.source.name) || '') ? `<div class="card" id="markcard">
+        <h3 style="font-size:15px;margin-bottom:4px">Mark up the pages</h3>
+        <p class="dim" style="font-size:14px;margin:0 0 10px">The PDF as it came, with pen, highlight, cross out and your own words on top. Your original stays as it was.</p>
+        <div class="row"><button class="btn pri" data-a="markpdf">Mark up the sides</button></div>
+      </div>` : ''}
+
       <div class="card">
         <h3 style="font-size:15px;margin-bottom:4px">Print packet</h3>
         <p class="dim" style="font-size:14px;margin:0 0 10px">Prints, or saves as PDF from the print dialog.</p>
@@ -1161,6 +1167,13 @@
     switch (a) {
       // home
       case 'pickfile': $('#filein').click(); break;
+      case 'markpdf': {
+        const f = SH && p && p.shelf ? await SH.getFile(p.shelf) : null;
+        if (!f) { alert('The PDF isn\'t kept on this device any more. Bring it in again to mark it up.'); break; }
+        if (!window.Markup) await loadScript('../shared/markup.js'); if (!window.PDFMark) await loadScript('../shared/pdfmark.js');
+        window.PDFMark.open({ blob: f, name: (p.source && p.source.name) || f.name, pdfjs: 'vendor/pdf.min.js', worker: 'vendor/pdf.worker.min.js' });
+        break;
+      }
       case 'homepanel': S.homePanel = S.homePanel === ds.p ? '' : ds.p; if (S.homePanel !== 'bring') S.homeMsg = null; render(); break;
       case 'homebring': S.homePanel = 'bring'; render(); setTimeout(() => { const d = $('#drop'); if (d) d.scrollIntoView({ block: 'center' }); }, 30); break;
       case 'openshelf': await openShelf(ds.id); break;
