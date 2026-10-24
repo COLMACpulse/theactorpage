@@ -9,12 +9,12 @@ const c=await b.newContext({viewport:{width:390,height:844},serviceWorkers:'bloc
 await p.goto('http://localhost:8811/hub/'); await p.waitForTimeout(1500);
 let t=await p.innerText('body');
 want('a first visit: no made-up actor, no demo banner', !/RILEY HART/.test(t)&&!/demo data/i.test(t));
-want('a first step instead', /Start with your name and a headshot on Profile/.test(t));
+want('a first step instead', /Start with your name and a headshot\./.test(t));
 want('the tab title is THEACTORPAGE, not COLMAC', (await p.title())==='PROJECT HUB · THEACTORPAGE');
 // the tour
 const d=await b.newContext({viewport:{width:390,height:844},serviceWorkers:'block'}); const q=await d.newPage(); q.on('pageerror',e=>errs.push(e.message));
 await q.goto('http://localhost:8811/hub/'); await q.evaluate(()=>{ sessionStorage.setItem('tapdemo_on','1'); }); await q.reload(); await q.waitForTimeout(1500);
-want('in the tour: RILEY HART is there, labeled', /RILEY HART/.test(await q.innerText('body'))&&/demo data/i.test(await q.innerText('body')));
+want('in the tour: RILEY HART is there, labeled', /RILEY HART/i.test(await q.innerText('body'))&&/demo data/i.test(await q.innerText('body')));
 // a Hub from before, with the made-up actor and one credit of your own
 const e2=await b.newContext({viewport:{width:390,height:844},serviceWorkers:'block'}); await e2.addInitScript(()=>{ if(!sessionStorage.getItem('once')){ sessionStorage.setItem('once','1'); localStorage.setItem('hub_demo','1'); } });
 const r=await e2.newPage(); r.on('pageerror',x=>errs.push(x.message));

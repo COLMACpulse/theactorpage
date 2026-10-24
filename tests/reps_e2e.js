@@ -13,7 +13,7 @@ await p.goto('http://localhost:8811/'); await p.evaluate(()=>{ localStorage.clea
  Notes.addSession({date:'2026-09-12',room:'class',who:[{name:'Jo Banner',role:'casting'}],title:'Scene night'});
 });
 await p.goto('http://localhost:8811/hub/?tab=reps'); await p.waitForTimeout(1800);
-want('a FOR MY REPS tab in the Hub, next to Casting', (await p.$$eval('#nav button',x=>x.map(y=>y.textContent))).join('|').includes('Casting|For my reps'));
+want('FOR MY REPS in the Hub: its own page, back to the front', /For my reps/i.test(await p.innerText('#nav'))&&/PROJECT HUB/.test(await p.innerText('#nav')));
 let v=await p.innerText('#view');
 want('says what it is: one sheet, both reps, only what\'s new after the first, nothing sends itself', /agent and your manager/.test(v)&&/only says what's new/.test(v)&&/Nothing sends itself/.test(v));
 want('not sent yet: due', /Not sent yet/i.test(v)&&/haven't had this yet/.test(v));

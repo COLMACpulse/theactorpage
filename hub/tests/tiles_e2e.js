@@ -49,7 +49,7 @@ v=await p.innerText('#view');
 want('tap FRAME: lands on LOW TIDE, step 6 Set up the shot, camera not on yet', /LOW TIDE/.test(v)&&/Set up the shot \(6\/11\)/i.test(v)&&/open camera/i.test(v)&&await p.evaluate(()=>!Hot.peek().camera), v.slice(0,600));
 await p.click('#view button:has-text("open camera")'); await p.waitForTimeout(1200);
 t=await tiles(); want('open camera: chip ON', t.every(x=>x.chip==='ON'), t);
-await p.click('#nav button:has-text("Profile")'); await p.waitForTimeout(500);
+await p.evaluate(()=>go('profile')); await p.waitForTimeout(500);
 want('leaving the audition turns the camera off', await p.evaluate(()=>!Hot.peek().camera&&!camOpen)&&(await tiles())[0].chip==='OFF');
 const kitText=await p.$$eval('.kit',x=>x.map(y=>y.innerText).join(' '));
 want('no em dashes on the tiles', !/—/.test(kitText), kitText);

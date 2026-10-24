@@ -9,7 +9,7 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--mono);font-size:13px;line-height:1.5;
 background-image:radial-gradient(900px 420px at 82% -10%,rgba(224,162,60,.06),transparent 60%)}
-.wrap{max-width:1180px;margin:0 auto;padding:0 16px 60px}
+.wrap{max-width:1072px;margin:0 auto;padding:0 16px 60px}
 .bar{height:11px;background:repeating-linear-gradient(90deg,transparent 0 15px,var(--p1) 15px 26px);border-bottom:1px solid var(--line);opacity:.8}
 header{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;padding:18px 4px 12px}
 .sig{width:84px;height:84px;background:var(--sig) center/contain no-repeat;filter:drop-shadow(0 2px 5px rgba(0,0,0,.65)) drop-shadow(0 0 12px rgba(224,162,60,.24));flex:0 0 84px}
@@ -145,14 +145,64 @@ small.note{display:block;padding:0 15px 13px;color:var(--faint);font-size:10.5px
 .whyin2{width:100%;background:var(--p2);border:1px solid var(--line2);border-radius:7px;color:var(--ink);padding:8px 10px;font:inherit;font-size:13px}
 .repTxt{width:100%;min-height:60vh;background:var(--p2);border:1px solid var(--line2);border-radius:8px;color:var(--ink);padding:12px;font:12.5px/1.55 var(--mono);white-space:pre}
 .ofo{display:block;font:10px var(--mono);color:var(--tung);margin-top:2px}
+
+/* THEACTORPAGE look: the ACT palette, light theme, Jost, the header and sticks every tool has */
+@font-face{font-family:Jost;font-weight:400;font-display:swap;src:url(../fonts/jost-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:Jost;font-weight:500;font-display:swap;src:url(../fonts/jost-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:Jost;font-weight:600;font-display:swap;src:url(../fonts/jost-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Courier Prime';font-weight:400;font-display:swap;src:url(../fonts/courier-prime-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Courier Prime';font-weight:700;font-display:swap;src:url(../fonts/courier-prime-latin-700-normal.woff2) format('woff2')}
+:root{--paper:#121110;--p1:#1b1916;--p2:#24211d;--p3:#2c2823;--line:#2f2b26;--line2:#3d3832;--ink:#ece7dc;--mut:#a39c8e;--faint:#7a7366;--dim:#a39c8e;--tung-text:#e9b25a;--sans:Jost,system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"Courier Prime","Courier New",ui-monospace,monospace;color-scheme:dark}
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){--paper:#ece7dc;--p1:#f6f2ea;--p2:#e8e1d3;--p3:#ddd4c3;--line:#d3cab8;--line2:#c2b7a1;--ink:#1d1a15;--mut:#5f584b;--faint:#7d7566;--dim:#5f584b;--tung:#a8700c;--tung-text:#8a5a08;color-scheme:light}}
+:root[data-theme="light"]{--paper:#ece7dc;--p1:#f6f2ea;--p2:#e8e1d3;--p3:#ddd4c3;--line:#d3cab8;--line2:#c2b7a1;--ink:#1d1a15;--mut:#5f584b;--faint:#7d7566;--dim:#5f584b;--tung:#a8700c;--tung-text:#8a5a08;color-scheme:light}
+body{font-family:var(--sans);font-size:14px;background-image:none}
+.bar{display:none}
+header.bhead{display:flex;align-items:center;gap:14px;max-width:1040px;margin:0 auto;padding:14px 0 10px}
+.hico{width:52px;height:65px;flex:none}.hico .pg{fill:var(--p1);stroke:var(--line)}.hico .ph{fill:var(--p2)}.hico .ln{stroke:var(--mut);stroke-width:2.4;stroke-linecap:round}.hico .g{fill:var(--tung)}
+.btx{flex:1;min-width:0}.btx .kick{font:500 11px var(--sans);letter-spacing:.18em;color:var(--faint);text-transform:uppercase}.btx h1{font:600 22px var(--sans);letter-spacing:.02em;margin:2px 0;text-transform:none}.btx p{margin:0;color:var(--tung-text);font-size:14px}
+.bsig{width:46px;height:46px;flex:none;object-fit:contain}
+@media (min-width:900px){.hico{width:66px;height:82px}.bsig{width:64px;height:64px}.btx h1{font-size:24px}}
+.hstk{margin:0 -16px 18px;display:block;height:26px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='176' height='30' viewBox='0 0 176 30'%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232b3038' transform='translate%28-22%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%231f8a5c' transform='translate%280%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23d9b23a' transform='translate%2822%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232a5fa8' transform='translate%2844%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23c0392b' transform='translate%2866%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23e8e6e0' transform='translate%2888%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%239aa0a8' transform='translate%28110%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%235c636d' transform='translate%28132%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232b3038' transform='translate%28154%29'/%3E%3C/svg%3E") repeat-x 0 50%/auto 100%;box-shadow:inset 0 0 0 1px #00000055;opacity:.92}
+body:has(#hotbar) header.bhead{padding-top:50px}
+#who{display:none}
+nav#nav{border:0;margin:0 0 14px;gap:12px;align-items:center}
+nav#nav:empty{display:none}
+nav#nav .navtitle{font:500 11px var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
+nav#nav button.back{min-height:44px;padding:0 14px;border:1px solid var(--line2);border-radius:10px;background:transparent;color:var(--ink);font:600 12.5px var(--sans);letter-spacing:.08em;text-transform:uppercase}
+.foot{display:none}
+/* the front */
+.hg{display:grid;gap:18px}@media (min-width:900px){.hg{grid-template-columns:7fr 5fr;gap:24px}}
+.hg>div{min-width:0}
+.hk{font:500 11px var(--sans);letter-spacing:.18em;color:var(--faint);text-transform:uppercase;margin:0 0 8px}
+.hk i{font-style:normal;margin-left:6px}
+.hcard{background:var(--p1);border:1px solid var(--line);border-radius:14px;padding:16px;margin:0 0 12px}
+.hcard.hot{border-color:var(--tung)}
+.hcard textarea{width:100%;min-height:96px;background:var(--p2);border:1px solid var(--line);border-radius:10px;color:var(--ink);padding:12px;font:15px/1.45 var(--sans);resize:vertical}
+.hbtn{min-height:46px;padding:0 16px;border-radius:12px;border:1px solid var(--line2);background:var(--p2);color:var(--ink);font:600 13px var(--sans);letter-spacing:.08em;display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;text-decoration:none}
+.hbtn.pri{background:#e0a23c;border-color:#e0a23c;color:#1a1206}
+.hcard.hot{border-color:#e0a23c}
+button.pcard{background:none;border:0;padding:0;flex-direction:row;border-radius:0}
+header.bhead{display:flex!important;text-align:left!important}
+.hrowlink small{margin-left:auto}.hrowlink:after{margin-left:10px}
+.hbtn.sm{min-height:40px;padding:0 12px;font-size:11.5px;border-radius:10px}
+.hrow2{display:flex;gap:8px;flex-wrap:wrap}.hrow2>.hbtn{flex:1}
+.duel{display:flex;gap:10px;align-items:center;padding:12px 0;border-top:1px solid var(--line);flex-wrap:wrap}.duel:first-child{border-top:0}
+.duel .t{flex:1 1 240px;min-width:0;background:none;border:0;padding:0;text-align:left;color:var(--ink);cursor:pointer}
+.duel .t b{display:block;font:600 15.5px var(--sans)}.duel .t small{display:block;font-size:12.5px;color:var(--mut)}
+.duel .left{font:700 13px var(--mono);color:var(--tung-text);white-space:nowrap}
+.pcard{display:flex;gap:14px;align-items:center;text-decoration:none;color:var(--ink);cursor:pointer;width:100%;text-align:left;font:inherit}
+.pcard .ph{width:84px;aspect-ratio:4/5;border-radius:8px;background:var(--p2);flex:none;overflow:hidden}.pcard .ph img{width:100%;height:100%;object-fit:cover;display:block}
+.pcard b{display:block;font:600 17px var(--sans)}.pcard small{display:block;color:var(--mut);font-size:13px;margin-top:2px}
+.hrowlink{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:0 16px;margin:0 0 10px;background:var(--p1);border:1px solid var(--line);border-radius:14px;color:var(--ink);font:600 12.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;cursor:pointer;text-align:left}
+.hrowlink small{margin-left:auto;font:400 12.5px var(--sans);letter-spacing:0;text-transform:none;color:var(--mut)}
+.hrowlink:after{content:'\203A';font-size:20px;color:var(--faint)}
+.hnote{font-size:12.5px;color:var(--mut);margin:6px 0 0}
 </style></head><body>
 <div class="bar"></div>
 <div class="wrap">
-<header>
- <div class="sig" role="img" aria-label="COLMAC"></div>
- <div class="tt"><h1 id="brandname">Project Hub</h1><div class="sub" id="brandsub">Headshots, tapes, reels, credits. One place. Add to it, send it.</div></div>
- <div class="who" id="who"></div>
-</header>
+<header class="bhead"><svg class="hico" viewBox="0 0 64 80" role="img" aria-label="A folder with your work in it"><rect class="pg" x="2" y="2" width="60" height="76" rx="5"/><path class="ph" d="M8 22h18l5 6h25v40H8z"/><rect class="pg" x="16" y="36" width="14" height="18" rx="2"/><path class="ln" d="M36 40h14M36 47h10"/><circle class="g" cx="48" cy="14" r="6"/></svg><div class="btx"><div class="kick">YOU · PROJECT HUB</div><h1 id="brandname">What's due, and your page</h1><p id="brandsub">Paste a request and it tells you when the tape is due. Everything you make lands here, and builds your page.</p></div><img class="bsig" src="../img/sigil-film-180.png" alt="THEACTORPAGE" width="64" height="64"></header>
+<i class="hstk" aria-hidden="true"></i>
+<div class="who" id="who"></div>
 <nav id="nav"></nav>
 <div id="view"></div>
 <div class="foot"><div class="sig" style="width:34px;height:34px;flex:0 0 34px"></div>
@@ -287,7 +337,7 @@ function addCredit(medium){credits.unshift({medium,title:'',billing:'',character
 function delCredit(i){if(confirm('Remove this credit?')){const cid=credits[i]&&credits[i].cid;const k=tombKey(credits[i]&&credits[i].title);if(k&&CREDIT_TOMBS.indexOf(k)<0){CREDIT_TOMBS.push(k);saveTombs();}credits.splice(i,1);saveCredits();if(cid){ARTS.filter(a=>String(a.scope)==='credit:'+cid).forEach(a=>{try{DB.del(a.id);}catch(e){}});ARTS=ARTS.filter(a=>String(a.scope)!=='credit:'+cid);}render();}}
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
-let projects=[]; let tab=(()=>{ try{ const t=new URLSearchParams(location.search).get('tab'); return ['profile','road','offices','reps','keyart','reels','package','intake'].includes(t)?t:'profile'; }catch(e){ return 'profile'; } })(); let openId=null;
+let projects=[]; let tab=(()=>{ try{ const t=new URLSearchParams(location.search).get('tab'); return ['home','profile','road','offices','reps','keyart','reels','package','intake'].includes(t)?t:'home'; }catch(e){ return 'home'; } })(); let openId=null;
 
 // seed credits as archived projects
 function seed(){ projects=[]; }
@@ -669,13 +719,12 @@ function col(v){return v>=70?'var(--go)':v>=40?'var(--tung)':'var(--hold)';}
 function active(){return projects.filter(p=>p.state!=='archived');}
 function archived(){return projects.filter(p=>p.state==='archived');}
 
-const TABS=[['profile','Profile'],['road','Auditions'],['offices','Casting'],['reps','For my reps'],['keyart','Key art'],['reels','Reel Room'],['package','Send'],['intake','Setup']];
-function renderNav(){$('nav').innerHTML=TABS.map(([k,l])=>`<button class="${tab===k?'on':''}" onclick="go('${k}')">${l}</button>`).join('')+`<span id="ptarget" class="ptarget" title="where dropped or pasted files go">drop / paste &rarr; ${esc(targetLabel(pendScope,pendCat))}</span>`+vaultPill();}
+const TABS=[['home','Project Hub'],['profile','Your material'],['road','Auditions'],['offices','Offices to go in for'],['reps','For my reps'],['keyart','Credits and key art'],['reels','Reel Room'],['package','Your page'],['intake','Setup and backup']];
+function renderNav(){ if(tab==='home'){ $('nav').innerHTML=''; return; } $('nav').innerHTML=`<button class="back" onclick="go('home')">&lsaquo; PROJECT HUB</button><span class="navtitle">${esc((TABS.find(x=>x[0]===tab)||['',''])[1])}</span>`+`<span id="ptarget" class="ptarget" title="where dropped or pasted files go">drop / paste &rarr; ${esc(targetLabel(pendScope,pendCat))}</span>`+vaultPill();}
 /* nav always lands on a tab's front; leaving an open audition turns its camera off */
 function go(t){if(openId){if(tapePhase!=='off')finishTake();if(camOpen)closeCam();}openId=null;tab=t;render();}
 
-function who(){const bn=document.getElementById('brandname');if(bn&&profile.name)bn.textContent=profile.name;
- const bs=document.getElementById('brandsub');if(bs)bs.textContent='';
+function who(){
  $('who').innerHTML=`${[profile.union,profile.rep].filter(Boolean).length?esc([profile.union,profile.rep].filter(Boolean).join(' · '))+'<br>':(profile.name?'':'<span style="color:var(--dim)">Start with your name and a headshot on Profile, or bring in your résumé.</span><br>')}<button class="act sm" style="margin-top:7px" onclick="exportBackup()" title="Save a .zip of everything (headshots, posters, reel, resume, data). Do this often - it is how your work travels between files.">&#8681; Back up now</button> <button class="ghost act sm" style="margin-top:7px" onclick="$('bkin').click()" title="Restore from a .zip backup. Always available - your media does not travel inside this HTML file.">&#8679; Restore</button>`;}
 
 
@@ -3711,6 +3760,48 @@ function profileView(){
  wireKit();
 }
 
+/* ===== THE FRONT: what's due, and your page ===== */
+function dueLeft(iso){ const d=iso?new Date(iso):null; if(!d||isNaN(d)) return ''; const h=(d-Date.now())/3600000;
+ if(h<0) return 'past due'; if(h<1) return Math.max(1,Math.round(h*60))+' min'; if(h<24) return Math.round(h)+' hour'+(Math.round(h)===1?'':'s'); const n=Math.round(h/24); return n+' day'+(n===1?'':'s'); }
+function dueLine(a){ if(a.request&&a.request.due&&window.HubReq) return HubReq.dueWords(a.request.due,myTZ()); if(a.when) return a.when;
+ const d=a.deadline?new Date(a.deadline):null; return d&&!isNaN(d)?d.toLocaleString(undefined,{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'no due date yet'; }
+function tapeIt(id){ const a=projects.find(x=>x.id===id); if(!a) return; a.step=6; saveProjects(); openRoad(id); window.scrollTo(0,0); }
+function markSent(id){ const a=projects.find(x=>x.id===id); if(!a) return; a.status='Submitted'; saveProjects(); toast('Sent: '+(a.project||a.title||'it')); render(); }
+function homeView(){
+ const all=projects.filter(x=>x.aaid||x.kind==='audition');
+ const live=all.filter(audIsLive).sort((a,b)=>String(a.deadline||'9').localeCompare(String(b.deadline||'9')));
+ const past=all.length-live.length;
+ const hs=ARTS.filter(a=>a.scope==='library'&&a.category==='headshot'), prim=hs.find(a=>a.id===profile.primaryHeadshot)||hs[0];
+ const reels=ARTS.filter(a=>(a.category==='reel'||a.category==='master')&&(a.type||'').startsWith('video/'));
+ const clips=ARTS.filter(a=>a.category==='clip'&&(a.type||'').startsWith('video/'));
+ const rdoc=ARTS.some(a=>a.scope==='library'&&a.category==='resume');
+ const on=[prim?'headshot':'',reels.length?'reel':'',credits.length?credits.length+' credit'+(credits.length===1?'':'s'):'',clips.length?clips.length+' clip'+(clips.length===1?'':'s'):'',rdoc?'résumé':''].filter(Boolean);
+ const o=online(), host=o.url?o.url.replace(/^https?:\/\//,'').replace(/\/$/,''):'';
+ const mat=ARTS.filter(a=>a.scope==='library'&&['about','clip','audition','monologue','standup','slate','reel'].includes(a.category)).length;
+ const offN=(()=>{ try{ return officeIndex().length; }catch(e){ return 0; } })();
+ let h=demoBanner()+(!profile.name&&!hs.length&&!isDemo()?'<div class="hcard hot" id="firststep"><p style="margin:0 0 10px"><b>Start with your name and a headshot.</b> They go at the top of your page. Or bring in your résumé and your credits in Setup.</p><div class="hrow2"><button class="hbtn pri" onclick="go(\'profile\')">ADD THEM</button><button class="hbtn" onclick="go(\'intake\')">SETUP</button></div></div>':'')+'<div class="hg"><div>';
+ h+='<p class="hk">An audition came in</p><div class="hcard hot" id="reqbox"><textarea id="reqtext" placeholder="Paste the request: the casting site page, your rep’s email, or both"></textarea>'
+  +'<div class="hrow2" style="margin-top:10px"><button class="hbtn pri" onclick="readRequest()">READ IT</button><button class="hbtn" onclick="newAudition()">TYPE IT IN</button></div>'
+  +'<p class="hnote">It reads who, what, and when the tape is due in their time and yours. Nothing leaves this device.</p><div id="reqout">'+(REQ?reqPreview(REQ):'')+'</div></div>';
+ h+='<p class="hk" style="margin-top:16px">Due<i>'+live.length+'</i></p>';
+ h+=live.length?'<div class="hcard" id="duelist" style="padding:2px 16px">'+live.map(a=>{ const left=dueLeft(a.deadline);
+   return '<div class="duel"><button class="t" onclick="openRoad(\''+a.id+'\')"><b>'+esc([a.project||a.title||'(title withheld)',a.role].filter(Boolean).join(' · '))+'</b><small>'+esc([a.casting,dueLine(a)].filter(Boolean).join(' · '))+'</small></button>'
+    +(left?'<span class="left">'+esc(left)+'</span>':'')+'<button class="hbtn sm pri" onclick="tapeIt(\''+a.id+'\')">TAPE IT</button><button class="hbtn sm" onclick="markSent(\''+a.id+'\')">SENT</button></div>'; }).join('')+'</div>'
+  :'<div class="hcard"><p class="hnote" style="margin:0">Nothing due. When a request comes in, paste it above.</p></div>';
+ h+='<button class="hrowlink" onclick="go(\'road\')">What you’ve sent<small>'+past+'</small></button>';
+ h+='</div><div>';
+ h+='<p class="hk">Your page</p><div class="hcard"><button class="pcard" onclick="go(\'package\')"><span class="ph">'+(prim?'<img src="'+artURL(prim)+'" alt="">':'')+'</span><span><b>'+esc(profile.name||'Your name')+'</b><small>'+esc(on.join(' · ')||'Nothing on it yet. Add a headshot to start.')+'</small>'+(host?'<small>Online at '+esc(host)+'</small>':'')+'</span></button>'
+  +'<div class="hrow2" style="margin-top:12px"><button class="hbtn pri" onclick="go(\'package\')">SEE IT</button><button class="hbtn" onclick="go(\'package\');setTimeout(()=>{const e=document.getElementById(\'online\');if(e)e.scrollIntoView({block:\'start\'});},300)">'+(host?'UPDATE IT ONLINE':'PUT IT ONLINE')+'</button></div></div>';
+ h+='<button class="hrowlink" onclick="go(\'offices\')">Offices to go in for<small>'+(offN||'')+'</small></button>';
+ h+='<button class="hrowlink" onclick="go(\'profile\')">Your material<small>'+(mat||'')+'</small></button>';
+ h+='<button class="hrowlink" onclick="go(\'reps\')">For my reps<small></small></button>';
+ h+='<button class="hrowlink" onclick="go(\'keyart\')">Credits and key art<small>'+(credits.length||'')+'</small></button>';
+ h+='<button class="hrowlink" onclick="go(\'intake\')">Setup and backup<small></small></button>';
+ h+='<div class="hrow2" style="margin-top:4px"><button class="hbtn sm" onclick="exportBackup()">BACK UP NOW</button><button class="hbtn sm" onclick="$(\'bkin\').click()">RESTORE</button></div>';
+ h+='</div></div>';
+ $('view').innerHTML=h;
+}
+
 function render(){setTimeout(sweepThumbs,60);
  if(/^#(publish|online)$/.test(location.hash)&&!render.jumped&&tab==='package'){ render.jumped=true; setTimeout(()=>{ const e=document.getElementById(location.hash.slice(1)); if(e) e.scrollIntoView({block:'start'}); },300); }
  /* 'intake' used to be in this list, which meant the Setup checklist, Backup,
@@ -3720,7 +3811,7 @@ function render(){setTimeout(sweepThumbs,60);
  if(['deck','train','archive'].indexOf(tab)>=0)tab='profile';
  if(credId&&document.getElementById('cw'))setTimeout(drawCredit,0);
  if(tab==='train')tab='profile';renderNav();who();
- if(tab==='road')auditionView();else if(tab==='intake')intakeView();else if(tab==='keyart')keyArtView();else if(tab==='offices'){$('view').innerHTML=officesPanel();}else if(tab==='reps')repsView();else if(tab==='reels')reelRoomView();else if(tab==='package')packageView();else if(tab==='train')trainView();else if(tab==='profile')profileView();}
+ if(tab==='home')homeView();else if(tab==='road')auditionView();else if(tab==='intake')intakeView();else if(tab==='keyart')keyArtView();else if(tab==='offices'){$('view').innerHTML=officesPanel();}else if(tab==='reps')repsView();else if(tab==='reels')reelRoomView();else if(tab==='package')packageView();else if(tab==='train')trainView();else if(tab==='profile')profileView();}
 
 $('tgin').addEventListener('change',e=>{const f=e.target.files[0];if(f)importTargets(f);e.target.value='';});
 $('qsin').addEventListener('change',e=>{const f=[].slice.call(e.target.files);if(f.length)importQuicksheet(f);e.target.value='';});
