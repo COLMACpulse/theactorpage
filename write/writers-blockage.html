@@ -183,6 +183,13 @@ table.rep td.num{text-align:right;font-variant-numeric:tabular-nums;color:var(--
  #railclose{display:none} body.railopen #railclose{display:block;align-self:flex-end;margin:6px 8px 0;font:inherit;font-size:12px;background:none;border:1px solid var(--rule);color:var(--chrome-text);border-radius:6px;padding:4px 10px;cursor:pointer}}
 @media (min-width:901px){#railclose{display:none}}
 
+/* ---- MARK UP ---- */
+#mkbar{padding:8px 14px;border-bottom:1px solid var(--rule);background:var(--desk-2)}
+#mkbar[hidden]{display:none}
+#mkbar .mk-hint{font-size:12.5px;color:var(--chrome-dim);margin:6px 2px 0}
+@media (max-width:700px){#mkbar{padding:6px 8px}#mkbar .mk-hint{display:none}}
+#top .tmpanel button .mi{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+body.marking .stack{cursor:crosshair}
 /* ---- THEACTORPAGE look: the bar, the two menus ---- */
 body{display:flex;flex-direction:column}
 #body{flex:1;min-height:0;height:auto}
@@ -280,6 +287,7 @@ dialog .primary:hover{background:#eab04e;border-color:#eab04e}
     <button id="btnPage" role="menuitem">Page setup</button>
   </div></details>
   <details class="tmenu" id="mTools"><summary>Tools</summary><div class="tmpanel" role="menu">
+    <button id="btnMark" role="menuitem"><svg class="mi" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4-1L19 8l-3-3L5 16z"/></svg>Mark up <small>pen, highlight, cross out, revise</small></button>
     <button id="btnRail" class="narrowonly" role="menuitem" title="Outline, Cast, Stats, Tools">Outline, cast, ideas</button>
     <button id="btnFind" role="menuitem">Find and replace</button>
     <button id="btnCards" role="menuitem">Cards</button>
@@ -297,6 +305,7 @@ dialog .primary:hover{background:#eab04e;border-color:#eab04e}
   </div></details>
 </div>
 
+<div id="mkbar" hidden></div>
 <div id="body">
   <div id="rail">
     <div id="railtabs">
@@ -359,6 +368,7 @@ dialog .primary:hover{background:#eab04e;border-color:#eab04e}
   <div class="inner">
     <p class="note-sm">Everything is generated on this machine. Nothing is uploaded.</p>
     <div style="display:grid;gap:7px">
+      <label id="xMarksRow" class="note-sm" style="display:flex;gap:8px;align-items:center;min-height:40px" hidden><input type="checkbox" id="xMarks" style="width:20px;height:20px;accent-color:var(--mark)"> With my marks on the PDF (pen, highlights, cross-outs, revisions)</label>
       <button id="xPdf">PDF: formatted screenplay</button>
       <button id="xFountain">Fountain: plain text, opens anywhere</button>
       <button id="xFdx">Final Draft (.fdx)</button>
@@ -372,6 +382,15 @@ dialog .primary:hover{background:#eab04e;border-color:#eab04e}
   <footer><button data-close>Close</button></footer>
 </dialog>
 
+<dialog id="dlgRevise"><h2>Revise this line</h2>
+  <div class="inner">
+    <p class="note-sm" id="rvWhat"></p>
+    <p class="note-sm" style="text-decoration:line-through;color:var(--alert)" id="rvOld"></p>
+    <textarea id="rvNew" rows="4" spellcheck="true" style="width:100%;font:15px/1.45 'Courier Prime','Courier New',monospace;background:var(--desk-3);color:var(--hi);border:1px solid var(--rule);border-radius:8px;padding:10px"></textarea>
+    <p class="note-sm">It changes the line now. The old words stay beside it, crossed out, as a mark. Undo puts it back.</p>
+  </div>
+  <footer><button data-close>Cancel</button><button class="primary" id="rvGo">CHANGE THE LINE</button></footer>
+</dialog>
 <dialog id="dlgRename"><h2>Rename character</h2>
   <div class="inner">
     <div class="row"><label for="rnOld">Character</label><select id="rnOld"></select></div>
@@ -507,6 +526,7 @@ dialog .primary:hover{background:#eab04e;border-color:#eab04e}
 <script src="../actor-os/pdf.js"></script>
 <script src="../shared/inbox.js"></script>
 <script src="voice-engine.js"></script>
+<script src="../shared/markup.js"></script>
 <script src="voice.js" defer></script>
 <script src="../shared/you.js"></script>
 <script src="go-engine.js"></script>
@@ -826,7 +846,8 @@ function layout(blocks){
 
   const flush = () => { pages.push(cur); cur = []; line = 0; };
   const room  = () => LPP - line;
-  const put   = (type, runs, x) => { cur.push({type, runs, line, x}); line++; };
+  let curId = null;   // which script line a printed row came from (marks and sides need it)
+  const put   = (type, runs, x) => { cur.push({type, runs, line, x, id:curId}); line++; };
   const blanks = n => { for(let i=0;i<n;i++) put("blank", [{t:"",b:false,i:false,u:false}]); };
   const txt = s => [{t:s, b:false, i:false, u:false}];
 
@@ -844,6 +865,7 @@ function layout(blocks){
 
   for(let i = 0; i < blocks.length; i++){
     const b = blocks[i];
+    curId = b.id;
     if(b.type === "Section" || b.type === "Synopsis"){ pageOf[b.id] = pages.length + 1; continue; }
     if(b.type === "Page Break"){ pageOf[b.id] = pages.length + 1; if(line > 0) flush(); continue; }
 
@@ -866,7 +888,7 @@ function layout(blocks){
             let x = baseX;
             if(row.type === "Character") x = baseX + (D.colW - lineText(row.runs).length) * G.CW / 2;
             else if(row.type === "Parenthetical") x = baseX + D.parenIndent * G.CW;
-            cur.push({type:row.type, runs:row.runs, line:startLine + k, x});
+            cur.push({type:row.type, runs:row.runs, line:startLine + k, x, id:row.id});
           };
           put2(L[k], D.leftX);
           put2(R[k], D.rightX);
@@ -1272,8 +1294,10 @@ function b64bytes(str){
   return out;
 }
 
-function buildPdf(){
+function buildPdf(opt){
+  opt = opt || {};
   const {pages} = layout(doc.blocks);
+  const MARKS = opt.marks ? (doc.marks || []) : [];
   const objs = [];
   const add = bytes => { objs.push(bytes); return objs.length; };
   const enc = s => Array.from(new TextEncoder().encode(s));
@@ -1335,6 +1359,32 @@ function buildPdf(){
     sheets.push(s);
   }
 
+  /* your marks, drawn over the page: each hangs off the first row of its line, in points */
+  const hex = c => { const m = /^#?([0-9a-f]{6})$/i.exec(c || ""); const n = m ? parseInt(m[1], 16) : 0; return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255].map(v => v.toFixed(3)).join(" "); };
+  const firstRow = new Map();
+  pages.forEach((rows, pi) => rows.forEach(r => { if(r.id && r.type !== "blank" && !firstRow.has(r.id)) firstRow.set(r.id, {pi, r}); }));
+  const markOps = pi => {
+    let o = "";
+    for(const m of MARKS){
+      const at = firstRow.get(m.a); if(!at || at.pi !== pi) continue;
+      const r = at.r, x0 = r.x !== undefined ? r.x : (G.left[r.type] ?? G.left["Action"]), y0 = G.H - G.TOP - r.line * G.LH;
+      if(m.tool === "was"){
+        const t = String(m.text || "").slice(0, 60), x = G.W - page.right * 72 + 6, y = y0 - 8;
+        o += `q ${hex("#c0392b")} rg BT /F3 7 Tf 1 0 0 1 ${x.toFixed(2)} ${y.toFixed(2)} Tm (`; o = [o]; o = o.join("");
+        o += "\u0000" + t + "\u0001";
+        o += `${x.toFixed(2)} ${(y + 2.4).toFixed(2)} ${(t.length * 4.2).toFixed(2)} 0.5 re f Q\n`;
+        continue;
+      }
+      const pts = (m.pts || []).map(p => [x0 + p[0], y0 - p[1]]); if(pts.length < 2) continue;
+      const w = m.tool === "highlight" ? 13 : m.tool === "cross" ? 2.2 : 1.8;
+      o += "q " + (m.tool === "highlight" ? "/GS1 gs 0 J " : "1 J ") + "1 j " + hex(m.color) + " RG " + w + " w " +
+           pts.map((p, k) => p[0].toFixed(2) + " " + p[1].toFixed(2) + (k ? " l" : " m")).join(" ") + " S Q\n";
+    }
+    return o;
+  };
+  let gsId = 0;
+  if(MARKS.some(m => m.tool === "highlight")) gsId = add(enc("<< /Type /ExtGState /CA 0.4 /ca 0.4 >>"));
+
   const RM = G.W - page.right * 72, LM = page.left * 72;
   pages.forEach((rows, pi) => {
     const num = pi + 1;
@@ -1358,6 +1408,12 @@ function buildPdf(){
       }
       s = s.concat(drawRuns(x, G.H - G.TOP - r.line * G.LH - G.LH, r.runs, r.type === "Scene Heading"));
     }
+    if(MARKS.length){
+      const ops = markOps(pi);
+      if(ops){ /* text runs in a WAS note go through pdfBytes like every other line */
+        ops.split("\u0000").forEach((part, k) => { if(k === 0){ s = s.concat(enc(part)); return; }
+          const [txt, rest] = part.split("\u0001"); s = s.concat(pdfBytes(txt), enc(") Tj ET "), enc(rest)); }); }
+    }
     sheets.push(s);
   });
 
@@ -1370,6 +1426,7 @@ function buildPdf(){
     `<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${G.W} ${G.H}] /Resources << /Font << ` +
     `/F1 ${fonts.plain} 0 R /F2 ${fonts.bold} 0 R /F3 ${fonts.ital} 0 R /F4 ${fonts.both} 0 R >>` +
     (markId ? ` /XObject << /Im0 ${markId} 0 R >>` : "") +
+    (gsId ? ` /ExtGState << /GS1 ${gsId} 0 R >>` : "") +
     ` >> /Contents ${cid} 0 R >>`)));
   const realPagesId = add(enc(`<< /Type /Pages /Count ${pageIds.length} /Kids [${pageIds.map(i=>i+" 0 R").join(" ")}] >>`));
   if(realPagesId !== pagesId) throw new Error("PDF object numbering went wrong.");
@@ -2843,15 +2900,21 @@ function serialise(){
     title:doc.title, author:doc.author, source:doc.source, draft:doc.draft, contact:doc.contact,
     ideas:doc.ideas, logo:!!doc.logo, ledger:doc.ledger || [], page:{...page},
     ...(doc.practice ? {practice:true} : {}),
+    ...(doc.marks && doc.marks.length ? {marks:doc.marks} : {}),
     blocks:doc.blocks.map(b => b.dual ? {id:b.id, type:b.type, text:b.text, dual:true}
                                       : {id:b.id, type:b.type, text:b.text}),
     saved_at:new Date().toISOString()
   }, null, 2);
 }
 function loadBlocks(list){
+  /* lines keep their ids across saves, so marks stay on the line they were made on */
+  const seen = new Set();
   const blocks = (list || []).filter(b => b && typeof b.text === "string")
     .map(b => {
-      const o = {id:nid(), type: TYPES.includes(b.type) ? b.type : "Action", text:b.text};
+      let id = typeof b.id === "string" && /^b\d+$/.test(b.id) && !seen.has(b.id) ? b.id : nid();
+      seen.add(id);
+      const n = +id.slice(1); if(n >= uid) uid = n + 1;     // new lines never take a kept id
+      const o = {id, type: TYPES.includes(b.type) ? b.type : "Action", text:b.text};
       if(b.dual) o.dual = true;
       return o;
     });
@@ -2870,6 +2933,8 @@ function loadData(data){
   doc.draft = data.draft || ""; doc.contact = data.contact || "";
   doc.ideas = data.ideas || ""; doc.logo = !!data.logo;
   doc.practice = isPractice(data);
+  doc.marks = Array.isArray(data.marks) ? data.marks : [];
+  if(typeof MK !== 'undefined' && MK) setTimeout(() => MK.set(doc.marks), 0);
   doc.ledger = Array.isArray(data.ledger) ? data.ledger : [];
   if(data.page && typeof data.page === "object"){
     for(const k of ["paper","wIn","hIn","top","bottom","left","right","pt","spacing","numberPos","header","footer","scenePages"])
@@ -3049,7 +3114,8 @@ const slugName = () => (doc.title || "Untitled").replace(/[^\w\- ]+/g,"").trim()
 function saveWbs(){ syncFromDom(); autosave(); download(slugName()+".wbs", serialise(), "application/json"); toast("Saved " + slugName() + ".wbs"); }
 function exportPdf(){
   syncFromDom();
-  try{ download(slugName()+".pdf", buildPdf(), "application/pdf"); toast("Exported " + layout(doc.blocks).count + "-page PDF."); }
+  const withMarks = !!($("xMarks") && $("xMarks").checked && doc.marks && doc.marks.length);
+  try{ download(slugName() + (withMarks ? "_marked" : "") + ".pdf", buildPdf({marks:withMarks}), "application/pdf"); toast("Exported " + layout(doc.blocks).count + "-page PDF" + (withMarks ? ", with your marks." : ".")); }
   catch(err){ toast("PDF export failed: " + err.message); }
 }
 function exportFountain(){ syncFromDom(); download(slugName()+".fountain", toFountain(), "text/plain"); toast("Exported Fountain."); }
@@ -4147,6 +4213,69 @@ window.addEventListener("beforeunload", () => { syncFromDom(); autosave(); });
 document.addEventListener("visibilitychange", () => { if(document.hidden){ syncFromDom(); autosave(); } });
 setInterval(() => { if(ui.dirty) autosave(); }, 15000);
 
+/* ============================================================
+   MARK UP: pen, highlight, cross out, revise, on your script.
+   Marks hang off the line they were made on (shared/markup.js) and save with the script.
+   REVISE changes the line now; the old words stay beside it, crossed out.
+   ============================================================ */
+var MK = null;
+function mkAnchors(){
+  const seen = new Set(), out = [];
+  document.querySelectorAll(".stack [data-bid]").forEach(e => { const id = e.dataset.bid; if(seen.has(id)) return; seen.add(id); out.push({id, el:e}); });
+  return out;
+}
+function mkWasPos(a){
+  const sc = zoom * 96/72;
+  if(narrow()) return {x:a.left, y:a.top - 3 * sc};                       // a phone: just above the line
+  const paper = a.el.closest(".stack"), base = $("scroll").getBoundingClientRect();
+  const pr = paper.getBoundingClientRect(), right = pr.right - base.left + $("scroll").scrollLeft - page.right * 72 * sc;
+  return {x:right + 8 * sc, y:a.top + 9 * sc};                               // the right margin
+}
+function mkInit(){
+  if(MK || !window.Markup) return;
+  if(!document.getElementById("mkcss")){ const st = document.createElement("style"); st.id = "mkcss"; st.textContent = Markup.CSS; document.head.appendChild(st); }
+  MK = Markup.attach({surface:$("scroll"), anchors:mkAnchors, scale:() => zoom * 96/72, marks:doc.marks || [],
+    save:m => { doc.marks = m; markDirty(); xMarksRow(); }, onRevise:reviseLine, wasPos:mkWasPos});
+  const r0 = render; render = function(f){ const out = r0(f); if(MK) MK.draw(); return out; };
+  MK.draw();
+}
+function markOn(v){
+  mkInit(); if(!MK) return;
+  MK.on(v); document.body.classList.toggle("marking", !!v);
+  const bar = $("mkbar"); bar.hidden = !v;
+  if(v){ Markup.strip(bar, MK, {onDone:() => markOn(false), onTool:() => paintHint()}); paintHint(); }
+  if($("zoom").value === "fit") setTimeout(() => setZoom("fit"), 0);
+}
+function paintHint(){
+  const bar = $("mkbar"); let h = bar.querySelector(".mk-hint"); if(!h){ h = document.createElement("p"); h.className = "mk-hint"; bar.appendChild(h); }
+  const t = MK.tool();
+  h.textContent = t === "revise" ? "Tap a line to rewrite it. It changes now; the old words stay beside it, crossed out."
+    : t === "erase" ? "Tap a mark to take it off." : t === "move" ? "Scroll and type as usual. Pick a pen to mark again."
+    : t === "cross" ? "Drag across the words to cross them out." : t === "highlight" ? "Drag over the words to highlight them."
+    : "Draw anywhere on the page. Marks stay with their line when the script moves.";
+}
+let RV = null;
+function reviseLine(id){
+  const b = doc.blocks.find(x => x.id === id); if(!b) return;
+  RV = id;
+  $("rvWhat").textContent = b.type + (b.type === "Dialogue" ? "" : "");
+  $("rvOld").textContent = b.text || "(empty)";
+  $("rvNew").value = b.text || "";
+  $("dlgRevise").showModal(); setTimeout(() => { $("rvNew").focus(); $("rvNew").select(); }, 30);
+}
+$("rvGo").onclick = () => {
+  const b = doc.blocks.find(x => x.id === RV); if(!b){ $("dlgRevise").close(); return; }
+  const before = b.text || "", after = $("rvNew").value.replace(/\s+$/, "");
+  $("dlgRevise").close();
+  if(after === before) return;
+  WB.api.setText(b.id, after);
+  try{ WB.api.record({tool:"Mark up", raw:before, ids:[b.id], edits:[{kind:"revise", original:before, replacement:after, reason:"revised on the page"}]}); }catch(e){}
+  if(MK && before.trim()) MK.add(Markup.wasNote(b.id, before));
+  toast("Changed. The old words are beside it, crossed out. Undo puts the line back.");
+};
+function xMarksRow(){ const r = $("xMarksRow"); if(r) r.hidden = !(doc.marks && doc.marks.length); }
+$("btnMark").onclick = () => markOn(!(MK && MK.isOn()));
+
 (async function boot(){
   let note = null;
   let index = libIndex();
@@ -4209,6 +4338,7 @@ setInterval(() => { if(ui.dirty) autosave(); }, 15000);
   applyGeometry();
   buildRailTabs();
   render();
+  mkInit(); xMarksRow();
   renderProjectName();
   loadStoredPanels();
   if(takePremise()) note = null;

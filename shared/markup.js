@@ -51,7 +51,7 @@
 
   /* ---------- on a page ---------- */
   /* opts: surface (the element the page scrolls in, position:relative), anchors() -> [{id, el}],
-     scale() -> screen px per page point, marks (array), save(marks), onRevise(id, el), marginX(anchor) -> x for a WAS note */
+     scale() -> screen px per page point, marks (array), save(marks), onRevise(id, el), wasPos(anchor) -> {x, y} for a revision's old words */
   M.attach = function (opts) {
     const S = opts.surface, doc = S.ownerDocument;
     let marks = (opts.marks || []).slice(), tool = 'pen', color = M.COLORS[0][0], on = false, cur = null, shown = true;
@@ -72,9 +72,9 @@
       for (const m of marks) {
         const a = byId.get(m.a); if (!a) continue;
         if (m.tool === 'was') {
-          const t = doc.createElementNS(NS, 'text'), x = opts.marginX ? opts.marginX(a) : a.right + 10 * sc;
-          t.setAttribute('x', x); t.setAttribute('y', a.top + 10 * sc); t.setAttribute('fill', '#c0392b');
-          t.setAttribute('font-size', Math.max(10, 8 * sc)); t.setAttribute('font-family', 'Jost, system-ui, sans-serif');
+          const t = doc.createElementNS(NS, 'text'), wp = opts.wasPos ? opts.wasPos(a) : { x: a.right + 10 * sc, y: a.top + 10 * sc };
+          t.setAttribute('x', wp.x); t.setAttribute('y', wp.y); t.setAttribute('fill', '#c0392b');
+          t.setAttribute('font-size', Math.max(11, 9 * sc)); t.setAttribute('font-family', 'Jost, system-ui, sans-serif');
           t.setAttribute('text-decoration', 'line-through'); t.setAttribute('data-mk', m.id);
           t.textContent = m.text.length > 60 ? m.text.slice(0, 58) + '…' : m.text; svg.appendChild(t); continue;
         }
@@ -104,7 +104,7 @@
       marks.push(M.toMark(c.tool, color, a, c.pts, opts.scale())); save(); draw(); }
     function eraseAt(p) { const B = boxes(), byId = new Map(B.map(b => [b.id, b])), sc = opts.scale();
       const hit = marks.slice().reverse().find(m => { const a = byId.get(m.a); if (!a) return false;
-        if (m.tool === 'was') { const x = opts.marginX ? opts.marginX(a) : a.right + 10 * sc; return p[0] >= x - 6 && p[1] >= a.top - 4 && p[1] <= a.top + 16 * sc; }
+        if (m.tool === 'was') { const wp = opts.wasPos ? opts.wasPos(a) : { x: a.right + 10 * sc, y: a.top + 10 * sc }; return p[0] >= wp.x - 6 && p[1] >= wp.y - 14 * sc && p[1] <= wp.y + 4 * sc; }
         return M.near(M.place(m, a, sc), p[0], p[1], Math.max(10, M.width(m.tool, sc))); });
       if (hit) { marks = marks.filter(m => m !== hit); save(); draw(); } }
     svg.addEventListener('pointerdown', down); svg.addEventListener('pointermove', move);
@@ -153,7 +153,8 @@
     '.mk-c[aria-pressed="true"]{box-shadow:0 0 0 2px var(--mark,#e0a23c)}' +
     '.mk-sep{width:1px;align-self:stretch;background:var(--rule,#d3cab8);margin:0 4px}' +
     '.mk-done{min-height:48px;padding:0 16px;border-radius:12px;border:1px solid var(--mark,#e0a23c);background:var(--mark,#e0a23c);color:var(--mark-ink,#1a1206);font:600 13px var(--sans,Jost,system-ui,sans-serif);letter-spacing:.08em;cursor:pointer;margin-left:auto}' +
-    '.mk-on{cursor:crosshair}';
+    '.mk-on{cursor:crosshair}' +
+    '@media (max-width:700px){.mk-tools{gap:4px}.mk-t{min-width:44px;min-height:44px;padding:0}.mk-t span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.mk-c{width:30px;height:30px}.mk-sep{display:none}.mk-done{min-height:44px;padding:0 12px;font-size:12px}}';
   g.Markup = M;
   if (typeof module !== 'undefined') module.exports = M;
 })(typeof window !== 'undefined' ? window : globalThis);
