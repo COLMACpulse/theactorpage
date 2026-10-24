@@ -2949,6 +2949,10 @@ const KEY = "writers-blockage-doc";            // the single-script store, pre-l
 
 const LIB_INDEX = "writers-blockage-index";
 const LIB_CUR = "writers-blockage-current";
+/* Nothing opens on its own. A fresh visit is a blank page; your scripts are one tap away in Your scripts.
+   Only a reload of this same tab comes back to the script you had open, so a refresh never loses your place. */
+const TAB_CUR = "theactorpage_write_tab";
+function setCur(id){ store.set(LIB_CUR, id); try{ sessionStorage.setItem(TAB_CUR, id); }catch(e){} }
 const projKey = id => "wb-proj:" + id;
 let currentId = null, fileHandle = null, fileName = "";
 
@@ -3074,12 +3078,15 @@ function projectRow(){
 function autosave(){
   syncFromDom();
   if(!currentId) currentId = newId();
+  /* a blank page you haven't typed on isn't a script: it doesn't go in Your scripts */
+  const blank = !doc.blocks.some(b => String(b.text || "").trim()) && (!doc.title || doc.title === "Untitled") && !doc.ideas && !(doc.marks && doc.marks.length);
+  if(blank){ store.drop(projKey(currentId)); saveIndex(libIndex().filter(p => p.id !== currentId)); ui.dirty = false; $("dirty").textContent = ""; return; }
   const text = serialise();
   const ok = store.set(projKey(currentId), text);
   const list = libIndex().filter(p => p.id !== currentId);
   list.unshift(projectRow());
   saveIndex(list);
-  store.set(LIB_CUR, currentId);
+  setCur(currentId);
   writeThrough(text);
   ui.dirty = false;
   $("dirty").textContent = "";
@@ -3105,7 +3112,7 @@ function autosave(){
 function renderProjectName(){
   const n = libIndex().length;
   const b = $("btnProjects");
-  if(b) b.innerHTML = "Your scripts" + (n > 1 ? " <small>" + n + "</small>" : "");
+  if(b) b.innerHTML = "Your scripts" + (n ? " <small>" + n + "</small>" : "");
 }
 async function switchTo(id){
   if(id === currentId) return;
@@ -3118,7 +3125,7 @@ async function switchTo(id){
     fileHandle = canLinkFiles ? await handleStore("get", id) : null;
     fileName = fileHandle ? fileHandle.name : "";
     loadData(data);
-    store.set(LIB_CUR, id);
+    setCur(id);
     applyGeometry(); render();
     renderProjectName();
     toast("Now in " + (doc.title || "Untitled") + ".");
@@ -4467,18 +4474,16 @@ $("sdGo").onclick = () => {
         saveIndex([{id:currentId, title:data.title || "Untitled",
                     updated:data.saved_at || new Date().toISOString(),
                     pages:0, words:0, linked:false, file:""}]);
-        store.set(LIB_CUR, currentId);
-        loadData(data);
-        note = "Your script is now in the library. Scripts lists it, and New starts another " +
-               "without touching it.";
+        currentId = null;
+        note = "Your script is in Your scripts. Open it from there.";
         index = libIndex();
       }catch(e){}
     }
   }
 
   if(!currentId && index.length){
-    const want = store.get(LIB_CUR);
-    const order = index.filter(p => p.id === want).concat(index.filter(p => p.id !== want));
+    let want = null; try{ want = sessionStorage.getItem(TAB_CUR); }catch(e){}
+    const order = index.filter(p => p.id === want);
     let pick = null, raw = null;
     for(const p of order){ const r = store.get(projKey(p.id)); let d = null; try{ d = JSON.parse(r); }catch(e){}
       if(d && !isPractice(d)){ pick = p; raw = r; break; } }
@@ -4487,13 +4492,11 @@ $("sdGo").onclick = () => {
         const data = JSON.parse(raw);
         currentId = pick.id;
         loadData(data);
-        note = "Picked up where you left off in " + (data.title || "Untitled") +
-               (data.saved_at ? ", last changed " + new Date(data.saved_at).toLocaleString() : "") + ".";
       }catch(e){}
     }
   }
-  if(!currentId){ currentId = newId(); store.set(LIB_CUR, currentId); }
-  else store.set(LIB_CUR, currentId);
+  if(!currentId){ currentId = newId(); setCur(currentId); }
+  else setCur(currentId);
 
   if(canLinkFiles && currentId){
     fileHandle = await handleStore("get", currentId);
