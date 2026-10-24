@@ -24,7 +24,7 @@ await p.click('footer a[href="papertrail/?tab=allchars"]'); await p.waitForURL(/
 want('Characters opens Paper Trail on All characters', await p.$eval('#tabs .tsub .on',x=>x.textContent).catch(()=>'')==='All characters');
 want('no em dashes in the one-liners', !T.some(t=>/—/.test(t.one)));
 { await p.goto('http://localhost:8811/index.html'); await p.waitForTimeout(600); const hb=await p.evaluate(()=>document.body.textContent.replace(/\s+/g,' '));
-  want('JUICE is on home, on the Spotted card', /JUICE checks the trades for what fits you/.test(hb));
+  want('Spotted on home: the polite nudge, no JUICE', /Send your reps the screenshot and one polite line/.test(hb)&&!/JUICE/.test(hb));
   want('FOR MY REPS is on home, in YOUR PAGE, with its own button to the Hub', /FOR MY REPS: one sheet for your agent and your manager/.test(hb)&&(await p.getAttribute('#yp-reps','href'))==='hub/?tab=reps');
   want('Slate Maker and Backlot are no longer their own tools on home; Set List only under WRITE', !(await p.$('a[href="slate/"]'))&&!(await p.$('a[href="backlot/"]'))&&(await p.$$('.fcol[data-dept="act"] a[href="setlist/"]')).length===0); }
 { await p.goto('http://localhost:8811/index.html'); await p.waitForTimeout(600);

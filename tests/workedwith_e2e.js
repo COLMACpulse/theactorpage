@@ -39,7 +39,7 @@ want('Contacts: the people you worked with, each with the credit and where it ca
 want('…with the credit and where it came from', await p.evaluate(()=>{ const x=Contacts.everyone({worked:Object.values(JSON.parse(localStorage.getItem('theactorpage_workedwith_v1')).people)}).find(y=>y.name==='Kit Moreno'); return x&&x.from.some(f=>f==='Worked with: DP on Harbor Lights, from TMDb')&&x.role==='crew'; }));
 /* Spotted */
 await p.goto('http://localhost:8811/spotted/'); await p.waitForTimeout(600);
-await p.fill('#raw','NOW CASTING: DRY CREEK\nDirector: Ana Bell\nCasting: Pell Casting\nSeries regular, shoots in Austin.'); await p.click('#read'); await p.waitForTimeout(300); await p.click('#keep'); await p.waitForTimeout(400);
+await p.click('#wwords'); await p.fill('#raw','NOW CASTING: DRY CREEK\nDirector: Ana Bell\nCasting: Pell Casting\nSeries regular, shoots in Austin.'); await p.click('#read'); await p.waitForTimeout(300); await p.click('#later'); await p.waitForTimeout(300); await p.click('[data-open]'); await p.waitForTimeout(400);
 const st=await p.innerText('main');
 want('Spotted: you have worked with Ana Bell (writer on Harbor Lights), FOR MY REPS there too', /YOU'VE WORKED WITH|You've worked with/i.test(st)&&/Ana Bell \(writer on Harbor Lights\)/.test(st)&&/FOR MY REPS/.test(st), st.slice(0,500));
 want('no page errors', errs.length===0, errs);

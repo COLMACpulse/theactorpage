@@ -10,11 +10,7 @@ const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.messag
 let outside=[]; p.on('request',r=>{ if(!/^(http:\/\/localhost:8811\/|data:|blob:)/.test(r.url())) outside.push(r.url()); });
 const WURL='http://localhost:8811/tests/fixtures/wire_madeup.json';
 await p.goto('http://localhost:8811/spotted/'); await p.evaluate(u=>{ localStorage.clear(); localStorage.setItem('tap_wire',u); You.set('name','Riley Hart'); You.set('email','riley@example.com'); You.set('union','SAG-AFTRA'); },WURL);
-await p.reload(); await p.waitForTimeout(600); await p.click('#tabs [data-t="juice"]'); await p.click('#jcheck'); await p.waitForSelector('#receipt');
-if(!(await p.$eval('#jnews',d=>d.open))) await p.click('#jnews summary');
-const pr=await p.$('[data-wpress]');
-want('a JUICE story has PRESS: note this outlet for when you have news', !!pr&&/contacts\/\?press=/.test(await pr.getAttribute('href')));
-await pr.click(); await p.waitForURL(/contacts/); await p.waitForTimeout(900);
+await p.goto('http://localhost:8811/contacts/?press='+encodeURIComponent('Indie Film Weekly')+'&link='+encodeURIComponent('https://example.com/story')+'&story='+encodeURIComponent('A made-up festival story')); await p.waitForTimeout(900);
 const outlet=await p.inputValue('#f_company'), role=await p.inputValue('#f_role');
 want('CONTACTS opens a press contact, the outlet and the story filled in, the writer left to you', role==='press'&&!!outlet&&/^https:/.test(await p.inputValue('#f_site'))&&/^Saw: /.test(await p.inputValue('#f_note'))&&!(await p.inputValue('#f_name'))&&await p.isVisible('#f_beat'), [role,outlet]);
 await p.fill('#f_name','Sam Writer'); await p.fill('#f_beat','Indie film, festivals'); await p.fill('#f_email','sam@example.com'); await p.click('#keepnew'); await p.waitForTimeout(300);
@@ -22,7 +18,7 @@ want('kept, and marked NOT CONFIRMED YET until you check their own work', /NOT C
 // a headshot to pick
 await p.goto('http://localhost:8811/press/'); await p.evaluate(async()=>{ const cv=document.createElement('canvas'); cv.width=40; cv.height=50; cv.getContext('2d').fillRect(0,0,40,50); const bl=await new Promise(r=>cv.toBlob(r,'image/jpeg')); await You.addPhoto(new File([bl],'head.jpg',{type:'image/jpeg'})); });
 await p.reload(); await p.waitForTimeout(600);
-want('no campaigns: it says press starts from real news, and how to find who covers your beat', /real news/.test(await p.innerText('#view'))&&/tap PRESS on a story/.test(await p.innerText('#view')));
+want('no campaigns: it says press starts from real news, and how to find who covers your beat', /real news/.test(await p.innerText('#view'))&&/note the writers in CONTACTS as press/.test(await p.innerText('#view')));
 await p.click('#start'); await p.click('[data-ms="festival"]'); await p.fill('#n_title','Low Tide'); await p.fill('#n_date','2026-11-14'); await p.fill('#n_where','Made Up Film Festival'); await p.click('#startit'); await p.waitForTimeout(300);
 let v=await p.innerText('#view');
 want('a campaign on the news: what, where, when, and what is not done', /A FESTIVAL/.test(v)&&/Low Tide/.test(v)&&/November 14, 2026/.test(v)&&/Nobody on the list yet/.test(v)&&/Not done yet:/.test(v));

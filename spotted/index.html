@@ -5,8 +5,8 @@
 <script src="../shared/tour.js"></script>
 <script src="../shared/hot.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>SPOTTED · Just passing this along</title>
-<meta name="description" content="Something you saw that your reps should know about: paste the notice, the email, the story or the link. It reads what is written, puts your history with the office next to it, and writes the note to your reps.">
+<title>SPOTTED · Something your reps should see</title>
+<meta name="description" content="A role on a casting site, a show in the news: grab a screenshot or the words and pass it along to your reps with one polite line.">
 <meta name="theme-color" content="#121110">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -66,11 +66,7 @@ select.field{appearance:auto}
 .top .k{font-size:11px;letter-spacing:.22em;color:var(--faint)}
 .top b{display:block;font-size:16px;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .top .count{font-size:13px;color:var(--tung-text);margin-top:1px}
-main{flex:1;min-width:0;padding:16px 16px calc(var(--nav) + 24px + env(safe-area-inset-bottom));max-width:720px;width:100%;margin:0 auto}
-nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(5,1fr);background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
-nav.tabs button{min-height:var(--nav);border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;letter-spacing:.12em;color:var(--faint)}
-nav.tabs button svg{width:22px;height:22px}
-nav.tabs button.on{color:var(--tung-text)}
+main{flex:1;min-width:0;padding:16px 16px calc(32px + env(safe-area-inset-bottom));max-width:1040px;width:100%;margin:0 auto}
 
 
 /* spotted */
@@ -93,33 +89,53 @@ nav.tabs button.on{color:var(--tung-text)}
 textarea.send{min-height:200px;font:14.5px/1.5 var(--sans)}
 .pair{display:flex;gap:6px;margin:6px 0}.pair .field{flex:1 1 0;min-width:0}
 .bad{color:var(--bad)}
-.toast{position:fixed;left:50%;bottom:calc(var(--nav) + 18px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(10px);background:var(--panel2);border:1px solid var(--tung);color:var(--ink);padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;transition:.2s;pointer-events:none;z-index:70;max-width:calc(100vw - 32px)}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(10px);background:var(--panel2);border:1px solid var(--tung);color:var(--ink);padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;transition:.2s;pointer-events:none;z-index:70;max-width:calc(100vw - 32px)}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
-body:has(#hotbar) .top{padding-top:calc(env(safe-area-inset-top) + 50px)}
-.online{position:fixed;top:0;left:0;right:0;z-index:60;background:var(--tung);color:var(--tung-ink);text-align:center;font-size:12px;letter-spacing:.14em;font-weight:600;padding:7px 10px}
-.wi{display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin:0 0 8px;color:var(--ink)}
-.wi .src{font-size:12px;color:var(--faint);letter-spacing:.04em}.wi b{display:block;margin:3px 0;font-weight:500}.wi .why{font-size:13px;color:var(--tung-text)}.wi .sm2{font-size:13px;color:var(--dim)}.wi .nw{font-size:11px;letter-spacing:.12em;color:var(--tung-text);margin-left:6px}
-.wi .row{margin-top:8px}.wi a.btn{color:inherit}.receipt{font-size:13px;color:var(--dim);margin:0;padding-left:18px}
 .card.ask{border-color:var(--tung)}.more+.more{border-top:1px solid var(--line);margin-top:8px}#more .facts li.warn{color:var(--tung-text)}.stg .facts li.warn{color:var(--tung-text)}.stg.stale{border-color:var(--tung)}.stl{font-style:normal;color:var(--tung-text)}
+.top.bhead{position:relative;padding:calc(env(safe-area-inset-top) + 12px) 16px 10px;background:var(--bg);border:0;backdrop-filter:none;-webkit-backdrop-filter:none}
+.bwrap{display:flex;align-items:center;gap:14px;max-width:1040px;margin:0 auto}
+.btx{flex:1;min-width:0}.btx h1{font-size:22px;letter-spacing:.02em;margin:2px 0}.btx p{margin:0;color:var(--tung-text);font-size:14px}.top .count{color:var(--dim);font-size:12.5px;margin-top:2px}
+.hico{width:52px;height:65px;flex:none}.hico .pg{fill:var(--panel);stroke:var(--line)}.hico .ph{fill:var(--panel2)}.hico .ln{stroke:var(--dim);stroke-width:2.4;stroke-linecap:round}.hico .pp{fill:var(--faint);opacity:.8}.hico .g{fill:var(--tung)}
+.bsig{width:46px;height:46px;flex:none;object-fit:contain}
+@media (min-width:900px){.hico{width:66px;height:82px}.bsig{width:64px;height:64px}.btx h1{font-size:24px}}
+.hstk{display:block;height:26px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='176' height='30' viewBox='0 0 176 30'%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232b3038' transform='translate%28-22%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%231f8a5c' transform='translate%280%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23d9b23a' transform='translate%2822%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232a5fa8' transform='translate%2844%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23c0392b' transform='translate%2866%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23e8e6e0' transform='translate%2888%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%239aa0a8' transform='translate%28110%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%235c636d' transform='translate%28132%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232b3038' transform='translate%28154%29'/%3E%3C/svg%3E") repeat-x 0 50%/auto 100%;box-shadow:inset 0 0 0 1px #00000055;opacity:.92}
+body:has(#hotbar) .top.bhead{padding-top:calc(env(safe-area-inset-top) + 50px)}
+.backbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+details.fold{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:0 16px;margin-bottom:12px}details.fold>summary{min-height:52px;display:flex;align-items:center;font:600 12.5px var(--sans);letter-spacing:.12em;cursor:pointer}details.fold[open]{padding-bottom:14px}
+
+.hico .shot{fill:var(--panel2)}.hico .ar{fill:none;stroke:var(--tung);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.grid{display:grid;gap:18px}@media (min-width:900px){.grid{grid-template-columns:7fr 5fr;gap:24px}.grid.one{grid-template-columns:5fr 7fr}}
+.colA,.colB{min-width:0}
+.ways{display:grid;gap:10px}@media (min-width:600px){.ways{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.way{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:16px;border:1px dashed var(--faint);border-radius:12px;background:transparent;text-align:left;cursor:pointer;color:var(--ink);min-height:84px}
+.way b{font-size:15.5px;font-weight:600}.way span{font-size:13px;color:var(--dim)}
+.way.pri{border-style:solid;border-color:var(--tung)}.way.on{border-style:solid;border-color:var(--ink);background:var(--panel)}.way.over{background:var(--tung-soft)}
+.card.list{padding:4px 14px}
+.sp{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}.sp:first-child{border-top:0}
+.spb{flex:1;min-width:0;display:flex;gap:12px;align-items:center;background:none;border:0;padding:0;text-align:left;color:var(--ink);min-height:var(--tap)}
+.shot{width:48px;height:62px;border-radius:6px;flex:none;object-fit:cover;object-position:top;background:var(--panel2);border:1px solid var(--line)}
+.spt{min-width:0}.spt b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.spt small{display:block;color:var(--dim);font-size:12.5px}
+.rep{margin:0 0 8px}.rep b{display:block}.rep small{color:var(--dim);font-size:13px}
+details.sub>summary{min-height:var(--tap);display:flex;align-items:center;font:600 12px var(--sans);letter-spacing:.12em;color:var(--tung-text);cursor:pointer}
+.bigshot{margin:0 0 6px}.bigshot img{display:block;width:100%;max-height:60vh;object-fit:contain;object-position:top;border-radius:12px;border:1px solid var(--line);background:var(--panel)}
+.bigshot .lnk{margin-top:4px}@media (max-width:899px){.bigshot img{max-height:34vh;width:auto;max-width:100%}}
+#main a:not(.btn){color:var(--tung-text)}
+.addshot{display:flex;flex-direction:column;gap:4px;padding:16px;border:1px dashed var(--faint);border-radius:12px;cursor:pointer}.addshot b{font-weight:600}.addshot span{font-size:13px;color:var(--dim)}
+.card.note{border-color:var(--tung)}.kicker.tg{color:var(--tung-text)}
+textarea.send.short{min-height:150px;font:15px/1.5 var(--sans)}
+.chk{display:flex;gap:10px;align-items:center;min-height:var(--tap);font-size:14.5px;cursor:pointer}.chk input{width:20px;height:20px;accent-color:var(--tung)}
+.card.slim{padding:12px 16px}
+.fold summary i{font-style:normal;color:var(--faint);margin-left:6px}
+.raw{white-space:pre-wrap;font:13.5px/1.45 var(--mono);color:var(--dim);background:var(--panel2);border-radius:8px;padding:10px 12px;max-height:240px;overflow:auto}
+.mw+.mw{border-top:1px solid var(--line);margin-top:14px;padding-top:6px}
 </style>
 </head>
 <body>
 <div class="shell">
-  <header class="top">
-    <div class="k">SPOTTED</div>
-    <b id="title">Just passing this along</b>
-    <div class="count" id="count"></div>
-  </header>
+  <header class="top bhead"><div class="bwrap"><svg class="hico" viewBox="0 0 64 80" role="img" aria-label="A screenshot, passed along"><rect class="pg" x="2" y="2" width="60" height="76" rx="5"/><rect class="shot" x="10" y="10" width="28" height="38" rx="3"/><path class="ln" d="M15 20h18M15 27h12M15 34h16"/><path class="ar" d="M28 60h22l-6-6M50 60l-6 6"/></svg><div class="btx"><div class="kicker" style="margin:0">YOU · SPOTTED</div><h1>Something your reps should see</h1><p>A role on a casting site, a show in the news. Grab it, and pass it along: a polite nudge.</p><div class="count" id="count"></div></div><img class="bsig" src="../img/sigil-film-180.png" alt="THEACTORPAGE" width="64" height="64"></div></header>
+  <i class="hstk" aria-hidden="true"></i>
   <main id="main"></main>
 </div>
-<nav class="tabs" id="tabs">
-  <button data-t="spot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg><span>SPOT</span></button>
-  <button data-t="list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg><span>LIST</span></button>
-  <button data-t="offices"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M8 7h2M14 7h2M8 11h2M14 11h2M8 15h2M14 15h2M10 21v-3h4v3"/></svg><span>OFFICES</span></button>
-  <button data-t="juice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3L5 13h6l-1 8 8-10h-6l1-8z"/></svg><span>JUICE</span></button>
-  <button data-t="you"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg><span>YOU</span></button>
-</nav>
-<div class="online" id="online" role="status" aria-live="polite" hidden>ONLINE · getting THE WIRE</div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="../shared/offices.js"></script>
 <script src="../shared/notes.js"></script>
@@ -127,7 +143,6 @@ body:has(#hotbar) .top{padding-top:calc(env(safe-area-inset-top) + 50px)}
 <script src="../shared/you.js"></script>
 <script src="../shared/workedwith.js"></script>
 <script src="../shared/spotted.js"></script>
-<script src="../shared/wire.js"></script>
 <script src="app.js"></script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
 <script src="../shared/view.js"></script>
