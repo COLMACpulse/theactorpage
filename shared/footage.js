@@ -25,7 +25,7 @@
     const it = Object.assign({ id: uid(), title, role: '', kind: 'tv', episode: '', out: '', where: '', status: '', ask: '', asked: '', next: '', note: '', clips: [], added: now() }, j, { title });
     d.jobs.push(it); write(d); return it;
   };
-  F.set = function (id, patch) { const d = read(), j = d.jobs.find(x => x.id === id); if (!j) return null; Object.keys(patch || {}).forEach(k => { if (k !== 'id') j[k] = typeof patch[k] === 'string' ? clean(patch[k]) : patch[k]; }); write(d); return j; };
+  F.set = function (id, patch) { const d = read(), j = d.jobs.find(x => x.id === id); if (!j) return null; Object.keys(patch || {}).forEach(k => { if (k !== 'id') j[k] = typeof patch[k] === 'string' && k !== 'askBody' ? clean(patch[k]) : patch[k]; }); write(d); return j; };
   F.remove = function (id) { const d = read(); d.jobs = d.jobs.filter(j => j.id !== id); write(d); };
   F.addClip = function (id, clip) { const j = F.get(id); if (!j) return null; return F.set(id, { clips: (j.clips || []).concat([Object.assign({ at: now() }, clip)]), status: 'clipped' }); };
   /* where it stands, if you haven't said: from the release date */

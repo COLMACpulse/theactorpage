@@ -154,7 +154,8 @@ function vExample(){
   +'<div class="step" data-ex="2"><b>3 FINISH</b><span>Rough cut, a line again, your editor\'s pack</span><div class="ln">ROUGH CUT · 1:42</div></div>'
   +'<div class="step" data-ex="3"><b>4 OUT</b><span>Back to YOU, where it gets seen</span><div class="ln"><i class="y"></i>Your reel</div><div class="ln"><i class="y"></i>Your page</div><div class="ln"><i></i>A postcard</div></div></div>'
   +'<div class="row"><button class="btn pri" id="exstart">START A FILM</button><button class="btn" id="exfilms">YOUR FILMS</button></div>'
-  +'<p class="faint" style="font-size:12.5px;margin:10px 0 0">The example plays when nothing is open. Start a film and yours takes its place.</p></div>';
+  +'<p class="faint" style="font-size:12.5px;margin:10px 0 0">The example plays when nothing is open. Start a film and yours takes its place.</p></div>'
+  +'<p class="faint" style="font-size:13px;margin:12px 0 0">Shot your own? Before you erase a camera card, <a href="../footage/check.html" id="excheck">CHECK THE COPY</a>: every file on your copies, matched to the card.</p>';
 }
 function playExample(){
  const cap=['Plan: the shot list from your script, matched to what you own','Shoot: slate it, mark the take that goes','Finish: cut it on the phone, or hand your editor a pack','Out: the cut lands on your reel, your page, a postcard'];
@@ -261,7 +262,7 @@ function front(){
   {id:'match',dev:'camera',label:'CAMERA',what:'Match a shot',note:'Line it up with the last one'},
   {id:'adr',dev:'mic',label:'MIC',what:'Re-record a line',note:anyFile?'Over a take, in CUT':'Shoot or add a take first',off:!anyFile},
   {id:'scout',dev:'photo',label:'PHOTO',what:'Scout a place',note:'Light, sound, photos'}
- ])+'<p class="faint" style="font-size:13px;margin:-6px 0 18px">'+(all?all+' take'+(all===1?'':'s')+' so far. They\'re in CUT.':'Takes you shoot here go straight into CUT, on their scene.')+'</p>':'';
+ ])+'<p class="faint" style="font-size:13px;margin:-6px 0 18px">'+(all?all+' take'+(all===1?'':'s')+' so far. They\'re in CUT.':'Takes you shoot here go straight into CUT, on their scene.')+' Before you erase a card: <a href="../footage/check.html" id="frontcheck">CHECK THE COPY</a>.</p>':'';
 }
 function vScenes(){
  const TH=F.through(SCENES);

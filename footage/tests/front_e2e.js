@@ -1,0 +1,32 @@
+/* FOOTAGE front, computer (light): still waiting on it and you have it, one button each, no reminders, CHECK THE COPY
+   folded here and on FILM. Made-up jobs only. Server on :8811.  NODE_PATH=... node footage/tests/front_e2e.js */
+const {chromium}=require('playwright');
+(async()=>{ const SHOTS=process.env.SHOTS||'/tmp';
+const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,400))); if(!x) ok=false; };
+const c=await b.newContext({viewport:{width:1280,height:900},colorScheme:'light',serviceWorkers:'block'}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
+await p.goto('http://localhost:8811/footage/'); await p.evaluate(()=>{ localStorage.clear();
+ const fut=new Date(Date.now()+864e5*20).toISOString().slice(0,10);
+ Footage.add({title:'Salt Road',role:'Sheriff',kind:'tv',episode:'Ep. 2',out:'2026-02-01',where:'Made Up TV',ask:'the producer'});
+ const a=Footage.add({title:'Dry Gulch',role:'Deputy',kind:'film',out:'2026-03-01'}); Footage.set(a.id,{asked:'2026-04-02',status:'asked',ask:'the editor'});
+ Footage.add({title:'Morning Brew',role:'Dad',kind:'commercial',out:fut,where:'online'});
+ const h=Footage.add({title:'Low Tide',role:'Dock Cop',kind:'short',out:'2025-11-01'}); Footage.set(h.id,{status:'have'});
+ const k=Footage.add({title:'Harbor Lights',role:'Deckhand',kind:'tv',out:'2025-09-01'}); Footage.addClip(k.id,{name:'Harbor_Lights_Deckhand_clip.mp4',secs:41}); });
+await p.reload(); await p.waitForTimeout(700);
+const v=await p.innerText('#view'), w=await p.innerText('#waiting'), h=await p.innerText('#have');
+want('header: get your footage', /YOU · FOOTAGE/i.test(await p.textContent('header'))&&/Get your footage/.test(await p.innerText('header')));
+want('no reminders: nothing that needs you, no counts by stage', !/needs you|time to follow up|comes out in \d+ days/i.test(v)&&!(await p.$('.chips')), v.slice(0,300));
+want('still waiting on it: 3, each with what to do', /Salt Road · Sheriff[\s\S]*out since Feb 1, 2026 on Made Up TV · ask the producer[\s\S]*ASK FOR IT/.test(w)&&/Dry Gulch · Deputy[\s\S]*you asked the editor Apr 2, 2026[\s\S]*ASK AGAIN/.test(w)&&/Morning Brew · Dad[\s\S]*comes out/.test(w), w);
+want('you have it: trim, or how many clips', /Low Tide · Dock Cop[\s\S]*the file is here · no clip yet[\s\S]*TRIM YOUR MOMENT/.test(h)&&/Harbor Lights · Deckhand[\s\S]*1 clip · in Reel Room[\s\S]*TRIM ANOTHER/.test(h), h);
+want('folded away: how to get it, CHECK THE COPY', !(await p.isVisible('#tocheck'))&&/CHECK THE COPY/.test(v));
+await p.click('#checkfold summary'); want('CHECK THE COPY opens its page', await p.getAttribute('#tocheck','href')==='check.html');
+want('light theme', await p.evaluate(()=>getComputedStyle(document.body).backgroundColor)==='rgb(236, 231, 220)');
+await p.screenshot({path:SHOTS+'/ft_desk_front.png'});
+await p.click('#waiting [data-ask]'); await p.waitForTimeout(200);
+want('the ask: "Hi," when it\'s "the editor", and a follow-up once asked', /^Hi,\n\nJust following up on my scene from Dry Gulch\./.test(await p.inputValue('#a_note')));
+await p.screenshot({path:SHOTS+'/ft_desk_ask.png'});
+await p.goto('http://localhost:8811/film/'); await p.waitForTimeout(900);
+want('FILM has CHECK THE COPY too', await p.evaluate(()=>!!document.querySelector('a[href="../footage/check.html"]')));
+want('no em dashes, no "thing"', !/—/.test(v)&&!/\bthing\b/i.test(v));
+want('no page errors', !errs.length, errs);
+await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();

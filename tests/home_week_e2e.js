@@ -13,10 +13,10 @@ await p.evaluate(()=>{ const d=n=>{ const x=new Date(Date.now()+n*864e5); return
  Inbox.put?Inbox.put('request',{title:'Harbor Lights',role:'Deckhand',due:d(2)+'T12:00'}):null; });
 await p.reload(); await p.waitForTimeout(1200);
 let v=await p.innerText('#week').catch(()=>'');
-want('YOUR AGENDA: the follow-up, the footage, the press, each a line', /YOUR AGENDA/.test(v)&&/Follow up with Morgan Lee/.test(v)&&/Dust Road is out\. Ask for your footage\./.test(v)&&/Low Tide: your news is/.test(v)&&/Low Tide: 1 on your press list not reached yet\./.test(v), v);
-want('COMING UP on a timeline, earliest first: still open, then by day; ACTIVE after', /COMING UP\n+STILL OPEN\n+Follow up with Morgan Lee[^\n]*\n+[A-Z]+\n+Tape due[\s\S]*ACTIVE\n+Dust Road is out/.test(v)&&!/Nothing needs you/.test(v), v);
+want('YOUR AGENDA: the follow-up and the press, each a line; footage never nags', /YOUR AGENDA/.test(v)&&/Follow up with Morgan Lee/.test(v)&&!/Ask for your footage/.test(v)&&/Low Tide: your news is/.test(v)&&/Low Tide: 1 on your press list not reached yet\./.test(v), v);
+want('COMING UP on a timeline, earliest first: still open, then by day; press on its day', /COMING UP\n+STILL OPEN\n+Follow up with Morgan Lee[^\n]*\n+[A-Z]+\n+Tape due[\s\S]*Low Tide: your news is/.test(v)&&!/Nothing needs you/.test(v), v);
 const hrefs=await p.$$eval('#week a',x=>x.map(a=>a.getAttribute('href')));
-want('each line goes to its tool', hrefs.some(h=>/^contacts\//.test(h))&&hrefs.some(h=>/^footage\//.test(h))&&hrefs.some(h=>/^press\//.test(h)), hrefs);
+want('each line goes to its tool', hrefs.some(h=>/^contacts\//.test(h))&&hrefs.some(h=>/^press\//.test(h)), hrefs);
 await p.click('#wkgoal'); await p.fill('#wk_g','Book a co-star'); await p.fill('#wk_d','2027-06-01'); await p.click('#wk_save'); await p.waitForTimeout(500);
 v=await p.innerText('#week');
 want('your goal, in your words, with its date, on top', /Your goal Book a co-star · by Jun 1, 2027/.test(v)&&v.indexOf('Book a co-star')<v.indexOf('Follow up'), v.slice(0,200));

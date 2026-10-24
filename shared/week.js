@@ -73,7 +73,6 @@
     const src = {};
     try { if (g.Inbox) src.requests = g.Inbox.all('request').map(x => ({ id: x.id, title: x.data.title, role: x.data.role, due: x.data.due })); } catch (e) { }
     try { if (g.Contacts) src.contacts = g.Contacts.mine().filter(p => p.rep && p.rep.next && p.rep.step !== 'signed' && p.rep.step !== 'passed' && !p.dnc); } catch (e) { }
-    try { if (g.Footage) src.footage = g.Footage.alerts(); } catch (e) { }
     try { if (g.Press && g.Contacts) src.press = g.Press.all().map(c => ({ id: c.id, title: c.title, date: c.date, outlets: c.outlets.map(o => { const p = g.Contacts.get(o.cid); return { name: p ? p.name : 'someone', reached: o.reached, reply: o.reply }; }) })); } catch (e) { }
     try { if (g.Viz) { src.wishes = g.Viz.all(); src.plugs = g.Viz.plugs(); } } catch (e) { }
     try { if (g.Plan) src.plans = g.Plan.all(); } catch (e) { }

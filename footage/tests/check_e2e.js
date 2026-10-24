@@ -8,7 +8,7 @@ let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===und
 const c=await b.newContext({viewport:{width:1100,height:900},acceptDownloads:true}); const p=await c.newPage(); const errs=[], out=[];
 p.on('pageerror',e=>errs.push(e.message)); p.on('request',r=>{ const u=r.url(); if(!/^http:\/\/localhost:8811\//.test(u)&&!/^(data|blob):/.test(u)) out.push(u); });
 await p.goto('http://localhost:8811/footage/'); await p.evaluate(()=>localStorage.clear());
-await p.click('#tocheck'); await p.waitForTimeout(500);
+await p.click('#checkfold summary'); await p.click('#tocheck'); await p.waitForTimeout(500);
 want('Footage links to it; its own page', /check\.html$/.test(p.url())&&/CHECK THE COPY/.test(await p.innerText('h1')));
 want('it says what it promises: nothing uploaded, nothing erased', /NOTHING IS UPLOADED/.test(await p.innerText('main'))&&/IT NEVER ERASES ANYTHING/.test(await p.innerText('main')));
 want('CHECK IT waits for the card and a copy', await p.isDisabled('#p_go'));
