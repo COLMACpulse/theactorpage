@@ -4,10 +4,10 @@
   Treatment-first. One character, one ethos, one genre, one world, plus cast
   pressure, compressed into a Treatment Genome that the season expands from.
 
-  The scoring is carried over exactly as v0.7 computes it, so the numbers here
-  and the numbers in the standalone app agree. Three of those numbers do not
-  measure what their names say, and the panel says so rather than presenting
-  them as analysis. See NOTE ON THE NUMBERS below.
+  No scores, and nothing written for you (Col, Oct 24): the panel shows what your
+  treatment has and what it's missing, by name, and reads your pages against it.
+  The episode skeleton and the expansion prompt (template words, a prompt for an AI)
+  are gone. The scoring code below is left only so an old packet still opens.
 
   What is added is the half StoryForge specified but could never run:
 
@@ -409,7 +409,7 @@ function watch(genome, episodes, api){
     else reads.push("Every planned episode has a section in the script.");
   }
 
-  if(!scenes.length) findings.push({level:"note", text:"No scenes written yet. Build the skeleton to start."});
+  if(!scenes.length) findings.push({level:"note", text:"No scenes written yet. What you write shows up here against the plan."});
   else reads.push(scenes.length + (scenes.length === 1 ? " scene written." : " scenes written."));
 
   return {findings:findings, reads:reads,
@@ -507,11 +507,10 @@ WB.register({
 
       var w = watch(genome, episodes, api);
       var s = scores;
-      var band = s.AdjustedTreatmentScore > 0.76 ? "#4f9d69" : s.AdjustedTreatmentScore > 0.58 ? "#c8892f" : "#c25a4e";
 
       host.innerHTML =
         '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
-          '<b style="color:#fff;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
+          '<b style="color:var(--hi);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
             esc(genome.title || "Untitled Treatment") + "</b>" +
           '<button id="sf-clear" style="padding:2px 7px" title="Drop this genome">\u00d7</button></div>' +
         '<div class="statgrid" style="padding:0">' +
@@ -519,9 +518,9 @@ WB.register({
           row("Episodes planned", episodes.length) +
         "</div>" +
         '<p class="note-hint" style="padding:8px 0 3px">What the treatment says, and what it doesn\'t ' +
-          '<a href="#" id="sf-note" style="color:#c8892f">how this reads</a></p>' +
+          '<a href="#" id="sf-note" style="color:var(--mark-text)">how this reads</a></p>' +
         '<div id="sf-vecs"></div>' +
-        (showNote ? '<p class="note-hint" style="padding:6px 0;border-left:2px solid #c8892f;padding-left:8px">' +
+        (showNote ? '<p class="note-hint" style="padding:6px 0;border-left:2px solid var(--mark);padding-left:8px">' +
           'A character has a goal, a fear, a flaw, a gift, a wound, a need and a voice. This lists which ' +
           'of those you have written down and which you haven\'t, by name. It reads words, so it knows ' +
           'whether you said something about the wound, not whether the wound is any good. No score.</p>' : "") +
@@ -529,9 +528,7 @@ WB.register({
         '<p class="note-hint" style="padding:9px 0 3px">Watchdog: the plan against the pages</p>' +
         '<div id="sf-watch"></div>' +
         '<div style="display:grid;gap:6px;margin-top:10px">' +
-          '<button id="sf-skel">Build the episode skeleton</button>' +
-          '<button id="sf-prompt">Copy the expansion prompt</button>' +
-          '<button id="sf-export">Export the packet</button>' +
+          '<button id="sf-export">Export the treatment</button>' +
         "</div>";
 
       var vecs = host.querySelector("#sf-vecs");
@@ -547,20 +544,20 @@ WB.register({
       lines0.forEach(function(L){
         var r = document.createElement("div");
         r.className = "note-hint";
-        r.style.cssText = "padding:4px 0;border-bottom:1px solid #39434f";
-        r.innerHTML = '<b style="color:#dfe6ee">' + esc(L[0]) + "</b> " +
+        r.style.cssText = "padding:4px 0;border-bottom:1px solid var(--rule)";
+        r.innerHTML = '<b style="color:var(--chrome-text)">' + esc(L[0]) + "</b> " +
           (L[1].length ? "has " + esc(L[1].join(", ").replace(/_/g, " ")) : "nothing yet") +
-          (L[2].length ? '<br><span style="color:#c8892f">missing: ' + esc(L[2].join(", ").replace(/_/g, " ")) + "</span>" : "");
+          (L[2].length ? '<br><span style="color:var(--mark-text)">missing: ' + esc(L[2].join(", ").replace(/_/g, " ")) + "</span>" : "");
         vecs.appendChild(r);
       });
 
       var wbox = host.querySelector("#sf-watch");
-      var colour = {bad:"#c25a4e", warn:"#c8892f", note:"var(--chrome-dim)"};
+      var colour = {bad:"var(--rule)", warn:"var(--rule)", note:"var(--rule)"};
       w.findings.forEach(function(f){
         var d = document.createElement("p");
         d.className = "note-hint";
         d.style.cssText = "padding:3px 0 3px 8px;border-left:2px solid " + colour[f.level] +
-          ";color:" + (f.level === "note" ? "var(--chrome-dim)" : colour[f.level]);
+          ";color:var(--chrome-text)";
         d.textContent = f.text;
         wbox.appendChild(d);
       });
@@ -582,8 +579,6 @@ WB.register({
         try{ localStorage.removeItem(KEY); }catch(e){}
         draw();
       };
-      host.querySelector("#sf-skel").onclick = buildSkeleton;
-      host.querySelector("#sf-prompt").onclick = copyPrompt;
       host.querySelector("#sf-export").onclick = exportPacket;
     }
     function row(k, v){ return "<div><span>" + k + "</span><b>" + v + "</b></div>"; }
@@ -602,8 +597,8 @@ WB.register({
           '<div><span>Cluster fit</span><b>' + pct(s.ClusterFit) + "%</b></div>" +
           '<div><span>Gold zone</span><b>' + pct(s.GoldZone) + "%</b></div></div>" +
         '<p class="note-hint" style="padding:3px 0 5px">' +
-          (s.Novelty < 0.4 ? "Close to the cluster \u2014 derivative risk."
-           : s.Novelty > 0.8 ? "Far outside the cluster \u2014 readability risk."
+          (s.Novelty < 0.4 ? "Close to the cluster."
+           : s.Novelty > 0.8 ? "Far outside the cluster."
            : "Inside the useful band: familiar but not derivative.") + "</p>" +
         '<button id="sf-refs" style="width:100%">Replace the reference set\u2026</button>';
     }
@@ -616,12 +611,12 @@ WB.register({
           '<p class="note-hint" style="padding:0">Nothing written under any episode yet. These read from ' +
           'the pages once there are pages. No curve is invented in the meantime.</p>';
       var head = '<p class="note-hint" style="padding:9px 0 3px">Episodes \u00b7 ' + written.length +
-        ' written <a href="#" id="sf-eps-toggle" style="color:#c8892f">' +
+        ' written <a href="#" id="sf-eps-toggle" style="color:var(--mark-text)">' +
         (showEps ? "hide" : "show") + "</a></p>";
       if(!showEps) return head;
       return head + '<div style="font-size:11px">' + written.map(function(r){
-        return '<div style="display:grid;grid-template-columns:2.4em 1fr;gap:6px;padding:3px 0;border-bottom:1px solid #39434f">' +
-          '<b style="color:#dfe6ee">EP' + r.n + "</b><span class=\"note-hint\" style=\"padding:0\">" +
+        return '<div style="display:grid;grid-template-columns:2.4em 1fr;gap:6px;padding:3px 0;border-bottom:1px solid var(--rule)">' +
+          '<b style="color:var(--chrome-text)">EP' + r.n + "</b><span class=\"note-hint\" style=\"padding:0\">" +
           r.pages + "pp \u00b7 " + r.scenes + " sc \u00b7 " + r.speakers + " speaking" +
           (r.newFaces ? " \u00b7 " + r.newFaces + " new" : "") + "<br>" +
           pct(r.dialogueShare) + "% of the words are dialogue \u00b7 scenes avg " + r.sceneMean +
@@ -743,7 +738,7 @@ WB.register({
     }
 
     function exportPacket(){
-      var packet = {version:"0.7", treatment:genome, episodes:episodes, scores:scores,
+      var packet = {version:"0.7", treatment:genome, episodes:episodes, 
         draft_state:{pages:api.pageCount(), scenes:api.scenes().length,
                      cast:api.reports().cast.map(function(c){
                        return {name:c.name, speeches:c.speeches, words:c.words,

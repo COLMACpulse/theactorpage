@@ -15,12 +15,12 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 
 /* ---------- the screen ---------- */
 const css=`
-#vw{position:fixed;inset:0;z-index:900;background:#1d232b;color:#e8edf2;display:none;flex-direction:column;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+#vw{position:fixed;inset:0;z-index:900;background:var(--desk);color:var(--chrome-text);display:none;flex-direction:column;font-family:var(--sans,system-ui,sans-serif)}
 #vw.on{display:flex}
-#vw header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #39434f}
+#vw header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--rule)}
 #vw header b{font-size:13px;letter-spacing:.18em}
-#vw .next{flex:1;font-size:13px;color:#c8892f;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#vw button{font:inherit;color:inherit;background:#2b333d;border:1px solid #4a5563;border-radius:6px;padding:10px 12px;min-height:44px;cursor:pointer}
+#vw .next{flex:1;font-size:13px;color:var(--mark-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vw button{font:inherit;color:inherit;background:var(--desk-3);border:1px solid var(--rule);border-radius:10px;padding:10px 12px;min-height:44px;cursor:pointer}
 #vw .page{flex:1;overflow:auto;padding:16px 16px 8px;background:#f4f1ea;color:#16130f;font:15px/1.45 "Courier Prime","Courier New",Courier,monospace}
 #vw .bl{margin:0 0 10px;white-space:pre-wrap}
 #vw .bl.sh{font-weight:700;text-transform:uppercase}
@@ -30,27 +30,27 @@ const css=`
 #vw .bl.tr{text-align:right;text-transform:uppercase}
 #vw .bl.new{background:rgba(200,137,47,.18);border-radius:3px}
 #vw .bl.hear{color:#8a8172;font-style:italic}
-#vw .msg{padding:8px 14px;font-size:14px;min-height:20px;color:#c9d2dc;border-top:1px solid #39434f}
+#vw .msg{padding:8px 14px;font-size:14px;min-height:20px;color:var(--chrome-text);border-top:1px solid var(--rule)}
 #vw .msg.bad{color:#f0a49a}
 #vw .bar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:8px 12px}
 #vw .modes{display:flex;gap:8px;padding:0 12px 8px}
 #vw .modes button{flex:1}
-#vw .modes button.on{background:#c8892f;border-color:#c8892f;color:#1b1206;font-weight:600}
-#vw .mic{display:block;margin:4px 12px 10px;width:calc(100% - 24px);min-height:64px;font-size:17px;font-weight:700;letter-spacing:.12em;background:#c8892f;border-color:#c8892f;color:#1b1206}
+#vw .modes button.on{background:var(--mark);border-color:var(--mark);color:var(--mark-ink);font-weight:600}
+#vw .mic{display:block;margin:4px 12px 10px;width:calc(100% - 24px);min-height:64px;font-size:17px;font-weight:600;letter-spacing:.12em;background:var(--mark);border-color:var(--mark);color:var(--mark-ink)}
 #vw .mic.live{background:#b23a2f;border-color:#b23a2f;color:#fff}
 #vw .type{display:flex;gap:8px;padding:0 12px 12px}
-#vw .type input{flex:1;font:inherit;font-size:16px;background:#2b333d;color:#fff;border:1px solid #4a5563;border-radius:6px;padding:10px}
-#vw .card{position:absolute;inset:56px 10px 10px;background:#232a33;border:1px solid #4a5563;border-radius:8px;overflow:auto;padding:14px;display:none;font-size:14px}
+#vw .type input{flex:1;font:inherit;font-size:16px;background:var(--desk-3);color:var(--hi);border:1px solid var(--rule);border-radius:6px;padding:10px}
+#vw .card{position:absolute;inset:56px 10px 10px;background:var(--desk-2);border:1px solid var(--rule);border-radius:8px;overflow:auto;padding:14px;display:none;font-size:14px}
 #vw .card.on{display:block}
-#vw .card div{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:6px 0;border-bottom:1px solid #39434f}
-#vw .card i{color:#c8892f;font-style:normal}
-#vw .alts{padding:0 14px 6px;font-size:13px;color:#c9d2dc}
+#vw .card div{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:6px 0;border-bottom:1px solid var(--rule)}
+#vw .card i{color:var(--mark-text);font-style:normal}
+#vw .alts{padding:0 14px 6px;font-size:13px;color:var(--chrome-text)}
 #vw .alts button{min-height:34px;padding:4px 8px;margin:4px 6px 0 0}
-#vwFab{position:fixed;right:16px;bottom:16px;z-index:800;min-height:56px;padding:0 20px;border-radius:28px;font:600 15px system-ui;letter-spacing:.1em;background:#c8892f;color:#1b1206;border:0;box-shadow:0 4px 14px rgba(0,0,0,.35);display:none}
+#vwFab{position:fixed;right:16px;bottom:16px;z-index:800;min-height:56px;padding:0 20px;border-radius:28px;font:600 15px system-ui;letter-spacing:.1em;background:var(--mark);color:#1b1206;border:0;box-shadow:0 4px 14px rgba(0,0,0,.35);display:none}
 @media (max-width:900px){ #vwFab{display:block} }`;
 const st=document.createElement('style'); st.textContent=css; document.head.appendChild(st);
 const el=document.createElement('div'); el.id='vw';
-el.innerHTML=`<header><b>VOICE</b><span class="next" id="vwNext"></span><button id="vwHelp">What to say</button><button id="vwClose" aria-label="Close">Done</button></header>
+el.innerHTML=`<header><b>VOICE</b><span class="next" id="vwNext"></span><button id="vwPasteOpen" title="Paste what you said: dictation, a transcript">Paste</button><button id="vwHelp">What to say</button><button id="vwClose" aria-label="Close">Done</button></header>
 <div class="page" id="vwPage"></div>
 <div class="alts" id="vwAlts"></div>
 <div class="msg" id="vwMsg"></div>
@@ -58,7 +58,13 @@ el.innerHTML=`<header><b>VOICE</b><span class="next" id="vwNext"></span><button 
 <div class="bar"><button id="vwUndo">Undo</button><button id="vwNewLine">New line</button><button id="vwAlt">Try again</button></div>
 <button class="mic" id="vwMic">TAP TO TALK</button>
 <div class="type"><input id="vwType" placeholder="Or type it, or use your keyboard's mic" enterkeyhint="send" autocomplete="off"><button id="vwGo">Go</button></div>
-<div class="card" id="vwCard"></div>`;
+<div class="card" id="vwCard"></div>
+<div class="card" id="vwPaste"><p style="margin-top:0"><b>Paste what you said</b></p>
+<p class="note" style="margin:0 0 8px">Dictation, a voice memo's transcript, an interview. It takes out the ums and the repeats and steadies the punctuation. It never rewords, reorders or adds. Your exact words are kept in the change trail.</p>
+<textarea id="vwPasteIn" rows="6" placeholder="Paste it here" style="width:100%;font:inherit;font-size:15px;background:var(--desk-3);color:var(--hi);border:1px solid var(--rule);border-radius:8px;padding:10px;resize:vertical"></textarea>
+<div style="display:flex;gap:8px;align-items:center;margin:8px 0;flex-wrap:wrap"><label for="vwPasteLvl" style="font-size:13px;color:var(--chrome-dim)">How much</label><select id="vwPasteLvl" style="font:inherit;min-height:44px;background:var(--desk-3);color:var(--hi);border:1px solid var(--rule);border-radius:8px;padding:0 8px"><option value="light">Light</option><option value="standard" selected>Standard</option><option value="heavy">Heavy</option></select>
+<button id="vwPasteFile">A file</button><button id="vwPasteGo" style="background:var(--mark);border-color:var(--mark);color:var(--mark-ink);font-weight:600">CLEAN IT UP</button></div>
+<div id="vwPasteOut"></div><button id="vwPasteClose">Done</button></div>`;
 document.body.appendChild(el);
 const fab=document.createElement('button'); fab.id='vwFab'; fab.textContent='VOICE'; document.body.appendChild(fab);
 $('vwCard').innerHTML='<p style="margin-top:0">Say it like this. Capitals and punctuation don\'t matter, and your phone adding a full stop doesn\'t break a command.</p>'
@@ -199,6 +205,21 @@ el.querySelectorAll('[data-vm]').forEach(x=>x.onclick=()=>{ MODE=x.dataset.vm; s
 const go=()=>{ const v=$('vwType').value; $('vwType').value=''; handle(v); };
 $('vwGo').onclick=go; $('vwType').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); go(); } });
 $('vwHelp').onclick=()=>$('vwCard').classList.add('on');
+/* PASTE WHAT YOU SAID (was SignalScript): the cleaning only, never other words for yours */
+let PASTED=null;
+$('vwPasteOpen').onclick=()=>{ $('vwPaste').classList.add('on'); setTimeout(()=>$('vwPasteIn').focus(),50); };
+$('vwPasteClose').onclick=()=>$('vwPaste').classList.remove('on');
+$('vwPasteFile').onclick=()=>{ const i=document.createElement('input'); i.type='file'; i.accept='.txt,.srt,.vtt,.md'; i.onchange=()=>{ const f=i.files[0]; if(f) f.text().then(t=>{ $('vwPasteIn').value=t; }); }; i.click(); };
+$('vwPasteGo').onclick=()=>{ const raw=$('vwPasteIn').value, SC=window.SignalClean;
+ if(!raw.trim()){ $('vwPasteOut').innerHTML='<p class="note">Paste something first.</p>'; return; }
+ if(!SC){ $('vwPasteOut').innerHTML='<p class="note">The cleaner didn\'t load. Reload the page.</p>'; return; }
+ PASTED=SC.process(raw,SC.LEVELS[$('vwPasteLvl').value]); const m=PASTED.metrics;
+ $('vwPasteOut').innerHTML='<p class="note" style="margin:6px 0">'+m.raw_words+' words in, '+m.clean_words+' out. '+m.fillers_removed+' filler'+(m.fillers_removed===1?'':'s')+' taken out.</p>'
+  +'<div style="background:#f4f1ea;color:#16130f;border-radius:8px;padding:10px;max-height:30vh;overflow:auto;white-space:pre-wrap;font-size:15px;line-height:1.5" id="vwPasteClean">'+esc(PASTED.clean)+'</div>'
+  +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0"><button id="vwPasteIns" style="background:var(--mark);border-color:var(--mark);color:var(--mark-ink);font-weight:600">PUT IT IN THE SCRIPT</button><button id="vwPasteCopy">Copy it</button></div>';
+ $('vwPasteIns').onclick=()=>{ api.applyResult(PASTED,{tool:'SignalScript',scope:'block',insert:true}); say('In the script: '+PASTED.metrics.clean_words+' words. Your exact words are in the change trail.'); $('vwPaste').classList.remove('on'); draw(); };
+ $('vwPasteCopy').onclick=()=>{ try{ navigator.clipboard.writeText(PASTED.clean).then(()=>say('Copied.'),()=>say('Copy didn\'t work here.')); }catch(e){ say('Copy didn\'t work here.'); } };
+};
 el.addEventListener('click',e=>{ if(e.target&&e.target.id==='vwCardClose') $('vwCard').classList.remove('on'); });
 document.addEventListener('visibilitychange',()=>{ if(document.hidden&&WANT) stop(); });
 if(/[?&]voice\b/.test(location.search)) setTimeout(open,300);

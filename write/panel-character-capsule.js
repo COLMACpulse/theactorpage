@@ -3,9 +3,9 @@
 
   A character is not a file. It is a stateful object you keep consistent.
 
-  The Identity Stack scoring is carried over exactly: weights, completeness,
-  readiness, risk, weighted deviation, continuity, severity bands. Nothing in
-  that model has been altered.
+  No scores (Col, Oct 24): no readiness, risk, confidence or severity on screen or in the
+  file. What shows is what you have written in each section, and what changed since you
+  locked it. The old scoring functions stay below only so an old file still opens.
 
   What is added here is the one thing the standalone builder cannot do — the
   script is right there. A capsule can be seeded from who actually speaks, and
@@ -56,7 +56,7 @@ var SECTIONS = [
 
 var WEIGHTS = {story:1.15, performance:1.10, voice:1.20, face:1.05, relationships:0.85, constraints:1.25};
 
-var SEV_COLOUR = {"Stable":"#4f9d69","Watch":"#c8892f","Revision Needed":"#d2762f",
+var SEV_COLOUR = {"Stable":"#4f9d69","Watch":"var(--mark)","Revision Needed":"#d2762f",
                   "Identity Break Risk":"#c25a4e","Identity Failure":"#a33a30"};
 
 function uid(){ return "CAP-" + Math.random().toString(36).slice(2,7).toUpperCase(); }
@@ -272,29 +272,6 @@ WB.register({
     var pct = function(n){ return Math.round(n * 100) + "%"; };
 
     /* --- the six-segment ring --- */
-    function ring(s){
-      var cx = 55, cy = 55, r = 40, keys = Object.keys(WEIGHTS), step = 360 / keys.length, out = "";
-      function polar(rad, deg){ var a = (deg - 90) * Math.PI / 180;
-        return [cx + rad * Math.cos(a), cy + rad * Math.sin(a)]; }
-      function arc(rad, a0, a1){
-        var p0 = polar(rad, a0), p1 = polar(rad, a1);
-        return "M" + p0[0].toFixed(1) + " " + p0[1].toFixed(1) +
-               " A" + rad + " " + rad + " 0 " + (a1 - a0 > 180 ? 1 : 0) + " 1 " +
-               p1[0].toFixed(1) + " " + p1[1].toFixed(1);
-      }
-      keys.forEach(function(k, i){
-        var a0 = i * step + 2, a1 = (i + 1) * step - 2;
-        var fill = a0 + (a1 - a0) * s.comps[k];
-        out += '<path d="' + arc(r, a0, a1) + '" stroke="#3d4753" stroke-width="7" fill="none" stroke-linecap="round"/>';
-        if(s.comps[k] > 0.01)
-          out += '<path d="' + arc(r, a0, fill) + '" stroke="#c8892f" stroke-width="7" fill="none" stroke-linecap="round"/>';
-      });
-      out += '<text x="55" y="52" text-anchor="middle" fill="#fff" font-size="17" font-family="system-ui" font-weight="600">' +
-             pct(s.conf) + '</text>';
-      out += '<text x="55" y="65" text-anchor="middle" fill="#8794a3" font-size="7.5" font-family="system-ui" letter-spacing="1">CONFIDENCE</text>';
-      return '<svg viewBox="0 0 110 110" style="width:110px;height:110px;display:block;margin:0 auto">' + out + "</svg>";
-    }
-
     /* --- section editor --- */
     function ensureEditor(){
       if(editor) return editor;
@@ -315,11 +292,11 @@ WB.register({
 
       function listBox(label, get, set, hint){
         var wrap = document.createElement("div");
-        wrap.innerHTML = '<label class="note-sm" style="display:block;margin-bottom:4px;color:#fff">' +
+        wrap.innerHTML = '<label class="note-sm" style="display:block;margin-bottom:4px;color:var(--hi)">' +
           esc(label) + ' <span style="color:var(--chrome-dim);font-weight:400">' + (hint || "one per line") + '</span></label>';
         var ta = document.createElement("textarea");
         ta.rows = 4;
-        ta.style.cssText = "width:100%;background:#2b333d;border:1px solid var(--rule);border-radius:4px;" +
+        ta.style.cssText = "width:100%;background:var(--desk-3);border:1px solid var(--rule);border-radius:4px;" +
           "padding:7px;resize:vertical;font-family:system-ui,sans-serif;line-height:1.45";
         ta.value = (get() || []).join("\n");
         ta.oninput = function(){
@@ -353,10 +330,10 @@ WB.register({
             cb.onchange = function(){ cap[sec.key][f.k] = cb.checked; draw(); };
             var lb = document.createElement("label");
             lb.textContent = f.label;
-            lb.style.color = "#fff";
+            lb.style.color = "var(--hi)";
             wrap.appendChild(cb); wrap.appendChild(lb);
           } else {
-            wrap.innerHTML = '<label class="note-sm" style="display:block;margin-bottom:4px;color:#fff">' + esc(f.label) + "</label>";
+            wrap.innerHTML = '<label class="note-sm" style="display:block;margin-bottom:4px;color:var(--hi)">' + esc(f.label) + "</label>";
             var inp = document.createElement("input");
             inp.type = "text";
             inp.style.width = "100%";
@@ -412,9 +389,9 @@ WB.register({
           var row = document.createElement("div");
           row.className = "castrow";
           row.style.padding = "5px 0";
-          row.innerHTML = '<span><b style="color:#dfe6ee">' + esc(c.name) + "</b>" +
+          row.innerHTML = '<span><b style="color:var(--chrome-text)">' + esc(c.name) + "</b>" +
             '<span class="note-sm"> ' + c.speeches + " speeches</span></span>" +
-            '<span style="color:' + (rec ? "#c8892f" : "var(--chrome-dim)") + '">' + conf + "</span>";
+            '<span style="color:' + (rec ? "var(--mark)" : "var(--chrome-dim)") + '">' + conf + "</span>";
           row.onclick = function(){ rec ? open(rec) : open(seed(c.name)); };
           host.querySelector("#cc-cast").appendChild(row);
         });
@@ -429,14 +406,14 @@ WB.register({
       host.innerHTML =
         '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
           '<button id="cc-back" style="padding:2px 7px">\u2190</button>' +
-          '<b style="color:#fff;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
+          '<b style="color:var(--hi);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
             esc(cap.character_name || "(unnamed)") + "</b></div>" +
         '<p class="note-hint" style="padding:4px 0 2px">' +
           (baseline ? (s.changes.length ? "Changed since you locked it: " + esc(s.changes.map(function(k){
               var sec = SECTIONS.filter(function(x){ return x.key === k; })[0]; return sec ? sec.label : k; }).join(", ")) + "."
             : "Nothing has changed since you locked it.") : "Not locked. Lock it once the character is set, and changes show here.") + "</p>" +
         (cap.constraints && cap.constraints.consent_required && cap.constraints.synthetic_generation_allowed
-          ? '<p class="note-hint" style="padding:2px 0;color:#c8892f">Consent is required, and synthetic generation is allowed. Check that is what you mean.</p>' : "") +
+          ? '<p class="note-hint" style="padding:2px 0;color:var(--mark-text)">Consent is required, and synthetic generation is allowed. Check that is what you mean.</p>' : "") +
         '<p class="note-hint" style="padding:8px 0 3px">Sections</p><div id="cc-secs"></div>' +
         (move ? movementBlock(move) : "") +
         '<div style="display:grid;gap:6px;margin-top:10px">' +
@@ -454,7 +431,7 @@ WB.register({
         row.className = "castrow";
         row.style.cssText = "padding:4px 0;gap:8px";
         row.innerHTML = '<span style="flex:1">' + esc(sec.label) + "</span>" +
-          '<span style="color:' + (fl.have ? "#dfe6ee" : "var(--chrome-dim)") + '">' + esc(fl.text) + "</span>";
+          '<span style="color:' + (fl.have ? "var(--chrome-text)" : "var(--chrome-dim)") + '">' + esc(fl.text) + "</span>";
         row.onclick = function(){ editSection(sec); };
         secs.appendChild(row);
       });
@@ -497,7 +474,7 @@ WB.register({
       return '<div><span>' + k + '</span><b>' + v + "</b></div>";
     }
     function movementBlock(m){
-      var band = m.vocabMove <= 0.25 ? "#4f9d69" : m.vocabMove <= 0.5 ? "#c8892f" : "#c25a4e";
+      var band = m.vocabMove <= 0.25 ? "#4f9d69" : m.vocabMove <= 0.5 ? "var(--mark)" : "#c25a4e";
       var bits = [];
       if(m.speeches) bits.push((m.speeches > 0 ? "+" : "") + m.speeches + " speeches");
       if(m.words) bits.push((m.words > 0 ? "+" : "") + m.words + " words");
@@ -513,11 +490,7 @@ WB.register({
     function exportCapsule(){
       var s = scoreAll(cap, baseline);
       var out = JSON.parse(JSON.stringify(cap));
-      out._score = {
-        readiness_score:+s.readiness.toFixed(4), continuity_score:+s.cont.toFixed(4),
-        drift_score:+s.drift.toFixed(4), risk_score:+s.risk.toFixed(4),
-        capsule_confidence:+s.conf.toFixed(4), severity: baseline ? s.sev : "Stable"
-      };
+      /* no scores in the file (Col, Oct 24): your character, as you wrote it */
       var b = new Blob([JSON.stringify(out, null, 2)], {type:"application/json"});
       var a = document.createElement("a");
       a.href = URL.createObjectURL(b);

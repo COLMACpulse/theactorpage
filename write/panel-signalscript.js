@@ -1,5 +1,5 @@
 /*
-  SignalScript — a panel for THEACTORPAGES.
+  SignalScript, the cleaning behind Voice's PASTE WHAT YOU SAID.
 
   Turns raw speech into readable writing without flattening the voice.
   Ported from SignalScript v2. The doctrine is unchanged:
@@ -7,7 +7,6 @@
     RAW is exact and immutable. It goes to the ledger, never over the script.
     CLEAN removes filler and stabilises mechanics. It never rewrites,
       reorders or paraphrases.
-    CALIBRATED adds severity flags and alternatives. Nothing is auto-softened.
     The user decides what lands.
 
   No network. No AI. Everything happens on this machine.
@@ -226,100 +225,10 @@ var LEVELS = {
   heavy:    {fillers:1, aggressive:1, repeats:1, structure:1, speakers:1, brackets:1, mechanics:1, merge:1, severity:1}
 };
 
-/* ---------- the panel ---------- */
-
-WB.register({
-  id: "signalscript",
-  name: "SignalScript",
-  version: "2.0",
-  mount: function(host, api){
-    var result = null;
-
-    host.innerHTML =
-      '<div style="display:grid;gap:8px">' +
-        '<p class="note-hint" style="padding:0">Paste dictation, an interview or a transcript. ' +
-        'Your exact words are kept in the change trail; only what you choose reaches the script. ' +
-        'Talking a scene? Use Voice instead: it writes as you speak.</p>' +
-        '<textarea id="ss-in" rows="7" spellcheck="true" placeholder="Paste raw speech here\u2026" ' +
-          'style="width:100%;background:#2b333d;border:1px solid var(--rule);border-radius:4px;' +
-          'padding:8px;resize:vertical;font-family:system-ui,sans-serif;line-height:1.5"></textarea>' +
-        '<div style="display:flex;gap:6px;align-items:center">' +
-          '<select id="ss-level" style="flex:1"><option value="light">Light</option>' +
-          '<option value="standard" selected>Standard</option><option value="heavy">Heavy</option></select>' +
-          '<button id="ss-file">File\u2026</button>' +
-        '</div>' +
-        '<button id="ss-go" style="background:var(--mark);border-color:var(--mark);color:#1b1206;font-weight:600">' +
-          'Clean the signal</button>' +
-        '<div id="ss-out"></div>' +
-      '</div>';
-
-    var input = host.querySelector("#ss-in");
-
-    host.querySelector("#ss-file").onclick = function(){
-      var inp = document.createElement("input");
-      inp.type = "file"; inp.accept = ".txt,.srt,.vtt,.md";
-      inp.onchange = function(){
-        var f = inp.files[0]; if(!f) return;
-        f.text().then(function(t){ input.value = t; api.toast("Loaded " + f.name); });
-      };
-      inp.click();
-    };
-
-    host.querySelector("#ss-go").onclick = function(){
-      var raw = input.value;
-      if(!raw.trim()){ api.toast("Nothing to clean yet."); return; }
-      result = process(raw, LEVELS[host.querySelector("#ss-level").value]);
-      draw();
-    };
-
-    function pct(n){ return Math.round(n * 100) + "%"; }
-
-    function draw(){
-      var m = result.metrics, out = host.querySelector("#ss-out");
-      var flags = result.severity_flags.slice(0, 6);
-      out.innerHTML =
-        '<div class="statgrid" style="padding:0;margin:6px 0 8px">' +
-          row("Words in", m.raw_words) + row("Words out", m.clean_words) +
-          row("Fillers cut", m.fillers_removed) +
-          row("Changes made", m.edits) +
-        '</div>' +
-        '<div style="background:#2b333d;border:1px solid var(--rule);border-radius:4px;padding:8px;' +
-          'max-height:190px;overflow:auto;font-family:system-ui,sans-serif;line-height:1.5;white-space:pre-wrap">' +
-          esc(result.clean) + '</div>' +
-        (flags.length
-          ? '<p class="note-hint" style="padding:6px 0 2px">' + result.severity_flags.length +
-            ' severity term' + (result.severity_flags.length === 1 ? "" : "s") +
-            ' flagged, not changed:</p><div class="note-hint" style="padding:0">' +
-            flags.map(function(f){ return "\u2022 <b>" + esc(f.term) + "</b>: " +
-              esc(f.suggestions.slice(0,2).join("; ")); }).join("<br>") + '</div>'
-          : '<p class="note-hint" style="padding:6px 0 0">No severity terms flagged.</p>') +
-        '<div style="display:grid;gap:6px;margin-top:9px">' +
-          '<button id="ss-insert">Insert into the script</button>' +
-          '<button id="ss-replace">Replace what is selected</button>' +
-          '<button id="ss-copy">Copy the clean text</button>' +
-        '</div>';
-
-      out.querySelector("#ss-insert").onclick = function(){
-        api.applyResult(result, {tool:"SignalScript", scope:"block", insert:true});
-        api.toast("Placed " + result.metrics.clean_words + " words. Your raw take is in the trail.");
-      };
-      out.querySelector("#ss-replace").onclick = function(){
-        if(!api.selection()){ api.toast("Select the elements to replace first."); return; }
-        api.applyResult(result, {tool:"SignalScript", scope:"selection", as:"blocks"});
-        api.toast("Replaced. Undo puts it back.");
-      };
-      out.querySelector("#ss-copy").onclick = function(){
-        navigator.clipboard.writeText(result.clean)
-          .then(function(){ api.toast("Copied."); })
-          .catch(function(){ api.toast("Copy failed."); });
-      };
-    }
-
-    function row(label, value){
-      return '<div><span>' + label + '</span><b>' + value + '</b></div>';
-    }
-  }
-});
+/* ---------- no panel of its own: Voice uses it (PASTE WHAT YOU SAID) ---------- */
+/* Col, Oct 24: SignalScript folds into Voice. Only the cleaning is used there: fillers out, repeats
+   and mechanics steadied, never reworded. The severity suggestions (other words for yours) are not shown. */
+if(typeof window !== "undefined") window.SignalClean = {process:process, LEVELS:LEVELS};
 
 // Exposed so the engine can be tested on its own, away from the panel.
 if(typeof module !== "undefined" && module.exports)
