@@ -74,7 +74,7 @@ await p.click('#q_del'); await p.waitForTimeout(300);
 want('delete a plug', await p.evaluate(()=>Viz.plugs().length)===1);
 await p.click('a[data-go=""]'); await p.waitForTimeout(300);
 await p.goto('http://localhost:8811/picture/'); await p.waitForTimeout(400);
-want('the wall: GOT IT, with BOOKED on it', /GOT IT/.test(await p.innerText('main'))&&/BOOKED/.test(await p.innerText('.wall:last-of-type')));
+want('the wall: GOT IT, with BOOKED on it', /GOT IT/.test(await p.innerText('main'))&&/BOOKED/.test(await p.innerText('.wallbox:last-of-type')));
 /* week */
 await p.goto('http://localhost:8811/'); await p.waitForTimeout(1200);
 want('home, in YOU: your wall, small, booked marked', (await p.$$eval('#viz .gs-wall a',x=>x.length))===3&&/BOOKED/.test(await p.innerText('#viz')));

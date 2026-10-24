@@ -17,17 +17,17 @@
   /* ---------- the wall ---------- */
   function poster(w, url) {
     const at = G.at(w), got = G.got(w), news = G.newsFor(w.id).length, req = isWork(w) && requestsFor(w).length;
-    return '<div class="poster">' + (url ? '<img src="' + url + '" alt="">' : '<span class="type">' + esc(w.title) + '</span>') +
+    return '<div class="poster" data-kind="' + esc(w.kind) + '">' + (url ? '<img src="' + url + '" alt="">' : '<span class="type">' + esc(w.title) + (w.kind === 'other' ? '' : '<small>' + esc(w.kind.toUpperCase()) + '</small>') + '</span>') +
       (got ? '<span class="stamp">' + esc(at.label.toUpperCase()) + '</span>' : '') +
       (req && !got ? '<span class="flag">IN YOUR REQUESTS</span>' : news && !got ? '<span class="flag">IN THE NEWS</span>' : '') + '</div>';
   }
   async function tile(w) {
     const at = G.at(w);
-    return '<button class="wish" type="button" data-w="' + w.id + '">' + poster(w, await picURL(w)) + '<b>' + esc(w.title) + '</b><i>' + esc(G.kindName(w.kind).toUpperCase()) + ' · ' + esc(at.label.toUpperCase()) + (at.date ? ' ' + esc(day(at.date)) : '') + '</i></button>';
+    return '<button class="wish' + (G.got(w) ? ' got' : '') + '" type="button" data-w="' + w.id + '">' + poster(w, await picURL(w)) + '<b>' + esc(w.title) + '</b><i>' + esc(G.kindName(w.kind).toUpperCase()) + ' · ' + esc(at.label.toUpperCase()) + (at.date ? ' ' + esc(day(at.date)) : '') + '</i></button>';
   }
   async function wall() {
     const want = G.wanted(), got = G.gotten();
-    let h = tabs('wall') + '<div class="row"><button class="btn" type="button" id="addOpen">ADD WHAT YOU WANT</button>' +
+    let h = tabs('wall') + '<div class="addbar"><button class="btn" type="button" id="addOpen">ADD WHAT YOU WANT</button>' +
       (G.all().some(w => w.kind !== 'milestone' && w.kind !== 'role' && w.kind !== 'other') ? '<button class="btn ghost" type="button" id="news">CHECK THE NEWS</button>' : '') +
       (G.all().length ? '<button class="btn ghost" type="button" id="lockGo">MAKE IT MY LOCK SCREEN</button>' : '') + '</div><p class="msg" id="msg" role="status">' + esc(MSG) + '</p>';
     h += '<div class="card hide" id="addBox"><p class="kick">ADD WHAT YOU WANT</p><label class="lab" for="a_t">WHAT IS IT</label><input class="field" id="a_t" placeholder="The show, the film, the person, the role, the milestone" autocomplete="off">' +
@@ -35,8 +35,8 @@
       '<div class="row" style="margin-top:10px"><label class="btn quiet">ADD A PICTURE<input type="file" id="a_p" accept="image/*"></label><span class="mut small" id="a_pn">A screenshot of the poster, a photo, anything that makes you see it.</span></div>' +
       '<div class="row" style="margin-top:12px"><button class="btn" type="button" id="a_go">PUT IT ON THE WALL</button><button class="btn quiet" type="button" id="a_x">CANCEL</button></div></div>';
     if (!want.length && !got.length) h += '<div class="card"><p class="kick">YOUR WALL IS EMPTY</p><p class="dim">The show you want to be on. The director you want to work with. Your union card. Put it up here, with a picture, and keep it where you see it every day. When it happens, it stays up, with the date.</p></div>';
-    if (want.length) { h += '<h2>WANT IT</h2><div class="wall">'; for (const w of want) h += await tile(w); h += '</div>'; }
-    if (got.length) { h += '<h2>GOT IT</h2><div class="wall">'; for (const w of got) h += await tile(w); h += '</div>'; }
+    if (want.length) { h += '<h2>WANT IT <i>' + want.length + '</i></h2><div class="wallbox"><div class="wall">'; for (const w of want) h += await tile(w); h += '</div></div>'; }
+    if (got.length) { h += '<h2>GOT IT <i>' + got.length + '</i></h2><div class="wallbox"><div class="wall">'; for (const w of got) h += await tile(w); h += '</div></div>'; }
     V.innerHTML = h; wireTabs();
     V.querySelectorAll('[data-w]').forEach(b => b.onclick = () => go('w=' + b.dataset.w));
     let file = null;
@@ -69,16 +69,18 @@
     const got = G.got(w);
     let castings = []; try { castings = window.Contacts ? Contacts.mine().filter(p => p.role === 'casting' && !p.dnc) : []; } catch (e) { }
     const cast = w.cid && window.Contacts ? Contacts.get(w.cid) : null;
-    let h = '<p><a href="./" id="back">← BACK TO THE WALL</a></p><p class="msg" id="msg" role="status">' + esc(MSG) + '</p>';
+    let h = '<div class="backbar"><a class="btn ghost" href="./" id="back">‹ THE WALL</a></div><p class="msg" id="msg" role="status">' + esc(MSG) + '</p>';
     h += '<div class="one"><div>' + poster(w, url) + '<div class="row" style="margin-top:10px"><label class="btn quiet">' + (url ? 'CHANGE THE PICTURE' : 'ADD A PICTURE') + '<input type="file" id="o_p" accept="image/*"></label>' + (url ? '<button class="btn quiet" type="button" id="o_pd">TAKE IT OFF</button>' : '') + '</div></div><div>';
+    const at = G.at(w);
+    h += '<p class="kicker">' + esc(G.kindName(w.kind)) + '</p><p class="wtitle">' + esc(w.title) + '</p><p class="dim small" style="margin:0">' + esc(at.label) + (at.date ? ' · ' + esc(day(at.date)) : '') + (w.note ? '</p><p style="margin:10px 0 0">' + esc(w.note) : '') + '</p>';
+    h += '<h2>THE TRAIL</h2><ul class="trail">' + steps.map(s => { const d = (w.trail || {})[s[0]] || ''; return '<li' + (d ? ' class="on"' : '') + '><b>' + esc(s[1]) + '</b><input type="date" data-step="' + s[0] + '" value="' + esc(d) + '" aria-label="' + esc(s[1]) + ' date">' +
+      (s[0] === 'wanted' ? '' : d ? '<button class="btn quiet" type="button" data-clear="' + s[0] + '">TAKE IT OFF</button>' : '<button class="btn ghost" type="button" data-today="' + s[0] + '">' + (s === steps[steps.length - 1] ? 'IT HAPPENED, TODAY' : 'TODAY') + '</button>') + '</li>'; }).join('') + '</ul>';
+    h += '<details class="fold" id="editfold"><summary>CHANGE IT · THE NAME, THE KIND, WHY</summary>';
     h += '<label class="lab" for="o_t">WHAT IS IT</label><input class="field" id="o_t" value="' + esc(w.title) + '">' +
       '<label class="lab" for="o_k">KIND</label><select class="field" id="o_k">' + G.KINDS.map(k => '<option value="' + k[0] + '"' + (k[0] === w.kind ? ' selected' : '') + '>' + esc(k[1]) + '</option>').join('') + '</select>' +
       (isWork(w) || w.kind === 'person' ? '<label class="lab" for="o_a">OTHER NAMES FOR IT</label><input class="field" id="o_a" value="' + esc((w.aka || []).join(', ')) + '" placeholder="A short name, a new season title">' : '') +
       '<label class="lab" for="o_n">WHY, IN YOUR WORDS</label><textarea class="field" id="o_n" rows="2">' + esc(w.note) + '</textarea>' +
-      '<div class="row" style="margin-top:10px"><button class="btn" type="button" id="o_save">SAVE</button></div></div></div>';
-    /* the trail */
-    h += '<h2>THE TRAIL</h2><ul class="trail">' + steps.map(s => { const d = (w.trail || {})[s[0]] || ''; return '<li><b>' + esc(s[1]) + '</b><input type="date" data-step="' + s[0] + '" value="' + esc(d) + '" aria-label="' + esc(s[1]) + ' date">' +
-      (s[0] === 'wanted' ? '' : d ? '<button class="btn quiet" type="button" data-clear="' + s[0] + '">TAKE IT OFF</button>' : '<button class="btn ghost" type="button" data-today="' + s[0] + '">' + (s === steps[steps.length - 1] ? 'IT HAPPENED, TODAY' : 'TODAY') + '</button>') + '</li>'; }).join('') + '</ul>';
+      '<div class="row" style="margin-top:10px"><button class="btn" type="button" id="o_save">SAVE</button></div></details></div></div>';
     /* requests, casting, news, reps */
     if (isWork(w)) {
       h += '<h2>IN YOUR REQUESTS</h2>' + (reqs.length ? '<ul class="news">' + reqs.map(r => '<li><a href="../actor-os/">' + esc([r.data.title, r.data.role].filter(Boolean).join(', ')) + '</a>' + (r.data.due ? ' <span class="mut">· due ' + esc(day(String(r.data.due).slice(0, 10))) + '</span>' : '') + '</li>').join('') + '</ul>' : '<p class="mut small">When an audition request for it comes in, it shows here and in THIS WEEK.</p>');
@@ -141,7 +143,7 @@
     const q = G.plugGet(id); if (!q) return go('plugs'); KIND_Q = q.kind;
     const f = G.PLUGFIELDS[q.kind] || G.PLUGFIELDS.news, url = await plugBlobURL(q), wish = q.wid ? G.get(q.wid) : null;
     let heads = []; try { heads = window.You ? You.headshots() : []; } catch (e) { }
-    let h = tabs('plug') + '<p><a href="?plugs" data-go="plugs">← YOUR PLUGS</a></p><p class="msg" id="msg" role="status">' + esc(MSG) + '</p>';
+    let h = tabs('plug') + '<div class="backbar"><a class="btn ghost" href="?plugs" data-go="plugs">‹ YOUR PLUGS</a></div><p class="msg" id="msg" role="status">' + esc(MSG) + '</p>';
     h += '<div class="card"><p class="kick">SHAMELESS PLUG' + (wish ? ' · FROM YOUR WALL: ' + esc(wish.title.toUpperCase()) : '') + '</p><div class="chips" id="q_kind">' + G.PLUGKINDS.map(k => '<button type="button" class="chip' + (k[0] === q.kind ? ' on' : '') + '" data-k="' + k[0] + '">' + esc(k[1].toUpperCase()) + '</button>').join('') + '</div>' +
       '<div class="grid2">' + f.map(k => FIELD[k](q)).join('') + '</div>' +
       '<label class="lab">THE PICTURE</label><div class="row" style="align-items:flex-start">' + (url ? '<img src="' + url + '" alt="" style="width:96px;border-radius:8px;border:1px solid var(--line)">' : '') +
@@ -229,7 +231,7 @@
     const hasPic = !!(await G.plugBlob(Object.assign({}, q, { nopic: false }))), socials = PC.socials(you), base = PC.pageBase(you, onlinePage());
     const save = patch => { const x = G.plugGet(id); G.plugSet(id, { card: Object.assign({}, x.card || {}, patch) }); };
     if (!c.look) save({ look: d.look });
-    let h = '<p><a href="?plug=' + esc(id) + '" id="c_back">← BACK TO THE PLUG</a></p><p class="msg" id="msg" role="status">' + esc(MSG) + '</p>';
+    let h = '<div class="backbar"><a class="btn ghost" href="?plug=' + esc(id) + '" id="c_back">‹ THE PLUG</a></div><p class="msg" id="msg" role="status">' + esc(MSG) + '</p>';
     if (!words) { V.innerHTML = h + '<div class="card"><p class="kick">THE CARD</p><p class="dim">Write the plug first. The card carries your words, so it starts there.</p></div>'; $('c_back').onclick = e => { e.preventDefault(); go('plug=' + id); }; return; }
     const ck = (key, on, label, extra) => '<label class="row ck"><input type="checkbox" data-' + key + (on ? ' checked' : '') + (extra || '') + '> <span>' + label + '</span></label>';
     h += '<div class="card"><p class="kick">THE CARD</p><p class="dim small">Pick a look. The words are yours: change them on the plug.</p>' +
@@ -343,7 +345,7 @@
   /* ---------- the lock screen: your wall, phone-sized, made here ---------- */
   async function lock() {
     const wl = G.wall();
-    V.innerHTML = '<p><a href="./" id="back">← BACK TO THE WALL</a></p><h2>MAKE IT MY LOCK SCREEN</h2><div class="card lock"><p class="dim">Your wall, the size of your phone screen, with room at the top for the clock. Made on this phone; nothing is sent.</p>' +
+    V.innerHTML = '<div class="backbar"><a class="btn ghost" href="./" id="back">‹ THE WALL</a></div><h2>MAKE IT MY LOCK SCREEN</h2><div class="card lock"><p class="dim">Your wall, the size of your phone screen, with room at the top for the clock. Made on this phone; nothing is sent.</p>' +
       '<label class="lab" for="l_h">ACROSS THE TOP (OR NOTHING)</label><input class="field" id="l_h" value="' + esc(wl.head) + '">' +
       '<label class="row" style="margin-top:10px"><input type="checkbox" id="l_g"' + (wl.got !== false ? ' checked' : '') + '> <span>Show what I\'ve already got, too</span></label>' +
       '<div class="row" style="margin-top:12px"><button class="btn" type="button" id="l_go">MAKE IT</button></div><img id="l_img" alt="Your lock screen" class="hide">' +
@@ -356,10 +358,11 @@
       const u = URL.createObjectURL(blob); $('l_img').src = u; $('l_img').classList.remove('hide'); $('l_save').href = u; $('l_out').classList.remove('hide'); $('l_how').classList.remove('hide'); say(''); };
     if ($('l_share')) $('l_share').onclick = async () => { if (!blob) return; const f = new File([blob], 'picture-it-lock-screen.png', { type: 'image/png' }); try { await navigator.share({ files: [f] }); } catch (e) { } };
   }
+  const KCOL = { show: '#1f3a5c', film: '#5a2a22', person: '#2f3a30', role: '#3d3150', milestone: '#4a3c1c', other: '#33302b' };
   async function drawLock(wl) {
     const W = 1179, H = 2556, c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
     try { await document.fonts.load('600 80px Jost'); } catch (e) { }
-    x.fillStyle = '#0d0f12'; x.fillRect(0, 0, W, H);
+    x.fillStyle = '#121110'; x.fillRect(0, 0, W, H);
     const list = G.wanted().concat(wl.got !== false ? G.gotten() : []);
     const top = 760, pad = 70, gap = 34;
     if (wl.head) { x.fillStyle = '#e0a23c'; x.font = '600 76px Jost, sans-serif'; x.textAlign = 'center'; x.fillText(wl.head.toUpperCase().split('').join(String.fromCharCode(8202)), W / 2, top - 70); }
@@ -368,7 +371,7 @@
     for (let i = 0; i < list.length; i++) {
       const it = list[i], r = Math.floor(i / cols), inRow = Math.min(cols, list.length - r * cols), rx = (W - (inRow * w + (inRow - 1) * gap)) / 2, cx = rx + (i % cols) * (w + gap), cy = top + r * (hgt + gap);
       x.save(); x.beginPath(); if (x.roundRect) x.roundRect(cx, cy, w, hgt, 18); else x.rect(cx, cy, w, hgt); x.clip();
-      x.fillStyle = '#1b1f25'; x.fillRect(cx, cy, w, hgt);
+      x.fillStyle = KCOL[it.kind] || '#2b2722'; x.fillRect(cx, cy, w, hgt);
       let drew = false; const b = it.pic ? await G.picBlob(it.pic) : null;
       if (b) { try { const bm = await createImageBitmap(b); const k = Math.max(w / bm.width, hgt / bm.height), dw = bm.width * k, dh = bm.height * k; x.drawImage(bm, cx + (w - dw) / 2, cy + (hgt - dh) / 2, dw, dh); drew = true; } catch (e) { } }
       if (!drew) { x.fillStyle = '#ece7dc'; x.textAlign = 'center'; const fs = Math.round(w / 8); x.font = '600 ' + fs + 'px Jost, sans-serif'; wrap(x, it.title.toUpperCase(), cx + w / 2, cy + hgt / 2, w - 40, fs * 1.2); }
