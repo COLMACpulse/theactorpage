@@ -183,6 +183,19 @@ table.rep td.num{text-align:right;font-variant-numeric:tabular-nums;color:var(--
  #railclose{display:none} body.railopen #railclose{display:block;align-self:flex-end;margin:6px 8px 0;font:inherit;font-size:12px;background:none;border:1px solid var(--rule);color:var(--chrome-text);border-radius:6px;padding:4px 10px;cursor:pointer}}
 @media (min-width:901px){#railclose{display:none}}
 
+/* ---- SIDES ---- */
+.sdgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.sdk{font-size:11px;letter-spacing:.14em;color:var(--chrome-dim);margin:0 0 6px;text-transform:uppercase}
+.sdlist{display:flex;flex-direction:column;gap:4px;max-height:40vh;overflow:auto;margin-bottom:8px}
+.sdlist button{display:flex;gap:8px;align-items:center;text-align:left;min-height:42px;border-radius:8px;padding:0 10px;font-size:13px}
+.sdlist button.in{border-color:var(--mark);color:var(--mark-text)}
+.sdlist .sdo{display:flex;gap:6px;align-items:center;min-height:42px;border:1px solid var(--rule);border-radius:8px;padding:0 6px 0 10px;font-size:13px}
+.sdlist .sdo b{min-width:2.4em;color:var(--mark-text)}.sdlist .sdo span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sdlist .sdo button{min-height:34px;min-width:34px;padding:0;justify-content:center}
+.sdrow{display:flex;gap:8px;align-items:center;min-height:40px;font-size:13.5px}.sdrow input{width:18px;height:18px;accent-color:var(--mark)}
+.sdcall{display:grid;gap:8px;font-size:13px}.sdcall label{display:grid;gap:3px}.sdcall input,.sdcall textarea{width:100%;background:var(--desk-3);border:1px solid var(--rule);border-radius:8px;padding:8px;color:var(--hi);font:inherit}
+.sdcall label:nth-child(2){display:flex;align-items:center;gap:6px}.sdcall label:nth-child(2) input{width:4.5em}
+.sdcast{display:grid;grid-template-columns:1fr 7.5em;gap:6px;align-items:center}
 /* ---- MARK UP ---- */
 #mkbar{padding:8px 14px;border-bottom:1px solid var(--rule);background:var(--desk-2)}
 #mkbar[hidden]{display:none}
@@ -283,6 +296,7 @@ dialog .primary:hover{background:#eab04e;border-color:#eab04e}
     <button id="btnOpen" role="menuitem">Open a file <small>PDF, Fountain, FDX</small></button>
     <button id="btnSave" role="menuitem">Save a copy</button>
     <button id="btnExport" role="menuitem">Export <small>PDF and more</small></button>
+    <button id="btnSides" role="menuitem">Sides for the shoot day <small>half-letter</small></button>
     <button id="btnTitle" role="menuitem">Title page</button>
     <button id="btnPage" role="menuitem">Page setup</button>
   </div></details>
@@ -382,6 +396,34 @@ dialog .primary:hover{background:#eab04e;border-color:#eab04e}
   <footer><button data-close>Close</button></footer>
 </dialog>
 
+<dialog id="dlgSides" class="wide"><h2>Sides for the shoot day</h2>
+  <div class="inner">
+    <p class="note-sm">Half-letter pages (5.5 × 8.5) to fold into a back pocket: the day's scenes in shooting order, each one's script pages with everything else on them crossed out, and the call sheet on the front if you want it. Staple once, top left.</p>
+    <div class="sdgrid">
+      <div>
+        <p class="sdk">THE DAY'S SCENES · TAP TO ADD, IN THE ORDER YOU SHOOT THEM</p>
+        <div id="sdAll" class="sdlist"></div>
+      </div>
+      <div>
+        <p class="sdk">SHOOTING ORDER</p>
+        <div id="sdOrder" class="sdlist"></div>
+        <label class="sdrow"><input type="checkbox" id="sdCall" checked> A call sheet on the front</label>
+        <div id="sdCallBox" class="sdcall">
+          <label>Date <input type="date" id="sdDate"></label>
+          <label>Day <input id="sdDay" inputmode="numeric" placeholder="3" style="width:4em"> of <input id="sdOf" inputmode="numeric" placeholder="12" style="width:4em"></label>
+          <label>Crew call <input type="time" id="sdCallT"></label>
+          <label>Location <textarea id="sdLoc" rows="2" placeholder="Where, and where to park"></textarea></label>
+          <div id="sdCast"></div>
+          <label>Notes <textarea id="sdNotes" rows="2" placeholder="Anything else for the day"></textarea></label>
+        </div>
+        <p class="sdk" style="margin-top:12px">PRINT ON</p>
+        <label class="sdrow"><input type="radio" name="sdPaper" value="half" checked> Half-letter paper (5.5 × 8.5)</label>
+        <label class="sdrow"><input type="radio" name="sdPaper" value="two"> Two to a letter page, to cut in half</label>
+      </div>
+    </div>
+  </div>
+  <footer><button data-close>Close</button><button class="primary" id="sdGo">MAKE THE SIDES</button></footer>
+</dialog>
 <dialog id="dlgRevise"><h2>Revise this line</h2>
   <div class="inner">
     <p class="note-sm" id="rvWhat"></p>
@@ -1386,7 +1428,7 @@ function buildPdf(opt){
   if(MARKS.some(m => m.tool === "highlight")) gsId = add(enc("<< /Type /ExtGState /CA 0.4 /ca 0.4 >>"));
 
   const RM = G.W - page.right * 72, LM = page.left * 72;
-  pages.forEach((rows, pi) => {
+  const pageBody = (rows, pi, skip) => {
     const num = pi + 1;
     let s = [];
     if(num > 1 && page.numberPos !== "none"){
@@ -1406,6 +1448,7 @@ function buildPdf(opt){
         else if(r.type === "Transition") x = RM - lineText(r.runs).length * G.CW;
         else x = G.left[r.type] ?? G.left["Action"];
       }
+      if(skip && skip(r)) continue;
       s = s.concat(drawRuns(x, G.H - G.TOP - r.line * G.LH - G.LH, r.runs, r.type === "Scene Heading"));
     }
     if(MARKS.length){
@@ -1414,16 +1457,77 @@ function buildPdf(opt){
         ops.split("\u0000").forEach((part, k) => { if(k === 0){ s = s.concat(enc(part)); return; }
           const [txt, rest] = part.split("\u0001"); s = s.concat(pdfBytes(txt), enc(") Tj ET "), enc(rest)); }); }
     }
-    sheets.push(s);
-  });
+    return s;
+  };
+  const boxes = sheets.map(() => [G.W, G.H]);
+  if(!opt.sides){ pages.forEach((rows, pi) => { sheets.push(pageBody(rows, pi)); boxes.push([G.W, G.H]); }); }
+  else {
+    /* SIDES for the shoot day: half-letter pages, the day's scenes in shooting order, the call sheet first.
+       Each scene's script pages, shrunk to fit; whatever else is on those pages is crossed out. */
+    sheets.length = 0; boxes.length = 0;
+    const SD = opt.sides, HW = 396, HH = 612, k = Math.min(HW / G.W, (HH - 40) / G.H), ox = (HW - G.W * k) / 2, oy = 8;
+    const sceneOf = new Map(); let curS = null;
+    const SC = scenesOf(doc.blocks, {pages, pageOf:layout(doc.blocks).pageOf});
+    doc.blocks.forEach(b => { if(b.type === "Scene Heading") curS = b.id; sceneOf.set(b.id, curS); });
+    function drawSmall(t, x, y, size, face){ return enc(`BT /${face || "F1"} ${size} Tf 1 0 0 1 ${x.toFixed(2)} ${y.toFixed(2)} Tm (`).concat(pdfBytes(t), enc(") Tj ET\n")); }
+    const halves = [];
+    if(SD.callsheet){ halves.push(callSheet()); }
+    SD.order.forEach(id => {
+      const sc = SC.find(x => x.block.id === id); if(!sc) return;
+      const onPages = []; pages.forEach((rows, pi) => { if(rows.some(r => r.id && sceneOf.get(r.id) === id)) onPages.push(pi); });
+      onPages.forEach((pi, j) => {
+        const rows = pages[pi];
+        let o = enc(`q ${k.toFixed(4)} 0 0 ${k.toFixed(4)} ${ox.toFixed(2)} ${oy.toFixed(2)} cm\n`);
+        o = o.concat(pageBody(rows, pi));
+        /* cross out what isn't this scene: a box and an X over each run of other lines */
+        const lines = rows.filter(r => r.type !== "blank");
+        let run = null; const runs2 = [];
+        lines.forEach(r => { const other = !r.id || sceneOf.get(r.id) !== id;
+          if(other){ if(run && r.line <= run.to + 2) run.to = r.line; else { if(run) runs2.push(run); run = {from:r.line, to:r.line}; } } });
+        if(run) runs2.push(run);
+        runs2.forEach(ru => { const x1 = LM - 12, x2 = RM + 12, y1 = G.H - G.TOP - ru.from * G.LH + 2, y2 = G.H - G.TOP - (ru.to + 1) * G.LH - 2;
+          o = o.concat(enc(`q 0.45 0.42 0.38 RG 1.4 w ${x1} ${y2.toFixed(2)} ${x2 - x1} ${(y1 - y2).toFixed(2)} re S ${x1} ${y1.toFixed(2)} m ${x2} ${y2.toFixed(2)} l S ${x1} ${y2.toFixed(2)} m ${x2} ${y1.toFixed(2)} l S Q\n`)); });
+        o = o.concat(enc("Q\n"));
+        const label = "SIDES · " + (doc.title || "Untitled").toUpperCase() + (SD.day ? " · DAY " + SD.day : "") + (SD.date ? " · " + SD.date : "");
+        o = o.concat(drawSmall(label, 18, HH - 22, 8, "F2"), drawSmall("SC " + sc.n + (onPages.length > 1 ? "  (" + (j + 1) + " of " + onPages.length + ")" : ""), HW - 18 - 7 * 0.6 * ("SC " + sc.n + (onPages.length > 1 ? "  (" + (j + 1) + " of " + onPages.length + ")" : "")).length, HH - 22, 7, "F2"));
+        halves.push(o);
+      });
+    });
+    function callSheet(){
+      let o = [], y = HH - 40;
+      const line = (t, size, face, x) => { o = o.concat(drawSmall(t, x || 24, y, size, face)); y -= size * 1.55; };
+      line("CALL SHEET", 9, "F2"); y -= 4;
+      line((doc.title || "Untitled").toUpperCase(), 14, "F2"); y -= 2;
+      line([SD.day ? "DAY " + SD.day + (SD.of ? " OF " + SD.of : "") : "", SD.date || ""].filter(Boolean).join("   ·   "), 9);
+      if(SD.call) line("CREW CALL  " + SD.call, 11, "F2");
+      if(SD.location) String(SD.location).split("\n").forEach(l => line(l, 9));
+      y -= 6; line("SCENES, IN SHOOTING ORDER", 8, "F2");
+      SD.order.forEach(id => { const sc = SC.find(x => x.block.id === id); if(!sc) return;
+        const lines = pages.reduce((n, rows) => n + rows.filter(r => r.id && sceneOf.get(r.id) === id && r.type !== "blank").length, 0);
+        const eighths = Math.max(1, Math.round(lines / LPP * 8)), pg = (eighths >= 8 ? Math.floor(eighths / 8) + " " : "") + (eighths % 8 ? (eighths % 8) + "/8" : "");
+        const h = String(sc.heading || "").toUpperCase(); line(("SC " + sc.n).padEnd(7) + (h.length > 40 ? h.slice(0, 39) + "." : h).padEnd(41) + pg.trim(), 7.5); });
+      if((SD.cast || []).length){ y -= 6; line("CAST", 8, "F2"); SD.cast.forEach(c => line(String(c.name).padEnd(28) + (c.time || ""), 8.5)); }
+      if(SD.notes){ y -= 6; line("NOTES", 8, "F2"); String(SD.notes).split("\n").forEach(l => { for(let i = 0; i < l.length; i += 58) line(l.slice(i, i + 58), 8); }); }
+      o = o.concat(drawSmall("Staple once, top left.", 24, 22, 7, "F3"));
+      return o;
+    }
+    if(SD.twoUp){
+      for(let i = 0; i < halves.length; i += 2){
+        let o = halves[i].slice ? [].concat(halves[i]) : halves[i];
+        if(halves[i + 1]) o = o.concat(enc(`q 1 0 0 1 ${HW} 0 cm\n`), halves[i + 1], enc("Q\n"));
+        o = o.concat(enc(`q 0.6 0.6 0.6 RG 0.5 w [4 4] 0 d ${HW} 0 m ${HW} ${HH} l S Q\n`));
+        sheets.push(o); boxes.push([HH * 0 + 792, 612]);
+      }
+    } else halves.forEach(h => { sheets.push(h); boxes.push([HW, HH]); });
+  }
 
   const contentIds = sheets.map(s => {
     const body = Uint8Array.from(s);
     return add([...enc(`<< /Length ${body.length} >>\nstream\n`), ...body, ...enc("\nendstream")]);
   });
   const pagesId = objs.length + contentIds.length + 1;
-  const pageIds = contentIds.map(cid => add(enc(
-    `<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${G.W} ${G.H}] /Resources << /Font << ` +
+  const pageIds = contentIds.map((cid, i) => add(enc(
+    `<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${(boxes[i] || [G.W, G.H])[0]} ${(boxes[i] || [G.W, G.H])[1]}] /Resources << /Font << ` +
     `/F1 ${fonts.plain} 0 R /F2 ${fonts.bold} 0 R /F3 ${fonts.ital} 0 R /F4 ${fonts.both} 0 R >>` +
     (markId ? ` /XObject << /Im0 ${markId} 0 R >>` : "") +
     (gsId ? ` /ExtGState << /GS1 ${gsId} 0 R >>` : "") +
@@ -2901,6 +3005,7 @@ function serialise(){
     ideas:doc.ideas, logo:!!doc.logo, ledger:doc.ledger || [], page:{...page},
     ...(doc.practice ? {practice:true} : {}),
     ...(doc.marks && doc.marks.length ? {marks:doc.marks} : {}),
+    ...(doc.sidesDay ? {sidesDay:doc.sidesDay} : {}),
     blocks:doc.blocks.map(b => b.dual ? {id:b.id, type:b.type, text:b.text, dual:true}
                                       : {id:b.id, type:b.type, text:b.text}),
     saved_at:new Date().toISOString()
@@ -2934,6 +3039,7 @@ function loadData(data){
   doc.ideas = data.ideas || ""; doc.logo = !!data.logo;
   doc.practice = isPractice(data);
   doc.marks = Array.isArray(data.marks) ? data.marks : [];
+  doc.sidesDay = data.sidesDay && typeof data.sidesDay === "object" ? data.sidesDay : null;
   if(typeof MK !== 'undefined' && MK) setTimeout(() => MK.set(doc.marks), 0);
   doc.ledger = Array.isArray(data.ledger) ? data.ledger : [];
   if(data.page && typeof data.page === "object"){
@@ -4275,6 +4381,67 @@ $("rvGo").onclick = () => {
 };
 function xMarksRow(){ const r = $("xMarksRow"); if(r) r.hidden = !(doc.marks && doc.marks.length); }
 $("btnMark").onclick = () => markOn(!(MK && MK.isOn()));
+
+/* ============================================================
+   SIDES FOR THE SHOOT DAY: half-letter, shooting order, the call sheet first.
+   What you type for the day keeps with the script.
+   ============================================================ */
+let SDO = [];
+const escA = v => escHtml(v).replace(/"/g, "&quot;");
+function sidesScenes(){ return scenesOf(doc.blocks, layout(doc.blocks)); }
+function sidesCast(order){
+  const set = new Set(); let inS = null;
+  doc.blocks.forEach(b => { if(b.type === "Scene Heading") inS = b.id; if(b.type === "Character" && order.includes(inS)) set.add(cueName(b.text)); });
+  return [...set].filter(Boolean);
+}
+function drawSides(){
+  const SC = sidesScenes(), day = doc.sidesDay || {};
+  $("sdAll").innerHTML = SC.length ? SC.map(sc => `<button type="button" data-sd="${escA(sc.block.id)}" class="${SDO.includes(sc.block.id) ? "in" : ""}"><b>SC ${sc.n}</b> ${escHtml(String(sc.heading || "").toUpperCase())}</button>`).join("")
+    : '<p class="note-sm">No scene headings yet. Sides are cut by scene.</p>';
+  $("sdOrder").innerHTML = SDO.length ? SDO.map((id, i) => { const sc = SC.find(x => x.block.id === id); if(!sc) return "";
+    return `<div class="sdo"><b>${i + 1}.</b><span>SC ${sc.n} ${escHtml(String(sc.heading || "").toUpperCase())}</span><button type="button" data-up="${i}" aria-label="Earlier">↑</button><button type="button" data-down="${i}" aria-label="Later">↓</button><button type="button" data-out="${i}" aria-label="Take it out">×</button></div>`; }).join("")
+    : '<p class="note-sm">Tap the scenes you shoot this day, first one first.</p>';
+  const cast = sidesCast(SDO), times = day.times || {};
+  $("sdCast").innerHTML = cast.length ? '<p class="sdk" style="margin:4px 0">CAST, FROM THESE SCENES</p>' + cast.map(n => `<label class="sdcast"><span>${escHtml(n)}</span><input type="time" data-ct="${escA(n)}" value="${escA(times[n] || "")}" aria-label="${escA(n)} call time"></label>`).join("") : "";
+  $("sdCallBox").hidden = !$("sdCall").checked;
+  document.querySelectorAll("#sdAll [data-sd]").forEach(b => b.onclick = () => { const id = b.dataset.sd; SDO = SDO.includes(id) ? SDO.filter(x => x !== id) : SDO.concat(id); saveDay(); drawSides(); });
+  document.querySelectorAll("#sdOrder [data-up]").forEach(b => b.onclick = () => { const i = +b.dataset.up; if(i > 0){ [SDO[i - 1], SDO[i]] = [SDO[i], SDO[i - 1]]; saveDay(); drawSides(); } });
+  document.querySelectorAll("#sdOrder [data-down]").forEach(b => b.onclick = () => { const i = +b.dataset.down; if(i < SDO.length - 1){ [SDO[i + 1], SDO[i]] = [SDO[i], SDO[i + 1]]; saveDay(); drawSides(); } });
+  document.querySelectorAll("#sdOrder [data-out]").forEach(b => b.onclick = () => { SDO.splice(+b.dataset.out, 1); saveDay(); drawSides(); });
+  document.querySelectorAll("#sdCast [data-ct]").forEach(i => i.onchange = () => saveDay());
+}
+function saveDay(){
+  const times = {}; document.querySelectorAll("#sdCast [data-ct]").forEach(i => { if(i.value) times[i.dataset.ct] = i.value; });
+  doc.sidesDay = {order:SDO.slice(), callsheet:$("sdCall").checked, date:$("sdDate").value, day:$("sdDay").value.trim(), of:$("sdOf").value.trim(),
+    call:$("sdCallT").value, location:$("sdLoc").value.trim(), notes:$("sdNotes").value.trim(), times, paper:(document.querySelector('input[name="sdPaper"]:checked') || {}).value || "half"};
+  markDirty();
+}
+function openSides(){
+  const d = doc.sidesDay || {};
+  SDO = (d.order || []).filter(id => doc.blocks.some(b => b.id === id));
+  $("sdCall").checked = d.callsheet !== false; $("sdDate").value = d.date || ""; $("sdDay").value = d.day || ""; $("sdOf").value = d.of || "";
+  $("sdCallT").value = d.call || ""; $("sdLoc").value = d.location || ""; $("sdNotes").value = d.notes || "";
+  document.querySelectorAll('input[name="sdPaper"]').forEach(r => r.checked = r.value === (d.paper || "half"));
+  drawSides(); $("dlgSides").showModal();
+}
+["sdDate","sdDay","sdOf","sdCallT","sdLoc","sdNotes"].forEach(i => $(i).addEventListener("change", saveDay));
+$("sdCall").onchange = () => { saveDay(); drawSides(); };
+document.querySelectorAll('input[name="sdPaper"]').forEach(r => r.onchange = saveDay);
+$("btnSides").onclick = openSides;
+$("sdGo").onclick = () => {
+  saveDay(); const d = doc.sidesDay;
+  if(!d.order.length){ toast("Pick the scenes you shoot this day first."); return; }
+  const fmtDate = d.date ? new Date(d.date + "T12:00:00").toLocaleDateString(undefined, {weekday:"short", month:"short", day:"numeric", year:"numeric"}) : "";
+  const cast = sidesCast(d.order).map(n => ({name:n, time:(d.times || {})[n] || ""}));
+  const call = d.call ? new Date("2000-01-01T" + d.call).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}) : "";
+  cast.forEach(c => { if(c.time) c.time = new Date("2000-01-01T" + c.time).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}); });
+  syncFromDom();
+  try{
+    const bytes = buildPdf({sides:{order:d.order, callsheet:d.callsheet, date:fmtDate, day:d.day, of:d.of, call, location:d.location, notes:d.notes, cast, twoUp:d.paper === "two"}});
+    download(slugName() + "_sides" + (d.day ? "_day" + d.day : "") + ".pdf", bytes, "application/pdf");
+    $("dlgSides").close(); toast("Sides made: " + d.order.length + " scene" + (d.order.length === 1 ? "" : "s") + (d.callsheet ? ", call sheet first." : ".") + " Staple once, top left.");
+  }catch(err){ toast("The sides didn't make: " + err.message); }
+};
 
 (async function boot(){
   let note = null;
