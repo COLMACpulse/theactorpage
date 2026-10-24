@@ -181,7 +181,7 @@ nav#nav button.back{min-height:44px;padding:0 14px;border:1px solid var(--line2)
 .hbtn{min-height:46px;padding:0 16px;border-radius:12px;border:1px solid var(--line2);background:var(--p2);color:var(--ink);font:600 13px var(--sans);letter-spacing:.08em;display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;text-decoration:none}
 .hbtn.pri{background:#e0a23c;border-color:#e0a23c;color:#1a1206}
 .hcard.hot{border-color:#e0a23c}
-button.pcard{background:none;border:0;padding:0;flex-direction:row;border-radius:0}
+button.ppc{background:none;border:0;padding:0;flex-direction:row;border-radius:0}
 header.bhead{display:flex!important;text-align:left!important}
 .hrowlink small{margin-left:auto}.hrowlink:after{margin-left:10px}
 .hbtn.sm{min-height:40px;padding:0 12px;font-size:11.5px;border-radius:10px}
@@ -190,13 +190,22 @@ header.bhead{display:flex!important;text-align:left!important}
 .duel .t{flex:1 1 240px;min-width:0;background:none;border:0;padding:0;text-align:left;color:var(--ink);cursor:pointer}
 .duel .t b{display:block;font:600 15.5px var(--sans)}.duel .t small{display:block;font-size:12.5px;color:var(--mut)}
 .duel .left{font:700 13px var(--mono);color:var(--tung-text);white-space:nowrap}
-.pcard{display:flex;gap:14px;align-items:center;text-decoration:none;color:var(--ink);cursor:pointer;width:100%;text-align:left;font:inherit}
-.pcard .ph{width:84px;aspect-ratio:4/5;border-radius:8px;background:var(--p2);flex:none;overflow:hidden}.pcard .ph img{width:100%;height:100%;object-fit:cover;display:block}
-.pcard b{display:block;font:600 17px var(--sans)}.pcard small{display:block;color:var(--mut);font-size:13px;margin-top:2px}
+.ppc{display:flex;gap:14px;align-items:center;text-decoration:none;color:var(--ink);cursor:pointer;width:100%;text-align:left;font:inherit}
+.ppc .ph{width:84px;aspect-ratio:4/5;border-radius:8px;background:var(--p2);flex:none;overflow:hidden}.ppc .ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ppc b{display:block;font:600 17px var(--sans)}.ppc small{display:block;color:var(--mut);font-size:13px;margin-top:2px}
 .hrowlink{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:0 16px;margin:0 0 10px;background:var(--p1);border:1px solid var(--line);border-radius:14px;color:var(--ink);font:600 12.5px var(--sans);letter-spacing:.12em;text-transform:uppercase;cursor:pointer;text-align:left}
 .hrowlink small{margin-left:auto;font:400 12.5px var(--sans);letter-spacing:0;text-transform:none;color:var(--mut)}
 .hrowlink:after{content:'\203A';font-size:20px;color:var(--faint)}
 .hnote{font-size:12.5px;color:var(--mut);margin:6px 0 0}
+.onrow{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}.onrow:first-child{border-top:0}
+.onrow .tick{width:30px;height:30px;border-radius:8px;border:2px solid var(--line2);background:transparent;color:var(--tung-text);font:700 15px var(--sans);display:inline-flex;align-items:center;justify-content:center;padding:0;flex:none;cursor:pointer}
+.onrow .tick.on{border-color:var(--tung-text)}
+.onrow .ol{flex:1;min-width:0}.onrow .ol b{display:block;font:600 14.5px var(--sans)}.onrow .ol b i{font-style:normal;font-weight:400;color:var(--mut)}.onrow .ol small{display:block;font-size:12.5px;color:var(--mut)}
+button.lnk{background:none;border:0;color:var(--tung-text);font:500 13px var(--sans);padding:6px 4px;cursor:pointer;text-decoration:underline}
+details.pfold{background:var(--p1);border:1px solid var(--line);border-radius:14px;margin:0 0 14px}details.pfold>summary{min-height:52px;display:flex;align-items:center;padding:0 16px;font:600 12.5px var(--sans);letter-spacing:.12em;cursor:pointer}
+.pfin{padding:0 12px 4px}
+div.ppc{cursor:default}
+
 </style></head><body>
 <div class="bar"></div>
 <div class="wrap">
@@ -719,8 +728,8 @@ function col(v){return v>=70?'var(--go)':v>=40?'var(--tung)':'var(--hold)';}
 function active(){return projects.filter(p=>p.state!=='archived');}
 function archived(){return projects.filter(p=>p.state==='archived');}
 
-const TABS=[['home','Project Hub'],['profile','Your material'],['road','Auditions'],['offices','Offices to go in for'],['reps','For my reps'],['keyart','Credits and key art'],['reels','Reel Room'],['package','Your page'],['intake','Setup and backup']];
-function renderNav(){ if(tab==='home'){ $('nav').innerHTML=''; return; } $('nav').innerHTML=`<button class="back" onclick="go('home')">&lsaquo; PROJECT HUB</button><span class="navtitle">${esc((TABS.find(x=>x[0]===tab)||['',''])[1])}</span>`+`<span id="ptarget" class="ptarget" title="where dropped or pasted files go">drop / paste &rarr; ${esc(targetLabel(pendScope,pendCat))}</span>`+vaultPill();}
+const TABS=[['home','Project Hub'],['profile','Your material'],['road','Auditions'],['offices','Offices to go in for'],['reps','For my reps'],['keyart','Credits and key art'],['reels','Masters and clips'],['package','Your page'],['intake','Setup and backup']];
+function renderNav(){ if(tab==='home'){ $('nav').innerHTML=''; return; } $('nav').innerHTML=(tab==='reels'?`<button class="back" onclick="location.href='../archbook/'">&lsaquo; REEL ROOM</button>`:`<button class="back" onclick="go('home')">&lsaquo; PROJECT HUB</button>`)+`<span class="navtitle">${esc((TABS.find(x=>x[0]===tab)||['',''])[1])}</span>`+`<span id="ptarget" class="ptarget" title="where dropped or pasted files go">drop / paste &rarr; ${esc(targetLabel(pendScope,pendCat))}</span>`+vaultPill();}
 /* nav always lands on a tab's front; leaving an open audition turns its camera off */
 function go(t){if(openId){if(tapePhase!=='off')finishTake();if(camOpen)closeCam();}openId=null;tab=t;render();}
 
@@ -2599,7 +2608,15 @@ function showcasePanel(def){
      <span class="ah">or drop files anywhere on this panel</span></button>`).join('')}</div>`;
  }
  return h+`</div>`;}
-function showcaseHTML(){return SHOWCASE.map(showcasePanel).join('');}
+function showcaseHTML(){
+ /* only the kinds you have something in take room; the rest are one line of ADD buttons. Masters are in Reel Room. */
+ const has=d=>ARTS.some(a=>(d.also?[d.cat,d.also]:[d.cat]).includes(a.category));
+ const L=SHOWCASE.filter(d=>d.cat!=='master'), full=L.filter(has), empty=L.filter(d=>!has(d));
+ let h=full.map(showcasePanel).join('');
+ if(empty.length) h+=`<div class="panel dz" id="addkind" data-scope="library" data-cat="other"><h2>Add another kind</h2><div class="row" style="padding:11px 13px;flex-wrap:wrap;gap:8px">`+empty.map(d=>(d.also?[d.cat,d.also]:[d.cat]).map(c=>`<button class="ghost act sm" onclick="pickFiles('library','${c}')">+ ${esc(ART_LABELS[c])}</button>`).join(' ')).join(' ')+`</div><small class="note">Or drop files anywhere on the page. What your tools send (clips from Footage, tapes you KEEP) shows up on its own.</small></div>`;
+ const m=ARTS.filter(a=>a.category==='master').length;
+ h+=`<small class="note" style="display:block;margin:0 0 14px">Masters${m?' ('+m+')':''}, the full-length files you cut clips from, are in Reel Room: <a href="../archbook/">MASTERS AND CLIPS</a>.</small>`;
+ return h;}
 function libraryHTML(){
  const lib=ARTS.filter(a=>a.scope==='library');
  const cats=['headshot','master','reel','slateshot','other'];
@@ -2625,7 +2642,7 @@ function portfolioHero(){
  return `<div class="hero3">
   <div class="herocard" onclick="jump('hs-panel')"><div class="herothumb">${hsP}</div><div class="herolab"><span>Headshots</span><small>${hs.length||''}</small></div></div>
   <div class="herocard" data-scope="library" data-cat="resume" onclick="${reClick}"><div class="herothumb">${reP}</div><div class="herolab"><span>Resume</span><small>${reBadge}</small></div></div>
-  <div class="herocard" onclick="go('reels')"><div class="herothumb">${rlP}</div><div class="herolab"><span>Reel</span><small>${reels.length||''}</small></div></div>
+  <div class="herocard" onclick="location.href='../archbook/'"><div class="herothumb">${rlP}</div><div class="herolab"><span>Reel</span><small>${reels.length||''}</small></div></div>
  </div>`;
 }
 function setLiveResume(id){const a=ARTS.find(x=>x.id===id);if(!a)return;a.added=Date.now();DB.put(a).catch(()=>toast('Could not save'));
@@ -2996,7 +3013,7 @@ function pkgToggleClip(id){pkgSel._picked=true;const i=pkgSel.clips.indexOf(id);
 function pkgToggleIn(list,id){const L=pkgSel[list];const i=L.indexOf(id);if(i<0)L.push(id);else L.splice(i,1);render();}
 function pkgSet(k,v){pkgSel._picked=true;pkgSel[k]=v;render();}
 function pkgBytes(){let n=0;const add=id=>{const a=ARTS.find(x=>x.id===id);if(a&&a.blob)n+=a.blob.size;};
- add(pkgSel.headshot);add(pkgSel.resume);add(pkgSel.reel);add(pkgSel.about);pkgSel.clips.forEach(add);pkgSel.auditions.forEach(add);pkgSel.monologues.forEach(add);
+ add(pkgHead());add(pkgSel.resume);add(pkgSel.reel);add(pkgSel.about);pkgSel.clips.forEach(add);pkgSel.auditions.forEach(add);pkgSel.monologues.forEach(add);
  pkgSel.credits.forEach(cid=>{const c=credits.find(x=>x.cid===cid);if(c&&c.posterId)add(c.posterId);});
  return Math.round(n*1.37);}
 function blobToDataURL(b){return new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>res('');r.readAsDataURL(b);});}
@@ -3054,7 +3071,7 @@ function pkgMailDraft(){
  lines.push(note||`Sending over additional material on ${p.name}.`);
  lines.push('');
  lines.push('Attached is a single file - open it in any browser, nothing to install. It contains:');
- if(pkgSel.headshot) lines.push('  - Headshot');
+ if(pkgHead()) lines.push('  - Headshot');
  if(pkgSel.about)    lines.push('  - Under a minute of him as himself');
  if(pkgSel.reel)     lines.push('  - Reel');
  clips.forEach(c=>   lines.push('  - Clip: '+c));
@@ -3117,7 +3134,7 @@ async function publishSite(){
  pkgBaking=true;render();
  try{
   const grab=async id=>{const a=ARTS.find(x=>x.id===id);if(!a||!a.blob)return null;return{u:await blobToDataURL(a.blob),t:a.type||'',n:a.label||a.filename||''};};
-  const head=await grab(pkgSel.headshot), res=await grab(pkgSel.resume), reel=await grab(pkgSel.reel), about=await grab(pkgSel.about);
+  const head=await grab(pkgHead()), res=await grab(pkgSel.resume), reel=await grab(pkgSel.reel), about=await grab(pkgSel.about);
   const clips=[];for(const id of pkgSel.clips){const g=await grab(id);if(g)clips.push(g);}
   const auds=[];for(const id of pkgSel.auditions){const g=await grab(id);if(g){const a=ARTS.find(x=>x.id===id);g.who=(a&&a.tag)||'';auds.push(g);}}
   const monos=[];for(const id of pkgSel.monologues){const g=await grab(id);if(g){const a=ARTS.find(x=>x.id===id);g.kind=(a&&a.category==='standup_vid')?'Stand-Up':'Monologue';monos.push(g);}}
@@ -3130,7 +3147,7 @@ async function publishSite(){
     clips,auds,monos,credits:cr,site:site,ogfile:'share.jpg',noindex:false,
     showLane:!!pkgSel.showLane,showSkills:!!pkgSel.showSkills}));
   downloadBlob(new Blob([doc],{type:'text/html'}),'index.html');
-  const hs=ARTS.find(a=>a.id===pkgSel.headshot);
+  const hs=ARTS.find(a=>a.id===pkgHead());
   const card=await makeShareCard(hs&&hs.blob,profile.name,profile.lane);
   if(card)setTimeout(()=>downloadBlob(card,'share.jpg'),700);
   toast('Two files: index.html and share.jpg. Upload both to the root of '+site);
@@ -3156,7 +3173,7 @@ async function siteEntries(site){
     entries.push({name:nm,data:new Uint8Array(await a.blob.arrayBuffer()),type:a.type||''});
     return {u:nm,t:a.type||'',n:a.label||a.filename||'',
             poster:(THUMBS[a.id]||a.thumb||'')||undefined};};
-  const head=await asData(pkgSel.headshot);
+  const head=await asData(pkgHead());
   const res =await asData(pkgSel.resume);
   const reel=pkgSel.reel?await asFile(pkgSel.reel,'media'):null;
   const about=pkgSel.about?await asFile(pkgSel.about,'media'):null;
@@ -3174,7 +3191,7 @@ async function siteEntries(site){
     clips,auds,monos,credits:cr,site:site,ogfile:'share.jpg',
     showLane:!!pkgSel.showLane,showSkills:!!pkgSel.showSkills}));
   entries.unshift({name:'index.html',data:enc.encode(doc)});
-  const hs=ARTS.find(a=>a.id===pkgSel.headshot);
+  const hs=ARTS.find(a=>a.id===pkgHead());
   const card=await makeShareCard(hs&&hs.blob,profile.name,profile.lane);
   if(card)entries.push({name:'share.jpg',data:new Uint8Array(await card.arrayBuffer())});
   return entries;
@@ -3309,8 +3326,7 @@ function packageView(){
  const over=est>MAIL_CAP;
  const P=pkgSel.preset||'submission';
 
- let h=`<div class="panel"><h2>Send &middot; build the file a rep attaches to an email</h2>
-  <small class="note">One self-contained <b>.html</b>. Casting opens it in any browser - no login, no install, nothing hosted on YouTube or Drive. This is the supplement to an Actors Access submission, not a replacement for it.</small></div>`;
+ let h=pkgTop(hs,rs,rl,cr)+`<details class="pfold" id="pkgdetails"${PKGOPEN?' open':''}><summary>THE DETAILS, PIECE BY PIECE</summary><div class="pfin"><small class="note" style="display:block;padding:0 0 10px">Your page is one self-contained <b>.html</b>. Casting opens it in any browser: no login, no install, nothing hosted on YouTube or Drive. It goes with a submission, not instead of one.</small>`;
 
  h+=`<div class="panel"><h2>What is this for</h2>
   <div class="prow">
@@ -3371,6 +3387,7 @@ function packageView(){
    </div>
   </div></div>`;
 
+ h+='</div></details>';
  h+=onlinePanel();
  h+=publishPanel();
  setTimeout(()=>{ if(!online().key&&ON.name&&!ON.check&&!ON.checking){ ON.checking=true; onName(ON.name); } },0);
@@ -3379,22 +3396,82 @@ function packageView(){
   <div style="padding:11px 13px"><textarea id="maildraft" rows="14" style="width:100%;font-family:var(--mono);font-size:12px" readonly>${esc(pkgMailDraft())}</textarea></div></div>`;
 
  $('view').innerHTML=h;
+ const dd=$('pkgdetails'); if(dd) dd.ontoggle=()=>{ PKGOPEN=dd.open; };
+}
+
+/* ===== YOUR PAGE: what's on it, one tap each, and where it came from ===== */
+var PKGOPEN=false;
+function pkgHead(){ return pkgSel.headOff?'':pkgSel.headshot; }
+function pkgItems(cat){ const cl=Array.isArray(cat)?cat:[cat]; return ARTS.filter(a=>cl.includes(a.category)&&(a.type||'').startsWith('video/')); }
+function pkgRows(hs,rs,rl,cr){
+ const off=new Set(pageOff()), R=[];
+ const add=(k,label,n,on,from,jump)=>R.push({k,label,n,on,from,jump});
+ if(hs.length) add('head','Your headshot','',!!pkgSel.headshot&&!pkgSel.headOff,'from HEADSHOTS','Headshot');
+ if(rl.length) add('reel','Your reel','',!!pkgSel.reel,'from REEL ROOM','Reel');
+ if(cr.length) add('credits','Credits',(pkgSel.credits||[]).length+' of '+cr.length,(pkgSel.credits||[]).length>0,'your résumé and IMDb','Credits');
+ const ab=pkgItems('about_me'); if(ab.length) add('about','About Me','',!!pkgSel.about,'your material','About Me');
+ const cl=pkgItems('clip'); if(cl.length) add('clips','Clips',(pkgSel.clips||[]).length+' of '+cl.length,(pkgSel.clips||[]).length>0,'from FOOTAGE and your material','Performance clips');
+ const au=pkgItems('audition_vid'); if(au.length) add('auditions','Auditions',(pkgSel.auditions||[]).length+' of '+au.length,(pkgSel.auditions||[]).length>0,'tapes you kept','Auditions');
+ const mo=pkgItems(['monologue','standup_vid']); if(mo.length) add('monologues','Monologues and stand-up',(pkgSel.monologues||[]).length+' of '+mo.length,(pkgSel.monologues||[]).length>0,'your material','Monologues');
+ if(rs.length) add('resume','Résumé','',!!pkgSel.resume,'from VIRTUAL RÉSUMÉ or your file','Resume');
+ if(VOLK&&(VOLK.demos||VOLK.voices)) add('voice','Voice over',[VOLK.demos?VOLK.demos+' demo'+(VOLK.demos===1?'':'s'):'',VOLK.voices?VOLK.voices+' voice'+(VOLK.voices===1?'':'s'):''].filter(Boolean).join(', '),!off.has('voice'),'from VO BOOTH','Voice over');
+ if(VOLK&&VOLK.looks) add('looks','Commercial · looks',VOLK.looks+'',!off.has('looks'),'from LOOKS','Voice over');
+ const mids=(MADE?[].concat(MADE.films||[],MADE.writing||[]):[]).concat((profile.madeHub&&[].concat(profile.madeHub.films||[],profile.madeHub.writing||[]))||[]).map(x=>x.id).filter(Boolean);
+ if(mids.length) add('made','Made by me',mids.filter(id=>!off.has(id)).length+' of '+mids.length,mids.some(id=>!off.has(id)),'your films and writing, from FILM and WRITE','From your other tools');
+ let pn=0; try{ pn=window.Press?Press.onPage().length:0; }catch(e){}
+ if(pn) add('press','In the press',pn+'',!off.has('press'),'from PRESS','');
+ if(profile.email||profile.rep||profile.repPhone) add('contact','How to reach you','',!!pkgSel.contact,'your rep, your email','The note');
+ return R;
+}
+function pkgFlip(k){
+ const hs=ARTS.filter(a=>a.category==='headshot'&&(a.type||'').startsWith('image/')), rs=ARTS.filter(a=>a.category==='resume'), rl=ARTS.filter(a=>(a.category==='reel'||a.category==='master')&&(a.type||'').startsWith('video/')), cr=credits.filter(c=>c.kind==='credit');
+ const all=(key,cat)=>{ pkgSel[key]=(pkgSel[key]||[]).length?[]:pkgItems(cat).map(a=>a.id); };
+ pkgSel._picked=true;
+ if(k==='head'){ pkgSel.headOff=!pkgSel.headOff; if(!pkgSel.headshot) pkgSel.headshot=profile.primaryHeadshot||(hs[0]&&hs[0].id)||''; }
+ else if(k==='reel') pkgSel.reel=pkgSel.reel?'':((rl[0]&&rl[0].id)||'');
+ else if(k==='resume') pkgSel.resume=pkgSel.resume?'':((rs[rs.length-1]&&rs[rs.length-1].id)||'');
+ else if(k==='about'){ const ab=pkgItems('about_me'); pkgSel.about=pkgSel.about?'':((ab[0]&&ab[0].id)||''); }
+ else if(k==='credits') pkgSel.credits=(pkgSel.credits||[]).length?[]:cr.map(c=>c.cid);
+ else if(k==='clips') all('clips','clip'); else if(k==='auditions') all('auditions','audition_vid'); else if(k==='monologues') all('monologues',['monologue','standup_vid']);
+ else if(k==='contact') pkgSel.contact=!pkgSel.contact;
+ else if(['voice','looks','press'].includes(k)){ madeToggle(k); return; }
+ else if(k==='made'){ const L=pageOff(), mids=(MADE?[].concat(MADE.films||[],MADE.writing||[]):[]).concat((profile.madeHub&&[].concat(profile.madeHub.films||[],profile.madeHub.writing||[]))||[]).map(x=>x.id).filter(Boolean), anyOn=mids.some(id=>L.indexOf(id)<0);
+  mids.forEach(id=>{ const i=L.indexOf(id); if(anyOn&&i<0) L.push(id); if(!anyOn&&i>=0) L.splice(i,1); }); saveProfile(); }
+ render();
+}
+function pkgJump(label){ PKGOPEN=true; const d=$('pkgdetails'); if(d) d.open=true; const h=[...document.querySelectorAll('#pkgdetails .panel h2')].find(x=>x.textContent.trim().toLowerCase().startsWith(label.toLowerCase())); if(h) h.scrollIntoView({block:'start',behavior:'smooth'}); }
+async function pkgDoc(){
+ const grab=async id=>{const a=ARTS.find(x=>x.id===id);if(!a||!a.blob)return null;return{u:await blobToDataURL(a.blob),t:a.type||'',n:a.label||a.filename||''};};
+ const head=pkgSel.headOff?null:await grab(pkgSel.headshot), res=await grab(pkgSel.resume), reel=await grab(pkgSel.reel);
+ const about=await grab(pkgSel.about);
+ const clips=[];for(const id of pkgSel.clips){const g=await grab(id);if(g)clips.push(g);}
+ const auds=[];for(const id of pkgSel.auditions){const g=await grab(id);if(g){const a=ARTS.find(x=>x.id===id);g.who=(a&&a.tag)||'';auds.push(g);}}
+ const monos=[];for(const id of pkgSel.monologues){const g=await grab(id);if(g){const a=ARTS.find(x=>x.id===id);g.kind=(a&&a.category==='standup_vid')?'Stand-Up':'Monologue';monos.push(g);}}
+ const cr=[];for(const cid of (pkgSel.credits||[])){const c=credits.find(x=>x.cid===cid);if(!c)continue;
+  const po=c.posterId?await grab(c.posterId):null;
+  cr.push({title:c.title,role:c.role,net:c.net,medium:c.medium,character:c.character||'',charNote:c.charNote||'',director:c.director||'',poster:po});}
+ return packageHTML(Object.assign({profile,note:pkgSel.note,contact:pkgSel.contact,head,res,reel,about,clips,auds,monos,credits:cr},await pkgExtras()));
+}
+/* SEE IT: your page as they'll see it, in a new tab. The tab opens on the tap; the page fills in a moment later. */
+async function seePage(){ const w=window.open('','_blank'); try{ const doc=await pkgDoc(), u=URL.createObjectURL(new Blob([doc],{type:'text/html'})); window.__lastPage=doc.length; if(w) w.location=u; else location.href=u; }catch(e){ if(w) w.close(); toast('Couldn’t build it: '+e.message); } }
+function pkgTop(hs,rs,rl,cr){
+ const R=pkgRows(hs,rs,rl,cr), prim=ARTS.find(a=>a.id===pkgSel.headshot), o=online(), host=o.url?o.url.replace(/^https?:\/\//,'').replace(/\/$/,''):'';
+ let h='<div class="hg" id="pagetop"><div><p class="hk">Your page</p><div class="hcard"><div class="ppc"><span class="ph">'+(prim?'<img src="'+artURL(prim)+'" alt="">':'')+'</span><span><b>'+esc(profile.name||'Your name')+'</b><small>'+esc([profile.union,profile.rep].filter(Boolean).join(' · ')||'Add your union and rep in Your material.')+'</small>'+(host?'<small>Online at '+esc(host)+'</small>':'')+'</span></div>'
+  +'<div class="hrow2" style="margin-top:12px"><button class="hbtn pri" id="seeit" onclick="seePage()">SEE IT</button><button class="hbtn" onclick="buildPackage()">SAVE THE FILE</button><button class="hbtn" onclick="const e=document.getElementById(\'online\');if(e)e.scrollIntoView({block:\'start\',behavior:\'smooth\'})">'+(host?'UPDATE IT ONLINE':'PUT IT ONLINE')+'</button></div>'
+  +'<p class="hnote">SAVE THE FILE makes one .html you can attach to an email. SEE IT opens it here first.</p></div></div>';
+ h+='<div><p class="hk">What’s on it · tap one to leave it off</p><div class="hcard" id="onit" style="padding:4px 16px">';
+ h+=R.length?R.map(r=>'<div class="onrow"><button class="tick'+(r.on?' on':'')+'" aria-pressed="'+r.on+'" onclick="pkgFlip(\''+r.k+'\')" aria-label="'+esc(r.label)+(r.on?', on your page':', left off')+'">'+(r.on?'&#10003;':'')+'</button><span class="ol"><b>'+esc(r.label)+(r.n?' <i>'+esc(r.n)+'</i>':'')+'</b><small>'+esc(r.from)+'</small></span>'+(r.jump?'<button class="lnk" onclick="pkgJump(\''+r.jump+'\')">change</button>':'')+'</div>').join('')
+  :'<p class="hnote" style="margin:10px 0">Nothing yet. Add a headshot in Your material and it shows up here.</p>';
+ h+='</div><p class="hnote">Only what you’ve made shows up here. Change a piece in the tool it came from.</p></div></div>';
+ if(!VOLK) setTimeout(loadVoLooks,0);
+ return h;
 }
 
 var pkgBaking=false;
 async function buildPackage(){
  pkgBaking=true;render();
  try{
-  const grab=async id=>{const a=ARTS.find(x=>x.id===id);if(!a||!a.blob)return null;return{u:await blobToDataURL(a.blob),t:a.type||'',n:a.label||a.filename||''};};
-  const head=await grab(pkgSel.headshot), res=await grab(pkgSel.resume), reel=await grab(pkgSel.reel);
-  const about=await grab(pkgSel.about);
-  const clips=[];for(const id of pkgSel.clips){const g=await grab(id);if(g)clips.push(g);}
-  const auds=[];for(const id of pkgSel.auditions){const g=await grab(id);if(g){const a=ARTS.find(x=>x.id===id);g.who=(a&&a.tag)||'';auds.push(g);}}
-  const monos=[];for(const id of pkgSel.monologues){const g=await grab(id);if(g){const a=ARTS.find(x=>x.id===id);g.kind=(a&&a.category==='standup_vid')?'Stand-Up':'Monologue';monos.push(g);}}
-  const cr=[];for(const cid of pkgSel.credits){const c=credits.find(x=>x.cid===cid);if(!c)continue;
-   const po=c.posterId?await grab(c.posterId):null;
-   cr.push({title:c.title,role:c.role,net:c.net,medium:c.medium,character:c.character||'',charNote:c.charNote||'',director:c.director||'',poster:po});}
-  const doc=packageHTML(Object.assign({profile,note:pkgSel.note,contact:pkgSel.contact,head,res,reel,about,clips,auds,monos,credits:cr},await pkgExtras()));
+  const doc=await pkgDoc();
   const blob=new Blob([doc],{type:'text/html'});
   const nm=(profile.name||'actor').replace(/[^\w]+/g,'_')+'_package.html';
   downloadBlob(blob,nm);
@@ -3746,7 +3823,7 @@ function profileView(){
  h+=`<div id="hs-panel">`+headshotsPanel()+`</div>`;
  h+=selfPanel();
  h+=resumePanel();
- h+=`<div class="seccap">Showcase &middot; what a rep sends out</div>`;
+ h+=`<div class="seccap">Your material &middot; what your page is made from</div>`;
  h+=showcaseHTML();
  
 
@@ -3790,7 +3867,7 @@ function homeView(){
   :'<div class="hcard"><p class="hnote" style="margin:0">Nothing due. When a request comes in, paste it above.</p></div>';
  h+='<button class="hrowlink" onclick="go(\'road\')">What you’ve sent<small>'+past+'</small></button>';
  h+='</div><div>';
- h+='<p class="hk">Your page</p><div class="hcard"><button class="pcard" onclick="go(\'package\')"><span class="ph">'+(prim?'<img src="'+artURL(prim)+'" alt="">':'')+'</span><span><b>'+esc(profile.name||'Your name')+'</b><small>'+esc(on.join(' · ')||'Nothing on it yet. Add a headshot to start.')+'</small>'+(host?'<small>Online at '+esc(host)+'</small>':'')+'</span></button>'
+ h+='<p class="hk">Your page</p><div class="hcard"><button class="ppc" onclick="go(\'package\')"><span class="ph">'+(prim?'<img src="'+artURL(prim)+'" alt="">':'')+'</span><span><b>'+esc(profile.name||'Your name')+'</b><small>'+esc(on.join(' · ')||'Nothing on it yet. Add a headshot to start.')+'</small>'+(host?'<small>Online at '+esc(host)+'</small>':'')+'</span></button>'
   +'<div class="hrow2" style="margin-top:12px"><button class="hbtn pri" onclick="go(\'package\')">SEE IT</button><button class="hbtn" onclick="go(\'package\');setTimeout(()=>{const e=document.getElementById(\'online\');if(e)e.scrollIntoView({block:\'start\'});},300)">'+(host?'UPDATE IT ONLINE':'PUT IT ONLINE')+'</button></div></div>';
  h+='<button class="hrowlink" onclick="go(\'offices\')">Offices to go in for<small>'+(offN||'')+'</small></button>';
  h+='<button class="hrowlink" onclick="go(\'profile\')">Your material<small>'+(mat||'')+'</small></button>';
