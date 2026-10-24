@@ -1,4 +1,4 @@
-/* PAPER TRAIL: the front. SAY IT, MIC and PHOTO tiles on the projects screen, with live OFF / LISTENING / RECORDING.
+/* PAPER TRAIL: SAY IT, MIC and PHOTO tiles at the top of THE WORK (Boneyard, Research), not on the front (Col, Oct 24), with live OFF / LISTENING / RECORDING.
    No project: the tiles are off and say so. With projects: they land in the one you touched last.
    Fake mic, fake speech. Made-up scripts. Server on :8811 at the repo root.
    NODE_PATH=... node papertrail/tests/tiles_e2e.js */
@@ -17,30 +17,26 @@ await p.goto('http://localhost:8811/papertrail/'); await p.evaluate(()=>{ localS
 const tiles=()=>p.evaluate(()=>[...document.querySelectorAll('.kit .kt')].map(t=>t.dataset.kit+':'+(t.querySelector('[data-kst]')?t.querySelector('[data-kst]').textContent:'-')+(t.classList.contains('off')?':off':'')));
 const until=async(id,w)=>{ try{ await p.waitForFunction(([id,w])=>{ const t=document.querySelector('[data-kit="'+id+'"] [data-kst]'); return t&&t.textContent===w; },[id,w],{timeout:5000}); return true; }catch(e){ return false; } };
 const onTab=t=>p.evaluate(t=>{ const x=document.querySelector('#tabs [data-tab="'+t+'"]'); return !!(x&&x.classList.contains('on')); },t);
-const home=async()=>{ await tabGo(p,'projects'); await p.waitForTimeout(200); };
+const home=async()=>{ await tabGo(p,'bones'); await p.waitForTimeout(200); };
 const noDash=async()=>!/[—–]/.test(await p.evaluate(()=>document.body.innerText));
 
-// no project yet
-want('first screen, no project: three tiles, off, chips OFF', (await tiles()).join()==='say:OFF:off,rec:OFF:off,photo:-:off', await tiles());
-let m=await p.innerText('#main');
-want('they say what they do, and to start a project first', /Say it into the bones/.test(m)&&/Record research/.test(m)&&/Photo for research/.test(m)&&(m.match(/Start a project first/g)||[]).length===3, m.slice(0,400));
-want('labels: SAY IT, MIC, PHOTO', (await p.$$eval('.kit .kt b',x=>x.map(y=>y.textContent))).join()==='SAY IT,MIC,PHOTO');
-want('the tiles match the paper: no dark card', await p.evaluate(()=>getComputedStyle(document.querySelector('.kit .kt')).backgroundColor)==='rgb(231, 223, 204)', await p.evaluate(()=>getComputedStyle(document.querySelector('.kit .kt')).backgroundColor));
+// no project yet: the front is one drop box, no tiles
+want('first screen, no project: no tiles, one drop box', !(await tiles()).length&&await p.isVisible('#drop')&&/Drop your drafts here/.test(await p.innerText('#main')), await tiles());
 want('nothing on at load', await p.evaluate(()=>Hot.status().state)==='off');
 want('no em dashes on the first screen', await noDash());
-await p.click('[data-kit="rec"]'); await p.waitForTimeout(300);
-want('an off tile sends you to add a draft, the mic stays off', await onTab('add')&&await p.evaluate(()=>Hot.status().state)==='off');
-
 // two made-up projects; the second is the latest
 const add=async(t,s)=>{ await tabGo(p,'add'); await p.fill('#ptitle',t); await p.fill('#paste',s); await p.click('#readit'); await p.waitForTimeout(500); };
 await add('Gravel Road','EXT. GRAVEL ROAD - DAY\n\nJUNE\nYou missed the turn.\n\nPETE\nThere was no turn.\n');
 await p.waitForTimeout(30);
 await add('Night Ferry','INT. FERRY DECK - NIGHT\n\nIDA\nIs this the last one?\n\nMARCO\nIt is tonight.\n');
 await p.click('[data-go="projects"]'); await p.waitForTimeout(300);
+want('the front with projects: still no tiles', !(await tiles()).length);
+want('then the projects', (await p.$$eval('[data-open]',x=>x.length))===2);
+await p.click('[data-open]:has-text("Night Ferry")'); await p.waitForTimeout(200); await tabGo(p,'bones'); await p.waitForTimeout(200);
+want('labels in THE WORK: SAY IT, MIC, PHOTO', (await p.$$eval('.kit .kt b',x=>x.map(y=>y.textContent))).join()==='SAY IT,MIC,PHOTO');
 want('with projects: tiles on, chips OFF', (await tiles()).join()==='say:OFF,rec:OFF,photo:-', await tiles());
 want('the tiles name the latest project', (await p.innerText('[data-kit="say"]')).includes('In: Night Ferry')&&(await p.innerText('[data-kit="rec"]')).includes('In: Night Ferry')&&(await p.innerText('[data-kit="photo"]')).includes('In: Night Ferry'));
 want('SAY IT says where speech goes', /Speech goes via Google or Apple/.test(await p.innerText('[data-kit="say"]')));
-want('then the projects', (await p.$$eval('[data-open]',x=>x.length))===2);
 
 // SAY IT
 await p.click('[data-kit="say"]'); await p.waitForTimeout(300);

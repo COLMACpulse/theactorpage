@@ -159,15 +159,15 @@ function render(){
  else if(VIEW.tab==='drafts') m.innerHTML=vDrafts(p);
  else if(VIEW.tab==='characters') m.innerHTML=VIEW.char?vChar(p,VIEW.char):vChars(p);
  else if(VIEW.tab==='read') m.innerHTML=vRead(p);
- else if(VIEW.tab==='bones') m.innerHTML=vBones(p);
+ else if(VIEW.tab==='bones') m.innerHTML=front()+vBones(p);
  else if(VIEW.tab==='threads') m.innerHTML=vThreads(p);
  else if(VIEW.tab==='repeats') m.innerHTML=vRepeats(p);
- else if(VIEW.tab==='research') m.innerHTML=vResearch(p);
+ else if(VIEW.tab==='research') m.innerHTML=front()+vResearch(p);
  else if(VIEW.tab==='package') m.innerHTML=vPackage(p);
  else if(VIEW.tab==='sent') m.innerHTML=vSent(p);
  wire();
 }
-/* ---------- the front: speech, mic and camera, as tiles, before you go looking ---------- */
+/* ---------- speech, mic and camera, as tiles: at the top of THE WORK (Boneyard, Research) ---------- */
 /* the project they land in: the one you have open, or the one you touched last */
 function kitProject(){ const o=VIEW.p&&DB.projects[VIEW.p]; if(o&&!o.retired) return o; return Object.values(DB.projects).filter(p=>!p.retired).sort((a,b)=>(b.updated||0)-(a.updated||0))[0]||null; }
 function front(){
@@ -184,23 +184,34 @@ function kitGo(tab,btn){
  VIEW.p=p.id; go(tab); if(tab==='bones'&&!SR) return toast('This browser can\'t turn speech into words. Use the mic on your keyboard.');
  const b=$(btn); if(b){ b.scrollIntoView({block:'center'}); if(!(btn==='mic'&&LISTEN)&&!(btn==='rrec'&&RECORDING)) b.click(); }
 }
+/* what changed in a project's current draft against the draft before, in words */
+function sinceLine(p){ const c=current(p); if(!c) return ''; const pv=prevScript(p,c); if(!pv) return '<span class="note">One draft so far.</span>';
+ const r=T.compare(scenesOf(pv),scenesOf(c)), bits=[];
+ if(r.changed.length) bits.push('<b>'+r.changed.length+' scene'+(r.changed.length===1?'':'s')+' rewritten</b>');
+ if(r.added.length) bits.push(r.added.length+' new'); if(r.removed.length) bits.push(r.removed.length+' cut');
+ return 'Since '+esc(pv.label)+': '+(bits.length?bits.join(', ')+'.':'not a word changed.'); }
+/* the front: your projects, or one box to drop drafts in. The mic and photo tiles live in THE WORK. */
 function vProjects(){
- const P=projects(), nd=Object.values(DB.drafts).filter(d=>!d.retired).length;
- let h=front()+'<div class="stats"><div><b>'+P.length+'</b><span>projects</span></div><div><b>'+nd+'</b><span>drafts kept</span></div>'
-  +'<div><b>'+P.reduce((n,p)=>n+scenesOf(current(p)).length,0)+'</b><span>scenes, current drafts</span></div></div>';
- if(!P.length) h+='<div class="panel"><p style="margin-top:0">Nothing here yet. Bring in a draft: a script (PDF, Final Draft, Fountain, text) or a storyboard (Word or PDF). Drafts with the same title land in the same project.</p><button class="btn pri" data-tab="add">ADD DRAFTS</button></div>';
- if(P.length){
-  h+='<div class="row" style="margin-bottom:12px"><input class="field" id="gq" placeholder="Find anything: a line, a name, a note, a photo you pinned" value="'+esc(VIEW.gq||'')+'" style="flex:1"></div>';
+ const P=projects();
+ let h='';
+ if(!P.length){
+  h+='<div class="frontdrop drop" id="drop"><b>Drop your drafts here</b><p class="note" style="margin:8px auto 14px;max-width:520px">Scripts: PDF, Final Draft, Fountain, text. Storyboards: Word or PDF. Several at once is fine. Drafts with the same title land in the same project. Nothing is uploaded.</p>'
+   +'<div class="row" style="justify-content:center"><button class="btn pri" type="button">PICK FILES</button><button class="btn" type="button" data-tab="add" onclick="event.stopPropagation()">Paste one</button></div></div>';
+ } else {
+  h+='<div class="row" style="margin-bottom:14px"><input class="field" id="gq" placeholder="Find a line, a name, a note, across every draft" value="'+esc(VIEW.gq||'')+'" style="flex:1"><button class="btn pri" data-tab="add">ADD DRAFTS</button></div>';
   if((VIEW.gq||'').trim().length>1){ const R=searchAll(VIEW.gq);
    h+='<div class="panel"><div class="eyebrow" style="margin-top:0">'+R.length+' found</div><div class="list">'+(R.length?R.slice(0,80).map((r,i)=>'<div class="li"><div class="w">'+esc(r.text)+'<small>'+esc(r.pt+' · '+r.where)+'</small></div><button class="btn sm" data-hit="'+i+'">OPEN</button></div>').join(''):'<div class="li"><div class="w note">Nothing matches.</div></div>')+'</div>'+(R.length>80?'<p class="note">Showing the first 80. Add a word to narrow it.</p>':'')+'</div>';
    HITS=R; }
+  h+='<div class="eyebrow">Your projects · '+P.length+'</div><div class="grid">'+P.map(p=>{ const c=current(p), ds=draftsOf(p.id), b=board(p);
+   return '<button class="frame" data-open="'+p.id+'"><div class="fb"><div class="ft" style="font-size:21px">'+esc(p.title)+'</div>'
+    +'<div class="fl">'+(c?esc(c.label)+' is current · ':'No script draft yet · ')+ds.length+' draft'+(ds.length===1?'':'s')+(c?' · '+scenesOf(c).length+' scenes':'')+(b?' · storyboard':'')+' · '+(p.retired?'retired':'changed '+esc(day(p.updated)))+'</div>'
+    +(c?'<div class="since">'+sinceLine(p)+'</div>':'')+'</div></button>'; }).join('')+'</div>';
  }
- h+='<div class="grid">'+P.map(p=>{ const c=current(p), ds=draftsOf(p.id), b=board(p);
-  return '<button class="frame" data-open="'+p.id+'">'+perf()+'<div class="fb"><div class="fk"><span>'+ds.length+' draft'+(ds.length===1?'':'s')+(b?' · storyboard':'')+'</span><span>'+(p.retired?'retired':esc(day(p.updated)))+'</span></div>'
-   +'<div class="ft">'+esc(p.title)+'</div><div class="fl">'+(c?'Current: '+esc(c.label)+' · '+scenesOf(c).length+' scenes · '+c.words+' words':'No script draft yet')+'</div></div></button>'; }).join('')+'</div>';
- h+='<div class="eyebrow">Your copy</div><div class="row"><button class="btn ghost" id="exp">Export everything (.json)</button><button class="btn ghost" id="impb">Bring in an export</button><button class="btn ghost" id="proofall">Proof of every draft (.txt)</button>'
+ h+='<div class="eyebrow" style="margin-top:26px">Folded until you ask</div>';
+ h+='<details class="fold" id="fAcross"><summary>Across projects<i>Your universe · All characters · Sounds like you · All sent out</i></summary><div class="row"><button class="btn" data-tab="universe">Your universe</button><button class="btn" data-tab="allchars">All characters</button><button class="btn" data-tab="voice">Sounds like you</button><button class="btn" data-tab="allsent">All sent out</button></div></details>';
+ h+='<details class="fold" id="fCopy"><summary>Your copy<i>Export everything · Bring in an export · Proof of every draft</i></summary><div class="row"><button class="btn ghost" id="exp">Export everything (.json)</button><button class="btn ghost" id="impb">Bring in an export</button><button class="btn ghost" id="proofall">Proof of every draft (.txt)</button>'
   +'<label class="note"><input type="checkbox" id="showret"'+(SHOWRET?' checked':'')+'> show retired</label></div>'
-  +'<p class="note">Bringing in an export adds what you don\'t have. It never removes or replaces anything here.</p>';
+  +'<p class="note">Bringing in an export adds what you don\'t have. It never removes or replaces anything here.</p></details>';
  return h;
 }
 function ntAdded(r){ const p=r.p&&DB.projects[r.p.id]; if(!p||!(p.notThis||[]).length||r.d.kind!=='script') return ''; const n=ntHitsIn(p,DB.drafts[r.d.id]||r.d).filter(x=>x.hits.length); return n.length?'<small style="color:var(--grease)">Words from NOT THIS show up in this draft: '+n.map(x=>esc(x.f.text)).join('; ')+'. <a data-ntgo="'+esc(p.id)+'">SEE WHERE</a></small>':''; }
@@ -218,18 +229,21 @@ function vAdd(){
  }
  return h;
 }
+const SHORT={'Scene text':'text','Cast':'cast','Props':'props','What the scene is for':'for','Storyboard':'board','How you\'ll make it (Story Studio)':'plan','Shot':'shot'};
+function dotsHtml(M){ return '<div class="dots" aria-label="On file">'+M.map(x=>'<span class="'+(x.have?'y':'n')+'" title="'+esc(x.what)+(x.have?': on file':': not yet')+'"><b></b>'+esc(SHORT[x.what]||x.what)+'</span>').join('')+'</div>'; }
 function vScenes(p){
  const c=current(p), b=board(p);
  if(!c&&!b) return '<div class="panel">No drafts in this project. <button class="btn sm" data-tab="add">ADD DRAFTS</button></div>';
- const sc=c?scenesOf(c):scenesOf(b), keys=T.keys(sc);
- let h='<div class="stats"><div><b>'+sc.length+'</b><span>scenes</span></div><div><b>'+draftsOf(p.id).length+'</b><span>drafts</span></div>'
-  +'<div><b>'+T.characters([{id:'x',scenes:sc}]).length+'</b><span>characters</span></div><div><b>'+Object.values(p.cards||{}).filter(x=>x.purpose).length+'</b><span>scenes with a purpose written</span></div></div>';
- h+='<p class="note">'+(c?'Reading the current draft: <b>'+esc(c.label)+'</b> ('+esc(c.file)+'). Change it on DRAFTS.':'No script yet: these are the storyboard\'s scenes.')+(b&&c?' Storyboard: '+esc(b.label)+'.':'')+'</p>';
+ const sc=c?scenesOf(c):scenesOf(b), keys=T.keys(sc), pv=c?prevScript(p,c):null, pS=pv?scenesOf(pv):null, pK=pS?T.keys(pS):[];
+ let h='<p class="note" style="margin-top:0">'+(c?'Reading <b>'+esc(c.label)+'</b> ('+esc(c.file)+'), the current draft. Change it under THE WORK, Drafts.':'No script yet: these are the storyboard\'s scenes.')+(b&&c?' Storyboard: '+esc(b.label)+'.':'')+(pv?' Tags: what changed since '+esc(pv.label)+'.':'')+'</p>';
  h+='<div class="grid">'+sc.map((s,i)=>{ const cd=(p.cards||{})[keys[i]]||{}, sb=c?sbFor(p,s,i,keys):null, M=T.missing(s,cd,c?sb:s,studioFor(c,s)).filter(x=>!(c?false:x.what==='Scene text'));
-  const miss=M.filter(x=>!x.have).map(x=>x.what), cast=[...new Set([...(s.cast||[]),...((sb&&sb.cast)||[]),...(cd.cast||[])])];
-  return '<button class="frame" data-scene="'+i+'">'+perf()+'<div class="fb"><div class="fk"><span>SC '+(s.num||s.n||i+1)+'</span><span>'+(s.tod||'')+'</span></div><div class="ft">'+esc(s.heading)+'</div>'
-   +'<div class="fl">'+(cast.length?esc(cast.join(', ')):'No cast')+'</div>'+(c?carryLine(s):'')+(cd.purpose?'<div class="fl" style="margin-top:4px">'+esc(cd.purpose)+'</div>':'')
-   +(miss.length?'<div class="miss">Missing: '+esc(miss.join(', ').toLowerCase())+'</div>':'<div class="have">Everything on the list is here.</div>')+'</div></button>'; }).join('')+'</div>';
+  const cast=[...new Set([...(s.cast||[]),...((sb&&sb.cast)||[]),...(cd.cast||[])])];
+  let tag=''; if(pS){ const j=pK.indexOf(keys[i]); tag=j<0?'<span class="chg new">NEW</span>':T.hashText(pS[j].text)!==T.hashText(s.text)?'<span class="chg">REWRITTEN</span>':''; }
+  return '<button class="frame" data-scene="'+i+'"><div class="fb"><div class="fk"><span>SC '+(s.num||s.n||i+1)+(s.tod?' · '+esc(s.tod):'')+'</span>'+tag+'</div><div class="ft">'+esc(s.heading)+'</div>'
+   +'<div class="fl">'+(cast.length?esc(cast.join(', ')):'No cast')+(cd.purpose?' · <span style="color:var(--ink)">'+esc(cd.purpose)+'</span>':'')+'</div>'
+   +dotsHtml(M)+'</div></button>'; }).join('')
+  +(pS?pS.filter((x,j)=>keys.indexOf(pK[j])<0).map(x=>'<div class="frame cutsc"><div class="fb"><div class="fk"><span>CUT IN '+esc(c.label.toUpperCase())+'</span></div><div class="ft">'+esc(x.heading)+'</div><div class="fl">Still in '+esc(pv.label)+'.</div></div></div>').join(''):'')+'</div>';
+ h+='<p class="note">Dots: filled is on file, open isn\'t yet. Tap a scene for the rest.</p>';
  return h;
 }
 /* WHO CARRIES THE SCENE: counts only */
@@ -245,53 +259,64 @@ function vRepeats(p){ const c=current(p); if(!c) return '<div class="panel">Repe
  h+='<div class="eyebrow">In the dialogue</div>'+list(R.dialogue,'Nothing in the dialogue comes back like that.');
  h+='<div class="eyebrow">Phrases</div>'+list(R.phrases,'No three-word phrase comes back three times close together.');
  return h; }
+/* a fold that stays open across a redraw */
+const OPEN=new Set();
+const fold=(id,label,hint,body)=>'<details class="fold" data-f="'+id+'"'+(OPEN.has(id)?' open':'')+'><summary>'+label+'<i>'+hint+'</i></summary>'+body+'</details>';
 function vScene(p,i){
  const c=current(p), b=board(p), base=c||b, sc=scenesOf(base), keys=T.keys(sc), s=sc[i]; if(!s){ VIEW.scene=null; return vScenes(p); }
  const cd=card(p,keys[i]), sb=c?sbFor(p,s,i,keys):s, st=studioFor(c,s);
  const cast=[...new Set([...(s.cast||[]),...((sb&&sb.cast)||[])])], props=[...new Set([...(s.props||[]),...((sb&&sb.props)||[])])];
- let h='<button class="btn ghost sm" data-back="1">‹ All scenes</button>';
- h+='<div class="panel" style="margin-top:12px">'+perf()+'<div class="fb" style="padding-left:0"><div class="fk"><span>SC '+(s.num||s.n||i+1)+' · '+esc(p.title)+'</span><span>'+(c?esc(c.label):'storyboard')+'</span></div><div class="ft" style="font-size:30px">'+esc(s.heading)+'</div></div></div>';
- h+='<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">';
- // left: the record
- h+='<div><div class="eyebrow" style="margin-top:0">What the scene is for</div><textarea class="field" data-card="purpose" placeholder="In your words: what this scene has to do. Nobody fills this in but you.">'+esc(cd.purpose)+'</textarea>';
- h+=carryHtml(s);
- h+='<div class="eyebrow">Cast</div><div class="chips">'+cast.map(x=>'<span class="chip">'+esc(x)+'</span>').join('')+(cd.cast||[]).map((x,j)=>'<span class="chip" style="border-color:var(--gold)">'+esc(x)+' <a data-rm="cast" data-j="'+j+'">×</a></span>').join('')+'<button class="btn sm ghost" data-addto="cast">+ add</button></div>'
-  +((s.voices||[]).length?'<p class="note">Voice only in the script: '+esc(s.voices.join(', '))+'</p>':'');
- h+='<div class="eyebrow">Props</div><div class="chips">'+props.map(x=>'<span class="chip">'+esc(x)+'</span>').join('')+(cd.props||[]).map((x,j)=>'<span class="chip" style="border-color:var(--gold)">'+esc(x)+' <a data-rm="props" data-j="'+j+'">×</a></span>').join('')+'<button class="btn sm ghost" data-addto="props">+ add</button></div>'
-  +'<p class="note">Black: read from the files. Gold: you added it.</p>';
- h+='<div class="eyebrow">FX</div>'+(sb&&sb.fx?'<p style="margin:0 0 6px">'+esc(sb.fx)+' <span class="note">(storyboard)</span></p>':'')+'<input class="field" data-card="fx" value="'+esc(cd.fx)+'" placeholder="Effects, stunts, practical gags">';
- h+='<div class="eyebrow">Notes</div>'+(sb&&sb.notes?'<p style="margin:0 0 6px">'+esc(sb.notes)+' <span class="note">(storyboard)</span></p>':'')+'<textarea class="field" data-card="notes" placeholder="Your notes">'+esc(cd.notes)+'</textarea>';
- h+='<div class="eyebrow">Decisions</div><div class="list">'+(cd.decisions||[]).map(x=>'<div class="li"><div class="w">'+esc(x.text)+'<small>'+esc(day(x.at))+'</small></div></div>').join('')+'</div>'
-  +'<div class="row" style="margin-top:8px"><input class="field" id="dec" placeholder="What you decided, e.g. cut the last two lines" style="flex:1"><button class="btn" id="decb">LOG IT</button></div><p class="note">Logged decisions stay. They are never edited after the fact.</p>'+threadBox(p,s,i,keys)+researchBox(p,keys[i])+'</div>';
- // right: on file / missing / drafts / story studio
+ let h='<div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px"><div class="row" style="align-items:center;gap:14px"><button class="btn ghost sm" data-back="1">‹ All scenes</button>'
+  +'<div><div class="fk" style="justify-content:flex-start">SC '+(s.num||s.n||i+1)+' · '+esc(p.title)+' · '+(c?esc(c.label):'storyboard')+'</div><div class="ft" style="font-size:24px;margin:2px 0 0">'+esc(s.heading)+'</div></div></div>'
+  +(c?'<button class="btn" id="studio">'+(st?'OPEN IN STORY STUDIO':'SHOOT IT IN STORY STUDIO')+'</button>':'')+'</div>';
+ h+='<div class="sgrid" style="margin-top:18px"><div>';
+ // the scene, and what changed
+ const pv=c?prevScript(p,c):null, pS=pv?scenesOf(pv):null, pj=pS?T.keys(pS).indexOf(keys[i]):-1;
+ if(s.text&&pv&&pj>=0){
+  const df=T.lineDiff(T.linesOf(pS[pj]),T.linesOf(s)), n=T.lineCounts(df);
+  h+='<div class="eyebrow" style="margin-top:0">The scene · what changed since '+esc(pv.label)+'</div><div class="scenetx read rev">'+df.map(x=>'<div class="rl '+x.t+'"><span class="rmk">'+(x.t==='new'?'*':x.t==='cut'?'–':'')+'</span>'+esc(x.text)+'</div>').join('')+'</div>'
+   +'<p class="note">'+(n.added||n.cut?n.added+' line'+(n.added===1?'':'s')+' new or rewritten, '+n.cut+' cut. New lines marked *; cut lines struck through.':'Not a word changed.')+'</p>';
+ } else if(s.text){
+  h+='<div class="eyebrow" style="margin-top:0">The scene</div><div class="scenetx read">'+esc(s.text)+'</div>'+(pv?'<p class="note">New in this draft: not in '+esc(pv.label)+'.</p>':'');
+ }
+ h+='<div class="eyebrow">What the scene is for · your words</div><textarea class="field" data-card="purpose" placeholder="In your words: what this scene has to do. Nobody fills this in but you.">'+esc(cd.purpose)+'</textarea>';
+ h+='</div><div><div class="eyebrow" style="margin-top:0">The rest, folded</div>';
+ const allCast=cast.concat(cd.cast||[]), allProps=props.concat(cd.props||[]);
+ h+=fold('cast','Cast and props',esc([allCast.join(', '),allProps.join(', ')].filter(Boolean).join(' · ')||'none yet'),
+  '<div class="eyebrow">Cast</div><div class="chips">'+cast.map(x=>'<span class="chip">'+esc(x)+'</span>').join('')+(cd.cast||[]).map((x,j)=>'<span class="chip" style="border-color:var(--gold)">'+esc(x)+' <a data-rm="cast" data-j="'+j+'">×</a></span>').join('')+'<button class="btn sm ghost" data-addto="cast">+ add</button></div>'
+  +((s.voices||[]).length?'<p class="note">Voice only in the script: '+esc(s.voices.join(', '))+'</p>':'')
+  +'<div class="eyebrow">Props</div><div class="chips">'+props.map(x=>'<span class="chip">'+esc(x)+'</span>').join('')+(cd.props||[]).map((x,j)=>'<span class="chip" style="border-color:var(--gold)">'+esc(x)+' <a data-rm="props" data-j="'+j+'">×</a></span>').join('')+'<button class="btn sm ghost" data-addto="props">+ add</button></div>'
+  +'<p class="note">Plain: read from the files. Gold edge: you added it.</p>');
+ h+=fold('fx','FX and notes',esc((sb&&sb.fx)||cd.fx||(cd.notes||(sb&&sb.notes)?'notes':'none yet')),
+  '<div class="eyebrow">FX</div>'+(sb&&sb.fx?'<p style="margin:0 0 6px">'+esc(sb.fx)+' <span class="note">(storyboard)</span></p>':'')+'<input class="field" data-card="fx" value="'+esc(cd.fx)+'" placeholder="Effects, stunts, practical gags">'
+  +'<div class="eyebrow">Notes</div>'+(sb&&sb.notes?'<p style="margin:0 0 6px">'+esc(sb.notes)+' <span class="note">(storyboard)</span></p>':'')+'<textarea class="field" data-card="notes" placeholder="Your notes">'+esc(cd.notes)+'</textarea>');
+ const nd=(cd.decisions||[]).length;
+ h+=fold('dec','Decisions',nd?nd+' logged':'none yet',
+  '<div class="list">'+(cd.decisions||[]).map(x=>'<div class="li"><div class="w">'+esc(x.text)+'<small>'+esc(day(x.at))+'</small></div></div>').join('')+'</div>'
+  +'<div class="row" style="margin-top:8px"><input class="field" id="dec" placeholder="What you decided, e.g. cut the last two lines" style="flex:1"><button class="btn" id="decb">LOG IT</button></div><p class="note">Logged decisions stay. They are never edited after the fact.</p>');
+ const thr=threadBox(p,s,i,keys).replace('<div class="eyebrow">Setups and secrets</div>',''), nThr=(T.threadsAt(p.threads||[],keys[i])||[]).length;
+ h+=fold('thr','Setups and secrets',nThr?nThr+' here':'none yet',thr);
+ const rb=researchBox(p,keys[i]).replace('<div class="eyebrow">Research for this scene</div>',''), nR=(p.research||[]).filter(r=>r.scene===keys[i]).length;
+ h+=fold('res','Research for this scene',nR?nR+' pinned':'nothing pinned',rb);
+ const C=T.carry(s); if(C.length) h+=fold('talk','Who talks','counts only',carryHtml(s).replace('<div class="eyebrow">Who talks</div>',''));
  const M=T.missing(s,cd,sb,st);
- h+='<div><div class="eyebrow" style="margin-top:0">On file, and missing</div><div class="panel"><div class="hm">'+M.map(x=>'<i class="'+(x.have?'y':'n')+'">'+(x.have?'✓':'○')+'</i><div>'+esc(x.what)+(x.from?'<br><small>'+esc(x.from)+'</small>':'')+'</div>').join('')+'</div></div>';
+ h+=fold('file','On file',M.filter(x=>x.have).length+' of '+M.length,'<div class="hm">'+M.map(x=>'<i class="'+(x.have?'y':'n')+'">'+(x.have?'✓':'○')+'</i><div>'+esc(x.what)+(x.from?'<br><small>'+esc(x.from)+'</small>':'')+'</div>').join('')+'</div>');
  const ds=draftsOf(p.id).filter(d=>d.kind==='script');
  if(ds.length>1){
-  const k=keys[i];
-  h+='<div class="eyebrow">In each draft</div><div class="list">'+ds.map(d=>{ const S=scenesOf(d), K=T.keys(S), j=K.indexOf(k);
-   const mine=j>=0?S[j]:null, same=mine&&T.hashText(mine.text)===T.hashText(s.text);
-   return '<div class="li"><div class="w"><b>'+esc(d.label)+'</b>'+(d.id===(c&&c.id)?' <span class="tag cur">current</span>':'')+'<small>'+esc(filesOf(d))+'</small></div>'+(!mine?'<span class="tag red">not in it</span>':same?'<span class="tag">same</span>':'<span class="tag ok">different</span>')+'</div>'; }).join('')+'</div>';
+  const k=keys[i]; let inN=0, chN=0;
+  const rows=ds.map(d=>{ const S=scenesOf(d), K=T.keys(S), j=K.indexOf(k);
+   const mine=j>=0?S[j]:null, same=mine&&T.hashText(mine.text)===T.hashText(s.text); if(mine) inN++; if(mine&&!same) chN++;
+   return '<div class="li"><div class="w"><b>'+esc(d.label)+'</b>'+(d.id===(c&&c.id)?' <span class="tag cur">current</span>':'')+'<small>'+esc(filesOf(d))+'</small></div>'+(!mine?'<span class="tag red">not in it</span>':same?'<span class="tag">same</span>':'<span class="tag ok">different</span>')+'</div>'; }).join('');
+  h+=fold('drafts','In each draft','in '+inN+' of '+ds.length,'<div class="list">'+rows+'</div>');
  }
  if(c){
   const mc=T.markCounts(DB.marks[c.id])[keys[i]];
-  h+='<div class="eyebrow">Table read</div><div class="panel">'+(mc?countLine(mc):'No marks on this draft yet.')+'<div class="row" style="margin-top:10px"><button class="btn sm" data-tab="read">MARK LINES</button><button class="btn sm ghost" data-vfrom="'+esc(p.id+'|'+i)+'">SOUNDS LIKE YOU?</button></div></div>';
- }
- if(c){
-  h+='<div class="eyebrow">Story Studio</div><div class="panel">'+(st&&st.way?'<b>'+esc(st.way)+'</b> · '+st.done+' of '+st.total+' shots done':'Not in Story Studio yet.')
-   +'<div class="row" style="margin-top:10px"><button class="btn" id="studio">'+(st?'OPEN IN STORY STUDIO':'SHOOT IT IN STORY STUDIO')+'</button></div><p class="note">Sends the current draft to the sides shelf and opens Story Studio on it.</p></div>';
- }
- if(s.text){
-  const pv=c?prevScript(p,c):null, pS=pv?scenesOf(pv):null, pj=pS?T.keys(pS).indexOf(keys[i]):-1;
-  if(pv&&pj>=0){
-   const df=T.lineDiff(T.linesOf(pS[pj]),T.linesOf(s)), n=T.lineCounts(df);
-   h+='<div class="eyebrow">Since '+esc(pv.label)+'</div><p class="note" style="margin-top:0">'+(n.added||n.cut?n.added+' line'+(n.added===1?'':'s')+' new or rewritten, '+n.cut+' cut. Marked * in the margin; cut lines struck through.':'Not a word changed.')+'</p>';
-   h+='<div class="read rev">'+df.map(x=>'<div class="rl '+x.t+'"><span class="rmk">'+(x.t==='new'?'*':x.t==='cut'?'–':'')+'</span>'+esc(x.text)+'</div>').join('')+'</div>';
-  } else h+='<details><summary class="eyebrow" style="cursor:pointer">Read the scene</summary><div class="read">'+esc(s.text)+'</div></details>'+(pv?'<p class="note">New in this draft: not in '+esc(pv.label)+'.</p>':'');
+  h+=fold('read','Table read',mc?countLine(mc):'no marks yet','<div>'+(mc?countLine(mc):'No marks on this draft yet.')+'<div class="row" style="margin-top:10px"><button class="btn sm" data-tab="read">MARK LINES</button><button class="btn sm ghost" data-vfrom="'+esc(p.id+'|'+i)+'">SOUNDS LIKE YOU?</button></div></div>');
+  h+=fold('studio','Story Studio',st&&st.way?esc(st.way)+' · '+st.done+' of '+st.total+' shots':'not yet','<p style="margin:0">'+(st&&st.way?'<b>'+esc(st.way)+'</b> · '+st.done+' of '+st.total+' shots done':'Not in Story Studio yet.')+'</p><p class="note">The button at the top sends the current draft to the sides shelf and opens Story Studio on it.</p>');
  }
  h+='</div></div>';
  const nt=(p.notThis||[]).map(f=>({f,hits:T.ntHits(f,[s])})).filter(x=>x.hits.length);
- if(c&&nt.length) h+='<div class="panel"><div class="eyebrow" style="margin-top:0">Words from NOT THIS on this page</div>'+nt.map(({f,hits})=>'<p class="note" style="margin:4px 0"><b>'+esc(f.text)+'</b>: '+hits.slice(0,3).map(x=>'\u201c'+esc(x.line)+'\u201d').join(' ')+'</p>').join('')+'<button class="btn sm ghost" data-tab="threads">SEE NOT THIS</button></div>';
+ if(c&&nt.length) h+='<div class="panel" style="margin-top:14px"><div class="eyebrow" style="margin-top:0">Words from NOT THIS on this page</div>'+nt.map(({f,hits})=>'<p class="note" style="margin:4px 0"><b>'+esc(f.text)+'</b>: '+hits.slice(0,3).map(x=>'“'+esc(x.line)+'”').join(' ')+'</p>').join('')+'<button class="btn sm ghost" data-tab="threads">SEE NOT THIS</button></div>';
  return h;
 }
 function countLine(c){ return c.landed+' landed, '+c.lost+' lost me, '+c.confused+' confused · '+c.readers.length+' reader'+(c.readers.length===1?'':'s'); }
@@ -850,6 +875,7 @@ function wire(){
  const vw=$('vwho'); if(vw) vw.onchange=()=>{ VOICE.who=vw.value; render(); };
  document.querySelectorAll('[data-vfrom]').forEach(b=>b.onclick=()=>{ VOICE.from=b.dataset.vfrom; VOICE.who=''; go('voice'); });
  document.querySelectorAll('[data-vgo]').forEach(a=>a.onclick=()=>{ const [pid,i]=a.dataset.vgo.split('|'); VIEW.p=pid; VIEW.tab='scenes'; VIEW.scene=Number(i); render(); window.scrollTo(0,0); });
+ document.querySelectorAll('details.fold[data-f]').forEach(x=>x.addEventListener('toggle',()=>{ if(x.open) OPEN.add(x.dataset.f); else OPEN.delete(x.dataset.f); }));
  const d=$('drop');
  if(d){ d.onclick=()=>$('file').click(); d.ondragover=e=>{e.preventDefault();d.classList.add('over');}; d.ondragleave=()=>d.classList.remove('over');
   d.ondrop=e=>{ e.preventDefault(); d.classList.remove('over'); if(e.dataTransfer.files.length) addFiles([...e.dataTransfer.files]); }; }

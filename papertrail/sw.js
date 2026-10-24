@@ -1,8 +1,8 @@
 /* PAPER TRAIL offline shell. Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='paper-trail-0.11.25';
+const CACHE='paper-trail-0.11.26';
 const FILES=['../shared/tour.js','../shared/view.js','./','index.html','../shared/hot.js','../shared/kit.js','../shared/capture.js','../shared/notecam.js','app.js','trail.js','../shared/graph.js','../shared/you.js','../shared/textpdf.js','manifest.webmanifest',
  '../shared/shelf.js','../shared/inbox.js','../shared/xlsx.js','../actor-os/sides.js','../actor-os/pdf.js','../film/film.js',
- 'icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];
+ 'icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png','../img/sigil-film-180.png','../fonts/jost-latin-400-normal.woff2','../fonts/jost-latin-500-normal.woff2','../fonts/jost-latin-600-normal.woff2','../fonts/courier-prime-latin-400-normal.woff2','../fonts/courier-prime-latin-700-normal.woff2'];
 self.addEventListener('install',e=>{ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting())); });
 self.addEventListener('activate',e=>{ e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE&&k.startsWith('paper-trail-')).map(k=>caches.delete(k)))).then(()=>self.clients.claim())); });
 /* network first for the shared readers, so a fix in Actor OS or Story Studio reaches here */

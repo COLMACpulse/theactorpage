@@ -11,8 +11,9 @@ await tabGo(p,'add'); await p.fill('#ptitle','Salt Road'); await p.fill('#paste'
 const before=await p.evaluate(async()=>{ const D=window.__trail.DB(); const d=Object.values(D.drafts)[0]; return d.hash||''; });
 const pid=await p.evaluate(()=>Object.values(window.__trail.DB().projects)[0].id);
 await tabGo(p,'projects'); await p.click('[data-open="'+pid+'"]'); await p.waitForTimeout(200); await tabGo(p,'scenes'); await p.waitForTimeout(200);
-want('scene cards: the top two talkers, by share', /DANA PELL 77% · ROSS 23%/.test(await p.innerText('.grid')), (await p.innerText('.grid')).slice(0,300));
+want('scene cards stay short: no talk shares on the card', !/77%/.test(await p.innerText('.grid')), (await p.innerText('.grid')).slice(0,300));
 await p.click('[data-scene="0"]'); await p.waitForTimeout(200);
+want('in the scene: WHO TALKS is folded until you ask', !(await p.isVisible('.carry'))); await p.click('[data-f="talk"] summary'); await p.waitForTimeout(100);
 const m=await p.innerText('#main');
 want('in the scene: WHO TALKS, share, speeches, words, counts only', /Who talks/i.test(m)&&/DANA PELL\s*77% · 1 speech, 10 words/.test(m)&&/ROSS\s*23% · 1 speech, 3 words/.test(m)&&/Counts only/.test(m), m.slice(0,900));
 await tabGo(p,'repeats'); await p.waitForTimeout(200);

@@ -38,7 +38,7 @@ await p.evaluate(()=>{ const d=Object.values(window.__trail.DB().drafts)[0]; d.h
 await p.click('#proofmk'); await p.waitForTimeout(400);
 want('a draft that no longer matches its fingerprint is called out', /no longer give the fingerprint this draft came in with/.test(await p.innerText('#proofout .read')));
 await p.reload(); await p.waitForTimeout(800);
-const [all]=await Promise.all([p.waitForEvent('download'),p.click('#proofall')]);
+await p.click('#fCopy summary'); const [all]=await Promise.all([p.waitForEvent('download'),p.click('#proofall')]);
 const txt=fs.readFileSync(await all.path(),'utf8');
 want('Projects: proof of every draft, saved as text', /^Paper Trail proof of every draft \d{4}-\d\d-\d\d\.txt$/.test(all.suggestedFilename())&&/^PROOF OF DRAFT\nRidge Line/.test(txt)&&txt.includes(fp(D2)), [all.suggestedFilename(),txt.slice(0,200)]);
 want('no em dashes', !/—/.test(txt+await p.innerText('body')));

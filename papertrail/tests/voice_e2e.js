@@ -46,7 +46,7 @@ want('a line word for word in your drafts: said so, not shown as a match', /1 li
 await tabGo(p,'projects'); await p.waitForTimeout(200);
 const rid=await p.evaluate(()=>Object.values(window.__trail.DB().projects).find(x=>x.title==='Ridge Line').id);
 await p.click('[data-open="'+rid+'"]'); await p.waitForTimeout(200); await p.click('[data-scene="0"]'); await p.waitForTimeout(200);
-await p.click('[data-vfrom]'); await p.waitForTimeout(300);
+await p.click('[data-f="read"] summary'); await p.click('[data-vfrom]'); await p.waitForTimeout(300);
 want('SOUNDS LIKE YOU? on a scene: that scene, picked', /Ridge Line, SC 1/i.test(await p.innerText('#main'))&&await p.$eval('#vfrom',s=>s.options[s.selectedIndex].textContent)==='SC 1 EXT. RIDGE - DAY');
 want('nothing runs off the side', await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1), await p.evaluate(()=>document.documentElement.scrollWidth));
 want('no em dashes', !/—/.test(await p.innerText('#main')));
