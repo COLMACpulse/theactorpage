@@ -12,6 +12,8 @@ const add=async(title,text)=>{ await tabGo(p,'add'); await p.fill('#ptitle',titl
 await add('Ridge Line','Title: Ridge Line\n\nEXT. RIDGE - DAY\n\nVale climbs.\n\nVALE\nRope.\n\nHALE\nSure?\n\nINT. CABIN - NIGHT\n\nHale waits.\n\nHALE\nShe is gone.\n\nVALE\nNot yet.\n\nINT. CABIN - DAY\n\nMorning.\n\nVALE\nUp.\n\nHALE\nNo.\n');
 await add('Dry Gulch','Title: Dry Gulch\n\nINT. SALOON - NIGHT\n\nCold stove.\n\nVALE\nWhiskey.\n\nJO PARK\nClosed.\n\nINT. CABIN - NIGHT\n\nDark.\n\nJO PARK\nWho is there?\n');
 await p.goto('http://localhost:8811/papertrail/?tab=universe'); await p.waitForTimeout(700);
+want('a phone opens to the list', !!(await p.$('.ulist'))&&!(await p.$('.umap svg')));
+await p.click('[data-uview="map"]'); await p.waitForTimeout(300);
 let m=await p.innerText('#main');
 want('?tab=universe opens the map', !!(await p.$('.umap svg')), m.slice(0,300));
 const types=await p.$$eval('.un',x=>x.map(g=>g.getAttribute('class').split(' ')[1]));

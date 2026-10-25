@@ -572,13 +572,21 @@ T.universe=function(projects,opts){ opts=opts||{}; const N=[], E=[], idx={}, add
   (p.threads||[]).slice(0,opts.maxThreads||6).forEach((th,i)=>{ const id='t:'+p.id+':'+i; add(id,'thread',String(th.text||'').slice(0,40)||'(a storyline)',5,{pid:p.id,kind:th.kind,text:th.text}); E.push({a:'p:'+p.id,b:id,kind:'thread'});
    C.forEach(c=>{ const re=T.nameRe(c.name); if(re&&re.test(String(th.text||''))) E.push({a:id,b:'c:'+p.id+':'+T.norm(c.name),kind:'about'}); }); });
  });
- Object.values(nameIn).forEach(L=>{ for(let i=1;i<L.length;i++) E.push({a:L[0],b:L[i],kind:'samename'}); });
+ // your roles: the characters you read for and booked, each joined to its show (from Characters)
+ const roleShows={}; let nRead=0, nBooked=0;
+ (opts.roles||[]).forEach(r=>{ if(!r||!r.name) return; const sp=T.norm(r.project)||'(NO PROJECT)', sid='a:'+sp, n=add(sid,'aproject',r.project||'No project named',12,{title:r.project||'',roles:0});
+  n.data.roles++; const rid='r:'+sp+':'+T.norm(r.name); if(idx[rid]==null){ add(rid,'role',r.name,r.booked?10:8,{title:r.project||'',booked:!!r.booked,key:r.key||''}); E.push({a:sid,b:rid,kind:'played'}); if(r.booked) nBooked++; else nRead++; } roleShows[sp]=1; });
+ // you said these are one person (Characters, SAME PERSON): a solid line, and no dashed one between them
+ const same=new Set();
+ (opts.same||[]).forEach(([a,b])=>{ const A='c:'+a.replace('|',':'), B='c:'+b.replace('|',':'); if(idx[A]!=null&&idx[B]!=null){ E.push({a:A,b:B,kind:'same'}); same.add([A,B].sort().join('~')); } });
+ Object.values(nameIn).forEach(L=>{ for(let i=1;i<L.length;i++) if(!same.has([L[0],L[i]].sort().join('~'))) E.push({a:L[0],b:L[i],kind:'samename'}); });
  const top=(o,k)=>Object.keys(o).sort((a,b)=>o[b]-o[a]).slice(0,k);
  const chars=N.filter(n=>n.type==='character'), facts=[];
  facts.push((projects||[]).length+' project'+((projects||[]).length===1?'':'s')+', '+chars.length+' speaking character'+(chars.length===1?'':'s')+' on the map.');
- const again=Object.keys(nameIn).filter(k=>nameIn[k].length>1); if(again.length) facts.push('Names in more than one project: '+again.slice(0,6).join(', ')+(again.length>6?' and '+(again.length-6)+' more':'')+'. Same name, not the same person unless you say so.');
+ const again=Object.keys(nameIn).filter(k=>nameIn[k].length>1); if(again.length) facts.push('Names in more than one project: '+again.slice(0,6).join(', ')+(again.length>6?' and '+(again.length-6)+' more':'')+'. Same name, not the same person unless you say so in Characters.');
  const pl=top(placeCount,5).filter(x=>placeCount[x]>1); if(pl.length) facts.push('The places you go back to: '+pl.map(x=>x+' ('+placeCount[x]+' scenes)').join(', ')+'.');
- const tt=Object.values(todCount).reduce((a,b)=>a+b,0); if(tt) facts.push('Time of day across your scenes: '+top(todCount,4).map(x=>x+' '+Math.round(todCount[x]/tt*100)+'%').join(', ')+'.');
+ const tt=Object.values(todCount).reduce((a,b)=>a+b,0); if(tt) facts.push('Time of day across your scenes: '+top(todCount,4).map(x=>x.charAt(0)+x.slice(1).toLowerCase()+' '+todCount[x]+' scene'+(todCount[x]===1?'':'s')).join(', ')+'.');
+ if(nRead||nBooked) facts.push('Your roles on the map: '+(nRead?nRead+' you read for':'')+(nRead&&nBooked?', ':'')+(nBooked?nBooked+' booked':'')+'.');
  const most=chars.slice().sort((a,b)=>b.data.lines-a.data.lines)[0]; if(most) facts.push('The most lines anywhere: '+most.label+' in '+most.data.title+' ('+most.data.lines+').');
  return {nodes:N,edges:E.filter(e=>idx[e.a]!=null&&idx[e.b]!=null),facts};
 };

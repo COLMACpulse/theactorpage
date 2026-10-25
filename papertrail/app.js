@@ -803,39 +803,70 @@ function vAllSent(){
  return h+WHERE;
 }
 /* ---------- YOUR UNIVERSE: the map ---------- */
-let UF={c:1,l:1,t:1}, USEL=null, UCACHE={k:'',U:null,P:null};
-function uData(){ const P=projects().map(p=>({p,c:current(p)})).filter(x=>x.c), many=P.length>8||(P.length>3&&(typeof innerWidth!=='undefined'?innerWidth:1000)<640);
- const U=T.universe(P.map(x=>({id:x.p.id,title:x.p.title,scenes:scenesOf(x.c),threads:x.p.threads||[]})),{maxChars:many?7:12,maxPlaces:many?4:6,maxThreads:many?3:6});
- const keep=n=>n.type==='project'||(n.type==='character'&&UF.c)||(n.type==='place'&&UF.l)||(n.type==='thread'&&UF.t), nodes=U.nodes.filter(keep), ids=new Set(nodes.map(n=>n.id));
- const V={nodes,edges:U.edges.filter(e=>ids.has(e.a)&&ids.has(e.b)),facts:U.facts}, key=JSON.stringify([nodes.map(n=>n.id),V.edges.length]);
- const narrow=(typeof innerWidth!=='undefined'?innerWidth:1000)<640, W=narrow?600:1000, H=narrow?860:640;
- if(UCACHE.k!==key+W){ const L=Graph.fit(T.uLayout(V,W,H,nodes.length>200?160:260),W,H);
-  UCACHE={k:key+W,U:V,P:L,W,H}; } return UCACHE; }
+let UF={c:1,l:1,t:1,r:1}, USEL=null, UCACHE={k:'',U:null,P:null}, UVIEW='', UROLES=null;
+const narrowNow=()=>(typeof innerWidth!=='undefined'?innerWidth:1000)<640;
+/* THEACTORPAGES scripts you haven't kept here yet, read on this device, as a script */
+function wbScripts(){ const out=[]; let idx=[]; try{ idx=JSON.parse(localStorage.getItem('writers-blockage-index')||'[]')||[]; }catch(e){}
+ const kept=new Set(Object.values(DB.projects).map(p=>T.norm(p.title)));
+ idx.forEach(r=>{ if(r.practice) return; let d=null; try{ d=JSON.parse(localStorage.getItem('wb-proj:'+r.id)||'null'); }catch(e){} if(!d||d.practice||!Array.isArray(d.blocks)) return;
+  if(/Practice (scene:|cut from )/.test(d.blocks.slice(0,2).map(b=>b&&b.text||'').join(' '))) return;
+  const title=d.title||r.title||'Untitled'; if(kept.has(T.norm(title))) return;
+  const t=d.blocks.map(b=>{ const x=String(b&&b.text||'').trim(); if(!x) return ''; const ty=b.type;
+   if(ty==='Scene Heading') return '\n'+x.toUpperCase()+'\n'; if(ty==='Character') return '\n'+x.toUpperCase(); if(ty==='Parenthetical') return x.startsWith('(')?x:'('+x+')'; if(ty==='Dialogue') return x; if(ty==='Transition') return '\n'+x.toUpperCase()+'\n'; return '\n'+x+'\n'; }).join('\n');
+  const sc=T.scenes(t,'script'); if(sc.length) out.push({id:'wb-'+r.id,wb:r.id,title,scenes:sc,threads:[]}); });
+ return out; }
+async function loadRoles(){ try{ if(!window.Characters){ UROLES=[]; return; } const L=await Characters.gather(); UROLES=L.filter(c=>!c.hidden&&(c.groups.aud||c.groups.booked)).map(c=>({name:c.name,project:c.project,booked:!!c.groups.booked,key:c.key})); }catch(e){ UROLES=[]; } if(VIEW.tab==='universe') render(); }
+function uData(){ const P=projects().map(p=>({p,c:current(p)})).filter(x=>x.c), W=wbScripts(), all=P.map(x=>({id:x.p.id,title:x.p.title,scenes:scenesOf(x.c),threads:x.p.threads||[]})).concat(W);
+ const many=all.length>8||(all.length>3&&narrowNow());
+ const U=T.universe(all,{maxChars:many?7:12,maxPlaces:many?4:6,maxThreads:many?3:6,roles:UF.r?(UROLES||[]):[],same:(DB.people&&DB.people.same)||[]});
+ const keep=n=>n.type==='project'||(n.type==='character'&&UF.c)||(n.type==='place'&&UF.l)||(n.type==='thread'&&UF.t)||((n.type==='aproject'||n.type==='role')&&UF.r), nodes=U.nodes.filter(keep), ids=new Set(nodes.map(n=>n.id));
+ const V={nodes,edges:U.edges.filter(e=>ids.has(e.a)&&ids.has(e.b)),facts:U.facts,all,wb:new Set(W.map(w=>'p:'+w.id))}, key=JSON.stringify([nodes.map(n=>n.id),V.edges.length]);
+ const narrow=narrowNow(), Wd=narrow?600:1000, H=narrow?860:640;
+ if(UCACHE.k!==key+Wd){ const L=Graph.fit(T.uLayout(V,Wd,H,nodes.length>200?160:260),Wd,H);
+  UCACHE={k:key+Wd,U:V,P:L,W:Wd,H}; } else UCACHE.U=V; return UCACHE; }
+function uList(D){ const U=D.U, near=id=>U.edges.filter(e=>e.a===id||e.b===id).map(e=>U.nodes.find(x=>x.id===(e.a===id?e.b:e.a))).filter(Boolean);
+ const many={}; U.nodes.filter(n=>n.type==='character').forEach(n=>{ const k=T.norm(n.label); many[k]=(many[k]||0)+1; });
+ const proj=U.nodes.filter(n=>n.type==='project'), acting=U.nodes.filter(n=>n.type==='aproject');
+ let h=proj.map(n=>{ const nb=near(n.id), wb=D.U.wb.has(n.id), ppl=nb.filter(x=>x.type==='character'), pl=nb.filter(x=>x.type==='place'), th=nb.filter(x=>x.type==='thread');
+  return '<div class="panel ulist"><div class="row" style="justify-content:space-between;align-items:baseline"><b class="ut">'+esc(n.label)+'</b><span class="note">'+n.data.scenes+' scene'+(n.data.scenes===1?'':'s')+(wb?' · in THEACTORPAGES':'')+'</span></div>'
+   +'<div class="eyebrow">People</div><div>'+(ppl.length?ppl.map(x=>(wb?'<span class="'+(many[T.norm(x.label)]>1?'utwin':'')+'">'+esc(x.label)+'</span>':'<a data-uchar="'+esc(x.data.pid)+'|'+esc(x.label)+'" class="'+(many[T.norm(x.label)]>1?'utwin':'')+'">'+esc(x.label)+'</a>')).join(' · '):'<span class="note">Nobody who speaks yet</span>')+'</div>'
+   +'<div class="eyebrow">Places</div><div>'+(pl.length?pl.map(x=>esc(x.label)+(x.data.scenes>1?' ('+x.data.scenes+')':'')).join(' · '):'<span class="note">None named</span>')+'</div>'
+   +'<div class="eyebrow">Storylines</div><div>'+(th.length?th.map(x=>esc(x.data.text||x.label)).join('<br>'):'<span class="note">None set up yet</span>')+'</div>'
+   +'<div class="row" style="margin-top:10px">'+(wb?'<a class="btn sm" href="../write/writers-blockage.html">OPEN IN THEACTORPAGES</a>':'<button class="btn sm" data-uopen="'+esc(n.data.pid)+'">OPEN IT</button>')+'</div></div>'; }).join('');
+ if(acting.length) h+='<div class="eyebrow" style="margin-top:20px">Your roles</div>'+acting.map(n=>{ const r=near(n.id).filter(x=>x.type==='role');
+  return '<div class="panel ulist"><b class="ut">'+esc(n.label)+'</b><div style="margin-top:6px">'+r.map(x=>esc(x.label)+' <span class="note">· '+(x.data.booked?'booked':'read for')+'</span>').join('<br>')+'</div><div class="row" style="margin-top:10px"><a class="btn sm ghost" href="../characters/">IN CHARACTERS</a></div></div>'; }).join('');
+ return h; }
 function vUniverse(){
- const P=projects().filter(p=>current(p));
- let h='<p class="note">Every project, its people, its places and its storylines, from your own pages. Lines join who shares scenes; a dashed line joins the same name in two projects (not the same person unless you say so). Tap anything.</p>';
- if(!P.length) return h+'<div class="panel">Nothing on the map yet. Bring in your drafts. <button class="btn sm" data-tab="add">ADD DRAFTS</button></div>';
+ const any=projects().some(p=>current(p))||wbScripts().length||(UROLES&&UROLES.length);
+ if(UROLES===null){ UROLES=[]; loadRoles(); }
+ let h='<p class="note" style="margin-top:0">Your people, places and storylines, from every script you write here and keep in Paper Trail, with the roles you read for and booked. A line joins who shares scenes; a dashed line, the same name in two projects; a gold line, the ones you said are one person in Characters.</p>';
+ if(!any) return h+'<div class="panel">Nothing on the map yet. Write a script in THEACTORPAGES or bring in your drafts. <button class="btn sm" data-tab="add">ADD DRAFTS</button></div>';
+ const view=UVIEW||(narrowNow()?'list':'map');
  const D=uData(), U=D.U, L=D.P, ix={}, k=D.W/Math.max(300,Math.min(D.W,(typeof innerWidth!=='undefined'?innerWidth:1000)-34)); U.nodes.forEach((n,i)=>ix[n.id]=i);
- h+='<div class="row" style="gap:6px;margin-bottom:8px">'+[['c','People'],['l','Places'],['t','Storylines']].map(([k,l])=>'<button class="btn sm'+(UF[k]?' pri':' ghost')+'" data-uf="'+k+'">'+l+'</button>').join('')+'</div>';
+ h+='<div class="row" style="justify-content:space-between;gap:8px;margin-bottom:10px"><div class="seg" role="group" aria-label="Map or list"><button class="'+(view==='map'?'on':'')+'" data-uview="map">Map</button><button class="'+(view==='list'?'on':'')+'" data-uview="list">List</button></div>'
+  +'<div class="row" style="gap:6px">'+[['c','People'],['l','Places'],['t','Storylines'],['r','Your roles']].map(([q,l])=>'<button class="btn sm'+(UF[q]?' pri':' ghost')+'" data-uf="'+q+'" aria-pressed="'+!!UF[q]+'">'+l+'</button>').join('')+'</div></div>';
+ if(view==='list') return h+uList(D)+'<div class="eyebrow">What the map shows</div><div class="panel">'+U.facts.map(f=>'<p style="margin:4px 0">'+esc(f)+'</p>').join('')+'</div>';
  let g=''; const near=new Set(); if(USEL) U.edges.forEach(e=>{ if(e.a===USEL) near.add(e.b); if(e.b===USEL) near.add(e.a); });
- U.edges.forEach(e=>{ const a=L[ix[e.a]], b=L[ix[e.b]]; g+='<line class="ue ue-'+e.kind+(USEL&&(e.a===USEL||e.b===USEL)?' uon':'')+'" x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'"'+(e.w?' stroke-width="'+Math.min(4,0.8+e.w/3)+'"':'')+'/>'; });
- U.nodes.forEach((n,i)=>{ const q=L[i], r=Math.round(n.size*Math.max(1,k*.75)), fs=Math.round((n.type==='project'?13:11)*k), sel=USEL===n.id?' usel':near.has(n.id)?' uon':'';
-  const shape=n.type==='project'?'<circle r="'+r+'"/>':n.type==='character'?'<circle r="'+r+'"/>':n.type==='place'?'<rect x="'+(-r)+'" y="'+(-r)+'" width="'+(2*r)+'" height="'+(2*r)+'" rx="2"/>':'<path d="M0 '+(-r-2)+'L'+(r+2)+' 0L0 '+(r+2)+'L'+(-r-2)+' 0Z"/>';
+ U.edges.forEach(e=>{ const a=L[ix[e.a]], b=L[ix[e.b]]; if(!a||!b) return; g+='<line class="ue ue-'+e.kind+(USEL&&(e.a===USEL||e.b===USEL)?' uon':'')+'" x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'"'+(e.w?' stroke-width="'+Math.min(4,0.8+e.w/3)+'"':'')+'/>'; });
+ U.nodes.forEach((n,i)=>{ const q=L[i]; if(!q) return; const big=n.type==='project'||n.type==='aproject', r=Math.round(n.size*Math.max(1,k*.75)), fs=Math.round((big?14:12)*k), sel=USEL===n.id?' usel':near.has(n.id)?' uon':'';
+  const shape=n.type==='place'?'<rect x="'+(-r)+'" y="'+(-r)+'" width="'+(2*r)+'" height="'+(2*r)+'" rx="2"/>':n.type==='thread'?'<path d="M0 '+(-r-2)+'L'+(r+2)+' 0L0 '+(r+2)+'L'+(-r-2)+' 0Z"/>':'<circle r="'+r+'"/>';
   const lab=n.label.length>22?n.label.slice(0,21)+'…':n.label, hw=Math.max(r+6,(n.type!=='thread'||USEL===n.id?lab.length*fs*.33:0),14*k);
-  g+='<g class="un un-'+n.type+sel+'" data-un="'+esc(n.id)+'" transform="translate('+q.x+' '+q.y+')" tabindex="0"><rect class="uhit" x="'+(-hw)+'" y="'+(-r-6)+'" width="'+(2*hw)+'" height="'+(2*r+fs+12)+'"/>'+shape+(n.type!=='thread'||USEL===n.id?'<text y="'+(r+fs+2)+'" font-size="'+fs+'">'+esc(lab)+'</text>':'')+'</g>'; });
- h+='<div class="umap"><svg'+(USEL?' class="ufocus"':'')+' viewBox="0 0 '+D.W+' '+D.H+'" role="img" aria-label="Your universe">'+g+'</svg></div>';
- h+='<div class="ulegend note"><span><i class="lp"></i>project</span><span><i class="lc"></i>person</span><span><i class="ll"></i>place</span><span><i class="lt"></i>storyline</span></div>';
- h+='<div class="panel" id="uinfo">'+uInfo(U)+'</div>';
- h+='<div class="eyebrow">What the map shows</div><div class="panel">'+U.facts.map(f=>'<p style="margin:4px 0">'+esc(f)+'</p>').join('')+'</div>';
+  g+='<g class="un un-'+n.type+(n.type==='role'&&n.data.booked?' ubooked':'')+(D.U.wb.has(n.id)?' uwb':'')+sel+'" data-un="'+esc(n.id)+'" transform="translate('+q.x+' '+q.y+')" tabindex="0"><rect class="uhit" x="'+(-hw)+'" y="'+(-r-6)+'" width="'+(2*hw)+'" height="'+(2*r+fs+12)+'"/>'+shape+(n.type!=='thread'||USEL===n.id?'<text y="'+(r+fs+2)+'" font-size="'+fs+'">'+esc(lab)+'</text>':'')+'</g>'; });
+ h+='<div class="ugrid"><div><div class="umap"><svg'+(USEL?' class="ufocus"':'')+' viewBox="0 0 '+D.W+' '+D.H+'" role="img" aria-label="Your universe">'+g+'</svg></div>';
+ h+='<div class="ulegend note"><span><i class="lp"></i>your project</span><span><i class="lc"></i>person</span><span><i class="ll"></i>place</span><span><i class="lt"></i>storyline</span><span><i class="lr"></i>your role</span><span><i class="ls"></i>one person</span></div></div>';
+ h+='<div><div class="panel" id="uinfo">'+uInfo(U)+'</div><div class="eyebrow">What the map shows</div><div class="panel">'+U.facts.map(f=>'<p style="margin:4px 0">'+esc(f)+'</p>').join('')+'</div></div></div>';
  return h;
 }
-function uInfo(U){ const n=USEL&&U.nodes.find(x=>x.id===USEL); if(!n) return '<span class="note">Tap a project, a person, a place or a storyline.</span>';
- const near=U.edges.filter(e=>(e.a===n.id||e.b===n.id)&&e.kind!=='samename').map(e=>U.nodes.find(x=>x.id===(e.a===n.id?e.b:e.a))).filter(Boolean);
- if(n.type==='project') return '<b>'+esc(n.label)+'</b><p class="note" style="margin:4px 0">'+n.data.scenes+' scenes · '+n.data.words.toLocaleString('en-US')+' words · '+near.filter(x=>x.type==='character').length+' people on the map</p><button class="btn sm" data-uopen="'+esc(n.data.pid)+'">OPEN IT</button>';
- if(n.type==='character'){ const same=U.edges.filter(e=>e.kind==='samename'&&(e.a===n.id||e.b===n.id)).map(e=>U.nodes.find(x=>x.id===(e.a===n.id?e.b:e.a))).filter(Boolean);
-  return '<b>'+esc(n.label)+'</b><p class="note" style="margin:4px 0">'+esc(n.data.title)+' · '+n.data.lines+' lines'+(near.filter(x=>x.type==='character').length?' · shares scenes with '+near.filter(x=>x.type==='character').map(x=>esc(x.label)).join(', '):'')+(same.length?'<br>Same name in '+same.map(x=>esc(x.data.title)).join(', ')+'.':'')+'</p><button class="btn sm" data-uchar="'+esc(n.data.pid)+'|'+esc(n.label)+'">EVERYTHING ON '+esc(n.label)+'</button>'; }
- if(n.type==='place') return '<b>'+esc(n.label)+'</b><p class="note" style="margin:4px 0">'+n.data.scenes+' scene'+(n.data.scenes===1?'':'s')+' · in '+n.data.projects.map(esc).join(', ')+'</p>';
- return '<b>'+(n.data.kind==='secret'?'A secret':'A setup')+'</b><p style="margin:4px 0">'+esc(n.data.text||'')+'</p><button class="btn sm" data-uthread="'+esc(n.data.pid)+'">SEE SETUPS</button>'; }
+function uInfo(U){ const n=USEL&&U.nodes.find(x=>x.id===USEL); if(!n) return '<span class="note">Tap a project, a person, a place, a storyline or a role.</span>';
+ const near=U.edges.filter(e=>(e.a===n.id||e.b===n.id)&&e.kind!=='samename'&&e.kind!=='same').map(e=>U.nodes.find(x=>x.id===(e.a===n.id?e.b:e.a))).filter(Boolean);
+ const wb=U.wb&&U.wb.has(n.id);
+ if(n.type==='project') return '<span class="eyebrow" style="margin:0">A project</span><div class="ut">'+esc(n.label)+'</div><p class="note" style="margin:4px 0">'+n.data.scenes+' scenes · '+n.data.words.toLocaleString('en-US')+' words · '+near.filter(x=>x.type==='character').length+' people on the map'+(wb?' · in THEACTORPAGES, not kept in Paper Trail yet':'')+'</p>'+(wb?'<a class="btn sm" href="../write/writers-blockage.html">OPEN IN THEACTORPAGES</a>':'<button class="btn sm" data-uopen="'+esc(n.data.pid)+'">OPEN IT</button>');
+ if(n.type==='character'){ const same=U.edges.filter(e=>e.kind==='samename'&&(e.a===n.id||e.b===n.id)).map(e=>U.nodes.find(x=>x.id===(e.a===n.id?e.b:e.a))).filter(Boolean), one=U.edges.filter(e=>e.kind==='same'&&(e.a===n.id||e.b===n.id)).map(e=>U.nodes.find(x=>x.id===(e.a===n.id?e.b:e.a))).filter(Boolean), pwb=U.wb&&U.wb.has('p:'+n.data.pid);
+  return '<span class="eyebrow" style="margin:0">A person</span><div class="ut">'+esc(n.label)+'</div><p class="note" style="margin:4px 0">'+esc(n.data.title)+' · '+n.data.lines+' lines'+(near.filter(x=>x.type==='character').length?' · shares scenes with '+near.filter(x=>x.type==='character').map(x=>esc(x.label)).join(', '):'')+(one.length?'<br>One person with '+one.map(x=>esc(x.label)+' in '+esc(x.data.title)).join(', ')+': you said so in Characters.':'')+(same.length?'<br>Same name in '+same.map(x=>esc(x.data.title)).join(', ')+'.':'')+'</p>'+(pwb?'':'<button class="btn sm" data-uchar="'+esc(n.data.pid)+'|'+esc(n.label)+'">EVERYTHING ON '+esc(n.label)+'</button>'); }
+ if(n.type==='place') return '<span class="eyebrow" style="margin:0">A place</span><div class="ut">'+esc(n.label)+'</div><p class="note" style="margin:4px 0">'+n.data.scenes+' scene'+(n.data.scenes===1?'':'s')+' · in '+n.data.projects.map(esc).join(', ')+'</p>';
+ if(n.type==='aproject') return '<span class="eyebrow" style="margin:0">A show you read for</span><div class="ut">'+esc(n.label)+'</div><p class="note" style="margin:4px 0">'+near.filter(x=>x.type==='role').map(x=>esc(x.label)+' ('+(x.data.booked?'booked':'read for')+')').join(', ')+'</p><a class="btn sm ghost" href="../characters/">IN CHARACTERS</a>';
+ if(n.type==='role') return '<span class="eyebrow" style="margin:0">'+(n.data.booked?'A role you booked':'A role you read for')+'</span><div class="ut">'+esc(n.label)+'</div><p class="note" style="margin:4px 0">'+esc(n.data.title||'No project named')+'</p><a class="btn sm ghost" href="../characters/?g='+(n.data.booked?'booked':'aud')+'">IN CHARACTERS</a>';
+ return '<span class="eyebrow" style="margin:0">'+(n.data.kind==='secret'?'A secret':'A setup')+'</span><p style="margin:4px 0">'+esc(n.data.text||'')+'</p><button class="btn sm" data-uthread="'+esc(n.data.pid)+'">SEE SETUPS</button>'; }
 function vChars(p){
  const ds=draftsOf(p.id).filter(d=>d.kind==='script'&&!d.retired);
  if(!ds.length) return '<div class="panel">No script drafts yet.</div>';
@@ -873,6 +904,7 @@ function wire(){
  document.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>{ VIEW.scene=null; render(); });
  /* YOUR UNIVERSE */
  document.querySelectorAll('[data-uf]').forEach(b=>b.onclick=()=>{ UF[b.dataset.uf]=UF[b.dataset.uf]?0:1; render(); });
+ document.querySelectorAll('[data-uview]').forEach(b=>b.onclick=()=>{ UVIEW=b.dataset.uview; render(); });
  document.querySelectorAll('[data-un]').forEach(g=>{ const f=()=>{ USEL=USEL===g.dataset.un?null:g.dataset.un; render(); }; g.onclick=f; g.onkeydown=e=>{ if(e.key==='Enter') f(); }; });
  document.querySelectorAll('[data-uopen]').forEach(b=>b.onclick=()=>{ VIEW.p=b.dataset.uopen; go('scenes'); });
  document.querySelectorAll('[data-uchar]').forEach(b=>b.onclick=()=>{ const i=b.dataset.uchar.indexOf('|'); VIEW.p=b.dataset.uchar.slice(0,i); VIEW.char=b.dataset.uchar.slice(i+1); VIEW.tab='characters'; render(); window.scrollTo(0,0); });
