@@ -13,7 +13,7 @@ await p.fill('#setnote','boom in frame'); await p.click('[data-mk="never"]'); aw
 await p.click('#shotdone'); await p.waitForTimeout(150); await p.fill('#setnote','use the end'); await p.click('[data-mk="backup"]'); await p.waitForTimeout(150);
 const T0=new Date(2026,9,18,9,0).getTime(), mn=60000;
 await p.evaluate(([T0,mn])=>{ const d=JSON.parse(localStorage.getItem('film_os_v1')), c=d.scripts[d.cur]; c.set.log.forEach((t,i)=>t.at=T0+[2,6,30][i]*mn); localStorage.setItem('film_os_v1',JSON.stringify(d)); },[T0,mn]);
-await p.goto('http://localhost:8811/film/?open=1'); await p.waitForTimeout(500); await p.click('#tabs [data-r="post"]'); await p.waitForTimeout(300);
+await p.goto('http://localhost:8811/film/?open=1'); await p.waitForTimeout(500); await p.click('#tabs [data-r="post"]'); await p.waitForTimeout(200); await p.evaluate(()=>document.querySelectorAll('details.ffold').forEach(d=>{ d.open=true; })); await p.waitForTimeout(300);
 let m=await p.innerText('#main');
 want('POST: from the set, in words', /3 takes logged on set, on 2 shots\. 1 circled\./.test(m)&&/None matched to a clip yet\./.test(m)&&/1 circled take not matched to a clip yet\./.test(m), m.slice(0,500));
 const clip=fs.readFileSync(path.join(__dirname,'..','..','shared','fixtures','made_up_clip.mp4')).toString('base64');

@@ -14,7 +14,7 @@ const text=fs.readFileSync(path.join(__dirname,'..','..','shared','fixtures','lo
 await p.setInputFiles('#file',{name:'low_tide.fountain',mimeType:'text/plain',buffer:Buffer.from(text)}); await p.waitForTimeout(800);
 // a way for scene 1, so it has a shot list
 await p.evaluate(()=>{ const D=window.__film.DB(), c=D.scripts[D.cur]; c.scenes=c.scenes||{}; c.scenes[1]={way:'keep',where:'',done:{},cont:{}}; localStorage.setItem('film_os_v1',JSON.stringify(D)); }); await p.goto('http://localhost:8811/film/?open=1'); await p.waitForTimeout(800);
-await p.click('#tabs [data-r="post"]'); await p.waitForTimeout(400);
+await p.click('#tabs [data-r="post"]'); await p.waitForTimeout(200); await p.evaluate(()=>document.querySelectorAll('details.ffold').forEach(d=>{ d.open=true; })); await p.waitForTimeout(400);
 let m=await p.innerText('#main');
 want('CUT: LOG THE DAY, says what it does', /Log the day/i.test(m)&&/line up in the order you shot them/.test(m));
 want('EDITOR PACK: says what is in it, the coverage before anything is logged', /Editor pack/i.test(m)&&/the link to the footage/.test(m)&&/^0 of \d+ planned shots have a take\./m.test(await p.innerText('#packcover')), await p.innerText('#packcover'));

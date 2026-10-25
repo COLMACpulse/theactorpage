@@ -56,7 +56,7 @@ K.sunWords=function(p){ if(!p) return '';
  if(p.up<=-0.833) return 'The sun is down ('+Math.abs(p.up).toFixed(0)+'° below the horizon).';
  const sh=K.shadow(p.up), sd=(p.az+180)%360;
  return 'Sun '+p.up.toFixed(0)+'° up, in the '+K.compass(p.az)+' ('+Math.round(p.az)+'°). '
-  +(sh==null?'Shadows run long, almost flat.':'Shadows fall '+K.compass(sd)+', '+(sh>=10?'very long, ':'')+sh+' times as long as things are tall.'); };
+  +(sh==null?'Shadows run long, almost flat.':'Shadows fall '+K.compass(sd)+', '+(sh>=10?'very long, ':'')+sh+' times as long as whatever casts them is tall.'); };
 /* which way to turn from where the phone points to face the sun */
 K.toward=function(heading,az){ let d=((az-heading)%360+540)%360-180; return {d:Math.round(d),words:Math.abs(d)<5?'The sun is straight ahead.':'Turn '+(d>0?'right ':'left ')+Math.abs(Math.round(d))+'° to face the sun.'}; };
 

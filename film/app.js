@@ -101,11 +101,12 @@ function render(){
  $('title').textContent=c?String(c.file||'Script').replace(/\.(pdf|txt|fountain|fdx)$/i,'').replace(/_/g,' '):TAB==='start'?'Start a film':'Make your own';
  paintRooms(c);
  $('count').textContent=c?SCENES.length+' scene'+(SCENES.length===1?'':'s')+(c.me?' · you are '+c.me:''):'';
- const m=$('main');
- if(TAB==='start') m.innerHTML=topBar()+vStart();
- else if(!c&&['script','scenes','day','set','out'].includes(TAB)) m.innerHTML=topBar()+vExample();
- else if(TAB==='out') m.innerHTML=topBar()+vOut();
- else if(TAB==='script') m.innerHTML=topBar()+vScript();
+ const m=$('main'), TOP=(!c||TAB==='start'||OPENP)?topBar():'';
+ if(c&&TAB!=='start'){ const n=films().length; $('count').innerHTML=esc($('count').textContent)+' · <button type="button" class="hlnk" id="hfilms" aria-expanded="'+OPENP+'">Your films · '+n+'</button>'; }
+ if(TAB==='start') m.innerHTML=TOP+vStart();
+ else if(!c&&['script','scenes','day','set','out'].includes(TAB)) m.innerHTML=TOP+vExample();
+ else if(TAB==='out') m.innerHTML=TOP+vOut();
+ else if(TAB==='script') m.innerHTML=TOP+vScript();
  else if(!c&&TAB==='cut') m.innerHTML=logBox()+'<div class="msg">'+(DB.log?'Or bring in the script first, and the log goes on its scenes.':'No script yet. Open your footage log above and make the scenes from it, or bring in the script.')+'</div><button class="btn block" data-go="script">SCRIPT</button>';
  else if(TAB==='shots') m.innerHTML=vShots();
  else if(TAB==='tools') m.innerHTML=vTools();
@@ -115,7 +116,7 @@ function render(){
  else if(TAB==='day') m.innerHTML=vDay();
  else if(TAB==='cut') m.innerHTML=vCut();
  else if(TAB==='set') m.innerHTML=vSet();
- if(!m.querySelector('.tops')) m.insertAdjacentHTML('afterbegin',topBar());
+ if(TOP&&!m.querySelector('.tops')) m.insertAdjacentHTML('afterbegin',TOP);
  wire(); if(m.querySelector('#exsteps')) playExample();
  window.scrollTo(0,0);
 }
@@ -498,7 +499,7 @@ function vOwn(){
  const toBacklot='<a class="card" id="tobacklot" href="../backlot/" style="display:block;text-decoration:none;color:inherit"><p class="kicker">Backlot ›</p><p class="faint" style="font-size:13px;margin:0">The same list, walked with your phone: a photo per spot, what each can pass for, your scripts held against it, and a start dealt from what you have.</p></a>';
  if(DB.owned===null||!owned().length){
   h+='<div class="card"><p class="kicker">What you own</p><p>Your locations, props, wardrobe and gear. Scenes get matched to them. Backlot shows the same list, with photos.</p>'
-   +'<button class="btn pri block" id="ranch">START FROM THE RANCH LIST</button><p class="faint" style="font-size:13px;margin:6px 0 10px">Barn, porch, creek, workshop, oak treeline, corral, fire pit, the pickup, the gear. 40 things. Edit or remove any.</p>'
+   +'<button class="btn pri block" id="ranch">START FROM THE RANCH LIST</button><p class="faint" style="font-size:13px;margin:6px 0 10px">Barn, porch, creek, workshop, oak treeline, corral, fire pit, the pickup, the gear. 40 in all. Edit or remove any.</p>'
    +'<button class="btn block ghost" id="empty">Start empty</button></div>';
   if(DB.owned===null) return h+toBacklot;
  }
@@ -862,7 +863,7 @@ function vCheck(){ const C=chkOf(), c=K.check(C.inst), mine=C.rows.filter(r=>r.i
  h+='<details style="margin-top:8px"><summary class="lab" style="cursor:pointer">Target</summary><div class="kgrid"><label class="lab">On average, within<input class="field" type="number" step="0.1" data-tgt="mae" value="'+t.mae+'"></label><label class="lab">95 in 100, within<input class="field" type="number" step="0.1" data-tgt="p95" value="'+t.p95+'"></label></div></details>';
  if(mine.length) h+='<div class="tklist">'+mine.slice(-8).reverse().map(r=>'<div><b>'+r.reference+' / '+r.observed+'</b> off by '+Math.round(K.err(r.instrument,r.reference,r.observed)*100)/100+' '+esc(c[2])+(r.note?'<small>'+esc(r.note)+'</small>':'')+'<button class="lnk" data-chkdel="'+r.id+'">remove</button></div>').join('')+'</div>';
  h+='<div class="row" style="margin-top:12px"><button class="btn sm" id="chkcsv"'+(C.rows.length?'':' disabled')+'>SAVE AS CSV</button><button class="btn sm" id="chkjson"'+(C.rows.length?'':' disabled')+'>SAVE AS JSON</button><button class="btn sm ghost" id="chkin">BRING READINGS IN</button></div><input type="file" id="chkfile" accept=".csv,.json,text/csv,application/json" class="hide">'
-  +'<p class="faint ksmall">PASS means inside your target on this phone, nothing more. Brings in this sheet\'s CSV or CINEKNIFE\'s JSON. Phone dBFS and a sound meter\'s dB SPL aren\'t the same thing, so sound is checked as the change between two rooms.</p>'
+  +'<p class="faint ksmall">PASS means inside your target on this phone, nothing more. Brings in this sheet\'s CSV or CINEKNIFE\'s JSON. Phone dBFS and a sound meter\'s dB SPL aren\'t the same measure, so sound is checked as the change between two rooms.</p>'
   +'<button class="lnk" id="chkback">‹ Back to the tools</button></div>';
  return h; }
 function wireCheck(){ const C=chkOf();
@@ -1063,12 +1064,17 @@ async function dayDraw(){
 }
 function vCut(){
  const k=cutOf(), P=pieces(), len=F.cutLength(P), diff=k.target-len;
- let h='<p class="kicker">Cut to length</p><p class="dim" style="font-size:14px;margin:-2px 0 12px">Add the takes you shot, keep the one you want for each scene, set where it starts and ends. They line up in script order. Then hand the list to your editor.</p>';
+ let h='<p class="kicker">Your cut</p>';
  h+='<div class="card"><div class="row"><label class="faint" style="font-size:13px">Aim for</label><input class="field" id="ctarget" value="'+esc(F.mmss(k.target))+'" style="flex:0 1 90px"><label class="faint" style="font-size:13px">Frame rate</label><select class="field" id="cfps" style="flex:0 1 110px">'+Object.keys(F.FPS).map(x=>'<option'+(x===k.fps?' selected':'')+'>'+x+'</option>').join('')+'</select></div>'
   +'<div class="runtime"><b>'+F.mmss(len)+'</b><span>'+(P.length?(Math.abs(diff)<0.05?'right on '+F.mmss(k.target):diff>0?F.mmss(diff)+' to go to '+F.mmss(k.target):F.mmss(-diff)+' over '+F.mmss(k.target)):'nothing in the cut yet')+' · '+P.length+' piece'+(P.length===1?'':'s')+'</span></div></div>';
- h+='<div class="card"><p class="kicker">Find a take</p><input class="field" id="cfind" placeholder="bus shelter · rennie · last week · the laugh · never use" value="'+esc(FINDQ)+'" autocomplete="off"><div id="cfindres">'+findHtml()+'</div></div>';
- h+='<div class="card" id="daycard"><p class="kicker">Log the day</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">Drop the day\'s clips off the phone. They line up in the order you shot them. Tap through, one at a time: which scene, which shot, gold or not, a note. Each becomes a take on its scene.</p><label class="btn pri sm"><input type="file" accept="video/*,.mov,.mp4,.m4v" multiple class="hide" id="dayin">PICK THE DAY\'S CLIPS</label></div>';
- h+=setBox()+logBox()+footBox();
+ h+='<div class="card cutsum">'+SCENES.map(sc=>{ const T=(k.takes[sc.n]||[]).filter(t=>t.use&&t.mark!=='never'); return '<div class="csrow"><span><b>'+sc.n+'</b> '+esc(sc.heading)+'</span><span class="'+(T.length?'got':'')+'">'+(T.length?esc(T.map(t=>t.name).join(', '))+' · '+F.mmss(T.reduce((n,t)=>n+Math.max(0,t.out-t.in),0)):'no take yet')+'</span></div>'; }).join('')+'</div>';
+ h+='<div class="card">'+watchBox(P)+'</div>';
+ const fold=(id,label,hint,body)=>'<details class="ffold" data-ff="'+id+'"'+(FFOPEN[id]?' open':'')+'><summary>'+label+'<i>'+hint+'</i></summary>'+body+'</details>';
+ let bring='<div class="card"><p class="kicker">Find a take</p><input class="field" id="cfind" placeholder="bus shelter · rennie · last week · the laugh · never use" value="'+esc(FINDQ)+'" autocomplete="off"><div id="cfindres">'+findHtml()+'</div></div>';
+ bring+='<div class="card" id="daycard"><p class="kicker">Log the day</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">Drop the day\'s clips off the phone. They line up in the order you shot them. Tap through, one at a time: which scene, which shot, gold or not, a note. Each becomes a take on its scene.</p><label class="btn pri sm"><input type="file" accept="video/*,.mov,.mp4,.m4v" multiple class="hide" id="dayin">PICK THE DAY\'S CLIPS</label></div>';
+ bring+=setBox()+logBox()+footBox();
+ h+=fold('bring','Bring in your takes','find a take · log the day · footage log · footage check',bring);
+ h+='<p class="kicker" style="margin-top:16px">Scene by scene: the takes, where each starts and ends</p>';
  SCENES.forEach(sc=>{
   const T=k.takes[sc.n]||[];
   h+='<div class="card"><div class="hd" style="font:700 14px/1.35 var(--mono)">'+sc.n+'. '+esc(sc.heading)+'</div>';
@@ -1083,19 +1089,20 @@ function vCut(){
     +'<div class="row" style="justify-content:space-between;margin-top:4px"><span class="faint" style="font-size:12px">'+F.mmss(Math.max(0,t.out-t.in))+' used'+(f?'':' · pick the file again to preview it')+(adrKept(t)?' · <b class="adrtag">ADR</b> your line replaces it, original '+UNDERS.find(u=>u[1]===t.adr.under)[0].toLowerCase():'')+'</span>'+(f?'<button class="btn sm" data-adr="'+sc.n+'|'+t.id+'">ADR</button>':'')+'</div></div>'; }).join('');
   h+='<div class="row" style="margin-top:8px"><button class="btn sm pri" style="flex:1" data-shoot="'+sc.n+'">SHOOT A TAKE</button><label class="btn sm" style="flex:1"><input type="file" accept="video/*,.mov,.mp4,.m4v" multiple class="hide" data-tadd="'+sc.n+'">+ ADD TAKES</label></div>'+briefBox(sc)+'</div>';
  });
- { const cv=coverNow();
- h+='<div class="card" id="packcard"><p class="kicker">Editor pack</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">One thing to send your editor: the brief, the plan, the plan against what you got, your picks as an edit list, and the link to the footage. The footage itself stays a link.</p>'
+ let hand=''; { const cv=coverNow();
+ hand+='<div class="card" id="packcard"><p class="kicker">Editor pack</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">One file to send your editor: the brief, the plan, the plan against what you got, your picks as an edit list, and the link to the footage. The footage itself stays a link.</p>'
   +'<p style="font-size:14px;margin:0 0 8px" id="packcover">'+esc(F.coverWords(cv))+'</p>'
   +'<input class="field" id="packlink" placeholder="Link to the footage (Drive, Dropbox, WeTransfer)" value="'+esc(k.link||'')+'">'
   +'<textarea class="field" id="packnote" placeholder="A note to your editor (optional)" style="margin-top:6px;min-height:60px">'+esc(k.packNote||'')+'</textarea>'
   +'<div class="row" style="margin-top:8px"><button class="btn pri" id="packzip">SAVE THE EDITOR PACK (.ZIP)</button><button class="btn" id="packplan">PLAN (.CSV)</button><button class="btn" id="packgot">PLAN VS GOT (.CSV)</button></div></div>'; }
- h+='<div class="card"><p class="kicker">Hand it to your editor</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">An EDL opens in DaVinci Resolve, Premiere and Avid. Point it at your footage and it relinks by file name. In and out count from the start of each file.</p>'
+ hand+='<div class="card"><p class="kicker">The edit list</p><p class="faint" style="font-size:13px;margin:-4px 0 8px">An EDL opens in DaVinci Resolve, Premiere and Avid. Point it at your footage and it relinks by file name. In and out count from the start of each file.</p>'
   +'<div class="row"><button class="btn pri" id="cedl"'+(P.length?'':' disabled')+'>EDIT LIST (.EDL)</button><button class="btn" id="ccsv"'+(P.length?'':' disabled')+'>LIST (.CSV)</button><button class="btn" id="cbrief">EDITOR BRIEF (.TXT)</button></div>'
-  +watchBox(P)+creditsBox()
   +'<p class="faint" style="font-size:13px;margin:8px 0 0">The brief says, scene by scene, how much freedom the editor has, what must stay, which take to use, backups, never-use takes, what is missing and when to ask you first.</p></div>';
+ h+=fold('hand','Hand it to your editor','editor pack · edit list (.EDL) · the brief',hand);
+ h+=creditsBox();
  return h;
 }
-let FINDQ='';
+let FINDQ=''; const FFOPEN={};
 function findList(){ const k=cutOf(), L=[]; SCENES.forEach(sc=>(k.takes[sc.n]||[]).forEach(t=>L.push({id:t.id,scene:sc.n,heading:sc.heading,people:(sc.speakers||[]).map(x=>x.name),name:t.name,note:[t.note||''].concat(F.watchNotes(t).map(w=>w.text)).join(' ').trim(),mark:t.mark,use:t.use,adr:!!adrKept(t),at:t.at||null,dur:t.dur}))); return L; }
 function findHtml(){ if(!FINDQ.trim()) return ''; const L=findList(); if(!L.length) return '<p class="faint" style="font-size:13px;margin:8px 0 0">No takes logged yet. Add takes to a scene below first.</p>';
  const r=F.findTakes(FINDQ,L);
@@ -1345,6 +1352,8 @@ function wireCut(){
 function wire(){
  document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ TAB=b.dataset.go; render(); });
  const yf=$('yourfilms'); if(yf) yf.onclick=()=>{ OPENP=!OPENP; render(); };
+ document.querySelectorAll('details.ffold[data-ff]').forEach(d=>d.addEventListener('toggle',()=>{ FFOPEN[d.dataset.ff]=d.open; }));
+ const hf=$('hfilms'); if(hf) hf.onclick=()=>{ OPENP=!OPENP; render(); };
  const sf=$('startfilm'); if(sf) sf.onclick=()=>{ OPENP=false; MSG=''; TAB=TAB==='start'?(cur()?LASTIN.prep:'script'):'start'; OPEN=null; render(); };
  const es=$('exstart'); if(es) es.onclick=()=>{ MSG=''; TAB='start'; render(); };
  const ef=$('exfilms'); if(ef) ef.onclick=()=>{ OPENP=true; render(); };
@@ -1384,7 +1393,7 @@ function wire(){
  document.querySelectorAll('[data-cphoto]').forEach(i=>i.onchange=async()=>{ const f=i.files[0]; if(!f) return; keepPhoto(i.dataset.cphoto,await shrink(f)); });
  document.querySelectorAll('[data-match]').forEach(b=>b.onclick=()=>openMatch(b.dataset.match));
  document.querySelectorAll('[data-same]').forEach(b=>b.onclick=()=>{ const w=b.dataset.same, p=lastCard(w,OPEN); if(!p) return; const keep=(st(OPEN).cont[w]||{}).photo; st(OPEN).cont[w]=Object.assign({},p.v,{photo:keep||''}); save(); render(); toast(w+': copied from scene '+p.n+'.'); });
- const ra=$('ranch'); if(ra) ra.onclick=()=>{ DB.owned=(DB.owned||[]).concat(F.RANCH.map(o=>Object.assign({id:rid('o')},o))); save(); render(); toast('The ranch list is in. 40 things.'); };
+ const ra=$('ranch'); if(ra) ra.onclick=()=>{ DB.owned=(DB.owned||[]).concat(F.RANCH.map(o=>Object.assign({id:rid('o')},o))); save(); render(); toast('The ranch list is in: 40 places and pieces.'); };
  const em=$('empty'); if(em) em.onclick=()=>{ DB.owned=[]; save(); render(); };
  const oa=$('oadd'); if(oa) oa.onclick=()=>{ const n=$('oname').value.trim(); if(!n) return; DB.owned=owned().concat([{id:rid('o'),kind:$('okind').value,name:n,plays:$('oplays').value.trim(),notes:$('onotes').value.trim()}]); save(); render(); };
  document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{ DB.owned=owned().filter(o=>o.id!==b.dataset.del); save(); render(); });
