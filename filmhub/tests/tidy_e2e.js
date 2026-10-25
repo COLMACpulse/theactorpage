@@ -24,7 +24,7 @@ for(const [nm,vp,cs] of [['phone',{width:390,height:844},'dark'],['desk',{width:
  const pe=await p.innerText('#main');
  want(nm+': PEOPLE marks you, and "Directed by" reads Director', /Sam Actor\s*YOU/.test(pe)&&/Dry Creek \(Director\)/.test(pe)&&!/Directed by/.test(pe), pe);
  await p.click('#tabs [data-t="you"]'); await p.waitForTimeout(400);
- const yu=await p.innerText('#ufacts');
+ await p.click('#ufacts summary'); await p.waitForTimeout(150); const yu=await p.innerText('#ufacts');
  want(nm+': YOU counts, never percents', !/%/.test(yu)&&/Night: all \d+ scenes\./.test(yu), yu);
  want(nm+': who you keep working with: Jo Park on 2 films, never you', /Who you keep working with: Jo Park \(2 films/.test(yu)&&!/working with:[^.]*Sam Actor/.test(yu), yu);
  await p.screenshot({path:SHOTS+'/filmhub_tidy_'+nm+'.png',fullPage:true});

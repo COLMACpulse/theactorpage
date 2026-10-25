@@ -125,6 +125,17 @@ a.btn{color:inherit;text-decoration:none}
 @media (max-width:560px){.fcw .fc{padding-right:10px;padding-bottom:62px}.fcw .fgo{top:auto;transform:none;bottom:12px;right:12px;left:86px}}
 .btn.add{border-style:dashed}
 @media (min-width:1000px){ main{max-width:920px} .top{padding-left:calc((100vw - 920px)/2 + 16px);padding-right:calc((100vw - 920px)/2 + 16px)} .hico{width:70px;height:70px}.hsig{width:64px;height:64px} }
+
+/* YOUR UNIVERSE: a color and a patch per film, initials in the dot; map and list a tap apart */
+.seg{display:inline-flex;gap:4px;background:var(--panel2);border-radius:12px;padding:4px}.seg button{min-height:40px;padding:0 16px;border:0;border-radius:9px;background:transparent;color:var(--ink);font:inherit;font-size:14.5px}.seg button.on{background:var(--tung);color:var(--tung-ink)}
+.ugrid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:start}@media(max-width:1000px){.ugrid{grid-template-columns:1fr}}
+.upatch{pointer-events:none}.un .uini{fill:#fff;font-family:var(--sans);font-weight:600;text-anchor:middle;pointer-events:none}.un text{font-family:var(--sans)!important}.un-film text{letter-spacing:.08em;font-weight:600}
+.un-person .ush{fill:var(--panel)}.un.umany .ush{stroke:var(--tung)!important;stroke-width:4.5}.un-person.umany text,.un-place.umany text{fill:var(--ink)}
+.ulegend .lm{border:3px solid var(--tung);border-radius:50%}
+.ut{font-size:19px;font-weight:600;margin:4px 0 0}.ubadge{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;color:#fff;font-size:11.5px;font-weight:700;flex:none}
+.ulist .lab{margin:12px 0 4px;font-size:11px;letter-spacing:.14em;text-transform:uppercase}.ualso{color:var(--tung-text);font-size:13px}
+.uties p,.umost p{margin:0 0 8px;line-height:1.45}.uties p:last-child,.umost p:last-child{margin:0}.uties .ut-alone,.uties .ut-all{color:var(--dim)}
+details.ufold{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin:12px 0;padding:0 14px}details.ufold>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:48px;font-size:15px}details.ufold>summary::-webkit-details-marker{display:none}details.ufold>summary i{font-style:normal;font-size:12.5px;color:var(--dim)}details.ufold>summary i::after{content:' ›'}details.ufold[open]>summary i::after{content:' ⌄'}details.ufold[open]{padding-bottom:14px}
 </style>
 </head>
 <body>

@@ -145,37 +145,82 @@ function peopleView(){
  return '<div class="card">'+P.map(p=>'<div class="pp"><b>'+esc(p.name)+'</b>'+(p.you?'<span class="youtag">YOU</span>':'')+'<small>'+p.films.map(f=>esc(f.film)+(f.jobs.length?' ('+esc(f.jobs.join(', '))+')':'')).join(' · ')+'</small></div>').join('')+'</div>';
 }
 
-/* ---------- YOU: your universe ---------- */
-let USEL='';
+/* ---------- YOU: your universe ----------
+   (Col, Oct 25) Like Paper Trail's: a computer opens to the map with what you tap beside it, a phone to the list,
+   film by film; each a tap from the other. Each film its own color and patch, its initials in the dot. You are not a
+   dot: you're on every film. What ties your films together and who you work with most, said plainly; the counts and
+   your words folded until you ask. */
+let USEL='', UVIEW='', UF={p:1,l:1}; const UOPEN=new Set();
+const UCOL=['#2a5fa8','#1f8a5c','#c0392b','#7a5fa8','#2a8a8a','#9a6b1f','#5c636d'];
 function uni(){ const S=studio(), L=films().map(f=>({id:f.id,title:f.title,kind:f.kind,year:f.year,runtime:f.runtime,stage:f.from==='hand'?'done':f.stage,script:f.from==='studio'?S[f.sid]:null}));
  return H.universe(L,F,H.people(S,F,D.films.map(f=>({title:f.title,people:f.people})),you().name),D.me); }
 const PLK={feature:'Features',short:'Shorts',pilot:'Pilots',series:'Series','music video':'Music videos',documentary:'Documentaries',commercial:'Commercials',sketch:'Sketches'};
+const uIni=t=>{ const w=String(t).replace(/[^A-Za-z0-9 ]+/g,' ').trim().split(/\s+/).filter(x=>!/^(the|a|an|of)$/i.test(x)); return ((w[0]||'?')[0]+((w[1]||'')[0]||'')).toUpperCase(); };
+const uFold=(id,title,sub,body)=>'<details class="ufold" data-uf2="'+id+'" id="'+id+'"'+(UOPEN.has(id)?' open':'')+'><summary>'+esc(title)+(sub?'<i>'+esc(sub)+'</i>':'')+'</summary>'+body+'</details>';
+function uColors(U){ const col={}; U.nodes.filter(n=>n.type==='film').forEach((n,i)=>col[n.id]=UCOL[(n.data.ci!=null?n.data.ci:i)%UCOL.length]); return col; }
 function youView(){
- const U=uni(), narrow=innerWidth<640, W=narrow?600:1000, Hh=narrow?(U.nodes.length>14?860:640):560;
- let h='<p class="dim small" style="margin:0 0 12px">What kind of filmmaker you are, counted from your own films. What you\'re into and what you want to get into, in your words. The two are kept apart.</p>';
- h+='<div class="card" id="ufacts"><p class="kicker">From your films</p><ul class="facts">'+U.facts.map(f=>'<li>'+esc(f)+'</li>').join('')+'</ul>'
-  +(U.scenes.length?'<p class="lab" style="margin-top:10px">'+esc(U.scenes[0])+'</p><ul class="facts">'+U.scenes.slice(1).map(f=>'<li>'+esc(f)+'</li>').join('')+'</ul>':'')
-  +(U.crew.length?'<ul class="facts" style="margin-top:10px">'+U.crew.map(f=>'<li>'+esc(f)+'</li>').join('')+'</ul>':'')
-  +(!films().length?'<a class="btn" href="../film/" style="margin-top:10px;text-decoration:none">OPEN STORY STUDIO</a>':'')+'</div>';
- if(U.nodes.length>1){ const L=Graph.fit(Graph.layout(U,W,Hh,220),W,Hh), ix={}, k=W/Math.max(300,Math.min(W,innerWidth-34)); U.nodes.forEach((n,i)=>ix[n.id]=i);
+ const A=uni(), narrow=innerWidth<640, view=UVIEW||(narrow?'list':'map');
+ let h='<p class="dim small" style="margin:0 0 12px">Your films, who was on them, where you shot. A line joins who worked on a film; someone on two films sits between them. What you\'re into and what you want, in your words, kept apart.</p>';
+ if(!films().length) return h+'<div class="card" id="ufacts"><p class="kicker">From your films</p><ul class="facts">'+A.facts.map(f=>'<li>'+esc(f)+'</li>').join('')+'</ul><a class="btn" href="../film/" style="margin-top:10px;text-decoration:none">OPEN STORY STUDIO</a></div>'+wordsFold(A);
+ const keep=n=>n.type==='film'||(n.type==='person'&&UF.p)||(n.type==='place'&&UF.l), nodes=A.nodes.filter(keep), ids=new Set(nodes.map(n=>n.id));
+ const U={nodes,edges:A.edges.filter(e=>ids.has(e.a)&&ids.has(e.b))}, col=uColors(A);
+ h+='<div class="row" style="justify-content:space-between;gap:8px;margin-bottom:10px"><div class="seg" role="group" aria-label="Map or list"><button class="'+(view==='map'?'on':'')+'" data-uview="map">Map</button><button class="'+(view==='list'?'on':'')+'" data-uview="list">List</button></div>'
+  +'<div class="row" style="gap:6px">'+[['p','People'],['l','Places']].map(([q,l])=>'<button class="btn sm'+(UF[q]?' pri':'')+'" data-ufl="'+q+'" aria-pressed="'+!!UF[q]+'">'+l+'</button>').join('')+'</div></div>';
+ const side=tiesHtml(A)+uFold('ufacts','The counts','kinds, scenes, time of day',countsHtml(A))+wordsFold(A);
+ if(view==='list') return h+uList(U,col)+side;
+ const W=narrow?600:800, Hh=narrow?(U.nodes.length>14?860:640):(U.nodes.length>14?760:640), mw=(($('main')&&$('main').clientWidth)||innerWidth)-(innerWidth>1000?348:0);
+ let map='';
+ if(U.nodes.length>1){ const L=Graph.fit(Graph.layout(U,W,Hh,220),W,Hh), ix={}, k=W/Math.max(300,Math.min(W,mw-2)); U.nodes.forEach((n,i)=>ix[n.id]=i);
   const near=new Set(); if(USEL) U.edges.forEach(e=>{ if(e.a===USEL) near.add(e.b); if(e.b===USEL) near.add(e.a); });
-  let g=''; U.edges.forEach(e=>{ const a=L[ix[e.a]], b=L[ix[e.b]]; g+='<line class="ue ue-'+e.kind+(USEL&&(e.a===USEL||e.b===USEL)?' uon':'')+'" x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'"/>'; });
-  U.nodes.forEach((n,i)=>{ const q=L[i], r=Math.round(n.size*Math.max(1,k*.75)), fs=Math.round((n.type==='film'?13:11)*k), lab=n.label.length>22?n.label.slice(0,21)+'…':n.label, hw=Math.max(r+6,lab.length*fs*.33,14*k);
-   const shape=n.type==='place'?'<rect class="ush" x="'+(-r)+'" y="'+(-r)+'" width="'+(2*r)+'" height="'+(2*r)+'" rx="2"/>':'<circle class="ush" r="'+r+'"/>';
-   g+='<g class="un un-'+n.type+(USEL===n.id?' usel':near.has(n.id)?' uon':'')+'" data-un="'+esc(n.id)+'" transform="translate('+q.x+' '+q.y+')" tabindex="0"><rect class="uhit" x="'+(-hw)+'" y="'+(-r-6)+'" width="'+(2*hw)+'" height="'+(2*r+fs+12)+'"/>'+shape+'<text y="'+(r+fs+2)+'" font-size="'+fs+'">'+esc(lab)+'</text></g>'; });
-  h+='<div class="card" style="padding:10px"><p class="kicker" style="margin:4px 6px 8px">The map</p><div class="umap"><svg'+(USEL?' class="ufocus"':'')+' viewBox="0 0 '+W+' '+Hh+'" role="img" aria-label="Your films, the people on them, the places">'+g+'</svg></div>'
-   +'<div class="ulegend"><span><i class="lf"></i>film</span><span><i class="lp"></i>person</span><span><i class="ll"></i>place</span></div><div id="uinfo" class="small">'+uInfo(U)+'</div></div>'; }
- const wl=(k,ph,ex)=>'<div class="row" style="gap:8px;margin-top:8px"><input class="field" id="uadd_'+k+'" placeholder="'+esc(ph)+'" style="flex:1;margin:0"><button class="btn sm" data-uadd="'+k+'">ADD</button></div>'+(ex?'<p class="faint small" style="margin:6px 0 0">'+esc(ex)+'</p>':'');
- h+='<div class="card"><p class="kicker">In your words</p><p class="lab">What you\'re into</p>'+(U.into.length?'<div class="row" style="flex-wrap:wrap;gap:6px">'+U.into.map((t,i)=>'<span class="chip on">'+esc(t)+' <button class="lnk" data-urm="into|'+i+'" aria-label="Remove">✕</button></span>').join('')+'</div>':'<p class="faint small" style="margin:0">Nothing yet.</p>')
-  +wl('into','A genre, a filmmaker, a film, a way of shooting','Westerns. Long takes. Anything shot at night.')
-  +'<p class="lab" style="margin-top:16px">What you want to get into</p>'+(U.wants.length?'<ul class="facts">'+U.wants.map((w,i)=>'<li>'+esc(w.text)+(w.kind?' <span class="faint">· '+esc(PLK[w.kind])+' made so far: '+w.made+'</span>':'')+' <button class="lnk faint" data-urm="want|'+i+'" aria-label="Remove">✕</button></li>').join('')+'</ul>':'<p class="faint small" style="margin:0">Nothing yet.</p>')
-  +wl('want','A kind of film, a job, a person, a place','A feature. A music video. Shoot in the desert.')+'</div>';
- return h;
+  const nb=id=>U.edges.filter(e=>e.a===id||e.b===id).map(e=>e.a===id?e.b:e.a);
+  const cOf=n=>{ if(n.type==='film') return col[n.id]; const f=nb(n.id).filter(x=>col[x]); return f.length===1?col[f[0]]:''; };
+  let defs='', patches='', g='';
+  let gn='';
+  U.nodes.forEach((n,i)=>{ const q=L[i], film=n.type==='film', many=!film&&nb(n.id).length>1, r=Math.round(n.size*Math.max(1,k*.75))+(film?4:0), fs=Math.round((film?13.5:12)*k), c=cOf(n);
+   let lab=film?n.label.toUpperCase():n.label; if(n.type==='person'&&n.data.films.length>1) lab+=' · '+n.data.films.length+' films'; if(n.type==='place') lab+=' · '+(n.data.films.length>1?n.data.films.length+' films':n.data.scenes); lab=lab.length>26?lab.slice(0,25)+'…':lab;
+   const st=film?' style="fill:'+c+';stroke:'+c+'"':c?' style="stroke:'+c+'"':'';
+   const shape=n.type==='place'?'<rect class="ush" x="'+(-r)+'" y="'+(-r)+'" width="'+(2*r)+'" height="'+(2*r)+'" rx="2"'+st+'/>':'<circle class="ush" r="'+r+'"'+st+'/>';
+   const hw=Math.max(r+6,lab.length*fs*.3,14*k);
+   q.x=Math.max(hw+4,Math.min(W-hw-4,q.x));
+   gn+='<g class="un un-'+n.type+(many?' umany':'')+(USEL===n.id?' usel':near.has(n.id)?' uon':'')+'" data-un="'+esc(n.id)+'" transform="translate('+q.x+' '+q.y+')" tabindex="0"><rect class="uhit" x="'+(-hw)+'" y="'+(-r-6)+'" width="'+(2*hw)+'" height="'+(2*r+fs+12)+'"/>'+shape
+    +(film?'<text class="uini" y="'+Math.round(fs*.36)+'" font-size="'+fs+'">'+esc(uIni(n.label))+'</text>':'')+'<text y="'+(r+fs+3)+'" font-size="'+fs+'"'+(film?' style="fill:'+c+'"':'')+'>'+esc(lab)+'</text></g>'; });
+  U.nodes.filter(n=>n.type==='film').forEach((n,i)=>{ const mem=[n.id].concat(nb(n.id)).map(id=>L[ix[id]]).filter(Boolean); const cx=mem.reduce((s,p)=>s+p.x,0)/mem.length, cy=mem.reduce((s,p)=>s+p.y,0)/mem.length, r=Math.max(90,...mem.map(p=>Math.hypot(p.x-cx,p.y-cy)+70)), c=col[n.id], gid='fg'+i;
+   defs+='<radialGradient id="'+gid+'"><stop offset="0" stop-color="'+c+'" stop-opacity=".2"/><stop offset=".7" stop-color="'+c+'" stop-opacity=".08"/><stop offset="1" stop-color="'+c+'" stop-opacity="0"/></radialGradient>';
+   patches+='<circle class="upatch" cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="'+r.toFixed(1)+'" fill="url(#'+gid+')"/>'; });
+  U.edges.forEach(e=>{ const a=L[ix[e.a]], b=L[ix[e.b]]; if(!a||!b) return; const c=col[e.a]||col[e.b]||''; g+='<line class="ue ue-'+e.kind+(USEL&&(e.a===USEL||e.b===USEL)?' uon':'')+'" x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'"'+(c?' style="stroke:'+c+'"':'')+'/>'; });
+  g+=gn;
+  map='<div class="umap"><svg'+(USEL?' class="ufocus"':'')+' viewBox="0 0 '+W+' '+Hh+'" role="img" aria-label="Your films, the people on them, the places"><defs>'+defs+'</defs>'+patches+g+'</svg></div>'
+   +'<div class="ulegend"><span><i class="lf"></i>your film, its own color</span><span><i class="lp"></i>person</span><span><i class="ll"></i>place</span><span><i class="lm"></i>on more than one film</span></div>';
+ } else map='<div class="card"><p class="dim" style="margin:0">One film and nobody on it yet. Name your cast and crew in Story Studio, or add who was on a film you\'ve made, and they show up here.</p></div>';
+ return h+'<div class="ugrid"><div>'+map+'</div><div><div class="card" id="uinfo">'+uInfo(A)+'</div>'+side+'</div></div>';
 }
-function uInfo(U){ const n=USEL&&U.nodes.find(x=>x.id===USEL); if(!n) return '<span class="faint">Tap a film, a person or a place.</span>';
- if(n.type==='film') return '<b>'+esc(n.label)+'</b> <span class="dim">'+esc([n.data.year,n.data.kind,n.data.stage?H.stageWord(n.data.stage):'',n.data.scenes?n.data.scenes+' scenes':''].filter(Boolean).join(' · '))+'</span><div class="row" style="margin-top:8px"><button class="btn sm" data-uopen="'+esc(n.data.fid)+'">OPEN IT</button></div>';
- if(n.type==='person') return '<b>'+esc(n.label)+'</b> <span class="dim">'+n.data.films.map(f=>esc(f.film)+(f.jobs.length?' ('+esc(f.jobs.join(', '))+')':'')).join(' · ')+'</span>';
- return '<b>'+esc(n.label)+'</b> <span class="dim">'+n.data.scenes+' scene'+(n.data.scenes===1?'':'s')+' · in '+n.data.films.map(esc).join(', ')+'</span>'; }
+function countsHtml(A){ return '<ul class="facts">'+A.facts.map(f=>'<li>'+esc(f)+'</li>').join('')+'</ul>'
+  +(A.scenes.length?'<p class="lab" style="margin-top:10px">'+esc(A.scenes[0])+'</p><ul class="facts">'+A.scenes.slice(1).map(f=>'<li>'+esc(f)+'</li>').join('')+'</ul>':'')
+  +(A.crew.length?'<ul class="facts" style="margin-top:10px">'+A.crew.map(f=>'<li>'+esc(f)+'</li>').join('')+'</ul>':''); }
+function tiesHtml(A){ const t=A.ties||[], m=A.most||[];
+ return '<p class="kicker" style="margin-top:14px">What ties your films together</p><div class="card uties">'+(t.length?t.map(x=>'<p class="ut-'+x.kind+'">'+(x.name&&x.kind!=='alone'?'<b>'+esc(x.name)+'</b>'+esc(x.text.slice(x.name.length)):esc(x.text))+'</p>').join(''):'<p class="dim" style="margin:0">'+(films().length>1?'Nothing shared yet: nobody and nowhere in more than one film.':'One film so far. Ties show up from the second.')+'</p>')+'</div>'
+  +(m.length?'<p class="kicker" style="margin-top:14px">Who you work with most</p><div class="card umost">'+m.map(x=>'<p>'+esc(x)+'</p>').join('')+'</div>':''); }
+function wordsFold(A){
+ const wl=(k,ph,ex)=>'<div class="row" style="gap:8px;margin-top:8px"><input class="field" id="uadd_'+k+'" placeholder="'+esc(ph)+'" style="flex:1;margin:0"><button class="btn sm" data-uadd="'+k+'">ADD</button></div>'+(ex?'<p class="faint small" style="margin:6px 0 0">'+esc(ex)+'</p>':'');
+ const n=A.into.length+A.wants.length;
+ return uFold('uwords','In your words',n?n+' kept':'what you\'re into, what you want','<p class="lab">What you\'re into</p>'+(A.into.length?'<div class="row" style="flex-wrap:wrap;gap:6px">'+A.into.map((t,i)=>'<span class="chip on">'+esc(t)+' <button class="lnk" data-urm="into|'+i+'" aria-label="Remove">✕</button></span>').join('')+'</div>':'<p class="faint small" style="margin:0">Nothing yet.</p>')
+  +wl('into','A genre, a filmmaker, a film, a way of shooting','Westerns. Long takes. Anything shot at night.')
+  +'<p class="lab" style="margin-top:16px">What you want to get into</p>'+(A.wants.length?'<ul class="facts">'+A.wants.map((w,i)=>'<li>'+esc(w.text)+(w.kind?' <span class="faint">· '+esc(PLK[w.kind])+' made so far: '+w.made+'</span>':'')+' <button class="lnk faint" data-urm="want|'+i+'" aria-label="Remove">✕</button></li>').join('')+'</ul>':'<p class="faint small" style="margin:0">Nothing yet.</p>')
+  +wl('want','A kind of film, a job, a person, a place','A feature. A music video. Shoot in the desert.')); }
+/* the list, film by film: who and where, and who or where it shares */
+function uList(U,col){ const nb=id=>U.edges.filter(e=>e.a===id||e.b===id).map(e=>U.nodes.find(x=>x.id===(e.a===id?e.b:e.a))).filter(Boolean);
+ return U.nodes.filter(n=>n.type==='film').map(n=>{ const ppl=nb(n.id).filter(x=>x.type==='person'), pls=nb(n.id).filter(x=>x.type==='place');
+  const also=x=>{ const o=nb(x.id).filter(f=>f.type==='film'&&f.id!==n.id).map(f=>f.label); return o.length?' <span class="ualso">also on '+esc(o.join(', '))+'</span>':''; };
+  const job=x=>{ const f=(x.data.films||[]).find(y=>y.film===n.label); return f&&f.jobs.length?' ('+esc(f.jobs.join(', '))+')':''; };
+  const meta=[n.data.stage?H.stageWord(n.data.stage).toLowerCase():'',n.data.year,n.data.kind,n.data.scenes?n.data.scenes+' scenes':''].filter(Boolean).join(' · ');
+  return '<div class="card ulist"><div class="row" style="gap:10px;align-items:center"><span class="ubadge" style="background:'+col[n.id]+'">'+esc(uIni(n.label))+'</span><b class="ut">'+esc(n.label)+'</b><span class="faint small">'+esc(meta)+'</span></div>'
+   +(UF.p?'<p class="lab">People</p><div>'+(ppl.length?ppl.map(x=>esc(x.label)+job(x)+also(x)).join(' · '):'<span class="faint small">Nobody named yet</span>')+'</div>':'')
+   +(UF.l?'<p class="lab">Places</p><div>'+(pls.length?pls.map(x=>esc(x.label)+' '+x.data.scenes+also(x).replace('also on','also in')).join(' · '):'<span class="faint small">None in a script here</span>')+'</div>':'')
+   +'<div class="row" style="margin-top:10px"><button class="btn sm" data-uopen="'+esc(n.data.fid)+'">OPEN IT</button></div></div>'; }).join(''); }
+function uInfo(U){ const n=USEL&&U.nodes.find(x=>x.id===USEL); if(!n) return '<span class="faint small">Tap a film, a person or a place.</span>';
+ if(n.type==='film') return '<p class="kicker" style="margin:0">Your film</p><h3 class="ut">'+esc(n.label)+'</h3><p class="dim small" style="margin:4px 0 0">'+esc([n.data.year,n.data.kind,n.data.stage?H.stageWord(n.data.stage):'',n.data.scenes?n.data.scenes+' scenes':''].filter(Boolean).join(' · '))+'</p><div class="row" style="margin-top:10px"><button class="btn sm" data-uopen="'+esc(n.data.fid)+'">OPEN IT</button></div>';
+ if(n.type==='person') return '<p class="kicker" style="margin:0">'+(n.data.films.length>1?'On '+n.data.films.length+' of your films':'On one of your films')+'</p><h3 class="ut">'+esc(n.label)+'</h3><p class="dim small" style="margin:4px 0 0">'+n.data.films.map(f=>esc(f.film)+(f.jobs.length?' ('+esc(f.jobs.join(', '))+')':'')).join(' · ')+'</p>';
+ return '<p class="kicker" style="margin:0">A place</p><h3 class="ut">'+esc(n.label)+'</h3><p class="dim small" style="margin:4px 0 0">'+n.data.scenes+' scene'+(n.data.scenes===1?'':'s')+' · in '+n.data.films.map(esc).join(', ')+'</p>'; }
 
 /* ---------- draw and wire ---------- */
 function render(){
@@ -209,8 +254,11 @@ function wire(){
  if($('pname')) $('pname').onchange=e=>{ try{ Y.set('name',e.target.value); }catch(x){} };
  M.querySelectorAll('[data-pshow]').forEach(el=>el.onchange=()=>{ const x=rec(film(el.dataset.pshow)); if(x){ x.show=el.checked; save(); } });
  M.querySelectorAll('[data-un]').forEach(g=>{ const f=()=>{ USEL=USEL===g.dataset.un?'':g.dataset.un; render(); }; g.onclick=f; g.onkeydown=e=>{ if(e.key==='Enter') f(); }; });
+ M.querySelectorAll('[data-uview]').forEach(b=>b.onclick=()=>{ UVIEW=b.dataset.uview; render(); });
+ M.querySelectorAll('[data-ufl]').forEach(b=>b.onclick=()=>{ UF[b.dataset.ufl]=UF[b.dataset.ufl]?0:1; USEL=''; render(); });
+ M.querySelectorAll('details[data-uf2]').forEach(d=>d.ontoggle=()=>{ if(d.open) UOPEN.add(d.dataset.uf2); else UOPEN.delete(d.dataset.uf2); });
  M.querySelectorAll('[data-uopen]').forEach(b=>b.onclick=()=>{ U.tab='films'; U.open=b.dataset.uopen; USEL=''; saveU(); render(); scrollTo(0,0); });
- M.querySelectorAll('[data-uadd]').forEach(b=>{ const k=b.dataset.uadd, el=$('uadd_'+k), go=()=>{ const v=el.value.trim(); if(!v) return; D.me[k]=(D.me[k]||[]).concat([v]); save(); render(); const n=$('uadd_'+k); if(n) n.focus(); }; b.onclick=go; el.onkeydown=e=>{ if(e.key==='Enter') go(); }; });
+ M.querySelectorAll('[data-uadd]').forEach(b=>{ const k=b.dataset.uadd, el=$('uadd_'+k), go=()=>{ const v=el.value.trim(); if(!v) return; D.me[k]=(D.me[k]||[]).concat([v]); UOPEN.add('uwords'); save(); render(); const n=$('uadd_'+k); if(n) n.focus(); }; b.onclick=go; el.onkeydown=e=>{ if(e.key==='Enter') go(); }; });
  M.querySelectorAll('[data-urm]').forEach(b=>b.onclick=()=>{ const [k,i]=b.dataset.urm.split('|'); (D.me[k]||[]).splice(+i,1); save(); render(); });
  if($('pprev')) $('pprev').onclick=async()=>{ const html=await pageHtml(); $('pvbox').innerHTML='<iframe class="pv" sandbox title="Your page"></iframe>'; $('pvbox').firstChild.srcdoc=html; };
  if($('psave')) $('psave').onclick=async()=>{ const html=await pageHtml(), y=you(), a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([html],{type:'text/html'})); a.download=((D.me.banner||y.name||'Films').replace(/[\\/:*?"<>|]+/g,' ').trim())+' - films.html'; document.body.appendChild(a); a.click(); a.remove(); toast('Saved. Attach it, or open it and print.'); };

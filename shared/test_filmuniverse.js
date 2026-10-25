@@ -20,8 +20,11 @@ ok('inside or out, time of day: counts, not percents', U.scenes.includes('Inside
 ok('a place in both films', U.scenes.includes('Places in more than one film: DINER (2).'), U.scenes);
 ok('speaking parts, you in it, how you shoot', U.scenes.includes('Speaking parts: 2 a film.')&&U.scenes.includes('You play a part yourself in 1 of 2.')&&U.scenes.includes('How you shoot: Compress it 2 scenes, Fastest proof 1 scene.'), U.scenes);
 ok('who you keep working with: Jo Park on 3, Dana Pell on 2, with jobs', /Jo Park \(3 films, Sound\)/.test(U.crew[0])&&/Dana Pell \(2 films, plays ROSS, plays WREN\)/.test(U.crew[0]), U.crew);
-ok('map: 3 films, people, the diner once', by('film').length===3&&by('person').length>=5&&by('place').filter(n=>n.label==='DINER').length===1, U.nodes.map(n=>n.type+':'+n.label));
+ok('map: 3 films, people (not you: you are on every film), the diner once', by('film').length===3&&by('person').length>=4&&!by('person').some(n=>n.label==='Sam Actor')&&by('place').filter(n=>n.label==='DINER').length===1, U.nodes.map(n=>n.type+':'+n.label));
 ok('map: Jo Park joined to all three', U.edges.filter(e=>e.b==='p:jopark').length===3, U.edges.filter(e=>e.b==='p:jopark'));
+ok('what ties your films: Jo Park on all three, Dana Pell on two, the diner in two, never you', U.ties.some(t=>t.text==='Jo Park is on Salt Road, Dry Creek and The Watch.')&&U.ties.some(t=>t.text==='Dana Pell is on Salt Road and Dry Creek.')&&U.ties.some(t=>t.text==='DINER is in Salt Road and Dry Creek: 2 scenes.')&&U.ties.some(t=>t.kind==='all')&&!U.ties.some(t=>/Sam Actor/.test(t.text)), U.ties);
+ok('who you work with most, most films first, never you', U.most[0]==='Jo Park · 3 films · Sound'&&/^Dana Pell · 2 films/.test(U.most[1])&&!U.most.some(x=>/Sam Actor/.test(x)), U.most);
+ok('a film nobody else touches stands alone', H.universe([{id:'x',title:'Lone One',kind:'Short'},{id:'y',title:'Other',kind:'Short'}],F,[{name:'Ana Cruz',films:[{film:'Other',jobs:['Sound']}]}],{}).ties.filter(t=>t.kind==='alone').length===2);
 ok('your words kept as you said them', U.into.join()==='westerns,long takes'&&U.wants.map(w=>w.text).join('|')==='a feature|a music video|work with a real DP');
 ok('a want that names a kind: the count next to it, nothing more', U.wants[0].kind==='feature'&&U.wants[0].made===0&&U.wants[1].kind==='music video'&&U.wants[2].made===null, U.wants);
 ok('nothing in: no films, no errors', H.universe([],F,[],{}).facts[0]==='No films yet.'&&H.universe([],F,[],{}).nodes.length===0);
