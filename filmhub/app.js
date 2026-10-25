@@ -56,7 +56,7 @@ function pathHtml(f){ if(f.from!=='studio'||!H.path) return ''; const c=studio()
 function goOf(f){ if(f.from!=='studio') return ''; const c=studio()[f.sid]||{}, fin=c.cut&&c.cut.final, id=encodeURIComponent(f.sid);
  return fin?'<a class="btn pri fgo" href="../film/#open='+id+'&tab=out">PUT IT OUT</a>':'<a class="btn fgo" href="../film/#open='+id+'">PICK UP</a>'; }
 function card(f){
- const sub=f.from==='studio'?(H.words(f.st)[0]||''):[f.year,f.kind].filter(Boolean).join(' · ');
+ const sub=f.from==='studio'?(H.words(f.st)[0]||''):[f.year,f.kind,f.runtime].filter(Boolean).join(' · ');
  const ns=notesOf(f.id), alt=ns.find(n=>n.thumb);
  return '<button class="fc" data-open="'+esc(f.id)+'"><img class="po" data-poster="'+esc(f.id)+'"'+(alt?' data-alt="n:'+esc(alt.id)+'"':'')+' alt="" hidden><div><b>'+esc(f.title||'Untitled')+'</b><small>'+esc(sub)+'</small>'+(ns.length?'<small>'+ns.length+' note'+(ns.length===1?'':'s')+', last '+esc(new Date(ns[0].at).toLocaleDateString(undefined,{month:'short',day:'numeric'}))+'</small>':'')
   +(f.stage?'<span class="stg">'+esc(H.stageWord(f.stage))+'</span>':'')+(f.show===false?'<span class="stg" style="color:var(--faint);margin-left:8px">off the page</span>':'')+pathHtml(f)+'</div></button>';
@@ -126,28 +126,29 @@ async function pageHtml(){ const L=pageFilms(); for(const x of L){ const b=await
  const y=you(); return H.pageHtml(L,{banner:D.me.banner,name:y.name||'',about:D.me.about,email:D.me.email}); }
 function pageView(){
  const y=you(), L=pageFilms();
- let h='<div class="card" id="actorpage"><p class="kicker">On your actor page too</p><p class="dim" style="margin:0 0 10px">Every film you added here, and every Story Studio film you mark done, also goes on your page in the Project Hub, under your acting, unless you set it to stay off the page. This tab makes a page of just your films.</p><a class="btn" style="text-decoration:none" href="../hub/?tab=package#online">OPEN YOUR PAGE</a></div>'
+ let h=''
  +'<div class="card"><p class="kicker">Your page</p><label class="lab" for="pbanner">Banner</label><input class="field" id="pbanner" data-pm="banner" value="'+esc(D.me.banner)+'" placeholder="Your company, or your name">'
   +'<label class="lab" for="pname">Your name</label><input class="field" id="pname" value="'+esc(y.name||'')+'" placeholder="As it goes on the page">'
   +'<label class="lab" for="pabout">About (a line or two)</label><textarea class="field" id="pabout" data-pm="about" style="min-height:80px">'+esc(D.me.about)+'</textarea>'
   +'<label class="lab" for="pemail">Email on the page (optional)</label><input class="field" id="pemail" data-pm="email" value="'+esc(D.me.email)+'" inputmode="email"></div>';
  h+='<div class="card"><p class="kicker">On it</p>'+(L.length?L.map(x=>'<label class="row" style="justify-content:space-between;padding:6px 0"><span>'+esc(x.title||'Untitled')+(x.year?' <span class="faint">'+esc(x.year)+'</span>':'')+'</span><input type="checkbox" data-pshow="'+esc(x.id)+'"'+(x.show?' checked':'')+'></label>').join(''):'<p class="faint small">No films yet.</p>')+'</div>';
  h+='<div class="card"><p class="dim small" style="margin-top:0">Only what\'s on this tab and each film\'s ON THE PAGE box goes in. Never the script, your notes, call times or anyone\'s phone number.</p>'
-  +'<div class="row"><button class="btn" id="pprev">PREVIEW</button><button class="btn pri" id="psave" style="flex:1">SAVE AS A PAGE</button></div></div><div id="pvbox"></div>';
+  +'<div class="row"><button class="btn" id="pprev">PREVIEW</button><button class="btn pri" id="psave" style="flex:1">SAVE AS A PAGE</button></div></div><div id="pvbox"></div>'
+  +'<p class="small" id="actorpage" style="margin:4px 2px 18px"><a class="lnk" style="padding:0" href="../hub/?tab=package#online">Your films go on your actor page too, unless you set one to stay off it. Open it ›</a></p>';
  return h;
 }
 
 /* ---------- PEOPLE ---------- */
 function peopleView(){
- const P=H.people(studio(),F,D.films.map(f=>({title:f.title,people:f.people})));
+ const P=H.people(studio(),F,D.films.map(f=>({title:f.title,people:f.people})),you().name);
  if(!P.length) return '<div class="card"><p class="dim" style="margin:0">Just you so far. Name the cast in Story Studio\'s call sheet, or add who was on a film you\'ve made, and they show up here.</p></div>';
- return '<div class="card">'+P.map(p=>'<div class="pp"><b>'+esc(p.name)+'</b><small>'+p.films.map(f=>esc(f.film)+(f.jobs.length?' ('+esc(f.jobs.join(', '))+')':'')).join(' · ')+'</small></div>').join('')+'</div>';
+ return '<div class="card">'+P.map(p=>'<div class="pp"><b>'+esc(p.name)+'</b>'+(p.you?'<span class="youtag">YOU</span>':'')+'<small>'+p.films.map(f=>esc(f.film)+(f.jobs.length?' ('+esc(f.jobs.join(', '))+')':'')).join(' · ')+'</small></div>').join('')+'</div>';
 }
 
 /* ---------- YOU: your universe ---------- */
 let USEL='';
 function uni(){ const S=studio(), L=films().map(f=>({id:f.id,title:f.title,kind:f.kind,year:f.year,runtime:f.runtime,stage:f.from==='hand'?'done':f.stage,script:f.from==='studio'?S[f.sid]:null}));
- return H.universe(L,F,H.people(S,F,D.films.map(f=>({title:f.title,people:f.people}))),D.me); }
+ return H.universe(L,F,H.people(S,F,D.films.map(f=>({title:f.title,people:f.people})),you().name),D.me); }
 const PLK={feature:'Features',short:'Shorts',pilot:'Pilots',series:'Series','music video':'Music videos',documentary:'Documentaries',commercial:'Commercials',sketch:'Sketches'};
 function youView(){
  const U=uni(), narrow=innerWidth<640, W=narrow?600:1000, Hh=narrow?(U.nodes.length>14?860:640):560;

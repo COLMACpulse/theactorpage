@@ -16,7 +16,7 @@ ok('kinds counted from what you typed', U.facts[0]==='3 films: 2 shorts, 1 pilot
 ok('years and runtimes, an hour read as 60 min', U.facts.includes('From 2019 to 2026.')&&U.facts.includes('Runtimes: 9 to 60 min.'), U.facts);
 ok('where they stand', U.facts.includes('Where they stand: 1 planning, 1 cutting, 1 done.'), U.facts);
 ok('from the scripts: how many read', U.scenes[0]==='From 2 scripts read in Story Studio:', U.scenes);
-ok('inside or out, time of day', U.scenes.includes('Inside or out: inside 75%, outside 25%.')&&U.scenes.includes('Time of day: night 75%, day 25%.'), U.scenes);
+ok('inside or out, time of day: counts, not percents', U.scenes.includes('Inside 3 scenes, outside 1.')&&U.scenes.includes('Night 3 scenes, day 1.')&&!U.scenes.some(x=>/%/.test(x)), U.scenes);
 ok('a place in both films', U.scenes.includes('Places in more than one film: DINER (2).'), U.scenes);
 ok('speaking parts, you in it, how you shoot', U.scenes.includes('Speaking parts: 2 a film.')&&U.scenes.includes('You play a part yourself in 1 of 2.')&&U.scenes.includes('How you shoot: Compress it 2 scenes, Fastest proof 1 scene.'), U.scenes);
 ok('who you keep working with: Jo Park on 3, Dana Pell on 2, with jobs', /Jo Park \(3 films, Sound\)/.test(U.crew[0])&&/Dana Pell \(2 films, plays ROSS, plays WREN\)/.test(U.crew[0]), U.crew);

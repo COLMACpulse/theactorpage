@@ -65,15 +65,19 @@ H.words=function(s){
 };
 
 /* everyone on your films: the actor for each part and the crew lines, from Story Studio; contacts never */
-H.people=function(scripts,F,extra){
- const by={};
- const add=(name,job,film)=>{ name=String(name||'').trim(); if(!name) return; const k=name.toLowerCase().replace(/[^a-z0-9]+/g,''); const p=by[k]=by[k]||{name,films:{}}; (p.films[film]=p.films[film]||[]).includes(job)||p.films[film].push(job); };
+/* a credit line's job as a job: "Directed by" reads Director, "Written and directed by" reads Writer, Director */
+const JOBS=[[/^direct/i,'Director'],[/^writ/i,'Writer'],[/^produc/i,'Producer'],[/^edit/i,'Editor'],[/^(shot|photograph|cinematograph|lensed)/i,'Camera'],[/^music|^score/i,'Music'],[/^(cast|casting)\b/i,'Casting'],[/^(sound|recorded)/i,'Sound']];
+H.job=function(j){ j=String(j||'').trim(); if(!/\bby$/i.test(j)) return j; return j.replace(/\s*by$/i,'').split(/\s*(?:,|&|\band\b)\s*/i).filter(Boolean).map(w=>{ const m=JOBS.find(x=>x[0].test(w)); return m?m[1]:w.charAt(0).toUpperCase()+w.slice(1); }).join(', '); };
+H.people=function(scripts,F,extra,myName){
+ const by={}, norm=n=>String(n||'').toLowerCase().replace(/[^a-z0-9]+/g,''), mine=new Set(myName?[norm(myName)]:[]);
+ Object.keys(scripts||{}).forEach(id=>{ const c=scripts[id]; if(c&&c.people&&c.people.me) mine.add(norm(c.people.me)); });
+ const add=(name,job,film)=>{ name=String(name||'').trim(); if(!name) return; job=H.job(job); const k=norm(name); const p=by[k]=by[k]||{name,films:{},you:mine.has(k)}; (p.films[film]=p.films[film]||[]).includes(job)||p.films[film].push(job); };
  Object.keys(scripts||{}).forEach(id=>{ const c=scripts[id], film=H.title(c), A=(c.people&&c.people.actors)||{};
   Object.keys(A).forEach(role=>add(A[role],'plays '+role,film));
   if(c.people&&c.people.me&&c.me) add(c.people.me,'plays '+c.me,film);
   try{ F.crewLines((c.people&&c.people.crew)||'').forEach(x=>add(x.name,x.job||'crew',film)); }catch(e){} });
  (extra||[]).forEach(f=>String(f.people||'').split(/\n+/).forEach(l=>{ const m=l.match(/^(.+?)\s*(?::|\s[-–]\s)\s*(.+)$/); if(m) add(m[2],m[1].trim(),f.title||'Untitled'); else add(l,'',f.title||'Untitled'); }));
- return Object.values(by).map(p=>({name:p.name,films:Object.keys(p.films).map(f=>({film:f,jobs:p.films[f].filter(Boolean)}))})).sort((a,b)=>b.films.length-a.films.length||a.name.localeCompare(b.name));
+ return Object.values(by).map(p=>({name:p.name,you:p.you,films:Object.keys(p.films).map(f=>({film:f,jobs:p.films[f].filter(Boolean)}))})).sort((a,b)=>b.films.length-a.films.length||a.name.localeCompare(b.name));
 };
 
 /* the page: your banner and your films. Only what you put on the PAGE tab; never the script, notes, numbers or contacts. */
@@ -100,7 +104,10 @@ H.pageHtml=function(films,me){
    people: H.people(...) output.  me: {into:[], want:[]} */
 const KINDS=[['feature',/\bfeatures?\b/i],['short',/\bshorts?\b/i],['pilot',/\bpilots?\b/i],['series',/\b(series|web ?series|episodic)\b/i],['music video',/\bmusic videos?\b/i],['documentary',/\b(doc|docs|documentar(y|ies))\b/i],['commercial',/\b(commercials?|spots?|ads?)\b/i],['sketch',/\bsketch(es)?\b/i]];
 H.kindOf=t=>{ const k=KINDS.find(x=>x[1].test(String(t||''))); return k?k[0]:''; };
-const share=o=>{ const t=Object.values(o).reduce((a,b)=>a+b,0); return t?Object.keys(o).sort((a,b)=>o[b]-o[a]).map(k=>k+' '+Math.round(o[k]/t*100)+'%'):[]; };
+/* counts, not percents: {night:3} reads "Night: all 3 scenes"; {inside:2,outside:1} reads "Inside 2 scenes, outside 1" */
+const counted=o=>{ const K=Object.keys(o).sort((a,b)=>o[b]-o[a]); if(!K.length) return ''; const cap=k=>k.charAt(0).toUpperCase()+k.slice(1);
+ if(K.length===1) return cap(K[0])+': '+(o[K[0]]>1?'all '+o[K[0]]+' scenes':'1 scene');
+ return K.map((k,i)=>(i?k:cap(k))+' '+o[k]+(i?'':(o[k]===1?' scene':' scenes'))).join(', '); };
 const mins=r=>{ const m=String(r||'').match(/(\d+(?:\.\d+)?)\s*(h|hr|hour|m|min)?/i); if(!m) return 0; return /^h/i.test(m[2]||'')?Math.round(+m[1]*60):+m[1]; };
 H.universe=function(films,F,people,me){
  films=films||[]; people=people||[]; me=me||{};
@@ -136,14 +143,14 @@ H.universe=function(films,F,people,me){
   const sw=H.STAGES.filter(x=>stages[x[0]]).map(x=>stages[x[0]]+' '+x[1].toLowerCase()); facts.push('Where they stand: '+sw.join(', ')+'.');
  }
  const scen=[];
- if(read){ const a=share(ie), t=share(tod); if(a.length) scen.push('Inside or out: '+a.join(', ')+'.'); if(t.length) scen.push('Time of day: '+t.slice(0,4).join(', ')+'.');
+ if(read){ const a=counted(ie), t4={}; Object.keys(tod).sort((x,y)=>tod[y]-tod[x]).slice(0,4).forEach(k=>t4[k]=tod[k]); const t=counted(t4); if(a) scen.push(a+'.'); if(t) scen.push(t+'.');
   const back=Object.keys(placeFilms).filter(pl=>placeFilms[pl].length>1).sort((a,b)=>placeFilms[b].length-placeFilms[a].length); if(back.length) scen.push('Places in more than one film: '+back.slice(0,5).map(pl=>pl+' ('+placeFilms[pl].length+')').join(', ')+'.');
   if(parts.length) scen.push('Speaking parts: '+(Math.min(...parts)===Math.max(...parts)?parts[0]:Math.min(...parts)+' to '+Math.max(...parts))+' a film.');
   scen.push('You play a part yourself in '+inIt+' of '+read+'.');
   const wn=(F.WAYS||[]).filter(x=>ways[x.id]).map(x=>x.name+' '+pl(ways[x.id],'scene')); if(wn.length) scen.push('How you shoot: '+wn.join(', ')+'.');
   scen.unshift('From '+pl(read,'script')+' read in Story Studio:'); }
- const again=people.filter(p=>p.films.length>1);
- const crew=again.length?['Who you keep working with: '+again.slice(0,6).map(p=>p.name+' ('+p.films.length+' films'+(()=>{ const j=[...new Set([].concat(...p.films.map(x=>x.jobs)))].slice(0,2); return j.length?', '+j.join(', '):''; })()+')').join('; ')+'.']:(people.length?['Nobody on more than one film yet.']:[]);
+ const again=people.filter(p=>!p.you&&p.films.length>1);
+ const crew=again.length?['Who you keep working with: '+again.slice(0,6).map(p=>p.name+' ('+p.films.length+' films'+(()=>{ const j=[...new Set([].concat(...p.films.map(x=>x.jobs)))].slice(0,2); return j.length?', '+j.join(', '):''; })()+')').join('; ')+'.']:(people.some(p=>!p.you)?['Who you keep working with: nobody on two films yet.']:[]);
  /* what you said, next to what's counted: only where a kind is named */
  const wants=(me.want||[]).map(w=>{ const k=H.kindOf(w); return {text:w,kind:k,made:k?(kinds[k]||0):null}; });
  return {nodes,edges,facts,scenes:scen,crew,into:(me.into||[]).slice(),wants};
