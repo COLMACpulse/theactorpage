@@ -19,9 +19,9 @@ await p.click('.dept[data-d="act"] > summary'); await p.waitForTimeout(150); awa
 want('More: the full description', await p.evaluate(()=>{ const d=document.querySelector('.tool details.more'); return d.open&&d.querySelector('p').textContent.length>150; }));
 want('the VO Booth mic is still there, outside the fold', await p.evaluate(()=>{ const m=document.getElementById('mic'); return !!m&&!m.closest('details.more'); }));
 const F=await p.$$eval('.fcol',x=>x.map(c=>c.querySelector('.froom').textContent+':'+c.querySelectorAll('.ftool').length));
-want('the footer: every tool, by room, WRITE and FILM marked make your own, Characters and Set List under WRITE', F.join()==='ACT:9,WRITE · make your own:5,FILM · make your own:3,YOURS:10'&&!!(await p.$('.fcol:nth-child(2) a[href="papertrail/?tab=allchars"]')), F);
-await p.click('footer a[href="papertrail/?tab=allchars"]'); await p.waitForURL(/papertrail/); await p.waitForTimeout(900);
-want('Characters opens Paper Trail on All characters', await p.$eval('#tabs .tsub .on',x=>x.textContent).catch(()=>'')==='All characters');
+want('the footer: every tool, by room, WRITE and FILM marked make your own, Characters under WRITE and YOURS', F.join()==='ACT:9,WRITE · make your own:5,FILM · make your own:3,YOURS:11'&&!!(await p.$('.fcol:nth-child(2) a[href="characters/"]'))&&!!(await p.$('.fcol:nth-child(4) a[href="characters/"]')), F);
+await p.click('.fcol:nth-child(2) a[href="characters/"]'); await p.waitForURL(/characters/); await p.waitForTimeout(900);
+want('Characters opens its own page: every character, from every tool', /Every character, from every tool/.test(await p.innerText('h1')));
 want('no em dashes in the one-liners', !T.some(t=>/—/.test(t.one)));
 { await p.goto('http://localhost:8811/index.html'); await p.waitForTimeout(600); const hb=await p.evaluate(()=>document.body.textContent.replace(/\s+/g,' '));
   want('Spotted on home: the polite nudge, no JUICE', /Send your reps the screenshot and one polite line/.test(hb)&&!/JUICE/.test(hb));
