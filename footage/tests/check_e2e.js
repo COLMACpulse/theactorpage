@@ -10,7 +10,8 @@ p.on('pageerror',e=>errs.push(e.message)); p.on('request',r=>{ const u=r.url(); 
 await p.goto('http://localhost:8811/footage/'); await p.evaluate(()=>localStorage.clear());
 await p.click('#checkfold summary'); await p.click('#tocheck'); await p.waitForTimeout(500);
 want('Footage links to it; its own page', /check\.html$/.test(p.url())&&/CHECK THE COPY/.test(await p.innerText('h1')));
-want('it says what it promises: nothing uploaded, nothing erased', /NOTHING IS UPLOADED/.test(await p.innerText('main'))&&/IT NEVER ERASES ANYTHING/.test(await p.innerText('main')));
+want('it says what it promises in one line; the rest one tap down', /Nothing is uploaded\. It never erases anything\./.test(await p.innerText('main'))&&!/NOTHING IS UPLOADED/.test(await p.innerText('main')));
+await p.click('#howfold summary'); want('tap How it works: the three promises', /NOTHING IS UPLOADED/.test(await p.innerText('main'))&&/IT NEVER ERASES ANYTHING/.test(await p.innerText('main'))&&/ON A COMPUTER/.test(await p.innerText('main')));
 want('CHECK IT waits for the card and a copy', await p.isDisabled('#p_go'));
 /* made-up clips: bytes made here, the same recipe in Node for the expected fingerprints */
 const mk=(seed,n)=>{ const a=Buffer.alloc(n); let x=seed>>>0; for(let i=0;i<n;i++){ x=(x*1664525+1013904223)>>>0; a[i]=x>>>24; } return a; };

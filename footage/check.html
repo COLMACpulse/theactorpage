@@ -6,17 +6,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CHECK THE COPY · THEACTORPAGE</title>
 <meta name="description" content="Before you erase a camera card: every file on your copies checked against the card, byte for byte. Read on your device; nothing uploaded, nothing erased.">
-<meta name="theme-color" content="#0d0f12">
+<meta name="theme-color" content="#0a0f15">
 <link rel="icon" href="../img/sigil-film-64.png">
 <style>
 @font-face{font-family:Jost;font-weight:400;font-display:swap;src:url(../fonts/jost-latin-400-normal.woff2) format('woff2')}
 @font-face{font-family:Jost;font-weight:500;font-display:swap;src:url(../fonts/jost-latin-500-normal.woff2) format('woff2')}
 @font-face{font-family:'Courier Prime';font-weight:700;font-display:swap;src:url(../fonts/courier-prime-latin-700-normal.woff2) format('woff2')}
-:root{--bg:#0d0f12;--p1:#14171b;--p2:#1b1f25;--ink:#ece7dc;--dim:#c3c8d0;--mut:#9aa1ab;--line:#272d36;--gold:#e0a23c;--gold-ink:#17110a;--bad:#e0785f;--good:#8fbf8a;
+:root{
+ /* FILM's night set, as in Story Studio: FILM blue for what you tap */
+ --bg:#0a0f15;--p1:#111923;--p2:#18222e;--ink:#e7eef6;--dim:#c2d0de;--mut:#9fb2c6;--line:#223142;--gold:#6fa8d6;--gold-text:#8cc3ee;--gold-ink:#04101b;--bad:#e0785f;--good:#8fcf9a;--no:#f0a58f;
+ --safe-bg:#13201a;--safe-line:#2f5a44;--safe-ink:#a9d6a4;--stop-bg:#2a1712;--stop-line:#6a3a2c;--stop-ink:#f4b9a6;--stk:#18222e;
  --sans:Jost,system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"Courier Prime",ui-monospace,monospace;color-scheme:dark}
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){
+ --bg:#ece7dc;--p1:#f6f2ea;--p2:#e3dccd;--ink:#1d1a15;--dim:#4f493e;--mut:#5f584b;--line:#d3cab8;--gold:#2f6fa8;--gold-text:#245a8c;--gold-ink:#ffffff;--bad:#a8432c;--good:#2f6b3a;--no:#8a2f1c;
+ --safe-bg:#e3efe4;--safe-line:#9cc4a4;--safe-ink:#2f6b3a;--stop-bg:#f7e6e0;--stop-line:#d9a99a;--stop-ink:#8a2f1c;--stk:#e3dccd;color-scheme:light}}
+:root[data-theme="light"]{
+ --bg:#ece7dc;--p1:#f6f2ea;--p2:#e3dccd;--ink:#1d1a15;--dim:#4f493e;--mut:#5f584b;--line:#d3cab8;--gold:#2f6fa8;--gold-text:#245a8c;--gold-ink:#ffffff;--bad:#a8432c;--good:#2f6b3a;--no:#8a2f1c;
+ --safe-bg:#e3efe4;--safe-line:#9cc4a4;--safe-ink:#2f6b3a;--stop-bg:#f7e6e0;--stop-line:#d9a99a;--stop-ink:#8a2f1c;--stk:#e3dccd;color-scheme:light}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;-webkit-text-size-adjust:100%}
-a{color:var(--gold)}
+a{color:var(--gold-text)}
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 main{max-width:760px;margin:0 auto;padding:max(18px,env(safe-area-inset-top)) 16px 80px}
@@ -66,25 +75,48 @@ ol.how{margin:6px 0 0;padding-left:20px}ol.how li{margin:5px 0}
 .frow{display:grid;grid-template-columns:minmax(0,1fr) 84px repeat(var(--n),minmax(96px,150px));gap:10px;align-items:center;min-height:40px;border-top:1px solid var(--line);font:400 13px var(--mono)}
 .frow span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .frow.hd{border-top:0;min-height:28px;font:700 10.5px var(--mono);letter-spacing:.14em;color:var(--mut)}
-.ok{color:var(--good)}.no{color:#f0a58f}.on{color:var(--gold)}
+.ok{color:var(--good)}.no{color:var(--no)}.on{color:var(--gold-text)}
 .verdict{border-radius:12px;padding:16px 18px;margin:0 0 12px}
-.verdict.safe{background:#13201a;border:1px solid #2f5a44}.verdict.safe b{color:#a9d6a4}
-.verdict.stop{background:#2a1712;border:1px solid #6a3a2c}.verdict.stop b{color:#f4b9a6}
+.verdict.safe{background:var(--safe-bg);border:1px solid var(--safe-line)}.verdict.safe b{color:var(--safe-ink)}
+.verdict.stop{background:var(--stop-bg);border:1px solid var(--stop-line)}.verdict.stop b{color:var(--stop-ink)}
 .verdict b{display:block;font-size:1.4rem;font-weight:500}
 .hist{list-style:none;margin:6px 0;padding:0}.hist li{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
 .promise{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:22px;border-top:1px solid var(--line);padding-top:14px}
 .promise b{display:block;font:700 10.5px var(--mono);letter-spacing:.16em;color:var(--mut)}
 @media(max-width:560px){.frow{grid-template-columns:minmax(0,1fr) repeat(var(--n),76px)}.frow .sz{display:none}}
+
+/* THE HOUSE LOOK (Col, Oct 25): FILM's header and sticks, words in Jost; only file names stay in type */
+.top{padding:calc(env(safe-area-inset-top) + 12px) 16px 12px}.hrow{display:flex;align-items:center;gap:12px;max-width:760px;margin:0 auto}.htx{flex:1;min-width:0}
+.hico{width:52px;height:52px;flex:none}.hico .bd{fill:var(--p2);stroke:var(--line)}.hico .ck{fill:none;stroke:var(--gold);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.hico .nt{fill:var(--line)}
+.hsig{width:46px;height:46px;flex:none;object-fit:contain}
+h1.k{font:500 11px var(--sans);letter-spacing:.22em;color:var(--mut);margin:0}.top b{display:block;font-size:18px;font-weight:500;letter-spacing:.04em}.top .sub{font-size:13.5px;color:var(--gold-text);margin:1px 0 0}
+.hstk{display:block;height:26px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='176' height='30' viewBox='0 0 176 30'%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232b3038' transform='translate%28-22%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%231f8a5c' transform='translate%280%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23d9b23a' transform='translate%2822%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232a5fa8' transform='translate%2844%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23c0392b' transform='translate%2866%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23e8e6e0' transform='translate%2888%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%239aa0a8' transform='translate%28110%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%235c636d' transform='translate%28132%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232b3038' transform='translate%28154%29'/%3E%3C/svg%3E") repeat-x 0 50%/auto 100%;box-shadow:inset 0 0 0 1px #00000055;opacity:.92}
+.back{display:inline-block;font-size:14px;text-decoration:none;margin:0 0 12px;min-height:32px}
+.kick,.btn,label.lab,.st,.promise b,.frow.hd,.chip,.tabs button{font-family:var(--sans)!important;font-weight:600!important}
+.kick{letter-spacing:.16em;color:var(--gold-text)}.btn{letter-spacing:.1em;font-size:13px!important}label.lab{letter-spacing:.12em;font-size:11.5px!important}
+.btn.ghost{color:var(--gold-text)}
+details.cfold{background:var(--p1);border:1px solid var(--line);border-radius:12px;margin:12px 0;padding:0 14px}details.cfold>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:48px;font-size:15px}details.cfold>summary::-webkit-details-marker{display:none}details.cfold>summary i{font-style:normal;font-size:12.5px;color:var(--mut)}details.cfold>summary i::after{content:' ›'}details.cfold[open]>summary i::after{content:' ⌄'}details.cfold[open]{padding-bottom:12px}
+/* in the file rows, the name stays in type; what it says reads in words */
+.frow .no,.frow .ok,.frow .on,.frow .mut,.frow .sz{font-family:var(--sans);font-size:13.5px}
+details.cfold .promise{margin-top:4px;border-top:0;padding-top:0}
+@media(min-width:1000px){.hico{width:64px;height:64px}.hsig{width:60px;height:60px}}
 </style>
 </head>
 <body>
+<header class="top">
+  <div class="hrow">
+    <svg class="hico" viewBox="0 0 74 74" role="img" aria-label="A card, checked twice"><path class="bd" d="M20 8h26l10 10v48a2 2 0 0 1-2 2H20a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z"/><rect class="nt" x="25" y="13" width="4" height="9" rx="1"/><rect class="nt" x="32" y="13" width="4" height="9" rx="1"/><rect class="nt" x="39" y="13" width="4" height="9" rx="1"/><path class="ck" d="M25 44l6 6 11-13M33 52l4 4 13-16"/></svg>
+    <div class="htx"><h1 class="k">FILM · CHECK THE COPY</h1><b>Before you erase a card</b><p class="sub">Every file has to match. A file count isn't a check.</p></div>
+    <img class="hsig" src="../img/sigil-film-180.png" alt="THEACTORPAGE" width="56" height="56">
+  </div>
+</header>
+<i class="hstk" aria-hidden="true"></i>
 <main>
-  <p class="crumb"><a href="../">THEACTORPAGE</a> · <a href="./">FOOTAGE</a></p>
-  <h1>CHECK THE COPY</h1>
-  <p class="sub">Before you erase a camera card: every file on your copies has to match the card exactly. A file count isn't a check.</p>
+  <a class="back" id="back" href="./">‹ Footage</a>
   <div id="view"></div>
 </main>
 <script src="../shared/copycheck.js"></script>
+<script>(function(){ /* back to where you came from: Story Studio or Footage */ var b=document.getElementById('back'), f=''; try{ f=new URLSearchParams(location.search).get('from')||''; }catch(e){} if(f==='film'||(!f&&/\/film\//.test(document.referrer))){ b.href='../film/'; b.textContent='‹ Story Studio'; } })();</script>
 <script src="check.js"></script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
 </body>
