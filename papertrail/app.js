@@ -11,7 +11,7 @@ const rid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const day=t=>new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
 const perf=()=>'<div class="perf">'+'<i></i>'.repeat(11)+'</div>';
 
-let DB=load(); DB.marks=DB.marks||{};
+let DB=load(); DB.marks=DB.marks||{}; DB.people=DB.people||{same:[],notes:{}}; DB.people.same=DB.people.same||[]; DB.people.notes=DB.people.notes||{};
 let READER=(()=>{ try{ return localStorage.getItem('paper_trail_reader')||''; }catch(e){ return ''; } })();
 let SR=window.SpeechRecognition||window.webkitSpeechRecognition||null, REC=null, LISTEN=false, SAID=false;
 let TEXT={}, VIEW={tab:'projects',p:null,scene:null}, MSG='', ADDED=[], SHOWRET=false;
@@ -623,28 +623,70 @@ function vDrafts(p){
   +'<div class="row"><button class="btn pri" id="proofmk">PROOF OF DRAFT</button><label class="btn ghost"><input type="file" class="hide" id="proofchk" accept=".pdf,.fdx,.fountain,.txt,.md,.docx,text/plain,application/pdf">CHECK A FILE</label></div><div id="proofout"></div></div>';
  return h;
 }
-/* one character: every line they say, what the action lines say about them, their scenes, who they share scenes with.
-   All quoted from the current draft. Nothing guessed about who they are. */
+/* ---------- CHARACTERS: one card each, every project. Quoted from the current drafts; counts in words. ----------
+   The same name in two projects is two people until you tap SAME PERSON (DB.people.same); NOT THE SAME takes it back.
+   Your note on a character is yours alone (DB.people.notes, by the person). */
+const ckey=(pid,name)=>pid+'|'+T.norm(name);
+function charIndex(){
+ const P=projects().map(p=>({p,c:current(p)})).filter(x=>x.c), E=[];
+ P.forEach(({p,c})=>{ const sc=scenesOf(c), C=T.characters([{id:c.id,scenes:sc}]);
+  C.forEach(x=>{ const S=T.sheet(x.name,sc); E.push({key:ckey(p.id,x.name),pid:p.id,title:p.title,name:x.name,lines:x.by[c.id]||0,scenes:S.scenes.length,of:sc.length,named:S.mentions.length,voice:x.voice,first:S.lines[0]||null,draft:c.label}); }); });
+ const G=T.groups(E.map(e=>e.key),DB.people.same), by={};
+ E.forEach(e=>{ (by[G[e.key]]=by[G[e.key]]||[]).push(e); });
+ const groups=Object.entries(by).map(([gid,es])=>({gid,es,name:es[0].name,lines:es.reduce((n,e)=>n+e.lines,0)}));
+ const names={}; groups.forEach(g=>{ const n=T.norm(g.name); names[n]=(names[n]||0)+1; });
+ groups.forEach(g=>g.twin=names[T.norm(g.name)]>1);
+ groups.sort((a,b)=>b.lines-a.lines||a.name.localeCompare(b.name));
+ return {P,E,G,groups};
+}
+function groupOfKey(key){ const I=charIndex(); const gid=I.G[key]; return {I,gid,g:I.groups.find(x=>x.gid===gid)}; }
+function charCard(g,inProj){
+ const e0=g.es[0], open=inProj?'data-char="'+esc(e0.name)+'"':'data-charin="'+esc(e0.pid)+'|'+esc(e0.name)+'"';
+ const chips=g.es.map(e=>'<a class="pchip" data-charin="'+esc(e.pid)+'|'+esc(e.name)+'">'+esc(e.title)+'</a>').join('');
+ const count=g.es.length>1?g.lines+' line'+(g.lines===1?'':'s')+' in '+g.es.length+' projects':e0.lines+' line'+(e0.lines===1?'':'s')+' · in '+e0.scenes+' of '+e0.of+' scene'+(e0.of===1?'':'s')+(e0.named?' · named '+e0.named+' time'+(e0.named===1?'':'s')+' by others':'');
+ const note=DB.people.notes[g.gid];
+ return '<div class="ccard'+(g.twin?' twin':'')+'"><div class="ctop"><button class="cname" '+open+'>'+esc(g.name)+'</button><span class="pchips">'+chips+'</span></div>'
+  +'<div class="fl">'+esc(count)+(g.es.some(e=>e.voice)?' · some lines voice only':'')+'</div>'
+  +(note?'<div class="cnote">'+esc(note.length>110?note.slice(0,108).replace(/\s+\S*$/,'')+' …':note)+'</div>':'')
+  +(e0.first?'<button class="cq" '+open+'>'+esc(e0.first.text.length>120?e0.first.text.slice(0,118).replace(/\s+\S*$/,'')+' …':e0.first.text)+'</button><div class="note">First line, from the page</div>':'<div class="note">Seen, not heard.</div>')
+  +(g.twin?'<div class="ctwin">The same name in another project. Two people until you say they\'re one. <button class="lnk" data-same="'+esc(T.norm(g.name))+'">SAME PERSON?</button></div>':'')
+  +(g.es.length>1?'<div class="note">Joined by you as one person.</div>':'')+'</div>';
+}
+function charFilter(fixed){
+ const I=charIndex(), q=T.norm(VIEW.cq||''), f=fixed||VIEW.cf||'';
+ const L=I.groups.filter(g=>(!f||g.es.some(e=>e.pid===f))&&(!q||T.norm(g.name).includes(q)));
+ return {I,L,f};
+}
+function vAllChars(){
+ const {I,L,f}=charFilter();
+ if(!I.P.length) return '<div class="panel">No script drafts yet. <button class="btn sm" data-tab="add">ADD DRAFTS</button></div>';
+ let h='<p class="note" style="margin-top:0">Every character in the current draft of each project. Quoted from your drafts. Tap one for every line.</p>';
+ h+='<div class="row" style="margin-bottom:14px"><input class="field" id="cq" placeholder="Find a character" value="'+esc(VIEW.cq||'')+'" style="max-width:340px">'
+  +'<div class="row">'+['<button class="chipb'+(!f?' on':'')+'" data-cf="">All projects</button>'].concat(I.P.map(x=>'<button class="chipb'+(f===x.p.id?' on':'')+'" data-cf="'+esc(x.p.id)+'">'+esc(x.p.title)+'</button>')).join('')+'</div></div>';
+ h+=L.length?'<div class="cgrid">'+L.map(g=>charCard(g,false)).join('')+'</div>':'<p class="note">Nobody by that name.</p>';
+ return h;
+}
+/* one character: their note, every line, then the rest folded. All quoted from the current draft. */
 function vChar(p,name){
  const c=current(p); if(!c) return '<div class="panel">No script draft yet.</div>';
  const sc=scenesOf(c), S=T.sheet(name,sc), at=i=>'<a data-goscene="'+i+'">SC '+(i+1)+'</a> '+esc(sc[i].heading);
- let h='<button class="btn ghost sm" data-charback="1">\u2039 All characters in '+esc(p.title)+'</button>';
- h+='<div class="panel" style="margin-top:12px"><div class="eyebrow" style="margin-top:0">'+esc(c.label)+'</div><h2 style="margin:4px 0 6px">'+esc(name)+'</h2>'
-  +'<p class="note" style="margin:0">'+S.lines.length+' line'+(S.lines.length===1?'':'s')+' · in '+S.scenes.length+' of '+sc.length+' scenes · named '+S.mentions.length+' time'+(S.mentions.length===1?'':'s')+' by the page or by someone else. Everything here is quoted from the draft.</p></div>';
- h+='<div class="eyebrow">Shares scenes with</div><p class="note" style="margin-top:0">'+(S.with.length?S.with.map(x=>esc(x.name)+' ('+x.scenes+')').join(', '):'Nobody.')+'</p>';
- h+='<div class="eyebrow">What the page and the others say</div><div class="list">'+(S.mentions.length?S.mentions.slice(0,60).map(x=>'<div class="li"><div class="w">'+esc(x.text)+'<small>'+at(x.i)+(x.by?' · '+esc(x.by)+' says it':'')+'</small></div></div>').join('')+(S.mentions.length>60?'<div class="li note">and '+(S.mentions.length-60)+' more</div>':''):'<div class="li note">Not named outside their own lines.</div>')+'</div>';
- h+='<div class="eyebrow">Every line</div><div class="list">'+(S.lines.length?S.lines.map(x=>'<div class="li"><div class="w">'+esc(x.text)+'<small>'+at(x.i)+'</small></div></div>').join(''):'<div class="li note">No lines. Seen, not heard.</div>')+'</div>';
- return h;
-}
-/* every character across your projects, from each one's current draft. A name in two projects is two names until you say otherwise. */
-function vAllChars(){
- const P=projects().map(p=>({p,c:current(p)})).filter(x=>x.c);
- if(!P.length) return '<div class="panel">No script drafts yet. <button class="btn sm" data-tab="add">ADD DRAFTS</button></div>';
- const A=T.allChars(P.map(x=>({id:x.p.id,title:x.p.title,scenes:scenesOf(x.c)}))), twice=A.filter(x=>x.in.length>1);
- let h='<p class="note">Every character in the current draft of each project'+(P.length>1?', all '+P.length+' projects':'')+'. Tap a project to see that one.</p>';
- h+='<div class="stats"><div><b>'+A.length+'</b><span>names</span></div><div><b>'+P.length+'</b><span>projects</span></div><div><b>'+twice.length+'</b><span>names in more than one</span></div></div>';
- if(twice.length) h+='<div class="eyebrow">The same name in different projects</div><p class="note" style="margin-top:-4px">Same name, not the same person unless you say so. Listed so you know.</p><div class="list">'+twice.map(x=>'<div class="li"><div class="w"><b>'+esc(x.name)+'</b><small>'+x.in.map(y=>'<a data-charin="'+esc(y.pid)+'|'+esc(x.name)+'">'+esc(y.title)+'</a> ('+y.lines+' line'+(y.lines===1?'':'s')+')').join(' · ')+'</small></div></div>').join('')+'</div>';
- h+='<div class="eyebrow">Everyone</div><div class="list">'+A.map(x=>'<div class="li"><div class="w"><b>'+esc(x.name)+'</b><small>'+x.in.map(y=>'<a data-charin="'+esc(y.pid)+'|'+esc(x.name)+'">'+esc(y.title)+'</a> ('+y.lines+')').join(' · ')+'</small></div></div>').join('')+'</div>';
+ const key=ckey(p.id,name), {g,gid}=groupOfKey(key), others=g?g.es.filter(e=>e.key!==key):[];
+ let h='<button class="btn ghost sm" data-charback="1">‹ All characters in '+esc(p.title)+'</button>';
+ h+='<div class="panel" style="margin-top:12px"><div class="eyebrow" style="margin-top:0">'+esc(p.title)+' · '+esc(c.label)+'</div><h2 style="margin:4px 0 6px">'+esc(name)+'</h2>'
+  +'<p class="note" style="margin:0">'+S.lines.length+' line'+(S.lines.length===1?'':'s')+' · in '+S.scenes.length+' of '+sc.length+' scenes · named '+S.mentions.length+' time'+(S.mentions.length===1?'':'s')+' by the page or by someone else. Everything here is quoted from the draft.</p>'
+  +(others.length?'<p style="margin:10px 0 0">Also in '+others.map(e=>'<a class="pchip" data-charin="'+esc(e.pid)+'|'+esc(e.name)+'">'+esc(e.title)+'</a>').join(' ')+' <span class="note">Joined by you.</span> <button class="lnk" data-unsame="'+esc(key)+'">NOT THE SAME PERSON</button></p>':'')+'</div>';
+ h+='<div class="eyebrow">Your note · your words</div><textarea class="field" id="cnote" data-gid="'+esc(gid||key)+'" placeholder="Who they are, what they want. Only you fill this in.">'+esc(DB.people.notes[gid||key]||'')+'</textarea>';
+ h+='<div class="eyebrow">Every line</div><div class="list">'+(S.lines.length?S.lines.map(x=>'<div class="li"><div class="w"><span class="cline">'+esc(x.text)+'</span><small>'+at(x.i)+'</small></div></div>').join(''):'<div class="li note">No lines. Seen, not heard.</div>')+'</div>';
+ h+='<div style="margin-top:18px">';
+ h+=fold('cwhat','What the page and the others say',S.mentions.length?S.mentions.length+' time'+(S.mentions.length===1?'':'s'):'none','<div class="list">'+(S.mentions.length?S.mentions.slice(0,60).map(x=>'<div class="li"><div class="w">'+esc(x.text)+'<small>'+at(x.i)+(x.by?' · '+esc(x.by)+' says it':'')+'</small></div></div>').join('')+(S.mentions.length>60?'<div class="li note">and '+(S.mentions.length-60)+' more</div>':''):'<div class="li note">Not named outside their own lines.</div>')+'</div>');
+ h+=fold('cwith','Shares scenes with',S.with.length?esc(S.with.slice(0,3).map(x=>x.name).join(', '))+(S.with.length>3?' …':''):'nobody','<p style="margin:0">'+(S.with.length?S.with.map(x=>esc(x.name)+' ('+x.scenes+')').join(', '):'Nobody.')+'</p>');
+ const ds=draftsOf(p.id).filter(d=>d.kind==='script'&&!d.retired);
+ if(ds.length>1){ const C=T.characters(ds.map(d=>({id:d.id,scenes:scenesOf(d)}))).find(x=>T.norm(x.name)===T.norm(name));
+  const row=ds.map(d=>C&&C.by[d.id]!=null?C.by[d.id]:null);
+  h+=fold('cdraft','Draft by draft',row.map(v=>v==null?'gone':v).join(', then ')+' lines','<div class="list">'+ds.map((d,j)=>'<div class="li"><div class="w"><b>'+esc(d.label)+'</b></div><span>'+(row[j]==null?'not in it':row[j]+' line'+(row[j]===1?'':'s'))+'</span></div>').join('')+'</div>'); }
+ const tk=T.talk(TEXT[c.id]||'').find(x=>T.norm(x.name)===T.norm(name));
+ if(tk) h+=fold('ctalk','How they talk','counts only','<p class="note" style="margin-top:0">'+esc(c.label)+'. Counts only, from the page. What they mean is yours.</p><div class="list">'+[['Speeches',tk.speeches],['Words a speech',tk.perSpeech],['Words a sentence',tk.perSentence],['Speeches that ask a question',tk.questions],['Longest speech, in words',tk.longest]].map(([l,v])=>'<div class="li"><div class="w">'+l+'</div><b>'+v+'</b></div>').join('')+'</div>');
+ h+='</div>';
  return h;
 }
 /* ---------- SOUNDS LIKE YOU: one scene next to everything else you kept here. Counts and your closest lines. No score. ---------- */
@@ -797,10 +839,14 @@ function uInfo(U){ const n=USEL&&U.nodes.find(x=>x.id===USEL); if(!n) return '<s
 function vChars(p){
  const ds=draftsOf(p.id).filter(d=>d.kind==='script'&&!d.retired);
  if(!ds.length) return '<div class="panel">No script drafts yet.</div>';
- const C=T.characters(ds.map(d=>({id:d.id,scenes:scenesOf(d)})));
- return '<p class="note">Lines per draft. A name that disappears from a draft shows a dash. Tap a name for everything the script says about them.</p><div class="tbl"><table><tr><th>Character</th>'+ds.map(d=>'<th>'+esc(d.label)+'</th>').join('')+'</tr>'
-  +C.map(x=>'<tr><td><a data-char="'+esc(x.name)+'"><b>'+esc(x.name)+'</b></a>'+(x.voice?' <span class="tag">voice</span>':'')+'</td>'+ds.map(d=>'<td>'+(x.by[d.id]==null?'–':x.by[d.id])+'</td>').join('')+'</tr>').join('')+'</table></div>'
-  +talkBox(ds)+numbersBox(ds);
+ const {L}=charFilter(p.id), C=T.characters(ds.map(d=>({id:d.id,scenes:scenesOf(d)})));
+ let h='<p class="note" style="margin-top:0">Everyone in '+esc(current(p)?current(p).label:'the current draft')+'. Tap a name for everything the script says about them.</p>';
+ h+='<div class="cgrid">'+L.map(g=>charCard(g,true)).join('')+'</div>';
+ h+='<div style="margin-top:18px">'+fold('ctable','Lines, draft by draft',ds.length+' draft'+(ds.length===1?'':'s'),'<p class="note" style="margin-top:0">A name that disappears from a draft shows a dash.</p><div class="tbl"><table><tr><th>Character</th>'+ds.map(d=>'<th>'+esc(d.label)+'</th>').join('')+'</tr>'
+  +C.map(x=>'<tr><td><a data-char="'+esc(x.name)+'"><b>'+esc(x.name)+'</b></a>'+(x.voice?' <span class="tag">voice too</span>':'')+'</td>'+ds.map(d=>'<td>'+(x.by[d.id]==null?'–':x.by[d.id])+'</td>').join('')+'</tr>').join('')+'</table></div>');
+ const tb=talkBox(ds); if(tb) h+=fold('ctalkall','How they talk','counts only',tb.replace(/<h3[^>]*>How they talk<\/h3>/,''));
+ h+=fold('cnums','The numbers, draft by draft','counts only',numbersBox(ds).replace(/<h3[^>]*>The numbers, draft by draft<\/h3>/,''))+'</div>';
+ return h;
 }
 function talkBox(ds){
  const p=DB.projects[VIEW.p], cur=p&&current(p), c=ds.find(d=>cur&&d.id===cur.id)||ds[ds.length-1];
@@ -902,6 +948,14 @@ function wire(){
  document.querySelectorAll('[data-ntgo]').forEach(a=>a.onclick=()=>{ VIEW.p=a.dataset.ntgo; VIEW.scene=null; go('threads'); setTimeout(()=>{ const e=$('notthis'); if(e) e.scrollIntoView(); },50); });
  if(p){ const na=$('ntadd'); if(na) na.onclick=()=>{ const t=$('ntx').value.trim(); if(!t) return; const w=$('ntw').value.split(',').map(x=>x.trim().toLowerCase()).filter(Boolean); p.notThis=(p.notThis||[]).concat([{id:rid('n'),text:t,words:w,at:Date.now()}]); p.updated=Date.now(); save(); render(); const e=$('notthis'); if(e) e.scrollIntoView(); };
   document.querySelectorAll('[data-ntdel]').forEach(b=>b.onclick=()=>{ if(!confirm('Remove this from NOT THIS?')) return; p.notThis=(p.notThis||[]).filter(f=>f.id!==b.dataset.ntdel); save(); render(); }); }
+ document.querySelectorAll('[data-cf]').forEach(b=>b.onclick=()=>{ VIEW.cf=b.dataset.cf; render(); });
+ const cq=$('cq'); if(cq) cq.oninput=()=>{ VIEW.cq=cq.value; const pos=cq.selectionStart; render(); const n=$('cq'); if(n){ n.focus(); try{ n.setSelectionRange(pos,pos); }catch(e){} } };
+ document.querySelectorAll('[data-same]').forEach(b=>b.onclick=()=>{ const I=charIndex(), n=b.dataset.same, G=I.groups.filter(g=>T.norm(g.name)===n);
+  for(let j=1;j<G.length;j++) DB.people.same.push([G[0].es[0].key,G[j].es[0].key,Date.now()]); save(); render(); toast('Joined as one person. NOT THE SAME PERSON on their page takes it back.'); });
+ document.querySelectorAll('[data-unsame]').forEach(b=>b.onclick=()=>{ const k=b.dataset.unsame, {g}=groupOfKey(k), rest=g?g.es.map(e=>e.key).filter(x=>x!==k):[];
+  DB.people.same=T.unlink(DB.people.same,k); for(let j=1;j<rest.length;j++) if(T.groups(rest,DB.people.same)[rest[j]]!==T.groups(rest,DB.people.same)[rest[0]]) DB.people.same.push([rest[0],rest[j],Date.now()]);
+  save(); render(); toast('Two people again.'); });
+ const cn=$('cnote'); if(cn){ let t; cn.oninput=()=>{ clearTimeout(t); t=setTimeout(()=>{ const v=cn.value.trim(); if(v) DB.people.notes[cn.dataset.gid]=cn.value; else delete DB.people.notes[cn.dataset.gid]; save(); },400); }; }
  document.querySelectorAll('[data-char]').forEach(a=>a.onclick=()=>{ VIEW.char=a.dataset.char; render(); window.scrollTo(0,0); });
  document.querySelectorAll('[data-charback]').forEach(a=>a.onclick=()=>{ VIEW.char=null; render(); });
  document.querySelectorAll('[data-charin]').forEach(a=>a.onclick=()=>{ const [pid,n]=a.dataset.charin.split('|'); VIEW.p=pid; VIEW.scene=null; VIEW.char=n; go('characters'); window.scrollTo(0,0); });
@@ -914,7 +968,7 @@ function wire(){
  const rn=$('rename'); if(rn) rn.onclick=()=>{ const v=prompt('Project title',p.title); if(!v||!v.trim()) return; p.title=v.trim(); save(); render(); };
  const rp=$('retp'); if(rp) rp.onclick=()=>{ p.retired=!p.retired; save(); if(p.retired){ VIEW.p=null; go('projects'); } else render(); };
  const sr=$('showret'); if(sr) sr.onchange=()=>{ SHOWRET=sr.checked; render(); };
- const ex=$('exp'); if(ex) ex.onclick=()=>{ const out={app:'PAPER TRAIL',version:1,exported:new Date().toISOString(),projects:DB.projects,drafts:DB.drafts,marks:DB.marks,texts:TEXT,note:'Photos, recordings and files from Research travel in the On This Device backup, not in this file.'};
+ const ex=$('exp'); if(ex) ex.onclick=()=>{ const out={app:'PAPER TRAIL',version:1,exported:new Date().toISOString(),projects:DB.projects,drafts:DB.drafts,marks:DB.marks,people:DB.people,texts:TEXT,note:'Photos, recordings and files from Research travel in the On This Device backup, not in this file.'};
    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(out)],{type:'application/json'})); a.download='paper_trail_export.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); };
  const ib=$('impb'); if(ib) ib.onclick=()=>$('imp').click();
  const bb=$('boneb'); if(bb) bb.onclick=()=>{ const v=$('bone').value.trim(); if(!v) return; p.bones=(p.bones||[]).concat([{id:rid('b'),text:v,at:Date.now(),said:!!SAID}]); SAID=false; p.updated=Date.now(); save(); render(); toast('Kept.'); };
@@ -1010,6 +1064,7 @@ $('imp').addEventListener('change',async e=>{
    if(!DB.projects[dr.project]) continue;
    DB.drafts[dr.id]=dr; if(d.texts&&d.texts[dr.id]) await putText(dr.id,d.texts[dr.id]); nd++;
   }
+  if(d.people){ (d.people.same||[]).forEach(x=>{ if(!DB.people.same.some(y=>y[0]===x[0]&&y[1]===x[1])) DB.people.same.push(x); }); Object.entries(d.people.notes||{}).forEach(([k,v])=>{ if(!DB.people.notes[k]) DB.people.notes[k]=v; }); }
   let nm=0; Object.keys(d.marks||{}).forEach(id=>{ if(!DB.drafts[id]) return; const L=DB.marks[id]=DB.marks[id]||[]; (d.marks[id]||[]).forEach(x=>{ if(!L.some(y=>y.id===x.id)){ L.push(x); nm++; } }); });
   save(); render(); toast('Brought in '+np+' project'+(np===1?'':'s')+', '+nd+' draft'+(nd===1?'':'s')+(nc?', '+nc+' card note'+(nc===1?'':'s'):'')+(nm?', '+nm+' table read mark'+(nm===1?'':'s'):'')+'. '+skip+' already here. Nothing removed.');
  }catch(err){ toast('Could not read that: '+err.message); }

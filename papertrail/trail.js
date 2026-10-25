@@ -385,6 +385,15 @@ T.allChars=function(projects){
  return Object.values(C).sort((a,b)=>b.in.length-a.in.length||b.in.reduce((n,x)=>n+x.lines,0)-a.in.reduce((n,x)=>n+x.lines,0)||a.name.localeCompare(b.name));
 };
 
+/* SAME PERSON: two names stay two people until you say they're one. pairs: [[keyA,keyB,at]], keys 'projectId|NAME'.
+   Returns key -> group id (the smallest key in the group). Undo takes the pair out. */
+T.groups=function(keys,pairs){
+ const up={}; const f=k=>{ while(up[k]&&up[k]!==k) k=up[k]; return k; };
+ (keys||[]).forEach(k=>up[k]=k);
+ (pairs||[]).forEach(([a,b])=>{ if(!(a in up)||!(b in up)) return; const x=f(a), y=f(b); if(x===y) return; if(x<y) up[y]=x; else up[x]=y; });
+ const out={}; (keys||[]).forEach(k=>out[k]=f(k)); return out;
+};
+T.unlink=function(pairs,key){ return (pairs||[]).filter(([a,b])=>a!==key&&b!==key); };
 /* ---------- NOT THIS: things you've said no to. Where their words show up in a draft. ----------
    A word match, not a verdict: "Vale never uses a flintlock" looks for VALE and FLINTLOCK on the same line
    (a speech counts its speaker's name). It can miss the same idea in other words, and it can find a line

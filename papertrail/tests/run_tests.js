@@ -156,4 +156,8 @@ if(lb&&fs.existsSync(lb)){
   ok('sheet: her scenes and who she shares them with', JSON.stringify(V.scenes)==='[0]'&&V.with[0].name==='HALE'&&V.with[0].scenes===1, V);
   const A=T.allChars([{id:'a',title:'Ridge Line',scenes:sc},{id:'b',title:'Dry Gulch',scenes:T.scenes('INT. SALOON - NIGHT\n\nVALE\nWhiskey.\n','script')}]);
   ok('all characters: the same name in two projects is listed with both, not merged into one count', A[0].name==='VALE'&&A[0].in.length===2&&A[0].in.every(x=>x.lines===1), A); }
+{ const G=T.groups(['a|MAE','b|MAE','c|MAE','b|ROSS'],[['b|MAE','a|MAE',1],['c|MAE','b|MAE',2]]);
+  ok('same person: two names stay two until joined; joined ones share a group', G['b|MAE']==='a|MAE'&&G['c|MAE']==='a|MAE'&&G['b|ROSS']==='b|ROSS', G);
+  ok('same person: a pair for a name not here is ignored', T.groups(['a|X'],[['a|X','z|X']])['a|X']==='a|X');
+  ok('not the same: unlink takes out every pair with that name', T.unlink([['a','b'],['b','c'],['c','d']],'c').length===1); }
 console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail?1:0);

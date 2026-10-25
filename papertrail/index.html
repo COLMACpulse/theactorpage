@@ -123,7 +123,7 @@ textarea.field{min-height:90px;resize:vertical}
 .read{font:13px/1.55 var(--code);white-space:pre-wrap;color:var(--ink-2);max-height:420px;overflow:auto;background:var(--paper);border:1px solid var(--rule);padding:12px}
 table{border-collapse:collapse;width:100%;font-size:14px}
 th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--rule)}
-th{font-family:var(--code);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+th{font-size:11.5px;letter-spacing:.12em;font-weight:500;text-transform:uppercase;color:var(--ink-2)}
 .tbl{overflow-x:auto}
 #talk th,#talk td{padding-left:4px;padding-right:4px;letter-spacing:0}
 #talk th{white-space:normal;vertical-align:bottom}
@@ -177,6 +177,19 @@ th{font-family:var(--code);font-size:10px;letter-spacing:.14em;text-transform:up
 .carry .cr{display:grid;grid-template-columns:minmax(80px,30%) 1fr auto;gap:8px;align-items:center;margin:4px 0;font-size:14px}
 .carry .cn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.carry .cb{height:6px;background:var(--paper-3);border-radius:3px;overflow:hidden}.carry .cb i{display:block;height:100%;background:currentColor;opacity:.7}
 .carry .cv{font-size:12px;opacity:.75;white-space:nowrap}.fl.carry{opacity:.75;font-size:12px}
+/* CHARACTERS: one card each */
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.ccard{background:var(--paper-2);border:1px solid var(--rule);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.ccard.twin{border-color:var(--gold-hi)}
+.ctop{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap}
+.cname{background:none;border:0;padding:4px 0;font:600 20px var(--body);letter-spacing:.02em;text-align:left;min-height:40px;color:var(--ink)}
+.pchips{display:flex;gap:4px;flex-wrap:wrap}.pchip{font-size:12.5px;padding:4px 10px;border-radius:999px;border:1px solid var(--rule-hard);color:var(--ink);text-decoration:none;cursor:pointer;display:inline-block}
+.cq{background:var(--sheet);color:var(--sheet-ink);border:0;border-radius:8px;padding:9px 11px;font:14px/1.45 var(--code);text-align:left;width:100%;margin-top:4px}
+.cnote{font-size:14px;color:var(--ink);font-style:italic}
+.ctwin{font-size:13.5px;color:var(--gold)}
+.lnk{background:none;border:0;color:var(--gold);font:600 12.5px var(--body);letter-spacing:.08em;padding:8px 4px;min-height:40px;cursor:pointer;text-decoration:underline}
+.chipb{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--rule-hard);background:transparent;font-size:14px}.chipb.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.cline{font:15px/1.5 var(--code)}
 </style>
 </head>
 <body>
