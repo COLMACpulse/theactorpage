@@ -41,7 +41,12 @@ function render(){
 function setsWith(id){ return DB.sets.filter(s=>(s.items||[]).includes(id)).length; }
 function vMaterial(){
  const B=byId(), c={all:DB.pieces.length}; L.LEVELS.forEach(l=>c[l.id]=DB.pieces.filter(p=>p.level===l.id).length);
- let h=(window.Kit?'<div class="slkit">'+Kit.html([{id:'vjoke',dev:'camera',label:'CAMERA',what:'Tape a joke',note:'30 seconds. Starts a new joke, kept with it'},{id:'ajoke',dev:'mic',label:'MIC',what:'Say a joke',note:'Voice only. 30 seconds. A new joke'}])+'</div>':'')
+ let h='<section class="hero"><div class="banner"><img src="img/paperbag_wide.jpg" alt="A comic with a paper bag over his head, a mic in one hand, his notes in the other" width="1200" height="800"></div><div class="copy">'
+  +'<div class="hk">SET LIST · 30 SECONDS · FUNNY FIRST</div><h1>Funny is funny.</h1><p class="tag">Nobody cares who you are. Be funny.</p>'
+  +'<p class="say">Put on the bag and go. You get 30 seconds.</p>'
+  +'<button class="btn pri go" data-a="vjoke">GO · 30 SECONDS<small>It asks for the camera first. Hard stop at :30. A new joke, kept with it.</small></button>'
+  +'<div class="row alt"><button class="btn ghost sm" data-a="ajoke">Voice only, 30 seconds</button></div>'
+  +'<div class="notes"><span>EVERYONE GETS A BAG</span><span>30 SECONDS</span></div></div></section>'
  +'<p class="dim" style="margin:0 0 12px;font-size:15px">Your funny material. A clip becomes a joke, jokes become a bit, bits become an act. Put any of it in a set.</p>';
  h+='<div class="row" style="margin-bottom:10px">'+[['all','ALL']].concat(L.LEVELS.map(l=>[l.id,l.name])).map(([id,nm])=>'<button class="chip'+(FILTER===id?' on':'')+'" data-a="filter" data-v="'+id+'">'+nm+' <i>'+c[id]+'</i></button>').join('')+'</div>';
  h+='<div class="row" style="margin-bottom:12px"><input class="field" id="q" placeholder="Find in your material" value="'+esc(Q)+'" style="flex:1 1 200px"><button class="btn pri" data-a="new">+ NEW '+(FILTER==='all'?'JOKE':levelName(FILTER))+'</button></div>';

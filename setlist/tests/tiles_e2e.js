@@ -1,5 +1,5 @@
-/* SET LIST: the camera and mic on the first screen. CAMERA: tape a joke (a new joke, 30 seconds, kept with it).
-   MIC: say a joke (voice only). On a set: MIC, record the whole set, voice only, no limit, kept with the set.
+/* SET LIST: the first screen leads with the paper bag man (Col, Oct 25): Funny is funny, GO · 30 SECONDS tapes a joke
+   (a new joke, 30 seconds, kept with it), Voice only says one. On a set: MIC, record the whole set, voice only, no limit, kept with the set.
    Fake camera and mic. Made-up material. Server on :8811.  NODE_PATH=... node setlist/tests/tiles_e2e.js */
 const {chromium}=require('playwright');
 (async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome',args:['--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream']});
@@ -8,13 +8,13 @@ const c=await b.newContext({viewport:{width:390,height:844},acceptDownloads:true
 await c.addInitScript(()=>{ try{ sessionStorage.setItem('theactorpage_hot_ok','1'); }catch(e){} });
 const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
 await p.goto('http://localhost:8811/setlist/'); await p.evaluate(()=>{ localStorage.removeItem('setlist_v1'); indexedDB.deleteDatabase('setlist_media'); }); await p.reload(); await p.waitForTimeout(600);
-want('first screen: CAMERA and MIC tiles', (await p.$$eval('.kit .kt',x=>x.map(t=>t.dataset.kit))).join()==='vjoke,ajoke'&&/Tape a joke/.test(await p.innerText('.kit'))&&/Say a joke/.test(await p.innerText('.kit')));
-await p.click('[data-kit="vjoke"]'); await p.waitForTimeout(1500);
+want('first screen: the paper bag man, Funny is funny, GO · 30 SECONDS and Voice only', await p.isVisible('.hero .banner img')&&/Funny is funny\./.test(await p.innerText('.hero'))&&/Nobody cares who you are\. Be funny\./.test(await p.innerText('.hero'))&&await p.isVisible('.hero [data-a="vjoke"]')&&await p.isVisible('.hero [data-a="ajoke"]'));
+await p.click('.hero [data-a="vjoke"]'); await p.waitForTimeout(1500);
 want('CAMERA: a new joke, the camera open, 0:30 on the clock, the bar says camera on', await p.evaluate(()=>window.__setlist.DB().pieces.length)===1&&!!(await p.$('#recov video#rv'))&&/0:30/.test(await p.innerText('#rc'))&&/CAMERA/.test(await p.innerText('#hotbar')));
 await p.click('[data-a="rgo"]'); await p.waitForTimeout(1600); await p.click('[data-a="rstop"]'); await p.waitForTimeout(800); await p.click('[data-a="rkeep"]'); await p.waitForTimeout(600);
 want('kept with the joke, plays as video', await p.evaluate(()=>{ const q=window.__setlist.DB().pieces[0]; return !!q.repId&&/^video/.test(q.repType); })&&!!(await p.$('video[data-take]')));
 await p.click('[data-a="back"]'); await p.waitForTimeout(200);
-await p.click('[data-kit="ajoke"]'); await p.waitForTimeout(1200);
+await p.click('.hero [data-a="ajoke"]'); await p.waitForTimeout(1200);
 want('MIC: voice only, no camera', !!(await p.$('#recov #raud'))&&!(await p.$('#recov video'))&&/MIC ON/.test(await p.innerText('#hotbar')), await p.innerText('#hotbar').catch(()=>''));
 await p.click('[data-a="rgo"]'); await p.waitForTimeout(1300); await p.click('[data-a="rstop"]'); await p.waitForTimeout(800);
 want('after: it plays back as audio', !!(await p.$('#recov audio#rv')));
