@@ -41,6 +41,7 @@ D.TOOLS=[
  {id:'looks', name:'Looks', href:'../looks/', ls:[/^theactorpage_looks/], db:[/^theactorpage_looks$/]},
  {id:'vodemo', name:'Voice demos', href:'../booth/', ls:[/^theactorpage_vodemo/], db:[/^theactorpage_vodemo$/]},
  {id:'readin', name:'Read In', href:'../read/', ls:[/^theactorpage_readin/], db:[/^theactorpage_readin$/]},
+ {id:'characters', name:'Characters', href:'../characters/', ls:[/^theactorpage_characters_v1$/], db:[]},
  {id:'pdfmarks', name:'Marks on your PDFs', href:'../actor-os/', ls:[/^theactorpage_pdfmarks_v1$/], db:[]},
  {id:'settings', name:'Your settings', href:'../', ls:[/^theactorpage_lang$/,/^theactorpage_view$/,/^theactorpage_ios_note$/], db:[]}
 ];

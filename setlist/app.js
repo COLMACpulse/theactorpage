@@ -60,6 +60,7 @@ function vPiece(p){
   +'<p class="faint" style="font-size:13px;margin:-2px 0 10px">'+esc((L.LEVELS.find(l=>l.id===p.level)||{}).say||'')+'</p>'
   +'<label class="lab" for="f_title">Name it</label><input class="field" id="f_title" data-f="title" value="'+esc(p.title||'')+'" placeholder="Gas station sushi">'
   +'<label class="lab" for="f_text" style="margin-top:10px">'+(p.level==='bit'||p.level==='act'?'Your words around the parts (the way in, the segues)':'The words')+'</label><textarea class="field" id="f_text" data-f="text" placeholder="'+(p.level==='joke'?'Setup. Punch. Tags under it.':p.level==='clip'?'The thought, as it came.':'So I moved back home.')+'">'+esc(p.text||'')+'</textarea>'
+  +'<label class="lab" for="f_chars" style="margin-top:10px">Characters in this bit <span class="faint">(they show in Characters)</span></label><input class="field" id="f_chars" data-f="chars" value="'+esc(p.chars||'')+'" placeholder="Uncle Ray, the ranch hand">'
   +'<label class="lab" for="f_tags" style="margin-top:10px">Tags (for finding it)</label><input class="field" id="f_tags" data-f="tags" value="'+esc(p.tags||'')+'" placeholder="family, ranch, crowd work">'
   +'<p class="faint" style="font-size:13px;margin:10px 0 0" id="ptime">'+esc(L.timeWords(t))+'</p></div>';
  if(p.level==='bit'||p.level==='act'){

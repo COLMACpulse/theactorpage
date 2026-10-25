@@ -660,7 +660,7 @@ function charFilter(fixed){
 function vAllChars(){
  const {I,L,f}=charFilter();
  if(!I.P.length) return '<div class="panel">No script drafts yet. <button class="btn sm" data-tab="add">ADD DRAFTS</button></div>';
- let h='<p class="note" style="margin-top:0">Every character in the current draft of each project. Quoted from your drafts. Tap one for every line.</p>';
+ let h='<p class="note" style="margin-top:0">Every character in the current draft of each project. Quoted from your drafts. Tap one for every line. Your characters from every tool (auditions, bookings, voices): <a href="../characters/">Characters ›</a></p>';
  h+='<div class="row" style="margin-bottom:14px"><input class="field" id="cq" placeholder="Find a character" value="'+esc(VIEW.cq||'')+'" style="max-width:340px">'
   +'<div class="row">'+['<button class="chipb'+(!f?' on':'')+'" data-cf="">All projects</button>'].concat(I.P.map(x=>'<button class="chipb'+(f===x.p.id?' on':'')+'" data-cf="'+esc(x.p.id)+'">'+esc(x.p.title)+'</button>')).join('')+'</div></div>';
  h+=L.length?'<div class="cgrid">'+L.map(g=>charCard(g,false)).join('')+'</div>':'<p class="note">Nobody by that name.</p>';
