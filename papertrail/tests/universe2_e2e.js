@@ -21,8 +21,10 @@ for(const [nm,vp,cs] of [['desk',{width:1280,height:860},'light'],['phone',{widt
  if(nm==='desk'){
   want('computer: opens to the map', !!(await p.$('.umap svg'))&&!(await p.$('.ulist')));
   const t=await p.$$eval('.un',x=>x.map(g=>g.getAttribute('class').split(' ')[1]));
-  want('your THEACTORPAGES script is on it, before Paper Trail', !!(await p.$('.un-project.uwb'))&&(await p.$$eval('.un-character text',x=>x.map(e=>e.textContent))).includes('JUNE'));
+  want('your THEACTORPAGES script is on it, before Paper Trail', !!(await p.$('.un-project.uwb'))&&(await p.$$eval('.un-character text',x=>x.map(e=>e.textContent))).some(t=>/^JUNE/.test(t)));
   want('your roles: the shows you read for, the role you booked', t.filter(x=>x==='un-aproject').length===3&&t.filter(x=>x==='un-role').length===3&&(await p.$$('.un-role.ubooked')).length===1, t);
+  want('each project its own color and its own patch; initials in the dot', (await p.$$('.upatch')).length>=6&&new Set(await p.$$eval('.un-project circle',x=>x.map(c=>c.style.fill))).size===3&&(await p.$$eval('.un-project .uini',x=>x.map(t=>t.textContent))).sort().join()==='DG,GR,RL');
+  want('a person says their lines on the map: HALE · 2', (await p.$$eval('.un-character text',x=>x.map(e=>e.textContent))).includes('HALE · 2'));
   want('VALE, joined in Characters: a gold line, not a dashed one', (await p.$$('.ue-same')).length===1&&(await p.$$('.ue-samename')).length===0);
   await p.click('.un-character[data-un$=":VALE"]'); await p.waitForTimeout(200);
   want('tap VALE: one person with the other VALE, you said so', /One person with VALE in (Dry Gulch|Ridge Line)/.test(await p.innerText('#uinfo')), await p.innerText('#uinfo'));
@@ -41,8 +43,10 @@ for(const [nm,vp,cs] of [['desk',{width:1280,height:860},'light'],['phone',{widt
   want('the map is a tap away', !!(await p.$('.umap svg')));
   await p.click('[data-uview="list"]'); await p.waitForTimeout(200);
  }
- const f=await p.innerText('#main');
+ await p.click('[data-f="ufacts"] summary'); await p.waitForTimeout(100); const f=await p.innerText('#main');
  want(nm+': counts, not percents', /Night \d+ scenes?/.test(f)&&!/%/.test(f), f.slice(-400));
+ want(nm+': what ties your work together: the one person, the shared place, the one that stands alone', /VALE is in .*You said one person/.test(f)&&/CABIN is in/.test(f)&&/Gravel Road stands alone/.test(f));
+ want(nm+': the biggest voices, a joined person counted once', /VALE · \d+ lines in 2 projects/.test(f), f.slice(-500));
  await p.screenshot({path:SHOTS+'/universe_'+nm+'.png',fullPage:true});
  want(nm+': nothing off the side', await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
  want(nm+': no em dashes, no "thing"', await p.evaluate(()=>!/[—]/.test(document.body.innerText)&&!/\bthings?\b/i.test(document.body.innerText)));

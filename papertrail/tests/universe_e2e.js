@@ -19,7 +19,7 @@ want('?tab=universe opens the map', !!(await p.$('.umap svg')), m.slice(0,300));
 const types=await p.$$eval('.un',x=>x.map(g=>g.getAttribute('class').split(' ')[1]));
 want('2 projects, 4 people, places on the map', types.filter(t=>t==='un-project').length===2&&types.filter(t=>t==='un-character').length===4&&types.filter(t=>t==='un-place').length>=3, types);
 want('one dashed line: VALE in both, not merged', (await p.$$('.ue-samename')).length===1);
-want('the facts under the map', /Names in more than one project: VALE/.test(m)&&/CABIN \(3 scenes\)/.test(m), m.slice(-500));
+want('beside the map: what ties your work together', /VALE is in (Dry Gulch and Ridge Line|Ridge Line and Dry Gulch): the same name/.test(m)&&/CABIN is in .*: 3 scenes/.test(m)&&/THE BIGGEST VOICES/i.test(m), m.slice(-500));
 await p.click('[data-uf="l"]'); await p.waitForTimeout(200);
 want('PLACES off: no places drawn', (await p.$$('.un-place')).length===0);
 await p.click('[data-uf="l"]'); await p.waitForTimeout(200);

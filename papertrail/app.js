@@ -820,7 +820,7 @@ function uData(){ const P=projects().map(p=>({p,c:current(p)})).filter(x=>x.c), 
  const many=all.length>8||(all.length>3&&narrowNow());
  const U=T.universe(all,{maxChars:many?7:12,maxPlaces:many?4:6,maxThreads:many?3:6,roles:UF.r?(UROLES||[]):[],same:(DB.people&&DB.people.same)||[]});
  const keep=n=>n.type==='project'||(n.type==='character'&&UF.c)||(n.type==='place'&&UF.l)||(n.type==='thread'&&UF.t)||((n.type==='aproject'||n.type==='role')&&UF.r), nodes=U.nodes.filter(keep), ids=new Set(nodes.map(n=>n.id));
- const V={nodes,edges:U.edges.filter(e=>ids.has(e.a)&&ids.has(e.b)),facts:U.facts,all,wb:new Set(W.map(w=>'p:'+w.id))}, key=JSON.stringify([nodes.map(n=>n.id),V.edges.length]);
+ const V={nodes,edges:U.edges.filter(e=>ids.has(e.a)&&ids.has(e.b)),facts:U.facts,ties:T.ties(U),all,wb:new Set(W.map(w=>'p:'+w.id))}, key=JSON.stringify([nodes.map(n=>n.id),V.edges.length]);
  const narrow=narrowNow(), Wd=narrow?600:1000, H=narrow?860:640;
  if(UCACHE.k!==key+Wd){ const L=Graph.fit(T.uLayout(V,Wd,H,nodes.length>200?160:260),Wd,H);
   UCACHE={k:key+Wd,U:V,P:L,W:Wd,H}; } else UCACHE.U=V; return UCACHE; }
@@ -845,18 +845,38 @@ function vUniverse(){
  const D=uData(), U=D.U, L=D.P, ix={}, k=D.W/Math.max(300,Math.min(D.W,(typeof innerWidth!=='undefined'?innerWidth:1000)-34)); U.nodes.forEach((n,i)=>ix[n.id]=i);
  h+='<div class="row" style="justify-content:space-between;gap:8px;margin-bottom:10px"><div class="seg" role="group" aria-label="Map or list"><button class="'+(view==='map'?'on':'')+'" data-uview="map">Map</button><button class="'+(view==='list'?'on':'')+'" data-uview="list">List</button></div>'
   +'<div class="row" style="gap:6px">'+[['c','People'],['l','Places'],['t','Storylines'],['r','Your roles']].map(([q,l])=>'<button class="btn sm'+(UF[q]?' pri':' ghost')+'" data-uf="'+q+'" aria-pressed="'+!!UF[q]+'">'+l+'</button>').join('')+'</div></div>';
- if(view==='list') return h+uList(D)+'<div class="eyebrow">What the map shows</div><div class="panel">'+U.facts.map(f=>'<p style="margin:4px 0">'+esc(f)+'</p>').join('')+'</div>';
+ if(view==='list') return h+uList(D)+tiesHtml(U);
  let g=''; const near=new Set(); if(USEL) U.edges.forEach(e=>{ if(e.a===USEL) near.add(e.b); if(e.b===USEL) near.add(e.a); });
- U.edges.forEach(e=>{ const a=L[ix[e.a]], b=L[ix[e.b]]; if(!a||!b) return; g+='<line class="ue ue-'+e.kind+(USEL&&(e.a===USEL||e.b===USEL)?' uon':'')+'" x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'"'+(e.w?' stroke-width="'+Math.min(4,0.8+e.w/3)+'"':'')+'/>'; });
- U.nodes.forEach((n,i)=>{ const q=L[i]; if(!q) return; const big=n.type==='project'||n.type==='aproject', r=Math.round(n.size*Math.max(1,k*.75)), fs=Math.round((big?14:12)*k), sel=USEL===n.id?' usel':near.has(n.id)?' uon':'';
-  const shape=n.type==='place'?'<rect x="'+(-r)+'" y="'+(-r)+'" width="'+(2*r)+'" height="'+(2*r)+'" rx="2"/>':n.type==='thread'?'<path d="M0 '+(-r-2)+'L'+(r+2)+' 0L0 '+(r+2)+'L'+(-r-2)+' 0Z"/>':'<circle r="'+r+'"/>';
-  const lab=n.label.length>22?n.label.slice(0,21)+'…':n.label, hw=Math.max(r+6,(n.type!=='thread'||USEL===n.id?lab.length*fs*.33:0),14*k);
-  g+='<g class="un un-'+n.type+(n.type==='role'&&n.data.booked?' ubooked':'')+(D.U.wb.has(n.id)?' uwb':'')+sel+'" data-un="'+esc(n.id)+'" transform="translate('+q.x+' '+q.y+')" tabindex="0"><rect class="uhit" x="'+(-hw)+'" y="'+(-r-6)+'" width="'+(2*hw)+'" height="'+(2*r+fs+12)+'"/>'+shape+(n.type!=='thread'||USEL===n.id?'<text y="'+(r+fs+2)+'" font-size="'+fs+'">'+esc(lab)+'</text>':'')+'</g>'; });
- h+='<div class="ugrid"><div><div class="umap"><svg'+(USEL?' class="ufocus"':'')+' viewBox="0 0 '+D.W+' '+D.H+'" role="img" aria-label="Your universe">'+g+'</svg></div>';
- h+='<div class="ulegend note"><span><i class="lp"></i>your project</span><span><i class="lc"></i>person</span><span><i class="ll"></i>place</span><span><i class="lt"></i>storyline</span><span><i class="lr"></i>your role</span><span><i class="ls"></i>one person</span></div></div>';
- h+='<div><div class="panel" id="uinfo">'+uInfo(U)+'</div><div class="eyebrow">What the map shows</div><div class="panel">'+U.facts.map(f=>'<p style="margin:4px 0">'+esc(f)+'</p>').join('')+'</div></div></div>';
+ // a color for each project, and its patch of the map
+ const col={}; U.nodes.filter(n=>n.type==='project').forEach((n,i)=>col[n.data.pid]=T.UCOLORS[i%T.UCOLORS.length]);
+ const ROLE='#e0a23c', cOf=n=>n.type==='role'||n.type==='aproject'?ROLE:(n.data&&n.data.pid&&col[n.data.pid])||'';
+ const ink=n=>n.type==='project'?'p:'+n.data.pid:n.type==='aproject'?n.id:(n.type==='character'||n.type==='thread')?'p:'+n.data.pid:'';
+ let defs='', patches='';
+ U.nodes.filter(n=>n.type==='project'||n.type==='aproject').forEach((n,i)=>{ const q=L[ix[n.id]]; if(!q) return; const mem=U.nodes.filter(m=>m===n||(n.type==='project'?ink(m)===n.id:U.edges.some(e=>(e.a===n.id&&e.b===m.id)))).map(m=>L[ix[m.id]]).filter(Boolean);
+  const cx=mem.reduce((s,p)=>s+p.x,0)/mem.length, cy=mem.reduce((s,p)=>s+p.y,0)/mem.length, r=Math.max(90,...mem.map(p=>Math.hypot(p.x-cx,p.y-cy)+70)), c=cOf(n), gid='ug'+i;
+  defs+='<radialGradient id="'+gid+'"><stop offset="0" stop-color="'+c+'" stop-opacity=".2"/><stop offset=".7" stop-color="'+c+'" stop-opacity=".08"/><stop offset="1" stop-color="'+c+'" stop-opacity="0"/></radialGradient>';
+  patches+='<circle class="upatch" cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="'+r.toFixed(1)+'" fill="url(#'+gid+')"/>'; });
+ U.edges.forEach(e=>{ const a=L[ix[e.a]], b=L[ix[e.b]]; if(!a||!b) return; const na=U.nodes[ix[e.a]], c=(e.kind==='in'||e.kind==='scenes'||e.kind==='thread'||e.kind==='about')?cOf(na):e.kind==='played'?ROLE:'';
+  g+='<line class="ue ue-'+e.kind+(USEL&&(e.a===USEL||e.b===USEL)?' uon':'')+'" x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'"'+(c?' style="stroke:'+c+'"':'')+(e.kind==='scenes'&&e.w?' stroke-width="'+Math.min(6,1.4+e.w*1.2)+'"':e.w?' stroke-width="'+Math.min(4,0.8+e.w/3)+'"':'')+'/>'; });
+ const initials=t=>{ const w=String(t).replace(/[^A-Za-z0-9 ]+/g,' ').trim().split(/\s+/).filter(x=>!/^(the|a|an|of)$/i.test(x)); return ((w[0]||'?')[0]+((w[1]||'')[0]||'')).toUpperCase(); };
+ U.nodes.forEach((n,i)=>{ const q=L[i]; if(!q) return; const big=n.type==='project'||n.type==='aproject', r=Math.round(n.size*Math.max(1,k*.75))+(n.type==='project'?4:0), fs=Math.round((big?14:12.5)*k), sel=USEL===n.id?' usel':near.has(n.id)?' uon':'', c=cOf(n);
+  const st=c?' style="'+(n.type==='project'?'fill:'+c+';stroke:'+c:n.type==='aproject'?'stroke:'+c:n.type==='role'?'':'stroke:'+c)+'"':'';
+  const shape=n.type==='place'?'<rect x="'+(-r)+'" y="'+(-r)+'" width="'+(2*r)+'" height="'+(2*r)+'" rx="3"/>':n.type==='thread'?'<path d="M0 '+(-r-2)+'L'+(r+2)+' 0L0 '+(r+2)+'L'+(-r-2)+' 0Z"'+st+'/>':'<circle r="'+r+'"'+st+'/>';
+  let lab=n.label; if(n.type==='character') lab=n.label+' · '+n.data.lines; if(n.type==='place'&&(n.data.projects||[]).length>1) lab=n.label+' · both'.replace('both',n.data.projects.length>2?'in '+n.data.projects.length:'both');
+  if(n.type==='role'&&n.data.booked) lab=n.label+' · booked'; lab=lab.length>26?lab.slice(0,25)+'…':lab;
+  const ini=n.type==='project'?'<text class="uini" y="'+Math.round(fs*.36)+'" font-size="'+fs+'">'+esc(initials(n.label))+'</text>':'';
+  const hw=Math.max(r+6,(n.type!=='thread'||USEL===n.id?lab.length*fs*.3:0),14*k);
+  g+='<g class="un un-'+n.type+(n.type==='role'&&n.data.booked?' ubooked':'')+(D.U.wb.has(n.id)?' uwb':'')+sel+'" data-un="'+esc(n.id)+'" transform="translate('+q.x+' '+q.y+')" tabindex="0"><rect class="uhit" x="'+(-hw)+'" y="'+(-r-6)+'" width="'+(2*hw)+'" height="'+(2*r+fs+12)+'"/>'+shape+ini
+   +(n.type!=='thread'||USEL===n.id?'<text y="'+(r+fs+3)+'" font-size="'+fs+'"'+(big&&c?' style="fill:'+c+'"':'')+'>'+esc(big?n.label.toUpperCase():lab)+'</text>':'')+'</g>'; });
+ h+='<div class="ugrid"><div><div class="umap"><svg'+(USEL?' class="ufocus"':'')+' viewBox="0 0 '+D.W+' '+D.H+'" role="img" aria-label="Your universe"><defs>'+defs+'</defs>'+patches+g+'</svg></div>';
+ h+='<div class="ulegend note"><span><i class="lp"></i>your project, its own color</span><span><i class="lc"></i>person: bigger, more lines</span><span><i class="ll"></i>place</span><span><i class="lt"></i>storyline</span><span><i class="lr"></i>your role</span><span><i class="ls"></i>one person</span></div></div>';
+ h+='<div><div class="panel" id="uinfo">'+uInfo(U)+'</div>'+tiesHtml(U)+'</div></div>';
  return h;
 }
+function tiesHtml(U){ const t=U.ties||{ties:[],voices:[]};
+ return '<div class="eyebrow">What ties your work together</div><div class="panel uties">'+(t.ties.length?t.ties.map(x=>'<p class="ut-'+x.kind+'">'+esc(x.text).replace(/^([A-Z0-9' .-]+?)( is in| stands alone)/,'<b>$1</b>$2')+'</p>').join(''):'<p class="note">Nothing shared yet: no person or place in more than one project.</p>')+'</div>'
+  +(t.voices.length?'<div class="eyebrow">The biggest voices</div><div class="panel uvoices">'+t.voices.map(v=>'<p>'+esc(v)+'</p>').join('')+'</div>':'')
+  +'<details class="fold" data-f="ufacts"'+(OPEN.has('ufacts')?' open':'')+'><summary>The counts<i>scenes, time of day</i></summary>'+U.facts.map(f=>'<p style="margin:4px 0">'+esc(f)+'</p>').join('')+'</details>'; }
 function uInfo(U){ const n=USEL&&U.nodes.find(x=>x.id===USEL); if(!n) return '<span class="note">Tap a project, a person, a place, a storyline or a role.</span>';
  const near=U.edges.filter(e=>(e.a===n.id||e.b===n.id)&&e.kind!=='samename'&&e.kind!=='same').map(e=>U.nodes.find(x=>x.id===(e.a===n.id?e.b:e.a))).filter(Boolean);
  const wb=U.wb&&U.wb.has(n.id);

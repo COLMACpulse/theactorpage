@@ -16,7 +16,8 @@ ok('people who share 2+ scenes are joined', U.edges.some(e=>e.kind==='scenes'&&/
 ok('storylines hang off their project, and one that names a person points to them', by('thread').length===2&&U.edges.some(e=>e.kind==='about'&&/HALE/.test(e.b)), U.edges.filter(e=>e.kind==='about'));
 ok('facts: names in more than one project, said not the same person', U.facts.some(f=>/Names in more than one project: VALE/.test(f)&&/not the same person/.test(f)), U.facts);
 ok('facts: the place you go back to', U.facts.some(f=>/places you go back to: .*CABIN \(3 scenes\)/.test(f)), U.facts);
-ok('facts: time of day shares', U.facts.some(f=>/Time of day across your scenes: NIGHT 60%, DAY 40%/.test(f)), U.facts);
+ok('facts: time of day in scenes, not percents', U.facts.some(f=>/Time of day across your scenes: Night 3 scenes, Day 2 scenes/.test(f))&&!U.facts.some(f=>/%/.test(f)), U.facts);
+{ const t=T.ties(U); ok('ties: the same name, the shared place, in words', t.ties.some(x=>x.kind==='name'&&/^VALE is in/.test(x.text))&&t.ties.some(x=>x.kind==='place'&&/^CABIN is in .*3 scenes/.test(x.text)), t); ok('the biggest voices: three, with lines', t.voices.length===3&&/^HALE · 3 lines/.test(t.voices[0]), t.voices); }
 const L1=T.uLayout(U,1000,680,200), L2=T.uLayout(U,1000,680,200);
 ok('layout: one spot per node, same every time', L1.length===U.nodes.length&&JSON.stringify(L1)===JSON.stringify(L2));
 ok('layout: inside the frame', L1.every(p=>p.x>=60&&p.x<=940&&p.y>=40&&p.y<=630), L1);

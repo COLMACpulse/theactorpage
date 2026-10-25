@@ -590,6 +590,33 @@ T.universe=function(projects,opts){ opts=opts||{}; const N=[], E=[], idx={}, add
  const most=chars.slice().sort((a,b)=>b.data.lines-a.data.lines)[0]; if(most) facts.push('The most lines anywhere: '+most.label+' in '+most.data.title+' ('+most.data.lines+').');
  return {nodes:N,edges:E.filter(e=>idx[e.a]!=null&&idx[e.b]!=null),facts};
 };
+/* WHAT TIES YOUR WORK TOGETHER, and THE BIGGEST VOICES: read off the map, in words. Counts only. */
+T.ties=function(U){ const N=U.nodes, by={}; N.forEach(n=>by[n.id]=n); const out=[], seen=new Set();
+ const title=id=>(by[id]&&by[id].data&&by[id].data.title)||'';
+ const list=a=>a.length<3?a.join(' and '):a.slice(0,-1).join(', ')+' and '+a[a.length-1];
+ // people: joined by you, or the same name
+ const grp={}; const uf=k=>{ while(grp[k]&&grp[k]!==k) k=grp[k]; return k; };
+ U.edges.filter(e=>e.kind==='same').forEach(e=>{ grp[e.a]=grp[e.a]||e.a; grp[e.b]=grp[e.b]||e.b; const x=uf(e.a), y=uf(e.b); if(x!==y) grp[y]=x; });
+ const joined={}; Object.keys(grp).forEach(k=>{ const r=uf(k); (joined[r]=joined[r]||[]).push(k); });
+ Object.values(joined).forEach(ids=>{ ids.forEach(i=>seen.add(i)); out.push({kind:'same',text:by[ids[0]].label+' is in '+list([...new Set(ids.map(title))])+'. You said one person: the gold line.'}); });
+ const names={}; N.filter(n=>n.type==='character'&&!seen.has(n.id)).forEach(n=>{ const k=T.norm(n.label); (names[k]=names[k]||[]).push(n); });
+ Object.values(names).filter(a=>a.length>1).forEach(a=>out.push({kind:'name',text:a[0].label+' is in '+list([...new Set(a.map(n=>n.data.title))])+': the same name, not the same person unless you say so in Characters.'}));
+ // places
+ N.filter(n=>n.type==='place'&&(n.data.projects||[]).length>1).forEach(n=>out.push({kind:'place',text:n.label+' is in '+list(n.data.projects)+': '+n.data.scenes+' scene'+(n.data.scenes===1?'':'s')+'.'}));
+ // a project that shares nothing
+ const projs=N.filter(n=>n.type==='project'), touch=new Set();
+ N.filter(n=>n.type==='character').forEach(n=>{ const k=T.norm(n.label); if((names[k]||[]).length>1||seen.has(n.id)) touch.add('p:'+n.data.pid); });
+ N.filter(n=>n.type==='place'&&(n.data.projects||[]).length>1).forEach(n=>projs.forEach(p=>{ if(n.data.projects.includes(p.label)) touch.add(p.id); }));
+ if(projs.length>1) projs.filter(p=>!touch.has(p.id)).forEach(p=>out.push({kind:'alone',text:p.label+' stands alone: nobody and nowhere in it shows up in another project.'}));
+ // the biggest voices: a person you joined counts once, with all their lines
+ const V=[]; const done=new Set();
+ Object.values(joined).forEach(ids=>{ ids.forEach(i=>done.add(i)); V.push({name:by[ids[0]].label,lines:ids.reduce((s,i)=>s+(by[i].data.lines||0),0),where:[...new Set(ids.map(title))]}); });
+ N.filter(n=>n.type==='character'&&!done.has(n.id)).forEach(n=>V.push({name:n.label,lines:n.data.lines||0,where:[n.data.title]}));
+ V.sort((a,b)=>b.lines-a.lines||a.name.localeCompare(b.name));
+ return {ties:out,voices:V.slice(0,3).map(v=>v.name+' · '+v.lines+' line'+(v.lines===1?'':'s')+(v.where.length>1?' in '+v.where.length+' projects':' · '+v.where[0]))};
+};
+/* a color for each project: the house sticks, in order */
+T.UCOLORS=['#1f8a5c','#2a5fa8','#c0392b','#7a5fa8','#2a8a8a','#9a6b1f','#5c636d'];
 /* where each one sits: pulled by its links, pushed off the others. Same input, same picture. */
 T.uLayout=function(U,w,h,iters){ const G=(typeof Graph!=='undefined'&&Graph)||(typeof require!=='undefined'&&require('../shared/graph.js')); return G.layout(U,w,h,iters); };
 
