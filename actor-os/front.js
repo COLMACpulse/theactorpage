@@ -48,11 +48,11 @@
     if (OF && OFFER_HOME && OF.parentNode !== OFFER_HOME) OFFER_HOME.insertBefore(OF, OFFER_HOME.firstChild);
     if (!isOpen()) {
       if (P) P.classList.toggle('aosquiet', !DETAILS);
-      H.innerHTML = '<div class="fcard"><span class="fk">NO AUDITION OPEN</span><b class="fh">Got an audition? Bring it in.</b>'
+      H.innerHTML = '<div class="fcard" data-stick><span class="fk">NO AUDITION OPEN</span><b class="fh">Got an audition? Bring it in.</b>'
         + '<p class="fp">It reads the due time, what they asked for, and your role. Then it walks you to a sent tape.</p>'
         + '<div id="fOfferSlot"></div><button class="fgo" id="fPaste" type="button">PASTE THE EMAIL</button>'
         + (PASTE ? '<label class="fl" for="fPasteText">The email, the Eco Cast page, or the sides. Paste it all.</label><textarea id="fPasteText" rows="7" placeholder="Paste here"></textarea><button class="fgo2" id="fRead" type="button">READ IT</button>' : '')
-        + '<div class="f2"><button type="button" id="fPdf">Sides PDF</button><button type="button" id="fSides">Paste the sides</button></div></div>'
+        + '<div class="f2"><button type="button" id="fPdf" data-ic="break">Sides PDF</button><button type="button" id="fSides" data-ic="wb">Paste the sides</button></div></div>'
         + '<button class="ftape" id="fTape" type="button"><i></i>Just tape something</button>'
         + '<button type="button" class="fdet" id="fPractice"><span>No audition this week?</span><i>a practice scene ›</i></button>'
         + pocket() + tapesRow()
@@ -62,7 +62,7 @@
       const S = steps(), nx = S.find(x => !x.done) || S[3], d = dueISO(), A = asked();
       let dueTxt = ''; try { if (d && typeof dueSay === 'function') { const x = document.createElement('div'); x.innerHTML = String(dueSay(d)); dueTxt = x.textContent.trim(); } } catch (e) { }
       if (dueTxt && !/^due\b/i.test(dueTxt)) dueTxt = 'Due ' + dueTxt;
-      H.innerHTML = '<div class="fcard due"><span class="fk">' + esc(d ? (dueTxt || 'Due ' + d).toUpperCase() : 'NO DUE DATE YET') + '</span>'
+      H.innerHTML = '<div class="fcard due" data-stick><span class="fk">' + esc(d ? (dueTxt || 'Due ' + d).toUpperCase() : 'NO DUE DATE YET') + '</span>'
         + '<b class="fh" id="fRole">' + esc(role() || 'YOUR ROLE') + '</b>'
         + ((show() || office()) ? '<p class="fp">' + esc([show(), office()].filter(Boolean).join(' · ')) + '</p>' : '')
         + (A.length ? '<div class="fask"><span class="fk2">THEY ASKED FOR</span>' + A.map(x => '<span>' + esc(x) + '</span>').join('') + '</div>' : '')
@@ -90,8 +90,8 @@
   }
   const n = (x, w) => x + ' ' + (x === 1 ? w : w + 's');
   function pocket() {
-    const it = [['../booth/', 'VO Booth', 'A VO audition from a closet'], ['../read/', 'Read In', "Read for a friend's tape"], ['../spotted/', 'Spotted', 'Send your reps a role'], ['../notes/', 'A note', 'What they told you']];
-    return '<p class="fk" style="margin:18px 2px 8px">IN YOUR POCKET</p><div class="fpk">' + it.map(x => '<a href="' + x[0] + '"><b>' + x[1] + '</b><span>' + x[2] + '</span></a>').join('') + '</div>';
+    const it = [['../booth/', 'VO Booth', 'A VO audition from a closet', 'vo'], ['../read/', 'Read In', "Read for a friend's tape", 'chars'], ['../spotted/', 'Spotted', 'Send your reps a role', 'spot'], ['../notes/', 'A note', 'What they told you', 'notes']];
+    return '<p class="fk" style="margin:18px 2px 8px">IN YOUR POCKET</p><div class="fpk">' + it.map(x => '<a href="' + x[0] + '">' + (window.Icons ? Icons.ring(x[3]) : '') + '<b>' + x[1] + '</b><span>' + x[2] + '</span></a>').join('') + '</div>';
   }
   function tapesRow() { const n = takes().length; return n ? '<button type="button" class="fdet" data-fgo="send"><span>Your takes</span><i>' + n + ' ›</i></button>' : ''; }
   function wire() {
