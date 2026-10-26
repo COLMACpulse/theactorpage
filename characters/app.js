@@ -7,8 +7,8 @@
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
   const day = t => t ? new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
   const GN = Object.fromEntries(C.GROUPS);
-  let LIST = [], S = { g: '', c: '', q: '', showHidden: false };
-  try { const u = new URLSearchParams(location.search); if (u.get('g') && GN[u.get('g')]) S.g = u.get('g'); } catch (e) { }
+  let LIST = [], S = { g: '', c: '', q: '', showHidden: false, bank: false };
+  try { const u = new URLSearchParams(location.search); if (u.get('g') && GN[u.get('g')]) S.g = u.get('g'); if (u.get('bank') !== null) S.bank = true; } catch (e) { }
   let tt; const toast = m => { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 2600); };
 
   async function load() { LIST = await C.gather(); render(); }
@@ -29,6 +29,8 @@
   function vFront() {
     let h = '<div class="row" style="justify-content:space-between;margin-bottom:14px"><p class="dim small" style="margin:0;max-width:640px">Gathered from your tools on this device. A character can sit in more than one place. Tap a place to see who\'s in it.</p><button type="button" class="btn pri" id="add">+ ADD ONE</button></div>';
     h += tiles();
+    /* CHARACTER BANK lives here now (Col, Oct 26): keep a character in your own voice, and the line that drops you back in */
+    h += '<button type="button" class="btn bankbtn" id="bank"><b>KEEP ONE IN YOUR VOICE</b><span>Character Bank: your voice, your look, the line that drops you back in</span></button>';
     if (!LIST.length) h += '<div class="card" style="margin-top:18px"><p style="margin:0">Nothing yet. As you use the tools, your characters land here: sides you bring in, auditions in Project Hub, scripts you write, voices in Character Bank. Or add one yourself: a character you want to create, or one you know you can pull off.</p></div>';
     if (S.g) {
       const q = C.norm(S.q), inG = LIST.filter(c => c.groups[S.g]), hid = inG.filter(c => c.hidden).length;
@@ -53,9 +55,10 @@
     h += '<div class="row" style="margin-top:14px"><button type="button" class="btn ghost sm" id="hide">' + (c.hidden ? 'Show this card again' : 'Hide this card') + '</button>' + (c.yours ? '<button type="button" class="btn ghost sm" id="drop">Take off the one you added</button>' : '') + '</div>';
     return h;
   }
+  function vBank() { return '<div class="backbar"><button type="button" class="btn ghost sm" id="back">‹ Characters</button></div><iframe class="embedtool" title="Character Bank" src="../cps/?embed=1"></iframe>'; }
   function render() {
     const c = S.c && find(S.c);
-    V.innerHTML = c ? vChar(c) : vFront();
+    V.innerHTML = S.bank ? vBank() : c ? vChar(c) : vFront();
     wire(c);
   }
   function edit(fn) { const m = C.mine(); fn(m); C.save(m); }
@@ -65,6 +68,8 @@
     const q = $('q'); if (q) q.oninput = () => { S.q = q.value; const pos = q.selectionStart; render(); const n = $('q'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { } } };
     const sh = $('showhid'); if (sh) sh.onclick = () => { S.showHidden = !S.showHidden; render(); };
     const ad = $('add'); if (ad) ad.onclick = openAdd;
+    const bk = $('bank'); if (bk) bk.onclick = () => { S.bank = true; render(); window.scrollTo(0, 0); };
+    if (S.bank) { $('back').onclick = () => { S.bank = false; reload(); }; return; }
     if (!c) return;
     $('back').onclick = () => { S.c = ''; render(); };
     V.querySelectorAll('[data-tg]').forEach(b => b.onclick = () => { const k = b.dataset.tg; edit(m => { if (c.yours) { const a = m.added.find(x => C.key(x.name, x.project) === c.key); if (a) { a.groups = a.groups || []; a.groups = a.groups.includes(k) ? a.groups.filter(x => x !== k) : a.groups.concat([k]); return; } }

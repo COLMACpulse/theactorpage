@@ -206,6 +206,7 @@ details.pfold{background:var(--p1);border:1px solid var(--line);border-radius:14
 .pfin{padding:0 12px 4px}
 div.ppc{cursor:default}
 
+.embedtool{display:block;width:100%;height:calc(100dvh - 170px);min-height:560px;border:1px solid var(--line,#2b3038);border-radius:12px;background:var(--bg,#0d0f12)}
 </style></head><body>
 <div class="bar"></div>
 <div class="wrap">
@@ -346,7 +347,7 @@ function addCredit(medium){credits.unshift({medium,title:'',billing:'',character
 function delCredit(i){if(confirm('Remove this credit?')){const cid=credits[i]&&credits[i].cid;const k=tombKey(credits[i]&&credits[i].title);if(k&&CREDIT_TOMBS.indexOf(k)<0){CREDIT_TOMBS.push(k);saveTombs();}credits.splice(i,1);saveCredits();if(cid){ARTS.filter(a=>String(a.scope)==='credit:'+cid).forEach(a=>{try{DB.del(a.id);}catch(e){}});ARTS=ARTS.filter(a=>String(a.scope)!=='credit:'+cid);}render();}}
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
-let projects=[]; let tab=(()=>{ try{ const t=new URLSearchParams(location.search).get('tab'); return ['home','profile','road','offices','reps','keyart','reels','package','intake'].includes(t)?t:'home'; }catch(e){ return 'home'; } })(); let openId=null;
+let projects=[]; let tab=(()=>{ try{ const t=new URLSearchParams(location.search).get('tab'); return ['home','profile','road','offices','reps','keyart','reels','package','resume','press','intake'].includes(t)?t:'home'; }catch(e){ return 'home'; } })(); let openId=null;
 
 // seed credits as archived projects
 function seed(){ projects=[]; }
@@ -728,7 +729,7 @@ function col(v){return v>=70?'var(--go)':v>=40?'var(--tung)':'var(--hold)';}
 function active(){return projects.filter(p=>p.state!=='archived');}
 function archived(){return projects.filter(p=>p.state==='archived');}
 
-const TABS=[['home','Project Hub'],['profile','Your material'],['road','Auditions'],['offices','Offices to go in for'],['reps','For my reps'],['keyart','Credits and key art'],['reels','Masters and clips'],['package','Your page'],['intake','Setup and backup']];
+const TABS=[['home','Project Hub'],['profile','Your material'],['road','Auditions'],['offices','Offices to go in for'],['reps','For my reps'],['keyart','Credits and key art'],['reels','Masters and clips'],['package','Your page'],['resume','Your résumé'],['press','Press'],['intake','Setup and backup']];
 function renderNav(){ if(tab==='home'){ $('nav').innerHTML=''; return; } $('nav').innerHTML=(tab==='reels'?`<button class="back" onclick="location.href='../archbook/'">&lsaquo; REEL ROOM</button>`:`<button class="back" onclick="go('home')">&lsaquo; PROJECT HUB</button>`)+`<span class="navtitle">${esc((TABS.find(x=>x[0]===tab)||['',''])[1])}</span>`+`<span id="ptarget" class="ptarget" title="where dropped or pasted files go">drop / paste &rarr; ${esc(targetLabel(pendScope,pendCat))}</span>`+vaultPill();}
 /* nav always lands on a tab's front; leaving an open audition turns its camera off */
 function go(t){if(openId){if(tapePhase!=='off')finishTake();if(camOpen)closeCam();}openId=null;tab=t;render();}
@@ -3872,6 +3873,8 @@ function homeView(){
  h+='</div><div>';
  h+='<p class="hk">Your page</p><div class="hcard"><button class="ppc" onclick="go(\'package\')"><span class="ph">'+(prim?'<img src="'+artURL(prim)+'" alt="">':'')+'</span><span><b>'+esc(profile.name||'Your name')+'</b><small>'+esc(on.join(' · ')||'Nothing on it yet. Add a headshot to start.')+'</small>'+(host?'<small>Online at '+esc(host)+'</small>':'')+'</span></button>'
   +'<div class="hrow2" style="margin-top:12px"><button class="hbtn pri" onclick="go(\'package\')">SEE IT</button><button class="hbtn" onclick="go(\'package\');setTimeout(()=>{const e=document.getElementById(\'online\');if(e)e.scrollIntoView({block:\'start\'});},300)">'+(host?'UPDATE IT ONLINE':'PUT IT ONLINE')+'</button></div></div>';
+ h+='<button class="hrowlink" onclick="go(\'resume\')">Your résumé<small>'+(rdoc?'on file':'')+'</small></button>';
+ h+='<button class="hrowlink" onclick="go(\'press\')">Press<small></small></button>';
  h+='<button class="hrowlink" onclick="go(\'offices\')">Offices to go in for<small>'+(offN||'')+'</small></button>';
  h+='<button class="hrowlink" onclick="go(\'profile\')">Your material<small>'+(mat||'')+'</small></button>';
  h+='<button class="hrowlink" onclick="go(\'reps\')">For my reps<small></small></button>';
@@ -3882,6 +3885,10 @@ function homeView(){
  $('view').innerHTML=h;
 }
 
+/* YOUR PAGE (Col, Oct 26): Virtual Résumé and Press are tabs of Your page now. Each is its own page, opened here
+   (?embed=1 hides its header); both keep their own addresses too. */
+function toolView(t){ const src=t==='resume'?'../resume/?embed=1':'../press/?embed=1', what=t==='resume'?'Your résumé':'Press';
+ $('view').innerHTML='<iframe class="embedtool" title="'+what+'" src="'+src+'"></iframe>'; }
 function render(){setTimeout(sweepThumbs,60);
  if(/^#(publish|online)$/.test(location.hash)&&!render.jumped&&tab==='package'){ render.jumped=true; setTimeout(()=>{ const e=document.getElementById(location.hash.slice(1)); if(e) e.scrollIntoView({block:'start'}); },300); }
  /* 'intake' used to be in this list, which meant the Setup checklist, Backup,
@@ -3891,7 +3898,7 @@ function render(){setTimeout(sweepThumbs,60);
  if(['deck','train','archive'].indexOf(tab)>=0)tab='profile';
  if(credId&&document.getElementById('cw'))setTimeout(drawCredit,0);
  if(tab==='train')tab='profile';renderNav();who();
- if(tab==='home')homeView();else if(tab==='road')auditionView();else if(tab==='intake')intakeView();else if(tab==='keyart')keyArtView();else if(tab==='offices'){$('view').innerHTML=officesPanel();}else if(tab==='reps')repsView();else if(tab==='reels')reelRoomView();else if(tab==='package')packageView();else if(tab==='train')trainView();else if(tab==='profile')profileView();}
+ if(tab==='home')homeView();else if(tab==='road')auditionView();else if(tab==='intake')intakeView();else if(tab==='keyart')keyArtView();else if(tab==='offices'){$('view').innerHTML=officesPanel();}else if(tab==='reps')repsView();else if(tab==='reels')reelRoomView();else if(tab==='package')packageView();else if(tab==='resume'||tab==='press')toolView(tab);else if(tab==='train')trainView();else if(tab==='profile')profileView();}
 
 $('tgin').addEventListener('change',e=>{const f=e.target.files[0];if(f)importTargets(f);e.target.value='';});
 $('qsin').addEventListener('change',e=>{const f=[].slice.call(e.target.files);if(f.length)importQuicksheet(f);e.target.value='';});

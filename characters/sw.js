@@ -1,5 +1,5 @@
 /* CHARACTERS offline shell. Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='characters-0.1.0';
+const CACHE='characters-0.1.1';
 const FILES=['./','index.html','app.js','../shared/characters.js','../actor-os/sides.js','../film/film.js','../shared/tour.js','../shared/view.js','../img/sigil-film-180.png','../img/sigil-film-64.png',
  '../fonts/jost-latin-400-normal.woff2','../fonts/jost-latin-500-normal.woff2','../fonts/jost-latin-600-normal.woff2','../fonts/courier-prime-latin-400-normal.woff2','../fonts/courier-prime-latin-700-normal.woff2'];
 self.addEventListener('install',e=>{ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES).catch(()=>{})).then(()=>self.skipWaiting())); });

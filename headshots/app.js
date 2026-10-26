@@ -51,8 +51,8 @@ async function liveUrl(){ const y=Y.get(); if(!y.live) return ''; const k=y.live
 async function fillLive(){ const els=document.querySelectorAll('video[data-live]'); if(!els.length) return; const u=await liveUrl(); if(!u) return; for(const v of els){ if(v.dataset.poster&&!v.poster){ const pu=await src(v.dataset.poster); if(pu) v.poster=pu; } if(v.src!==u) v.src=u; if(!RM()) v.play().catch(()=>{}); } }
 
 function header(){
- const y=Y.get(), sub=U.tab==='plan'?'What you\'re called in for, what you want to be seen for, which have a keeper.':U.tab==='brief'?'A brief and your references, in your words.':'Your headshots, and a live one: five seconds of you, on a loop.';
- const t=U.tab==='plan'?'The plan':U.tab==='brief'?'For the photographer':'The face they see first';
+ const y=Y.get(), sub=U.tab==='looks'?'Each look in your own words, for commercial work.':U.tab==='plan'?'What you\'re called in for, what you want to be seen for, which have a keeper.':U.tab==='brief'?'A brief and your references, in your words.':'Your headshots, and a live one: five seconds of you, on a loop.';
+ const t=U.tab==='looks'?'Your looks':U.tab==='plan'?'The plan':U.tab==='brief'?'For the photographer':'The face they see first';
  return '<header class="top bhead"><div class="bwrap">'+HS_ICON+'<div class="btx"><div class="kicker" style="margin:0">ACT · HEADSHOTS</div><h1 id="title">'+esc(t)+'</h1><p>'+esc(sub)+'</p><div class="count" id="count">'+(y.photos.length?y.photos.filter(p=>p.kind!=='still').length+' headshot'+(Y.headshots().length===1?'':'s')+' · '+y.photos.filter(p=>p.status==='keeper').length+' keep'+(y.live?' · a live one':''):'')+'</div></div><img class="bsig" src="../img/sigil-film-180.png" alt="THEACTORPAGE" width="64" height="64"></div></header><i class="hstk" aria-hidden="true"></i>';
 }
 const TAGW={keeper:'KEEP',retest:'RETEST',retire:'RETIRE'};
@@ -104,17 +104,22 @@ function photosView(y){
   h+=liveRow(y);
   h+='</div></div>';
  }
+ /* YOUR LOOKS (Col, Oct 26): Looks lives in Headshots now, as a tab: a look is a set of headshots with its skills */
+ h+='<div class="planning"><p class="kicker">FOR COMMERCIAL WORK</p><button type="button" class="fold" data-t="looks"><b>YOUR LOOKS</b><span>Each look in your words: its photos, its skills, a live one if you want</span><i>OPEN</i></button></div>';
  h+='<div class="planning"><p class="kicker">WHEN YOU\'RE PLANNING A SHOOT</p><button type="button" class="fold" data-t="plan"><b>THE PLAN</b><span>What you\'re called in for, what you want to be seen for, which have a keeper</span><i>OPEN</i></button><button type="button" class="fold" data-t="brief"><b>FOR THE PHOTOGRAPHER</b><span>A brief and your references, in your words</span><i>OPEN</i></button></div>';
  h+=(window.Kit?'<div class="kitwrap">'+Kit.html([{id:'tshot',dev:'camera',label:'CAMERA',what:'Take a test shot',note:'Front or back camera. Reads the light and focus where you\'re standing. Kept only if you add it'}])+'</div>':'');
  return h+'</div>';
 }
 
+/* Looks, inside Headshots: its own page, opened here (?embed=1 hides its header); it keeps its own address too */
+function looksView(){ return '<iframe class="embedtool" title="Your looks" src="../looks/?embed=1"></iframe>'; }
+
 /* ---------- show it ---------- */
 function render(){
  clearInterval(EXT);
  const y=Y.get();
- const back=U.tab!=='photos'?'<div class="backbar"><button type="button" class="btn sm ghost" data-t="photos">‹ YOUR HEADSHOTS</button><span class="seg"><button type="button" class="'+(U.tab==='plan'?'on':'')+'" data-t="plan">THE PLAN</button><button type="button" class="'+(U.tab==='brief'?'on':'')+'" data-t="brief">FOR THE PHOTOGRAPHER</button></span></div>':'';
- $('app').innerHTML=header()+'<main id="main">'+back+(U.tab==='plan'?planView(y):U.tab==='brief'?briefView(y):photosView(y))+'</main>';
+ const back=U.tab!=='photos'?'<div class="backbar"><button type="button" class="btn sm ghost" data-t="photos">‹ YOUR HEADSHOTS</button><span class="seg"><button type="button" class="'+(U.tab==='looks'?'on':'')+'" data-t="looks">YOUR LOOKS</button><button type="button" class="'+(U.tab==='plan'?'on':'')+'" data-t="plan">THE PLAN</button><button type="button" class="'+(U.tab==='brief'?'on':'')+'" data-t="brief">FOR THE PHOTOGRAPHER</button></span></div>':'';
+ $('app').innerHTML=header()+'<main id="main">'+back+(U.tab==='looks'?looksView():U.tab==='plan'?planView(y):U.tab==='brief'?briefView(y):photosView(y))+'</main>';
  wire(); fillImgs(); fillLive(); playExample();
 }
 

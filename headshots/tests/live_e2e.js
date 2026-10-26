@@ -26,7 +26,7 @@ const run=async(vw,vh,scheme,tag)=>{
  await p.goto('http://localhost:8811/headshots/'); await p.waitForTimeout(600);
  const shot=async n=>{ if(SHOTS) await p.screenshot({path:SHOTS+'/'+tag+'_'+n+'.png',fullPage:n!=='shoot'&&n!=='review'}); };
  want(tag+' nothing yet: the example and the two ways in', !!(await p.$('#example'))&&!!(await p.$('#shoot'))&&!!(await p.$('#hf'))&&/EXAMPLE · HOW IT WORKS/.test(await p.innerText('#main')));
- want(tag+' the plan and the brief are folded, not open', (await p.$$('.fold')).length===2&&!(await p.$('[data-want]')));
+ want(tag+' your looks, the plan and the brief are folded, not open', (await p.$$('.fold')).length===3&&!(await p.$('[data-want]')));
  await shot('empty');
  await p.setInputFiles('#hf',['grey_crew.jpg','denim_jacket.jpg','suit_dark.jpg'].map(f=>T+'/'+f));
  await p.waitForFunction(()=>You.get().photos.length===3&&You.get().photos.every(x=>x.check),null,{timeout:15000}); await p.waitForTimeout(300);

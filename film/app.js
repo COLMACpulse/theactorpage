@@ -496,7 +496,8 @@ function vLoc(o){
 function vOwn(){
  if(OEDIT){ const o=owned().find(x=>x.id===OEDIT); if(o) return vLoc(o); OEDIT=null; }
  let h='';
- const toBacklot='<a class="card" id="tobacklot" href="../backlot/" style="display:block;text-decoration:none;color:inherit"><p class="kicker">Backlot ›</p><p class="faint" style="font-size:13px;margin:0">The same list, walked with your phone: a photo per spot, what each can pass for, your scripts held against it, and a start dealt from what you have.</p></a>';
+ /* BACKLOT lives in Story Studio now (Col, Oct 26): opened here, folded until you ask; it keeps its own page too */
+ const toBacklot='<details class="ffold" id="blfold"><summary>Backlot<i>the ground you have, walked with your phone</i></summary><p class="faint" style="font-size:13px;margin:0 0 8px">A photo per spot, what each can pass for, your scripts held against it, and a start dealt from what you have. <a id="tobacklot" href="../backlot/">On its own page ›</a></p><iframe class="embedtool" loading="lazy" title="Backlot" src="../backlot/?embed=1"></iframe></details>';
  if(DB.owned===null||!owned().length){
   h+='<div class="card"><p class="kicker">What you own</p><p>Your locations, props, wardrobe and gear. Scenes get matched to them. Backlot shows the same list, with photos.</p>'
    +'<button class="btn pri block" id="ranch">START FROM THE RANCH LIST</button><p class="faint" style="font-size:13px;margin:6px 0 10px">Barn, porch, creek, workshop, oak treeline, corral, fire pit, the pickup, the gear. 40 in all. Edit or remove any.</p>'

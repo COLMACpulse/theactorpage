@@ -11,7 +11,7 @@
   const ST = () => (typeof state !== 'undefined' && state) ? state : { job: {}, takes: [] };
   const SD = () => (typeof SIDES !== 'undefined' && SIDES) ? SIDES : { script: [] };
   const saveState = () => { try { localStorage.setItem(KEY, JSON.stringify(ST())); } catch (e) { } };
-  let PASTE = false, DETAILS = false, OFFER_HOME = null;
+  let PASTE = false, DETAILS = false, OFFER_HOME = null, DAYS = false;
 
   const hasSides = () => !!((SD().beats && SD().beats.length) || (SD().script && SD().script.length));
   const takes = () => (ST().takes || []).filter(t => t.status !== 'DROP');
@@ -67,6 +67,7 @@
         + ((show() || office()) ? '<p class="fp">' + esc([show(), office()].filter(Boolean).join(' · ')) + '</p>' : '')
         + (A.length ? '<div class="fask"><span class="fk2">THEY ASKED FOR</span>' + A.map(x => '<span>' + esc(x) + '</span>').join('') + '</div>' : '')
         + '</div>'
+        + daysHtml()
         + '<div class="fsteps">' + S.map(x => '<button type="button" class="fstep' + (x === nx && !x.done ? ' now' : '') + (x.done ? ' done' : '') + '" data-fgo="' + x.k + '"><span>' + (x.done ? '✓' : x === nx ? '→' : '○') + '&nbsp; ' + esc(x.l) + '</span><i>' + esc(x.say) + '</i></button>').join('') + '</div>'
         + '<button class="fgo" type="button" data-fgo="' + nx.k + '">' + (nx.done ? 'SEND IT' : NEXTWORD[nx.k]) + '</button>'
         + (nx.k !== 'shoot' ? '<button class="ftape" type="button" data-fgo="shoot"><i></i>Skip ahead and tape it</button>' : '')
@@ -76,6 +77,18 @@
     }
     wire();
   }
+  /* YOUR DAYS TO THE DEADLINE: The Plan's own rules (shared/plan.js), from the email you pasted. Folded until you tap. */
+  const TABOF = { read: 'read', breakdown: 'read', learn: 'learn', run: 'shoot', tape: 'shoot', send: 'send' };
+  function days() { try { const r = req(); if (!window.Plan || !r || !r.raw) return []; const today = Plan.iso(new Date()), h = Plan.hear(r.raw, today, {}); if (!h || !h.due) return []; return (Plan.build(h, today).steps || []).filter(x => x.date >= today); } catch (e) { return []; } }
+  function daysHtml() {
+    const D = days(); if (!D.length) return '';
+    const today = Plan.iso(new Date()), dn = new Set(D.map(x => x.date)).size;
+    const dw = d => d === today ? 'Today' : new Date(d + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' });
+    let h = '<button type="button" class="fdet" id="fDays" aria-expanded="' + DAYS + '"><span>Your days</span><i>' + n(dn, 'day') + ' to the deadline ' + (DAYS ? '⌄' : '›') + '</i></button>';
+    if (DAYS) h += '<div class="fsteps fdays">' + D.map(x => '<button type="button" class="fstep" data-fgo="' + (TABOF[x.kind] || 'home') + '"><span><b>' + esc(dw(x.date)) + '</b>&nbsp; ' + esc(x.what) + '</span></button>').join('') + '</div>';
+    return h;
+  }
+  const n = (x, w) => x + ' ' + (x === 1 ? w : w + 's');
   function pocket() {
     const it = [['../booth/', 'VO Booth', 'A VO audition from a closet'], ['../read/', 'Read In', "Read for a friend's tape"], ['../spotted/', 'Spotted', 'Send your reps a role'], ['../notes/', 'A note', 'What they told you']];
     return '<p class="fk" style="margin:18px 2px 8px">IN YOUR POCKET</p><div class="fpk">' + it.map(x => '<a href="' + x[0] + '"><b>' + x[1] + '</b><span>' + x[2] + '</span></a>').join('') + '</div>';
@@ -90,6 +103,7 @@
     on('fSides', () => { DETAILS = true; const P = $('prep'); if (P) P.classList.remove('aosquiet'); try { if (typeof togglePaste === 'function') { const w = $('pasteWrap'); if (!w || w.style.display === 'none') togglePaste(); } } catch (e) { } const t = $('sidesText'); if (t) { t.scrollIntoView({ block: 'center' }); t.focus(); } });
     on('fTape', () => goTab('shoot'));
     on('fPractice', () => { DETAILS = true; home(); const d = $('dailySec'); if (d) { d.open = true; d.scrollIntoView({ block: 'start' }); } });
+    on('fDays', () => { DAYS = !DAYS; home(); });
     on('fDet', () => { DETAILS = !DETAILS; home(); if (DETAILS) { const P = $('prep'); if (P) P.scrollIntoView({ block: 'start' }); } });
     if (H) H.querySelectorAll('[data-fgo]').forEach(b => b.onclick = () => goTab(b.dataset.fgo));
   }
