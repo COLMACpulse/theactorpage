@@ -115,7 +115,8 @@
     /* a plain email: the few lines most of them carry */
     const pick = re => { const m = t.match(re); return m ? m[1].trim().replace(/[.,;:]+$/, '') : ''; };
     const role0 = (r && r.role) || pick(/\brole\s*:\s*([^\n.]+)/i) || pick(/\b(?:for|as)\s+the\s+role\s+of\s+([^\n.,]+)/i);
-    const show0 = (r && (r.show || r.title)) || pick(/\b(?:project|show|title)\s*:\s*([^\n.]+)/i) || pick(/self[- ]?tape(?:\s+request)?\s+for\s+([^\n.,]+?)(?:\.|,|\n|\s+role\b)/i);
+    /* a scene heading is never the show's name */
+    const rs = r && (r.show || r.title), show0 = (rs && !/^(?:INT|EXT|I\/E|INT\.?\/EXT)[.\s]/i.test(rs) ? rs : '') || pick(/\b(?:project|show|title)\s*:\s*([^\n.]+)/i) || pick(/self[- ]?tape(?:\s+request)?\s+for\s+([^\n.,]+?)(?:\.|,|\n|\s+role\b)/i);
     const office0 = (r && r.castingDirectors && r.castingDirectors.length ? r.castingDirectors.join(', ') : '') || pick(/\bcasting(?:\s+director)?\s*:\s*([^\n.]+)/i);
     const st = ST(); st.job = st.job || {};
     st.job.request = { raw: t, at: Date.now(), role: role0, show: show0, office: office0 ? office0.replace(/\s+casting$/i, '') + ' Casting' : '', directions: (r && r.directions) || [], due: (r && r.due) || null };

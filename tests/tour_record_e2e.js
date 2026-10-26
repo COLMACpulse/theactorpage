@@ -1,7 +1,7 @@
 /* RECORD THE TOUR (demo/record.html): one read of every stop, cut into one clip per stop.
    A made-up reading (shaped noise, no voice) timed to the tour's lines, sentence pauses inside lines and a two-count
    between them. Brought in as a file; then a short live take with the fake mic, and a single line redone.
-   Then the tour plays those clips instead of the stand-in voice. Server on :8811. */
+   Then the tour plays those clips instead of the caption clock. Server on :8811. */
 const {chromium}=require('playwright'); const fs=require('fs'), os=require('os'), path=require('path');
 const O=require('../actor-os/oneread.js'); const TS=require('../demo/stops.js'); const L=TS.S;
 const SR=16000; let seed=11; const rnd=()=>{ seed=(seed*16807)%2147483647; return seed/2147483647; };
@@ -80,7 +80,7 @@ await q.addInitScript(()=>{ window.__said=[]; const S={getVoices:()=>[],cancel()
 await q.goto('http://localhost:8811/demo/'); await q.waitForFunction(()=>window.__tour&&window.__tour.mine===28,null,{timeout:8000}).catch(()=>{});
 want('the tour on this device has your 28 clips', await q.evaluate(()=>window.__tour.mine)===28);
 await q.click('#go'); await q.waitForFunction(()=>window.__tour.at==='O01',null,{timeout:30000}).catch(()=>{}); await q.waitForTimeout(1200);
-want('and plays yours, not the stand-in voice', /^blob:/.test(await q.evaluate(()=>document.getElementById('vo').src))&&!(await q.evaluate(()=>window.__said.filter(s=>s.trim()).length)), await q.evaluate(()=>document.getElementById('vo').src));
+want('and plays yours, not a computer voice', /^blob:/.test(await q.evaluate(()=>document.getElementById('vo').src))&&!(await q.evaluate(()=>window.__said.filter(s=>s.trim()).length)), await q.evaluate(()=>document.getElementById('vo').src));
 
 want('the caption on the tour is your words', (await q.innerText('#cap'))===NEW, await q.innerText('#cap'));
 /* start over */

@@ -1,11 +1,11 @@
 /* THE TOUR, start to end: every stop goes to its page, does its steps and lights up its part while its line plays.
-   The voice is a stand-in that finishes fast. A made-up "real" script is on the shelf the whole time: the tour never
+   No clips yet, so each caption runs on a clock (sped up here). There is never a computer voice. A made-up "real" script is on the shelf the whole time: the tour never
    shows it, and END DEMO leaves it exactly as it was. Server on :8811.  NODE_PATH=... node tests/tour_e2e.js */
 const {chromium}=require('playwright'); const SHOTS=process.env.SHOTS||'';
 (async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,700))); if(!x) ok=false; };
 const c=await b.newContext({viewport:{width:390,height:844}});
-await c.addInitScript(()=>{ if(!/\/demo\//.test(location.pathname)) return; window.__said=[]; const S={ speaking:false, getVoices:()=>[{name:'Ann',lang:'en-US'}], cancel(){}, speak(u){ window.__said.push(u.text); setTimeout(()=>{ u.onend&&u.onend(); },/log every take/.test(u.text)?8600:60); } };
+await c.addInitScript(()=>{ if(!/\/demo\//.test(location.pathname)) return; window.__said=[]; window.__tourPace=0.08; const S={ speaking:false, getVoices:()=>[{name:'Ann',lang:'en-US'}], cancel(){}, speak(u){ window.__said.push(u.text); setTimeout(()=>{ u.onend&&u.onend(); },/log every take/.test(u.text)?8600:60); } };
  Object.defineProperty(window,'speechSynthesis',{value:S,configurable:true}); window.SpeechSynthesisUtterance=function(t){ this.text=t; }; });
 const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
 p.on('frameattached',f=>{}); c.on('page',x=>{});
@@ -23,8 +23,8 @@ console.log(log.map((x,i)=>x.id+':'+(i?Math.round((x.t-log[i-1].t)/100)/10:0)).j
 want('every stop played, in order ('+list.length+')', log.map(x=>x.id).join()===list.join()&&list.length===28, log.map(x=>x.id).join());
 const dark=log.filter(x=>!x.lit); want('every stop lit up its part', !dark.length, dark);
 const said=await p.evaluate(()=>window.__said.filter(s=>s.trim()));
-want('the voice said each line once (no clips yet, so the stand-in)', said.length===28&&/you know the drill/.test(said[0]), said.length);
-const pages=[...new Set(log.map(x=>x.path))]; want('it went through the tools ('+pages.length+' pages)', ['/actor-os/','/breakdown/','/memorizer/','/cps/','/write/writers-blockage.html','/papertrail/','/film/','/filmhub/'].every(x=>pages.includes(x)), pages);
+want('no clips yet: captions on a clock, and never a computer voice', said.length===0, said.length);
+const pages=[...new Set(log.map(x=>x.path))]; want('it went through the tools ('+pages.length+' pages)', ['/actor-os/','/characters/','/write/writers-blockage.html','/papertrail/','/film/','/filmhub/'].every(x=>pages.includes(x)), pages);
 const fr=p.frame({url:/\/(index\.html)?$/})||p.frames()[1];
 want('the end: keep playing, again, or end', await p.isVisible('#done')&&/KEEP PLAYING/.test(await p.innerText('#done')));
 await p.click('#keep'); await p.waitForTimeout(300);
