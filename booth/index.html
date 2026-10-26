@@ -172,6 +172,12 @@ canvas.live.big{height:150px;width:100%}
 }
 body:has(#hotbar) .top{padding-top:calc(env(safe-area-inset-top) + 50px)}
 .vwv{display:block;min-height:24px;margin:4px 0}.vwv .wv{height:52px}.vcard .vwv .wv,.vstrip .vwv .wv{height:24px}
+/* the example on a first open, and the wave that breathes while the mic is off (Col, Oct 26) */
+.exk{color:var(--tung)!important}.exspot{font-family:var(--mono,"Courier Prime",monospace);font-size:15px;line-height:1.6;display:flex;flex-direction:column;gap:2px;margin:4px 0 6px}.exspot b{letter-spacing:.04em}.exspot .exalt{opacity:.75}
+.breath{height:110px;display:flex;align-items:center;justify-content:center;gap:5px;margin:10px 0}.breath.big{height:150px}
+.breath i{display:block;width:6px;flex:0 0 6px;border-radius:3px;background:var(--tung);transform-origin:center;animation:breathe 4.2s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scaleY(.55);opacity:.5}50%{transform:scaleY(1.15);opacity:.95}}
+@media (prefers-reduced-motion:reduce){.breath i{animation:none;opacity:.7}}
 </style>
 </head>
 <body>

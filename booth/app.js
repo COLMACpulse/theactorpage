@@ -53,8 +53,16 @@ function addText(name,lines,text){
  const t=String(text||'').trim(); if(t){ S.brief=(S.brief?S.brief+'\n\n':'')+t.slice(0,6000); return 'brief'; }
  return 'nothing';
 }
+/* THE EXAMPLE (Col, Oct 26: "I'd like VO to be loaded"): a made-up spot is in on a first open, so the booth is never blank.
+   Read it and record it like real copy; your own copy, dropped or pasted, takes its place and clears its takes. */
+const EX_NAME='EXAMPLE', EX_TEXT='HARBOR COFFEE :30\nVO: Six a.m. The boats are already out.\nVO: And so are we.\nVO: Harbor Coffee. Up before the tide.\nALT: Harbor Coffee. Up with the tide.';
+function loadExample(){ if(S.parts.length||S.brief||S.exGone) return; addText(EX_NAME,EX_TEXT,''); S.example=true; save(); }
+async function clearExample(){ if(!S.example) return; for(const k of Object.keys(S.takes)) for(const t of S.takes[k]) await del(t.id);
+ S.takes={}; S.kept={}; S.parts=S.parts.filter(p=>p.name!==EX_NAME); S.example=false; S.exGone=true; S.order=null; save(); }
+/* the wave while the mic is off: it breathes, slowly. It moves with you only after you turn the mic on. */
+const breath=(n,cls)=>'<div class="breath'+(cls?' '+cls:'')+'" aria-hidden="true">'+Array.from({length:n},(_,i)=>'<i style="height:'+Math.round(16+(Math.sin(i/n*Math.PI*3)+1)*14+(i%3)*4)+'px;animation-delay:'+((i%12)*0.14).toFixed(2)+'s"></i>').join('')+'</div>';
 async function takeFiles(files){
- const got=[];
+ await clearExample(); const got=[];
  for(const f of files){ try{ const r=await readFile(f); got.push(f.name+': '+({copy:'copy',note:'the agent\'s note',brief:'the brief',nothing:'nothing to read'})[addText(f.name,r.lines,r.text)]); }catch(e){ got.push(f.name+': couldn\'t read it'); } }
  save(); toHub(); render(); if(got.length) toast(got.join(' · '));
 }
@@ -204,8 +212,8 @@ async function checkFile(f){
 const TABS=['copy','room','voices','read','send','demo'];
 function render(){
  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===S.tab));
- const J=job(); $('title').textContent=S.job.client||(J.spots[0]&&J.spots[0].title)||'Voice over';
- $('count').textContent=J.spots.length?J.spots.length+' spot'+(J.spots.length===1?'':'s')+(S.job.due?' · due '+S.job.due:''):'';
+ const J=job(); $('title').textContent=S.example?'Voice over':(S.job.client||(J.spots[0]&&J.spots[0].title)||'Voice over');
+ $('count').textContent=S.example?'an example spot, made up':J.spots.length?J.spots.length+' spot'+(J.spots.length===1?'':'s')+(S.job.due?' · due '+S.job.due:''):'';
  const m=$('main');
  if(S.tab==='copy') m.innerHTML=copyView(J);
  else if(S.tab==='room') m.innerHTML=roomView();
@@ -220,13 +228,17 @@ function render(){
 }
 function copyView(J){
  const n=J.spots.length;
+ if(S.example&&J.spots[0]){ const sp=J.spots[0];
+  let f='<div class="card exfront" data-stick><p class="kicker exk">EXAMPLE · A MADE-UP SPOT</p><div class="exspot"><b>'+esc(sp.title)+(sp.secs?' · :'+sp.secs:'')+'</b>'
+   +sp.lines.map(l=>'<span>'+esc(l.who)+': '+esc(l.text)+'</span>'+l.alts.map(a=>'<span class="exalt">ALT: '+esc(a)+'</span>').join('')).join('')+'</div>'
+   +breath(48)+'<p class="dim small" style="text-align:center;margin:0 0 12px">MIC OFF. It breathes until you turn it on.</p>'
+   +'<button class="btn pri big block" id="exmic">TURN ON THE MIC</button><p class="faint small" style="text-align:center;margin:10px 0 0">It asks first, and shows you whenever it is on. Read the spot and keep a take, like real copy.</p></div>';
+  return f+copyCard(true)+'<p class="faint small">Yours takes the example\'s place, and the example\'s takes go with it.</p>'; }
  let h=window.Kit?Kit.html([
   {id:'room',dev:'mic',label:'MIC',what:'Check the room',note:'Hear your room before you read'},
   {id:'read',dev:'mic',label:'MIC',what:'Record the reads',note:n?n+' spot'+(n===1?'':'s')+' ready':'Add the copy first',off:!n}
  ]):'';
- h+='<div class="card"><p class="kicker">The copy</p><p class="dim">Drop the scripts, the brief and the agent\'s email. Word, PDF or pasted. It finds the spots, your lines and the ALTs, and reads the order they want.</p>'
-  +'<label class="btn pri block"><input type="file" id="files" multiple accept=".pdf,.docx,.txt,.text,.rtf,.eml,.md" hidden>ADD FILES</label>'
-  +'<textarea class="field" id="paste" placeholder="Or paste: the copy, or the agent\'s note (due, one MP3, the order)"></textarea><button class="btn block" id="pastego">READ IT</button></div>';
+ h+=copyCard(false);
  if(S.job.client||S.job.due||S.job.order.length||S.job.oneFile){
   h+='<div class="card"><p class="kicker">The job</p>'+(S.job.client?'<p><b>'+esc(S.job.client)+'</b></p>':'')
    +(S.job.due?'<p>Due: '+esc(S.job.due)+'</p>':'')
@@ -246,6 +258,9 @@ function copyView(J){
  if(!J.spots.length) h+='<p class="faint small">Nothing yet. A spot looks like "Morning Ride :30" followed by lines that start "VO:" (or the character\'s name).</p>';
  return h;
 }
+function copyCard(ex){ return '<div class="card"><p class="kicker">'+(ex?'Your copy':'The copy')+'</p><p class="dim">Drop the scripts, the brief and the agent\'s email. Word, PDF or pasted. It finds the spots, your lines and the ALTs, and reads the order they want.</p>'
+  +'<label class="btn '+(ex?'':'pri ')+'block"><input type="file" id="files" multiple accept=".pdf,.docx,.txt,.text,.rtf,.eml,.md" hidden>ADD FILES</label>'
+  +'<textarea class="field" id="paste" placeholder="Or paste: the copy, or the agent\'s note (due, one MP3, the order)"></textarea><button class="btn block" id="pastego">READ IT</button></div>'; }
 function roomView(){
  let h='<div class="card"><p class="kicker">Check the room</p><p class="dim">Stand where you\'ll read, phone where it\'ll be. Tap, then stay quiet for 5 seconds. It measures the closet with you silent.</p>'
   +'<button class="btn pri big block" id="roomgo">CHECK THE ROOM</button><div id="roomnow"></div></div>';
@@ -255,7 +270,7 @@ function roomView(){
 function readView(J){
  if(!J.spots.length) return '<div class="msg">Add the copy on COPY first.</div>';
  const cur=RECKEY?lineText(J,RECKEY):'';
- let h='<div class="readgrid"><aside class="bpanel"><div id="rvoice"></div><div class="bbig"><p class="kicker">THE BOOTH</p><p class="bline">'+(cur?esc(cur):'<span class="faint">Tap ● on a line to record it.</span>')+'</p><canvas class="live big" data-live aria-label="What the mic hears, as you read" role="img"></canvas>'+meter()+'</div></aside><div class="readlist"><div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="dim small">'+(MIC?'Mic on. Tap ● to record a line, tap again to stop.':'Tap ● to record a line, tap again to stop.')+'</span>'+(MIC?'<button class="btn sm ghost" id="micoff">MIC OFF</button>':'')+'</div>';
+ let h='<div class="readgrid"><aside class="bpanel"><div id="rvoice"></div><div class="bbig"><p class="kicker">THE BOOTH</p><p class="bline">'+(cur?esc(cur):'<span class="faint">Tap ● on a line to record it.</span>')+'</p>'+(REC?'<canvas class="live big" data-live aria-label="What the mic hears, as you read" role="img"></canvas>':breath(44,'big'))+meter()+'</div></aside><div class="readlist"><div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="dim small">'+(MIC?'Mic on. Tap ● to record a line, tap again to stop.':'Tap ● to record a line, tap again to stop.')+'</span>'+(MIC?'<button class="btn sm ghost" id="micoff">MIC OFF</button>':'')+'</div>';
  J.spots.forEach((sp,si)=>{ const t=spotTime(sp,J);
   h+='<div class="spot"><p class="kicker">'+(si+1)+' · '+esc(sp.title||'Spot')+(sp.secs?' · :'+sp.secs:'')+'</p>'
    +(t.have?'<p class="time'+(sp.secs&&Math.abs(t.secs-sp.secs)>1?' off':'')+'">'+esc(A.timeWords(t.secs,sp.secs))+(t.missing?' ('+t.missing+' line'+(t.missing===1?'':'s')+' still to read)':'')+'</p>':'');
@@ -312,10 +327,11 @@ function sendView(J){
 function wire(J){
  const q=(s,f)=>document.querySelectorAll(s).forEach(f);
  const fi=$('files'); if(fi) fi.onchange=()=>{ const f=[...fi.files]; fi.value=''; takeFiles(f); };
- const pg=$('pastego'); if(pg) pg.onclick=()=>{ const t=$('paste').value; if(!t.trim()) return; const k=addText('Pasted '+new Date().toLocaleTimeString(),t,t); save(); toHub(); render(); toast(({copy:'Read as copy',note:'Read as the agent\'s note',brief:'Kept as the brief',nothing:'Nothing to read'})[k]); };
+ const pg=$('pastego'); if(pg) pg.onclick=async()=>{ const t=$('paste').value; if(!t.trim()) return; await clearExample(); const k=addText('Pasted '+new Date().toLocaleTimeString(),t,t); save(); toHub(); render(); toast(({copy:'Read as copy',note:'Read as the agent\'s note',brief:'Kept as the brief',nothing:'Nothing to read'})[k]); };
  q('[data-you]',b=>b.onclick=()=>{ S.you=S.you===b.dataset.you?'':b.dataset.you; save(); render(); });
  q('[data-up]',b=>b.onclick=()=>{ const i=+b.dataset.up; if(!i) return; const ord=(S.order&&S.order.length===J.base.length)?S.order.slice():J.base.map((_,k)=>k); [ord[i-1],ord[i]]=[ord[i],ord[i-1]]; S.order=ord; save(); render(); });
  const nj=$('newjob'); if(nj) nj.onclick=async()=>{ if(!confirm('Start a new job? This clears the copy, the note, the brief and every take.')) return; for(const k of Object.keys(S.takes)) for(const t of S.takes[k]) await del(t.id); const keep={name:S.name,room:S.room,opts:S.opts}; S=Object.assign(blank(),keep,{tab:'copy'}); save(); render(); };
+ const ex=$('exmic'); if(ex) ex.onclick=()=>{ const sp=J.spots[0]; if(!sp) return; goTab('read'); recTap(lineKey(sp,0,0)); };
  const rg=$('roomgo'); if(rg) rg.onclick=checkRoom;
  const mo=$('micoff'); if(mo) mo.onclick=micOff;
  q('[data-rec]',b=>b.onclick=()=>recTap(b.dataset.rec));
@@ -342,6 +358,7 @@ function goTab(t){ if(t==='voices'&&S.tab!=='voices'&&window.BoothVoices) BoothV
  save(); render(); window.scrollTo(0,0); }
 $('tabs').addEventListener('click',e=>{ const b=e.target.closest('button[data-t]'); if(b) goTab(b.dataset.t); });
 window.addEventListener('pagehide',()=>{ C.stop(MIC); });
-window.__booth={get S(){return S;},shapeOld,job,plan,addText,make,checkFile,render,decode,to441,get,keptOf,name,save,goTab};
+loadExample();
+window.__booth={get S(){return S;},clearExample,shapeOld,job,plan,addText,make,checkFile,render,decode,to441,get,keptOf,name,save,goTab};
 render();
 })();
