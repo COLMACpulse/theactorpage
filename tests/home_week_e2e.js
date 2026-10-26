@@ -4,7 +4,7 @@ const {chromium}=require('playwright');
 (async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,500))); if(!x) ok=false; };
 const p=await (await b.newContext({viewport:{width:390,height:844},serviceWorkers:'block'})).newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
-await p.goto('http://localhost:8811/'); await p.evaluate(()=>localStorage.clear()); await p.reload(); await p.waitForTimeout(900);
+await p.goto('http://localhost:8811/how.html'); await p.evaluate(()=>localStorage.clear()); await p.reload(); await p.waitForTimeout(900);
 want('a first visit: no agenda', await p.$eval('#week',e=>e.hidden));
 await p.evaluate(()=>{ const d=n=>{ const x=new Date(Date.now()+n*864e5); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); };
  const r=Contacts.add({name:'Morgan Lee',role:'agent'}); Contacts.setRep(r.id,{step:'submitted',next:d(-2)});

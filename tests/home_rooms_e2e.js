@@ -6,7 +6,7 @@ const {chromium}=require('playwright'); const path=require('path'), fs=require('
 const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,300))); if(!x) ok=false; };
 const c=await b.newContext({viewport:{width:1300,height:900}}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
-await p.goto('http://localhost:8811/index.html'); await p.evaluate(()=>{ localStorage.clear(); indexedDB.deleteDatabase('filmhub'); }); await p.reload(); await p.waitForTimeout(800);
+await p.goto('http://localhost:8811/how.html'); await p.evaluate(()=>{ localStorage.clear(); indexedDB.deleteDatabase('filmhub'); }); await p.reload(); await p.waitForTimeout(800);
 const T=id=>p.evaluate(i=>{ const e=document.getElementById(i); return e?e.textContent:null; },id);
 const vis=id=>p.evaluate(i=>{ const e=document.getElementById(i); return !!(e&&!e.hidden); },id);
 want('from nothing: the slate shows the sample and says so; a blank page, an empty camera, each with its line', await vis('sl_why')&&await vis('tw_why')&&await vis('cam_why')&&(await T('sl_prod'))==='LOW TIDE (SAMPLE)'&&!(await T('tw_title'))&&/A sample, until your first audition comes in/.test(await T('sl_why'))&&/page goes here/.test(await T('tw_why'))&&/film goes here/.test(await T('cam_why')));
@@ -41,7 +41,7 @@ want('no page errors', !errs.length, errs);
 await c.close();
 // reduced motion: no clap even when new
 const c2=await b.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'}); const q=await c2.newPage();
-await q.goto('http://localhost:8811/index.html'); await q.evaluate(()=>localStorage.clear()); await q.reload(); await q.waitForTimeout(600);
+await q.goto('http://localhost:8811/how.html'); await q.evaluate(()=>localStorage.clear()); await q.reload(); await q.waitForTimeout(600);
 await q.evaluate(()=>{ Inbox.put('request',{title:'SALT FLATS',role:'HAL',file:'y'},'req|sf'); Rooms.draw(); }); await q.waitForTimeout(200);
 want('reduced motion: filled, but no clap', await q.evaluate(()=>document.getElementById('sl_prod').textContent==='SALT FLATS'&&!document.getElementById('slate').classList.contains('clap')));
 want('phone: the slate sits beside ACT', await q.evaluate(()=>{ const s=document.getElementById('slate').getBoundingClientRect(), h=document.querySelector('.band.act .disc-name').getBoundingClientRect(); return s.left>h.right&&s.width<140; }));

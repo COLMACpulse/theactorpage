@@ -10,7 +10,7 @@ await c.addInitScript(()=>{ if(!/\/demo\//.test(location.pathname)) return; wind
 const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
 p.on('frameattached',f=>{}); c.on('page',x=>{});
 const H='http://localhost:8811/';
-await p.goto(H); await p.evaluate(()=>{ localStorage.clear(); Shelf.put({text:'RIVA\nThe gate is locked.\n\nMOSS\nThen climb it.\n',file:'real_gate.fountain',me:'RIVA'}); });
+await p.goto(H+'how.html'); await p.evaluate(()=>{ localStorage.clear(); Shelf.put({text:'RIVA\nThe gate is locked.\n\nMOSS\nThen climb it.\n',file:'real_gate.fountain',me:'RIVA'}); });
 const realBefore=await p.evaluate(()=>localStorage.getItem('theactorpage_shelf_v1'));
 want('home has the tour, up top, and TRY IT next to it', /5-minute tour/.test(await p.innerText('#demogo'))&&/demo\/$/.test(await p.getAttribute('#demogo','href'))&&/demo\/\?try$/.test(await p.getAttribute('#trygo','href')));
 await p.click('#demogo'); await p.waitForURL(/\/demo\/$/); await p.waitForTimeout(300);

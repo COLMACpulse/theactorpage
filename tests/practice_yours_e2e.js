@@ -6,7 +6,7 @@ const {chromium}=require('playwright');
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,400))); if(!x) ok=false; };
 const c=await b.newContext({viewport:{width:390,height:844}}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
 const two=(a,b,head,tag)=>head+'\n\n'+[1,2,3,4,5,6].map(i=>(i%2?a:b)+'\n'+tag+' line '+i+'.').join('\n\n')+'\n';
-await p.goto('http://localhost:8811/index.html'); await p.evaluate(()=>{ localStorage.clear(); sessionStorage.clear(); }); await p.reload(); await p.waitForTimeout(600);
+await p.goto('http://localhost:8811/how.html'); await p.evaluate(()=>{ localStorage.clear(); sessionStorage.clear(); }); await p.reload(); await p.waitForTimeout(600);
 // nothing yet: the AI prompt, and no "from your material" button
 await p.click('[data-practice] .spark-btn'); await p.waitForTimeout(400);
 want('no material: the AI prompt, plain', /Written by AI, not by me/.test(await p.innerText('.practice-card'))&&!(await p.$('[data-pmode]')));
@@ -47,13 +47,13 @@ const st=await p.evaluate(()=>({file:SIDES.file,me:SIDES.me,shelf:Shelf.all().ma
 want('TAPE IT: Actor OS has the cut, you as TOBIAS', st.file==='Practice scene - Glass Harbor sides, scene 1'&&st.me==='TOBIAS', st);
 want('the shelf still has just your real sides, nothing saved as last sides', st.shelf.join()==='Glass Harbor sides.pdf'&&!st.last, st);
 // learn one from THEACTORPAGES in Memorizer
-await p.goto('http://localhost:8811/index.html'); await p.waitForTimeout(600); await p.click('[data-practice] .spark-btn'); await p.waitForTimeout(600);
+await p.goto('http://localhost:8811/how.html'); await p.waitForTimeout(600); await p.click('[data-practice] .spark-btn'); await p.waitForTimeout(600);
 t=''; for(let i=0;i<20&&!/Low Tide/.test(t);i++){ await p.click('[data-pnext]'); await p.waitForTimeout(60); t=await p.$eval('.practice-card b',x=>x.textContent); }
 await p.click('[data-pgo="learn"]'); await p.waitForURL(/memorizer/); await p.waitForTimeout(1500);
 const mz=await p.evaluate(()=>{ const D=JSON.parse(localStorage.getItem('memorizer_v1')); return D.scripts[D.cur]; });
 want('LEARN: Memorizer has the THEACTORPAGES cut, word for word', mz&&mz.file==='Practice scene - Low Tide, scene 1'&&/EXT\. PIER - DAWN/.test(mz.text)&&/Tide line 5\./.test(mz.text)&&['RAFE','NELL'].includes(mz.me), mz);
 // rewrite
-await p.goto('http://localhost:8811/index.html'); await p.waitForTimeout(600); await p.click('[data-practice] .spark-btn'); await p.waitForTimeout(600);
+await p.goto('http://localhost:8811/how.html'); await p.waitForTimeout(600); await p.click('[data-practice] .spark-btn'); await p.waitForTimeout(600);
 await p.click('[data-pgo="write"]'); await p.waitForURL(/writers-blockage/); await p.waitForTimeout(2000);
 want('REWRITE: note says it\'s a word-for-word cut from your material', /Word for word from your material/.test(await p.evaluate(()=>document.body.innerText)));
 // Actor OS fold sees it too

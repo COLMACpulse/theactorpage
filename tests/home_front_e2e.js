@@ -5,7 +5,7 @@ const {chromium}=require('playwright');
 (async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,300))); if(!x) ok=false; };
 const c=await b.newContext({viewport:{width:390,height:844},serviceWorkers:'block'}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
-await p.goto('http://localhost:8811/'); await p.waitForTimeout(800);
+await p.goto('http://localhost:8811/how.html'); await p.waitForTimeout(800);
 const hero=await p.innerText('header.titlecard');
 want('the front says what it is, for actors, in one line', /FOR ACTORS/.test(hero)&&/Everything an audition takes, from the sides to the send\./.test(hero)&&/No account\. No card\. Nothing uploaded\./.test(hero));
 want('one main button: try it on a sample scene', /Try it on a sample scene/.test(await p.innerText('#trygo'))&&(await p.getAttribute('#trygo','href'))==='demo/?try');
@@ -46,12 +46,12 @@ want('no em dashes, no "thing"', await p.evaluate(()=>!/—/.test(document.body.
 let spoke=0; await c.exposeFunction('__spoke',()=>{ spoke++; });
 await c.addInitScript(()=>{ try{ const s=speechSynthesis.speak.bind(speechSynthesis); speechSynthesis.speak=u=>{ window.__spoke&&window.__spoke(); }; }catch(e){} });
 await p.goto('http://localhost:8811/demo/?try'); await p.waitForFunction(()=>window.__tour&&window.__tour.tried,null,{timeout:20000}).catch(()=>{});
-const fr=p.frame({url:/localhost:8811\/(index\.html)?$/})||p.frames()[1];
+const fr=p.frame({url:/localhost:8811\/how\.html$/})||p.frames()[1];
 want('TRY IT: the site in the demo, Low Tide in, you\'re ANNA, no tour', await p.evaluate(()=>window.__tour.tried&&!document.getElementById('start').offsetParent&&/DEMO/.test(document.getElementById('where').textContent))&&/ANNA/.test(await fr.innerText('#took')), await p.evaluate(()=>document.getElementById('cap').textContent));
 want('it never talks', spoke===0);
 want('END DEMO is there', await p.isVisible('#end'));
 // a first visit: YOU isn't empty
-await p.goto('http://localhost:8811/'); await p.evaluate(()=>localStorage.clear()); await p.reload(); await p.waitForTimeout(900);
+await p.goto('http://localhost:8811/how.html'); await p.evaluate(()=>localStorage.clear()); await p.reload(); await p.waitForTimeout(900);
 want('first visit: the mask in the frame, a line saying what it is, three ways in', await p.$eval('#lens .glass img.ph',i=>i.complete&&i.naturalWidth>100)&&/This is you, before your headshot/.test(await p.innerText('#lenswhy'))&&await p.isVisible('#st_head')&&await p.isVisible('#st_res')&&await p.isVisible('#st_sides'));
 await p.setInputFiles('#st_headfile',{name:'me.png',mimeType:'image/png',buffer:require('zlib')&&Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==','base64')}); await p.waitForTimeout(1500);
 want('add a headshot: that button goes, the line goes, the other two stay', !(await p.isVisible('#st_head'))&&!(await p.isVisible('#lenswhy'))&&await p.isVisible('#st_res'));

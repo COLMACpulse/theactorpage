@@ -27,7 +27,7 @@ const id2=await p.evaluate(s=>Shelf.put({text:s,file:'Dock_again.txt',from:'Memo
 await p.goto('http://localhost:8811/actor-os/?sides='+encodeURIComponent(id)); await p.waitForTimeout(1300);
 want('?sides=<id>: that set opens, not the newest', await loaded()&&await p.evaluate(()=>SIDES.speakers.some(x=>x.name==='CAL')));
 /* the links that ask */
-await p.goto('http://localhost:8811/'); await p.waitForTimeout(900);
+await p.goto('http://localhost:8811/how.html'); await p.waitForTimeout(900);
 const links=await p.evaluate(()=>[...document.querySelectorAll('a[href^="actor-os/?"]')].map(a=>a.getAttribute('href')));
 want('home: READ on sides in play asks for that set', links.some(h=>/^actor-os\/\?sides=/.test(h)), links);
 want('no page errors', errs.length===0, errs);

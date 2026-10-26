@@ -6,7 +6,7 @@ const {chromium}=require('playwright'); const path=require('path'), fs=require('
 const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 const c=await b.newContext({acceptDownloads:true}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,400))); if(!x) ok=false; };
-await p.goto('http://localhost:8811/index.html'); await p.evaluate(()=>{ localStorage.clear(); ['theactorpage_you','filmhub','theactorpage_takes'].forEach(n=>indexedDB.deleteDatabase(n)); }); await p.reload(); await p.waitForTimeout(800);
+await p.goto('http://localhost:8811/how.html'); await p.evaluate(()=>{ localStorage.clear(); ['theactorpage_you','filmhub','theactorpage_takes'].forEach(n=>indexedDB.deleteDatabase(n)); }); await p.reload(); await p.waitForTimeout(800);
 // a profile with a headshot and a résumé, through home's own drop
 await p.setInputFiles('#dropfile',[path.join(FX,'sam_actor_resume.pdf'),path.join(FX,'made_up_face.jpg')]); await p.waitForTimeout(2500);
 await p.evaluate(async()=>{

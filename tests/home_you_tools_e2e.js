@@ -4,7 +4,7 @@ const {chromium}=require('playwright');
 (async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,400))); if(!x) ok=false; };
 const p=await (await b.newContext({viewport:{width:1440,height:900}})).newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
-await p.goto('http://localhost:8811/'); await p.waitForTimeout(800);
+await p.goto('http://localhost:8811/how.html'); await p.waitForTimeout(800);
 const six=['notes/','spotted/','contacts/','footage/','press/'];
 const hrefs=sel=>p.$$eval(sel,x=>x.map(a=>a.getAttribute('href')));
 const youCards=await hrefs('#you details.dept[data-d="you"] .toolfoot a.btn'), actCards=await hrefs('#act details.dept[data-d="act"] .toolfoot a.btn');

@@ -12,7 +12,7 @@ const buf=require('fs').readFileSync(await dl.path());
 want('SAVE IT ALL: one zip, both years and the receipt', dl.suggestedFilename()==='Expenses.zip'&&/Expenses 2026\.csv/.test(buf.toString('latin1'))&&/Expenses 2025\.csv/.test(buf.toString('latin1'))&&/receipts\//.test(buf.toString('latin1')));
 await p.click('#clear'); await p.waitForTimeout(300);
 want('CLEAR: gone from this device', /Nothing from Expenses is on this device/.test(await p.innerText('#view'))&&!(await p.evaluate(()=>localStorage.getItem(Expenses.KEY))));
-const home=await (await b.newContext()).newPage(); await home.goto('http://localhost:8811/'); await home.waitForTimeout(700);
+const home=await (await b.newContext()).newPage(); await home.goto('http://localhost:8811/how.html'); await home.waitForTimeout(700);
 want('home: no link to Expenses anywhere', !(await home.$('a[href^="expenses/"]')));
 want('no page errors', !errs.length, errs);
 await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();

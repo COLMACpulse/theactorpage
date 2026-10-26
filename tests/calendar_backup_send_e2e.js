@@ -14,7 +14,7 @@ want('THE PLAN: ADD TO MY CALENDAR makes one calendar file', /\.ics$/.test(dl.su
 want('every step on its day, the deadline at 11, send at 10, reminders on', (ics.match(/BEGIN:VEVENT/g)||[]).length>=6&&ics.includes('DTSTART:'+d(4).replace(/-/g,'')+'T110000')&&ics.includes('DTSTART:'+d(4).replace(/-/g,'')+'T100000')&&(ics.match(/BEGIN:VALARM/g)||[]).length>=6&&/SUMMARY:DUE: Harbor Lights \(Guest star\)/.test(ics));
 want('each event links back to the plan', /URL:http:\/\/localhost:8811\/plan\/\?p=p/.test(ics.replace(/\r\n /g,'')));
 /* home: YOUR AGENDA to the calendar, and no backup line */
-await p.goto('http://localhost:8811/'); await p.waitForTimeout(1200);
+await p.goto('http://localhost:8811/how.html'); await p.waitForTimeout(1200);
 const [dl2]=await Promise.all([p.waitForEvent('download'),p.click('#wkcal')]);
 const ics2=fs.readFileSync(await dl2.path(),'utf8');
 want('YOUR AGENDA: ADD TO MY CALENDAR, the dated lines', /your_agenda\.ics$/.test(dl2.suggestedFilename())&&(ics2.match(/BEGIN:VEVENT/g)||[]).length>=4&&/SUMMARY:Harbor Lights: /.test(ics2)&&/MADE/.test(await p.innerText('#wkcal')));
@@ -36,7 +36,7 @@ await p.evaluate(()=>{ state.job.fitMB=50; });
 want('the office\'s own words win: 50 MB', await p.evaluate(()=>fitCap())==='50'&&/UNDER 50 MB/.test(await p.evaluate(()=>sizePill(40*1048576))));
 await p.evaluate(()=>{ state.job.fitMB=0; chooseDest('REPRESENTATION'); });
 want('to your rep: no size forced', await p.evaluate(()=>fitCap())==='');
-const home=await (await c.newPage()).goto('http://localhost:8811/').then(r=>r.text());
+const home=await (await c.newPage()).goto('http://localhost:8811/how.html').then(r=>r.text());
 want('home says the real Eco Cast limit, not 500 MB', /Eco Cast on Actors Access takes up to 100 MB a clip/.test(home)&&!/500 MB/.test(home));
 want('no page errors', errs.length===0, errs);
 await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();

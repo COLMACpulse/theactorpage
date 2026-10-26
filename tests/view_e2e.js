@@ -5,7 +5,7 @@ const {chromium}=require('playwright');
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,400))); if(!x) ok=false; };
 const c=await b.newContext({viewport:{width:1280,height:900}}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
 const shown=sel=>p.$eval(sel,e=>!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)).catch(()=>false);
-await p.goto('http://localhost:8811/index.html'); await p.evaluate(()=>{ localStorage.setItem('theactorpage_view',JSON.stringify({act:true,write:false,film:false})); sessionStorage.setItem('theactorpage_sigil','1'); }); await p.reload(); await p.waitForTimeout(800);
+await p.goto('http://localhost:8811/how.html'); await p.evaluate(()=>{ localStorage.setItem('theactorpage_view',JSON.stringify({act:true,write:false,film:false})); sessionStorage.setItem('theactorpage_sigil','1'); }); await p.reload(); await p.waitForTimeout(800);
 const f=await p.innerText('footer');
 want('the footer: no SHOW ON THIS SITE row', !(await p.$('#viewrow'))&&!(await p.$('[data-view]'))&&!/SHOW ON THIS SITE/.test(f));
 want('an old hidden choice is cleared: every band and footer column shows', await shown('.door.w')&&await shown('.door.f')&&await shown('.fcol[data-dept="write"]')&&await shown('.fcol[data-dept="film"]')&&!(await p.$('[data-vhide]'))&&await p.evaluate(()=>localStorage.getItem('theactorpage_view')===null));

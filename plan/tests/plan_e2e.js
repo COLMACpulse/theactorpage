@@ -40,7 +40,7 @@ want('YOUR WORDS: the character, you and the office, the rest', /THE CHARACTER\s
 await p.click('[data-done="0"]'); await p.waitForTimeout(200);
 want('tick a step off', await p.$eval('.steps li',e=>e.classList.contains('done')));
 /* home */
-await p.goto('http://localhost:8811/'); await p.waitForTimeout(1200);
+await p.goto('http://localhost:8811/how.html'); await p.waitForTimeout(1200);
 const w=await p.innerText('#week');
 want('YOUR AGENDA on home: the plan\'s next steps on their days', /TOMORROW\s+Harbor Lights: Break it down/.test(w)&&/Harbor Lights: TAPE IT/.test(w)&&!/Harbor Lights: Read the sides/.test(w), w);
 want('home, in YOU: THE PLAN, one tap', await p.getAttribute('#st_plan','href')==='plan/');

@@ -10,7 +10,7 @@ const c=await b.newContext({viewport:{width:1300,height:900}});
 await c.addInitScript(()=>{ window.__persist=0; try{ if(navigator.storage){ navigator.storage.persist=()=>{ window.__persist++; return Promise.resolve(true); }; navigator.storage.persisted=()=>Promise.resolve(false); } }catch(e){} });
 const p=await c.newPage(); const errs=[], outside=[]; p.on('pageerror',e=>errs.push(e.message));
 p.on('request',r=>{ const u=new URL(r.url()); if(!/^(localhost|127\.0\.0\.1)$/.test(u.hostname)&&!/^(data|blob):/.test(r.url())) outside.push(r.url()); });
-await p.goto('http://localhost:8811/index.html'); await p.evaluate(()=>{ localStorage.clear(); }); await p.reload(); await p.waitForTimeout(1200);
+await p.goto('http://localhost:8811/how.html'); await p.evaluate(()=>{ localStorage.clear(); }); await p.reload(); await p.waitForTimeout(1200);
 want('home asks nobody else for anything (no Google fonts)', !outside.length, outside);
 want('the fonts are this site\'s own and they load', await p.evaluate(async()=>{ await document.fonts.ready; return document.fonts.check('300 16px Jost')&&document.fonts.check('700 16px "Courier Prime"'); }));
 want('nothing in yet: no keep line', await p.evaluate(()=>document.getElementById('keepline').hidden));
@@ -27,7 +27,7 @@ want('footer links On This Device and Privacy', await p.evaluate(()=>!!document.
 await c.close();
 // an iPhone, in Safari (not on the Home Screen)
 const ci=await b.newContext({viewport:{width:390,height:844},userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1'});
-const q=await ci.newPage(); await q.goto('http://localhost:8811/index.html'); await q.evaluate(()=>localStorage.clear()); await q.reload(); await q.waitForTimeout(700);
+const q=await ci.newPage(); await q.goto('http://localhost:8811/how.html'); await q.evaluate(()=>localStorage.clear()); await q.reload(); await q.waitForTimeout(700);
 await q.setInputFiles('#dropfile',path.join(FX,'made_up_face.jpg')); await q.waitForTimeout(1500);
 const ik=await q.innerText('#keepline');
 want('iPhone in Safari: the Home Screen note, in plain words', /add this site to your Home Screen \(Share, then Add to Home Screen\)/.test(ik), ik);

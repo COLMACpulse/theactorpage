@@ -8,7 +8,7 @@ const IV='Ross Okafor  0:02\nI grew up on boats. My dad fished every day.\n\nJo 
 const SRT='1\n00:00:01,000 --> 00:00:03,000\nWhere were you last night?\n\n2\n00:00:03,500 --> 00:00:05,000\nOut.\nAll night.\n';
 fs.writeFileSync(path.join(T,'okafor interview.txt'),IV); fs.writeFileSync(path.join(T,'low tide clip.srt'),SRT);
 const c=await b.newContext({viewport:{width:1300,height:900}}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
-await p.goto('http://localhost:8811/index.html'); await p.evaluate(()=>{ localStorage.clear(); }); await p.reload(); await p.waitForTimeout(700);
+await p.goto('http://localhost:8811/how.html'); await p.evaluate(()=>{ localStorage.clear(); }); await p.reload(); await p.waitForTimeout(700);
 await p.setInputFiles('#dropfile',path.join(T,'okafor interview.txt')); await p.waitForTimeout(1500);
 let m=await p.innerText('#took');
 want('home: an interview transcript, read as sides, with its two speaking parts', /an interview transcript/i.test(m)&&/2 speaking parts/.test(m), m.slice(0,400));

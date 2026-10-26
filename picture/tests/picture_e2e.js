@@ -76,7 +76,7 @@ await p.click('a[data-go=""]'); await p.waitForTimeout(300);
 await p.goto('http://localhost:8811/picture/'); await p.waitForTimeout(400);
 want('the wall: GOT IT, with BOOKED on it', /GOT IT/.test(await p.innerText('main'))&&/BOOKED/.test(await p.innerText('.wallbox:last-of-type')));
 /* week */
-await p.goto('http://localhost:8811/'); await p.waitForTimeout(1200);
+await p.goto('http://localhost:8811/how.html'); await p.waitForTimeout(1200);
 want('home, in YOU: your wall, small, booked marked', (await p.$$eval('#viz .gs-wall a',x=>x.length))===3&&/BOOKED/.test(await p.innerText('#viz')));
 want('home, in YOU: SHAMELESS PLUG, one tap', await p.getAttribute('#st_plug','href')==='picture/?plugs');
 want('YOUR AGENDA: the tape for a show on your wall says so', /Tape due tomorrow: HARBOR LIGHTS, Deckhand\. It’s on your wall\./.test(await p.innerText('#week')), await p.innerText('#week'));

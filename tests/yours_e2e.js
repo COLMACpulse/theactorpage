@@ -5,7 +5,7 @@ const {chromium}=require('playwright'); const path=require('path'), os=require('
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,400))); if(!x) ok=false; };
 const c=await b.newContext({viewport:{width:1300,height:900}}); const p=await c.newPage(); const errs=[], out=[]; p.on('pageerror',e=>errs.push(e.message));
 p.on('request',r=>{ const u=r.url(); if(!/^http:\/\/localhost:8811\//.test(u)&&!/^(data|blob):/.test(u)) out.push(u); });
-await p.goto('http://localhost:8811/'); await p.evaluate(()=>localStorage.clear()); await p.reload(); await p.waitForTimeout(900);
+await p.goto('http://localhost:8811/how.html'); await p.evaluate(()=>localStorage.clear()); await p.reload(); await p.waitForTimeout(900);
 want('nothing of yours yet: no YOURS section at all, no samples', await p.evaluate(()=>document.getElementById('yours').hidden&&!document.querySelector('#yours .ytile.mine')));
 want('the footer stays a list', !(await p.$('footer .ytile')));
 await p.evaluate(()=>{

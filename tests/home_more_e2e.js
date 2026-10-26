@@ -4,7 +4,7 @@ const {chromium}=require('playwright');
 (async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,400))); if(!x) ok=false; };
 const p=await b.newPage({viewport:{width:390,height:844}}); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
-await p.goto('http://localhost:8811/index.html'); await p.waitForTimeout(900);
+await p.goto('http://localhost:8811/how.html'); await p.waitForTimeout(900);
 const T=await p.$$eval('.tool',x=>x.map(t=>({one:(t.querySelector('p.one')||{}).textContent||'',more:!!t.querySelector('details.more'),open:t.querySelector('details.more')&&t.querySelector('details.more').open})));
 want('22 tools (Looks under ACT, Slate Maker inside Actor OS, Backlot inside Story Studio, backup in the FAQ and footer; Contacts, Footage, Press; Characters and Your universe under WRITE), each one line (under 110 characters) and a folded More', T.length===22&&T.every(t=>t.one&&t.one.length<110&&t.more&&!t.open), T.filter(t=>!t.one||t.one.length>=110));
 const OP=await p.$$eval('.tool',x=>x.map(t=>({n:t.querySelector('.tool-name').textContent.trim(),a:[...t.querySelectorAll('.actions a')].map(a=>a.textContent.trim()),loose:[...t.children].filter(c=>c.tagName==='P'&&!c.classList.contains('one')).length,icon:!!t.querySelector('.tool-name svg')})));
@@ -14,7 +14,7 @@ want('the rooms keep their tools in the right column (on a wide screen)', await 
 const SC=await p.$$eval('.tool',x=>x.map(t=>{ const sec=t.closest('section').className.match(/\b(act|write|film)\b/); return [sec?sec[1]:'',getComputedStyle(t.querySelector('.tool-name svg')).stroke]; }));
 const want_={act:'rgb(224, 162, 60)',write:'rgb(247, 245, 240)',film:'rgb(111, 168, 214)'};
 want('each icon is drawn in its section color: ACT gold, WRITE white, FILM blue', SC.every(([k,c])=>!want_[k]||c===want_[k]), SC.filter(([k,c])=>want_[k]&&c!==want_[k]));
-{ const w=await (await b.newContext({viewport:{width:1386,height:900}})).newPage(); await w.goto('http://localhost:8811/'); await w.waitForTimeout(600); want('wide screen: every tool in the right column', await w.evaluate(()=>[...document.querySelectorAll('.tool')].filter(t=>t.offsetParent).every(t=>t.getBoundingClientRect().left>innerWidth*0.3))); await w.close(); }
+{ const w=await (await b.newContext({viewport:{width:1386,height:900}})).newPage(); await w.goto('http://localhost:8811/how.html'); await w.waitForTimeout(600); want('wide screen: every tool in the right column', await w.evaluate(()=>[...document.querySelectorAll('.tool')].filter(t=>t.offsetParent).every(t=>t.getBoundingClientRect().left>innerWidth*0.3))); await w.close(); }
 await p.click('.dept[data-d="act"] > summary'); await p.waitForTimeout(150); await p.click('.tool details.more summary'); await p.waitForTimeout(150);
 want('More: the full description', await p.evaluate(()=>{ const d=document.querySelector('.tool details.more'); return d.open&&d.querySelector('p').textContent.length>150; }));
 want('the VO Booth mic is still there, outside the fold', await p.evaluate(()=>{ const m=document.getElementById('mic'); return !!m&&!m.closest('details.more'); }));
@@ -23,11 +23,11 @@ want('the footer: every tool, by room, WRITE and FILM marked make your own, Char
 await p.click('.fcol:nth-child(2) a[href="characters/"]'); await p.waitForURL(/characters/); await p.waitForTimeout(900);
 want('Characters opens its own page: every character, from every tool', /Every character, from every tool/.test(await p.innerText('h1')));
 want('no em dashes in the one-liners', !T.some(t=>/—/.test(t.one)));
-{ await p.goto('http://localhost:8811/index.html'); await p.waitForTimeout(600); const hb=await p.evaluate(()=>document.body.textContent.replace(/\s+/g,' '));
+{ await p.goto('http://localhost:8811/how.html'); await p.waitForTimeout(600); const hb=await p.evaluate(()=>document.body.textContent.replace(/\s+/g,' '));
   want('Spotted on home: the polite nudge, no JUICE', /Send your reps the screenshot and one polite line/.test(hb)&&!/JUICE/.test(hb));
   want('FOR MY REPS is on home, in YOUR PAGE, with its own button to the Hub', /FOR MY REPS: one sheet for your agent and your manager/.test(hb)&&(await p.getAttribute('#yp-reps','href'))==='hub/?tab=reps');
   want('Slate Maker and Backlot are no longer their own tools on home; Set List only under WRITE', !(await p.$('a[href="slate/"]'))&&!(await p.$('a[href="backlot/"]'))&&(await p.$$('.fcol[data-dept="act"] a[href="setlist/"]')).length===0); }
-{ await p.goto('http://localhost:8811/index.html'); await p.waitForTimeout(600);
+{ await p.goto('http://localhost:8811/how.html'); await p.waitForTimeout(600);
   await p.click('#pastego'); await p.waitForTimeout(200);
   want('READ IT with nothing pasted: says what to do', /Paste something in the box first/.test(await p.innerText('#took')));
   await p.fill('#pastebox','Netflix orders western series "Dust Road".'); await p.click('#pastego'); await p.waitForTimeout(800);

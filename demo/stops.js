@@ -7,11 +7,11 @@
   'use strict';
   const WB = 'write/writers-blockage.html';
   const S = [
-    { id: 'O01', ch: 'open', path: '', hi: 'header', line: "If you're an actor, you know the drill. Sides in your email. Takes in your camera roll. The notes from class in your head. And a login for every one of them." },
-    { id: 'O02', ch: 'open', path: '', hi: '.band.pitch', line: "And most of those apps rent your own work back to you. Stop paying, and it's gone. Here, everything stays on your phone. No upload. No account to get started." },
-    { id: 'O03', ch: 'open', path: '', act: [{ drop: 'demo/low_tide.fountain' }, { wait: '#took [data-part]' }, { click: '#took [data-part$="|ANNA"]' }], hi: '#took', line: "Here's how it works. We made up a short script called Low Tide. You put your material in once, here, and tap the part that's yours. That's it. Every tool on the site has it now." },
+    { id: 'O01', ch: 'open', path: 'how.html', hi: 'header', line: "If you're an actor, you know the drill. Sides in your email. Takes in your camera roll. The notes from class in your head. And a login for every one of them." },
+    { id: 'O02', ch: 'open', path: 'how.html', hi: '.band.pitch', line: "And most of those apps rent your own work back to you. Stop paying, and it's gone. Here, everything stays on your phone. No upload. No account to get started." },
+    { id: 'O03', ch: 'open', path: 'how.html', act: [{ drop: 'demo/low_tide.fountain' }, { wait: '#took [data-part]' }, { click: '#took [data-part$="|ANNA"]' }], hi: '#took', line: "Here's how it works. We made up a short script called Low Tide. You put your material in once, here, and tap the part that's yours. That's it. Every tool on the site has it now." },
 
-    { id: 'A00', ch: 'act', path: '', wash: true, hi: '.band.act', line: "ACT. Say your agent sends an audition at six. The tape's due tomorrow by noon." },
+    { id: 'A00', ch: 'act', path: 'how.html', wash: true, hi: '.band.act', line: "ACT. Say your agent sends an audition at six. The tape's due tomorrow by noon." },
     { id: 'A01', ch: 'act', path: 'actor-os/', ready: '#sidesOut button, #sidesOut *', act: [{ eval: 'AosFront.details(true)' }], hi: '#sidesOut', line: "Normally you print the sides, grab a pen and mark your lines. Here, that's done. Every line of yours is lit, and every cue that leads into it." },
     { id: 'A06', ch: 'act', path: 'breakdown/?open=1', ready: '#main', hi: '#main', line: "Want to dig in? Breakdown lays out your character scene by scene. What you say, who you say it to, every question somebody asks you. Your notes stay pinned to the page." },
     { id: 'A07', ch: 'act', path: 'memorizer/', ready: '#main', hi: '#main', line: "Then get off book. Say your lines out loud. It listens, and the lines you blow come back first, so you're not drilling the ones you already know." },
@@ -22,12 +22,12 @@
     { id: 'A05', ch: 'act', path: 'actor-os/', act: [{ click: 'nav button[data-tab="send"]' }], hi: 'nav button[data-tab="send"]', line: "Then the part everybody hates. No editing app, no compression app, no guessing what to call the file. It trims it, sizes it and names it the way the office asked. You send it." },
     { id: 'A08', ch: 'act', path: 'actor-os/', act: [{ eval: "goTab('home');AosFront.details(true)" }, { open: '#dailySec' }], hi: '#dailySec', line: "No audition this week? It pulls a practice scene out of material you already have. Here, the kitchen scene from Low Tide." },
     { id: 'A09', ch: 'act', path: 'cps/', ready: '[data-a="frombd"]', hi: '[data-a="frombd"]', line: "And when they call you back three weeks later, you need that voice again. Character Bank keeps it, in your own voice, with the line that drops you right back in. Record again, and it shows you what moved." },
-    { id: 'A10', ch: 'act', path: '', hi: '.fcol[data-dept="act"]', line: "There's more. A VO booth for the closet. Your headshots, in your words. The solo slate, in Actor OS. Every audition and every casting office, and what they told you, in one place." },
-    { id: 'A11', ch: 'act', path: '', hi: '#drop', line: "And it all talks to itself. Drop the self-tape request with the sides, and it opens on your part. The take you keep goes to your hub, ready to send." },
+    { id: 'A10', ch: 'act', path: 'how.html', hi: '.fcol[data-dept="act"]', line: "There's more. A VO booth for the closet. Your headshots, in your words. The solo slate, in Actor OS. Every audition and every casting office, and what they told you, in one place." },
+    { id: 'A11', ch: 'act', path: 'how.html', hi: '#drop', line: "And it all talks to itself. Drop the self-tape request with the sides, and it opens on your part. The take you keep goes to your hub, ready to send." },
     { id: 'A12', ch: 'act', path: 'spotted/', ready: '#wsay', act: [{ click: '#wsay' }, { eval: "document.getElementById('sayrole').value='HARBOR MASTER'" }, { click: '#saygo' }, { wait: '#t_pa' }], hi: '#main', line: "Saw a role your reps might have missed? Send them the screenshot and one polite line: just passing this along." },
     { id: 'A13', ch: 'act', path: 'hub/?tab=reps', ready: '#view', hi: '#view', line: "Then your reps. One sheet for your agent and manager: your work, where you stand, what's casting that fits. After the first one, only what's new." },
 
-    { id: 'M00', ch: 'own', dept: 'write', path: '', wash: true, hi: '#own', line: "No audition this week? Make your own. A scene for your reel, a short with a friend. Here's one scene, from the page to the finished piece." },
+    { id: 'M00', ch: 'own', dept: 'write', path: 'how.html', wash: true, hi: '#own', line: "No audition this week? Make your own. A scene for your reel, a short with a friend. Here's one scene, from the page to the finished piece." },
     { id: 'M01', ch: 'own', dept: 'write', path: WB, ready: '[contenteditable="true"]', act: [{ openScript: 'demo/low_tide.fountain' }], hi: '[contenteditable="true"]', line: "Write it in THEACTORPAGES. Type it, or talk it into your phone. It sets it up like a real script. And it never writes a word for you." },
     { id: 'M02', ch: 'own', dept: 'write', path: WB, act: [{ rail: true }, { click: '#railtabs [data-pane="panel:tools"]' }, { click: '[id="pane-panel:tools"] [data-wt="rep"]' }], hi: '[id="pane-panel:tools"]', line: "Before anybody reads it, Tools gives it a second look. A word you leaned on seven times. A name spelled two ways. It shows you. You decide." },
     { id: 'M03', ch: 'own', dept: 'write', path: 'papertrail/', ready: '#main', act: [{ click: '[data-open]', optional: true }, { click: '[data-tab="drafts"]', optional: true }], hi: '#main', line: "Every draft is kept, and nothing is written over. And your scene is already your sides. No export. Open it in Actor OS and run it." },
@@ -36,8 +36,8 @@
     { id: 'M06', ch: 'own', dept: 'film', path: 'film/', act: [{ click: '#wrapit' }], hi: 'pre.wrap', line: "At wrap, your editor gets a map instead of a mess. Every circled take, every note, what has to stay." },
     { id: 'M07', ch: 'own', dept: 'film', path: 'filmhub/', ready: '#main', hi: '#main', line: "And the finished piece goes on your page, with everybody who worked on it." },
 
-    { id: 'C01', ch: 'close', path: '', hi: 'header', line: "That's the idea. You put your material in once, and every tool uses it. Your work stays on your phone, and it works with no signal." },
-    { id: 'C02', ch: 'close', path: '', hi: '#you', line: "The free version does everything you just saw. Keep playing with Low Tide, or drop in your own." }
+    { id: 'C01', ch: 'close', path: 'how.html', hi: 'header', line: "That's the idea. You put your material in once, and every tool uses it. Your work stays on your phone, and it works with no signal." },
+    { id: 'C02', ch: 'close', path: 'how.html', hi: '#you', line: "The free version does everything you just saw. Keep playing with Low Tide, or drop in your own." }
   ];
   const CH = { open: { name: 'OPEN', color: '#ece7dc' }, act: { name: 'ACT', color: '#e0a23c' }, own: { name: 'MAKE YOUR OWN', color: '#ece7dc', wash: 'linear-gradient(90deg,#ece7dc 0 50%,#6fa8d6 50% 100%)' }, close: { name: 'CLOSE', color: '#ece7dc' } };
   /* the light's color: the department the stop is in (Make your own is writing, then filming) */

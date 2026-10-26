@@ -47,7 +47,7 @@ want('GRAB THIS FRAME: a still kept with your photos, named for the job and the 
 want('it shows under KEEP THIS FRAME, to save it too', (await p.$$('#stillbox img')).length===1&&/Still kept with your photos/.test(await p.innerText('#view')));
 await p.goto('http://localhost:8811/press/'); await p.evaluate(()=>{ const c=Press.add({title:'Harbor Lights'}); location.search='?c='+c.id; }); await p.waitForTimeout(1200);
 want('the still is there to pick for a press kit', (await p.$$('[data-ph]')).length===1);
-await p.goto('http://localhost:8811/'); await p.waitForTimeout(1200);
+await p.goto('http://localhost:8811/how.html'); await p.waitForTimeout(1200);
 want('home: the lens still shows the mask (a still is not your headshot), and the profile counts it as a still', await p.evaluate(()=>!document.getElementById('lensimg').classList.contains('on'))&&await p.isVisible('#st_head'));
 await p.goto('http://localhost:8811/footage/'); await p.waitForTimeout(700);
 await p.click('#have [data-trim]'); await p.waitForTimeout(200);

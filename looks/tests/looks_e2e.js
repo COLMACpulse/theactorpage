@@ -6,7 +6,7 @@ const A=path.join(__dirname,'look_a.jpg'), B=path.join(__dirname,'look_b.jpg'), 
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,300))); if(!x) ok=false; };
 const c=await b.newContext({viewport:{width:390,height:844},acceptDownloads:true});
 const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
-await p.goto('http://localhost:8811/'); await p.evaluate(()=>{ localStorage.clear(); indexedDB.deleteDatabase('theactorpage_looks'); indexedDB.deleteDatabase('theactorpage_you'); }); await p.reload(); await p.waitForTimeout(500);
+await p.goto('http://localhost:8811/how.html'); await p.evaluate(()=>{ localStorage.clear(); indexedDB.deleteDatabase('theactorpage_looks'); indexedDB.deleteDatabase('theactorpage_you'); }); await p.reload(); await p.waitForTimeout(500);
 const home=await p.innerText('#you');
 want('home: LOOKS is a tool under ACT (its card, its icon, the footer), not in YOU', !/\blooks?\b/i.test(home)&&(await p.$$('section.act .tool a[href="looks/"]')).length===1&&(await p.$$('section.act .deptgrid a[href="looks/"]')).length===1&&(await p.$$('footer .fcol[data-dept="act"] a[href="looks/"]')).length===1, home.match(/.*look.*/gi));
 /* a headshot in YOU, made up */

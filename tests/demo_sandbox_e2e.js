@@ -7,7 +7,7 @@ const {chromium}=require('playwright');
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,500))); if(!x) ok=false; };
 const c=await b.newContext({viewport:{width:390,height:844}}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(p.url()+' '+e.message)); p.on('dialog',d=>d.accept());
 const H='http://localhost:8811/';
-await p.goto(H); await p.evaluate(()=>localStorage.clear());
+await p.goto(H+'how.html'); await p.evaluate(()=>localStorage.clear());
 // the "real" world: a script on the shelf and a database row
 await p.evaluate(async()=>{ Shelf.put({text:'RIVA\nThe gate is locked.\n\nMOSS\nThen climb it.\n',file:'real_gate.fountain',me:'RIVA'}); await Shelf.putFile(Shelf.current().id,new File(['%PDF real'],'real_gate.pdf',{type:'application/pdf'})); });
 const realBefore=await p.evaluate(()=>JSON.stringify(Object.keys(localStorage).sort().map(k=>[k,localStorage.getItem(k)])));
@@ -36,6 +36,7 @@ const realAfter=await p.evaluate(()=>Object.fromEntries(Object.keys(localStorage
 const was=Object.fromEntries(JSON.parse(realBefore));
 want('your real storage: every key you had, exactly as it was', Object.keys(was).filter(k=>k!=='tapdemo_alive').every(k=>realAfter[k]===was[k]), Object.keys(was));
 want('and nothing from the demo landed in it', !Object.values(realAfter).some(v=>/low_tide|demoProp|\bANNA\b/.test(v))&&!('demoProp' in realAfter));
+await p.goto(H+'how.html'); await p.waitForTimeout(500); /* the shelf is read on How it works; the front page is the studio */
 want('your real file: still there', (await realFile())==='real_gate.pdf');
 const left=await p.evaluate(async()=>(await indexedDB.databases()).map(d=>d.name).filter(n=>/__tapdemo$/.test(n)));
 want('the demo databases: gone', !left.length, left);

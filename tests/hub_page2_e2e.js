@@ -7,7 +7,7 @@ const FX=path.join(__dirname,'..','shared','fixtures');
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,400))); if(!x) ok=false; };
 const c=await b.newContext({viewport:{width:1280,height:900},acceptDownloads:true}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
 const B=f=>fs.readFileSync(path.join(FX,f)).toString('base64');
-await p.goto('http://localhost:8811/'); await p.evaluate(()=>{ localStorage.clear(); });
+await p.goto('http://localhost:8811/how.html'); await p.evaluate(()=>{ localStorage.clear(); });
 await p.evaluate(async([face,barn,clip])=>{ const bl=(b64,t)=>{ const s=atob(b64),u=new Uint8Array(s.length); for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return new Blob([u],{type:t}); };
  You.fill({name:'Riley Hart',phone:'(555) 010-0142'},'test');
  const k=await You.addPhoto(new File([bl(face,'image/jpeg')],'riley_main.jpg',{type:'image/jpeg'}));

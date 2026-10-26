@@ -6,7 +6,7 @@ const {chromium}=require('playwright');
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,400))); if(!x) ok=false; };
 const c=await b.newContext({viewport:{width:390,height:844}}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
 const REAL='INT. ROOM - DAY\n\nDANA PELL\nHi.\n\nROSS OKAFOR\nHey.\n';
-await p.goto('http://localhost:8811/index.html'); await p.evaluate(()=>{ localStorage.clear(); sessionStorage.clear(); }); await p.reload(); await p.waitForTimeout(700);
+await p.goto('http://localhost:8811/how.html'); await p.evaluate(()=>{ localStorage.clear(); sessionStorage.clear(); }); await p.reload(); await p.waitForTimeout(700);
 // an old practice entry on the shelf, from before: gets cleaned
 await p.evaluate(()=>{ Shelf.put({text:'A\nHi.\n',file:"Today's scene - Old One",from:'Practice scene',tool:'daily'}); Shelf.put({text:'B\nYo.\n',file:'Salt Road sides',from:'Paste'}); });
 await p.reload(); await p.waitForTimeout(700);
@@ -31,7 +31,7 @@ await p.goto('http://localhost:8811/actor-os/index.html'); await p.waitForTimeou
 await p.evaluate(r=>loadSides(r,'Salt Road sides'),REAL); await p.waitForTimeout(300);
 const lastBefore=await p.evaluate(()=>localStorage.getItem('actor_os_sides_last'));
 // TAPE IT from home
-await p.goto('http://localhost:8811/index.html'); await p.waitForTimeout(600); await p.click('[data-practice] .spark-btn'); await p.waitForTimeout(100);
+await p.goto('http://localhost:8811/how.html'); await p.waitForTimeout(600); await p.click('[data-practice] .spark-btn'); await p.waitForTimeout(100);
 const t2=await p.$eval('.practice-card b',x=>x.textContent), parts2=await p.$$eval('[data-pme]',x=>x.map(y=>y.dataset.pme));
 await p.click('[data-pme="'+parts2[1]+'"]'); await p.waitForTimeout(100);
 await p.click('[data-pgo="tape"]'); await p.waitForURL(/actor-os/); await p.waitForTimeout(1500);
@@ -50,12 +50,12 @@ const t5=await p.$eval('#dailyBox .practice-card b',x=>x.textContent);
 await p.click('#dailyBox [data-pgo="tape"]'); await p.waitForTimeout(800);
 want('Actor OS TAPE IT: loads here, no page change, not shelved', /actor-os/.test(p.url())&&await p.evaluate(t=>SIDES.file==='Practice scene - '+t&&!Shelf.all().some(x=>DailyScenes.isPractice(x.file))&&JSON.parse(localStorage.getItem('actor_os_sides_last')).file==='Salt Road sides',t5));
 // LEARN
-await p.goto('http://localhost:8811/index.html'); await p.waitForTimeout(600); await p.click('[data-practice] .spark-btn'); await p.waitForTimeout(100);
+await p.goto('http://localhost:8811/how.html'); await p.waitForTimeout(600); await p.click('[data-practice] .spark-btn'); await p.waitForTimeout(100);
 const t3=await p.$eval('.practice-card b',x=>x.textContent), me3=await p.$eval('[data-pme][aria-pressed="true"]',x=>x.dataset.pme);
 await p.click('[data-pgo="learn"]'); await p.waitForURL(/memorizer/); await p.waitForTimeout(1500);
 want('LEARN: Memorizer has it, your part, not on the shelf', await p.evaluate(([t,m])=>{ const DB=JSON.parse(localStorage.getItem('memorizer_v1')), s=DB.scripts[DB.cur]; return s&&s.file==='Practice scene - '+t&&s.me===m&&!Shelf.all().some(x=>DailyScenes.isPractice(x.file)); },[t3,me3]));
 // REWRITE
-await p.goto('http://localhost:8811/index.html'); await p.waitForTimeout(600); await p.click('[data-practice] .spark-btn'); await p.waitForTimeout(100);
+await p.goto('http://localhost:8811/how.html'); await p.waitForTimeout(600); await p.click('[data-practice] .spark-btn'); await p.waitForTimeout(100);
 await p.click('[data-pgo="write"]'); await p.waitForURL(/writers-blockage/); await p.waitForTimeout(2000);
 const wb=await p.evaluate(()=>document.body.innerText);
 want('REWRITE: THEACTORPAGES opens it, note says AI practice prompt', /Written by AI as a practice prompt/.test(wb), wb.slice(0,300));

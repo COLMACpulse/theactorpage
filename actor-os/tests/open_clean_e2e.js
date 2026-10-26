@@ -9,11 +9,11 @@ await p.goto('http://localhost:8811/actor-os/'); await p.evaluate(()=>{ localSto
  localStorage.setItem('actor_os_sides_last',JSON.stringify({file:"Today's scene - Discharge",text:'CHARLIE\nYou signed it.\n\nDANA\nI did.\n'})); });
 await p.reload(); await p.waitForTimeout(1500);
 want('an old practice scene left as the job: gone', await p.evaluate(()=>jobName()==='')&&!/discharge/i.test(await p.innerText('body'))&&await p.evaluate(()=>!SIDES.script||!SIDES.script.length));
-await p.goto('http://localhost:8811/'); await p.waitForTimeout(700);
+await p.goto('http://localhost:8811/how.html'); await p.waitForTimeout(700);
 await p.click('[data-practice] .spark-btn'); await p.waitForTimeout(300); await p.click('[data-practice] [data-pgo="tape"]'); await p.waitForTimeout(1800);
 const nm=await p.evaluate(()=>SIDES.file);
 want('asked for a practice scene from home: it opens, just for now, and is not made the job', /^Practice scene - /.test(nm)&&await p.evaluate(()=>jobName()===''), [nm, await p.evaluate(()=>jobName())]);
-for(const step of ['RUN','TAPE','SEND']){ await p.goto('http://localhost:8811/'); await p.waitForTimeout(500); await p.goto('http://localhost:8811/actor-os/'); await p.waitForTimeout(1400);
+for(const step of ['RUN','TAPE','SEND']){ await p.goto('http://localhost:8811/how.html'); await p.waitForTimeout(500); await p.goto('http://localhost:8811/actor-os/'); await p.waitForTimeout(1400);
  want(step+' IT, then open the studio: nothing you did not ask for', await p.evaluate(()=>(!SIDES.script||!SIDES.script.length)&&jobName()==='')&&!/Practice scene -|Today.s scene/i.test(await p.innerText('body'))); }
 const hb=await p.$eval('#howBtn',e=>{ const r=e.getBoundingClientRect(), s=e.closest('header').querySelector('.sig').getBoundingClientRect(); return {x:r.left,top:r.top,sigBottom:s.bottom,sigLeft:s.left,bg:getComputedStyle(e).backgroundColor,txt:e.textContent}; });
 want('HOW THIS WORKS: top left, under the mark, slate blue', hb.txt==='HOW THIS WORKS'&&Math.abs(hb.x-hb.sigLeft)<4&&hb.top>=hb.sigBottom-2&&hb.bg==='rgb(42, 95, 168)', hb);

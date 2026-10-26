@@ -25,9 +25,9 @@
   const W = () => fr.contentWindow, Doc = () => fr.contentDocument;
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const here = () => { try { return W().location.pathname; } catch (e) { return ''; } };
-  const want = path => new URL(ROOT + (path || 'index.html')).pathname;
+  const want = path => new URL(ROOT + (path || 'how.html')).pathname;
   const samePage = path => { const h = here(), w = want(path); return h === w || (h.endsWith('/') && w === h + 'index.html') || (w.endsWith('/') && h === w + 'index.html'); };
-  function load(path) { return new Promise(res => { const done = () => { fr.removeEventListener('load', done); res(); }; fr.addEventListener('load', done); fr.src = ROOT + (path || 'index.html'); setTimeout(done, 12000); }); }
+  function load(path) { return new Promise(res => { const done = () => { fr.removeEventListener('load', done); res(); }; fr.addEventListener('load', done); fr.src = ROOT + (path || 'how.html'); setTimeout(done, 12000); }); }
   async function waitFor(sel, ms) { const t = Date.now(); while (Date.now() - t < (ms || 8000)) { const e = find(sel); if (e) return e; await sleep(120); } return null; }
   function find(sel) { const d = Doc(); if (!d || !sel) return null;
     if (typeof sel === 'object' && sel.text) { let best = null, bl = 1e9; d.querySelectorAll('body *').forEach(e => { if (!e.getClientRects().length) return; const t = (e.innerText || '').trim(); if (t.indexOf(sel.text) === 0 && t.length < bl) { best = e; bl = t.length; } }); return best && (best.parentElement && best.parentElement.tagName !== 'BODY' ? best.parentElement : best); }

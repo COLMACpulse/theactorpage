@@ -58,7 +58,7 @@ want('the shot sheet: one line per shot to tick off', (fs.readFileSync(T+'/sheet
 await p.click('#bprev'); await p.waitForTimeout(500); want('preview opens', await p.evaluate(()=>!!document.getElementById('pvf')&&/Two looks/.test(document.getElementById('pvf').srcdoc))); await p.click('#pvx');
 want('no sideways scroll at phone width', (await p.evaluate(()=>document.documentElement.scrollWidth-innerWidth))<=0);
 // the same photos on home, with the way in
-const h=await ctx.newPage(); h.on('pageerror',e=>errs.push('home '+e.message)); await h.goto('http://localhost:8811/index.html'); await h.waitForTimeout(500);
+const h=await ctx.newPage(); h.on('pageerror',e=>errs.push('home '+e.message)); await h.goto('http://localhost:8811/how.html'); await h.waitForTimeout(500);
 want('home YOUR PROFILE shows the same 3 headshots and the way into HEADSHOTS', /3 headshots/.test(await h.innerText('#youpanel'))&&await h.evaluate(()=>!!document.querySelector('#youpanel a[href="headshots/"]')));
 want('no page errors', !errs.length, errs);
 await b.close(); fs.rmSync(T,{recursive:true,force:true}); process.exit(ok?0:1); })();

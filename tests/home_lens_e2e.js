@@ -5,7 +5,7 @@ const {chromium}=require('playwright');
 const S=require('path').join(__dirname,'..','shared','fixtures'); let ok=true; const want=(n,c,x)=>{console.log((c?'PASS ':'FAIL ')+n+(c?'':' '+JSON.stringify(x)));if(!c)ok=false;};
 for(const [w,h,tag] of [[1400,900,'desk'],[390,844,'phone']]){
  const c=await b.newContext({viewport:{width:w,height:h},deviceScaleFactor:2}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
- await p.goto('http://localhost:8811/index.html'); await p.evaluate(()=>{localStorage.clear(); indexedDB.deleteDatabase('theactorpage_you');}); await p.reload(); await p.waitForTimeout(800);
+ await p.goto('http://localhost:8811/how.html'); await p.evaluate(()=>{localStorage.clear(); indexedDB.deleteDatabase('theactorpage_you');}); await p.reload(); await p.waitForTimeout(800);
  const empty=await p.evaluate(()=>({why:!document.getElementById('lenswhy').hidden,img:document.getElementById('lensimg').classList.contains('on'),panel:document.getElementById('youpanel').innerHTML.length}));
  want(tag+': empty, it says "Your headshot goes here." and the panel is shut', empty.why&&!empty.img&&empty.panel===0, empty);
  await p.locator('#you').scrollIntoViewIfNeeded(); 

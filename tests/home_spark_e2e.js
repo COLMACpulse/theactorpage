@@ -5,7 +5,7 @@ const {chromium}=require('playwright'); const path=require('path'), fs=require('
 (async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,400))); if(!x) ok=false; };
 const c=await b.newContext({viewport:{width:1300,height:900}}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
-await p.goto('http://localhost:8811/index.html'); await p.evaluate(()=>{ localStorage.clear(); sessionStorage.clear(); }); await p.reload(); await p.waitForTimeout(700);
+await p.goto('http://localhost:8811/how.html'); await p.evaluate(()=>{ localStorage.clear(); sessionStorage.clear(); }); await p.reload(); await p.waitForTimeout(700);
 want('nothing in: IN PLAY says nothing of yours yet, and offers the sample', /nothing of yours yet/.test(await p.innerText('#inplay'))&&/Low Tide/.test(await p.innerText('#inplay'))&&(await p.getAttribute('#inplay a','href'))==='demo/?try');
 want('SPARK on ACT, WRITE and FILM, and nothing shown until tapped', (await p.$$eval('[data-spark]',x=>x.map(y=>y.dataset.spark))).join()==='act,write,film'&&await p.$$eval('.spark-card',x=>x.length)===0);
 // fill: five sides, a tape due tomorrow, a draft
@@ -61,7 +61,7 @@ want('no em dashes in sparks or IN PLAY', !/—/.test(await p.innerText('#inplay
 await c.close();
 // phone
 const c2=await b.newContext({viewport:{width:390,height:844}}); const q=await c2.newPage(); q.on('pageerror',e=>errs.push(e.message));
-await q.goto('http://localhost:8811/index.html'); await q.waitForTimeout(700);
+await q.goto('http://localhost:8811/how.html'); await q.waitForTimeout(700);
 await q.click('[data-spark="act"] .spark-btn'); await q.waitForTimeout(100);
 want('phone: the spark sits full width under the slate, no sideways scroll', await q.evaluate(()=>{ const s=document.querySelector('[data-spark="act"]').getBoundingClientRect(); return s.width>300&&document.documentElement.scrollWidth<=390; }));
 await q.locator('[data-spark="act"]').screenshot({path:require('os').tmpdir()+'/spark_phone.png'});

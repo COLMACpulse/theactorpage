@@ -5,7 +5,7 @@ const {chromium}=require('playwright'); const path=require('path');
 const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 const c=await b.newContext({viewport:{width:1300,height:900}}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,300))); if(!x) ok=false; };
-await p.goto('http://localhost:8811/index.html'); await p.evaluate(()=>{ localStorage.clear(); indexedDB.deleteDatabase('theactorpage_you'); }); await p.reload(); await p.waitForTimeout(700);
+await p.goto('http://localhost:8811/how.html'); await p.evaluate(()=>{ localStorage.clear(); indexedDB.deleteDatabase('theactorpage_you'); }); await p.reload(); await p.waitForTimeout(700);
 await p.click('#lens'); await p.waitForTimeout(300);
 const t0=await p.innerText('#youpanel');
 want('empty profile: "Have a résumé?" with ADD YOUR RÉSUMÉ, ADD A HEADSHOT, and VIRTUAL RÉSUMÉ for when you have none', /Have a résumé\?/.test(t0)&&/ADD YOUR RÉSUMÉ/.test(t0)&&/ADD A HEADSHOT/.test(t0)&&/VIRTUAL RÉSUMÉ/.test(t0), t0);

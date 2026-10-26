@@ -2,7 +2,7 @@
    line, the ACT tools grid, and EVERY TOOL at the bottom. Same tools, same order, same names, same few words,
    same links, same icons.  node shared/test_actlists.js */
 const fs=require('fs'), path=require('path');
-const s=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
+const s=fs.readFileSync(path.join(__dirname,'..','how.html'),'utf8');
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,600))); if(!x) ok=false; };
 const txt=h=>h.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
 const a=s.indexOf('<section class="band act" id="act"'), band=s.slice(a,s.indexOf('</section>',a));

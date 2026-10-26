@@ -5,7 +5,7 @@ const {chromium}=require('playwright');
 (async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,400))); if(!x) ok=false; };
 const c=await b.newContext({viewport:{width:1200,height:900}}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
-await p.goto('http://localhost:8811/'); await p.evaluate(()=>{ localStorage.clear(); You.set('name','Riley Hart'); }); await p.reload(); await p.waitForTimeout(900);
+await p.goto('http://localhost:8811/how.html'); await p.evaluate(()=>{ localStorage.clear(); You.set('name','Riley Hart'); }); await p.reload(); await p.waitForTimeout(900);
 await p.click('#ypd summary'); await p.waitForTimeout(200);
 want('YOUR PROFILE: your socials, six of them, each with a place to type the handle', (await p.$$('#ypd .ysr')).length===6&&/Your socials/.test(await p.innerText('#ypd')));
 await p.fill('#ys_instagram','rileyhart.acts'); await p.fill('#ys_page','rileyhart.example');

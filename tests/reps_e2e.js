@@ -5,7 +5,7 @@ const {chromium}=require('playwright'); const fs=require('fs'), path=require('pa
 (async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
 let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===undefined?'':' '+JSON.stringify(y).slice(0,500))); if(!x) ok=false; };
 const c=await b.newContext({viewport:{width:1280,height:900},acceptDownloads:true}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
-await p.goto('http://localhost:8811/'); await p.evaluate(()=>{ localStorage.clear(); localStorage.setItem('hub_demo','1');
+await p.goto('http://localhost:8811/how.html'); await p.evaluate(()=>{ localStorage.clear(); localStorage.setItem('hub_demo','1');
  localStorage.setItem('theactorpage_spotted_v1',JSON.stringify({items:[
   {id:'s1',at:Date.now()-86400000,status:'spotted',card:{project:'Dust Road',network:'Netflix',role:'Sheriff Cole',casting:['Canyon Casting'],type:'Series, western',source:'https://deadline.com/dust-road'}},
   {id:'s2',at:Date.now()-3600000,status:'passed',card:{project:'Zoom Room',casting:['Canyon Casting'],source:'https://zoom.us/j/123'}}],me:{reps:[{name:'Agent A',email:'agent@example.com'},{name:'Manager M',email:'manager@example.com'}]},held:[]}));
