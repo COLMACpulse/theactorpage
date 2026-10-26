@@ -97,11 +97,12 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 a.btn{text-decoration:none;color:var(--ink)}
 .bankbtn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;margin:14px 0 0;padding:14px 16px;min-height:60px;text-align:left}.bankbtn span{font-size:13px;color:var(--dim);font-weight:400;letter-spacing:0}
 .embedtool{display:block;width:100%;height:calc(100dvh - 200px);min-height:560px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+#bank.icbig{flex-direction:row!important;justify-content:flex-start;text-align:left;align-items:center}#bank.icbig>div{display:flex;flex-direction:column;gap:4px}
 </style>
 </head>
 <body>
 <div class="shell">
-  <header class="top bhead"><div class="bwrap"><svg class="hico" viewBox="0 0 64 80" role="img" aria-label="Faces in a row"><rect class="pg" x="2" y="2" width="60" height="76" rx="5"/><circle class="pp" cx="18" cy="26" r="8"/><circle class="g" cx="46" cy="26" r="8"/><circle class="pp" cx="32" cy="50" r="8"/><path class="ln" d="M10 70h44"/></svg><div class="btx"><div class="kicker" style="margin:0">YOURS · CHARACTERS</div><h1>Every character, from every tool</h1><p>The ones you read for, booked, wrote, voiced, and the ones you want.</p></div><img class="bsig" src="../img/sigil-film-180.png" alt="THEACTORPAGE" width="64" height="64"></div></header>
+  <header class="top bhead"><div class="bwrap"><svg class="hico" viewBox="0 0 64 80" role="img" aria-label="Faces in a row"><rect class="pg" x="2" y="2" width="60" height="76" rx="5"/><circle class="pp" cx="18" cy="26" r="8"/><circle class="g" cx="46" cy="26" r="8"/><circle class="pp" cx="32" cy="50" r="8"/><path class="ln" d="M10 70h44"/></svg><div class="btx"><div class="kicker" style="margin:0">WRITE · CHARACTERS</div><h1>Every character, from every tool</h1><p>The ones you read for, booked, wrote, voiced, and the ones you want.</p></div><img class="bsig" src="../img/sigil-film-180.png" alt="THEACTORPAGE" width="64" height="64"></div></header>
   <i class="hstk" aria-hidden="true"></i>
   <main id="view"><p class="dim">Reading your tools…</p></main>
 </div>
@@ -114,6 +115,7 @@ a.btn{text-decoration:none;color:var(--ink)}
 <script src="../actor-os/sides.js"></script>
 <script src="../film/film.js"></script>
 <script src="../shared/characters.js"></script>
+<script src="../shared/icons.js"></script>
 <script src="app.js"></script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
 <script src="../shared/view.js"></script>

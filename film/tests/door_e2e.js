@@ -11,7 +11,7 @@ let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===und
 const p=await (await b.newContext({viewport:{width:1280,height:900}})).newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
 await p.goto('http://localhost:8811/film/'); await p.evaluate(()=>localStorage.clear()); await p.reload(); await p.waitForTimeout(700);
 const main=()=>p.innerText('#main'), db=()=>p.evaluate(()=>__film.DB());
-want('opened with nothing: the example, the two buttons', /EXAMPLE · HOW IT WORKS/.test(await main())&&/YOUR FILMS\s*0/.test(await main())&&/\+ START A FILM/.test(await main()));
+want('opened with nothing: the example, the two buttons', /EXAMPLE · HOW IT WORKS/.test(await main())&&/YOUR FILMS\s*0/.test(await main())&&/START A FILM/.test(await main()));
 want('the header: the slate on the left, the sigil on the right, the sticks', !!(await p.$('header.top svg.hico'))&&(await p.getAttribute('header.top img.hsig','alt'))==='THEACTORPAGE'&&!!(await p.$('.hstk')));
 want('the four steps, in order', (await p.$$eval('#tabs button span',x=>x.map(e=>e.textContent))).join()==='PLAN,SHOOT,FINISH,OUT');
 const c1=await p.innerText('#excap'); await p.waitForTimeout(2400); const c2=await p.innerText('#excap');

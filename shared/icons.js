@@ -24,7 +24,7 @@
       /* the tool's own header icon: the ring from its door */
       + 'svg.ic.hring{width:52px;height:52px;flex:none}@media(min-width:900px){svg.ic.hring{width:66px;height:66px}}'
       /* inside the tools: an icon on a button, a row, an empty card; a thin stick along the top of a card */
-      + '[data-ic]{gap:10px}[data-ic]>svg.ic.bare{margin:0 2px 0 0;vertical-align:-4px}'
+      + '[data-ic]>svg.ic.bare{margin:0 8px 0 0;vertical-align:-4px}[data-ic]{column-gap:0!important}'
       + '.icrow{display:flex!important;align-items:center;gap:14px}.icrow>svg.ic{width:38px;height:38px}.icrow .icsay{display:block;font-size:13px;letter-spacing:0;text-transform:none;font-weight:400;opacity:.75;margin-top:2px}'
       + '.icbig{display:flex!important;align-items:center;gap:18px}.icbig>svg.ic{width:64px;height:64px}@media(max-width:600px){.icbig{flex-direction:column;align-items:flex-start!important;gap:10px}.icbig>svg.ic{width:48px;height:48px}}[data-ic]{white-space:nowrap}'
       + '[data-stick]{position:relative;overflow:hidden;padding-top:calc(var(--stick-pad,14px) + 10px)!important}[data-stick]::before{content:"";position:absolute;left:0;right:0;top:0;height:10px;background:url("' + STICKS + '") repeat-x 0 50%/auto 100%;opacity:.95}'
@@ -42,7 +42,7 @@
   function dress(root) {
     if (!root || !root.querySelectorAll) return;
     const pg = here(), rc = pg ? 'r-' + pg[1] : 'r-act';
-    if (pg) root.querySelectorAll('header svg[viewBox="0 0 64 80"], .bhead svg[viewBox="0 0 64 80"], .top svg[viewBox="0 0 64 80"]').forEach(s => { const n = frag(ring(pg[0], 'hring ' + rc)); n.setAttribute('role', 'img'); n.setAttribute('aria-label', s.getAttribute('aria-label') || ''); n.removeAttribute('aria-hidden'); s.replaceWith(n); });
+    if (pg) root.querySelectorAll('header svg.hico:not(.ic), header svg.lico:not(.ic), header svg.bico:not(.ic), .bhead svg.hico:not(.ic), .bhead svg.lico:not(.ic), .bhead svg.bico:not(.ic), header svg[viewBox="0 0 64 80"]:not(.ic), .bhead svg[viewBox="0 0 64 80"]:not(.ic)').forEach(s => { const n = frag(ring(pg[0], 'hring ' + rc + ' ' + (s.getAttribute('class') || ''))); n.setAttribute('role', 'img'); n.setAttribute('aria-label', s.getAttribute('aria-label') || ''); n.removeAttribute('aria-hidden'); s.replaceWith(n); });
     root.querySelectorAll('[data-ic]:not([data-icd])').forEach(e => { e.dataset.icd = '1'; const v = e.dataset.ic; e.insertBefore(frag(v === 'plus' ? plus : bare(v)), e.firstChild); });
     root.querySelectorAll('[data-icr]:not([data-icd])').forEach(e => { e.dataset.icd = '1'; e.classList.add('icrow'); const c = e.dataset.icc ? 'r-' + e.dataset.icc : rc;
       const lab = e.querySelector('[data-icl]') || e.firstElementChild; if (e.dataset.say && lab && !lab.querySelector('.icsay')) { const sy = document.createElement('span'); sy.className = 'icsay'; sy.textContent = e.dataset.say; lab.appendChild(sy); }

@@ -27,11 +27,11 @@
       + '<span class="srcs">' + srcs.map(s => '<span class="src">' + esc(s) + '</span>').join('') + (c.yours && !srcs.length ? '<span class="src">Added by you</span>' : '') + '</span></button>';
   }
   function vFront() {
-    let h = '<div class="row" style="justify-content:space-between;margin-bottom:14px"><p class="dim small" style="margin:0;max-width:640px">Gathered from your tools on this device. A character can sit in more than one place. Tap a place to see who\'s in it.</p><button type="button" class="btn pri" id="add">+ ADD ONE</button></div>';
+    let h = '<div class="row" style="justify-content:space-between;margin-bottom:14px"><p class="dim small" style="margin:0;max-width:640px">Gathered from your tools on this device. A character can sit in more than one place. Tap a place to see who\'s in it.</p><button type="button" class="btn pri" id="add" data-ic="plus">ADD ONE</button></div>';
     h += tiles();
     /* CHARACTER BANK lives here now (Col, Oct 26): keep a character in your own voice, and the line that drops you back in */
-    h += '<button type="button" class="btn bankbtn" id="bank"><b>KEEP ONE IN YOUR VOICE</b><span>Character Bank: your voice, your look, the line that drops you back in</span></button>';
-    if (!LIST.length) h += '<div class="card" style="margin-top:18px"><p style="margin:0">Nothing yet. As you use the tools, your characters land here: sides you bring in, auditions in Project Hub, scripts you write, voices in Character Bank. Or add one yourself: a character you want to create, or one you know you can pull off.</p></div>';
+    h += '<button type="button" class="btn bankbtn" id="bank" data-icbig="cps"><b>KEEP ONE IN YOUR VOICE</b><span>Character Bank: your voice, your look, the line that drops you back in</span></button>';
+    if (!LIST.length) h += '<div class="card" data-stick data-icbig="chars" style="margin-top:18px"><p style="margin:0">Nothing yet. As you use the tools, your characters land here: sides you bring in, auditions in Project Hub, scripts you write, voices in Character Bank. Or add one yourself: a character you want to create, or one you know you can pull off.</p></div>';
     if (S.g) {
       const q = C.norm(S.q), inG = LIST.filter(c => c.groups[S.g]), hid = inG.filter(c => c.hidden).length;
       const L = inG.filter(c => (S.showHidden || !c.hidden) && (!q || C.norm(c.name + ' ' + c.project).includes(q)));

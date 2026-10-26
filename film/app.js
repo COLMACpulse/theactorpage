@@ -137,7 +137,7 @@ function pathHtml(c){ return '<div class="path">'+pathOf(c).map(x=>'<span class=
 function topBar(){
  const L=films();
  let h='<div class="tops"><button type="button" class="tpill'+(OPENP?' on':'')+'" id="yourfilms" aria-expanded="'+OPENP+'">YOUR FILMS <i>'+L.length+'</i></button>'
-  +'<button type="button" class="tpill add'+(TAB==='start'?' on':'')+'" id="startfilm">+ START A FILM</button></div>';
+  +'<button type="button" class="tpill add'+(TAB==='start'?' on':'')+'" id="startfilm" data-ic="plus">START A FILM</button></div>';
  if(OPENP){ h+='<div class="fpanel"><p class="kicker" style="margin:0 2px">'+(L.length?'Every film you\'ve started here':'Nothing yet')+'</p>';
   if(!L.length) h+='<p class="dim" style="margin:0 2px;font-size:14px">Tap + START A FILM.</p>';
   h+=L.map(c=>{ const now=c.id===DB.cur, last=!DB.cur&&c.id===DB.last;
@@ -147,14 +147,14 @@ function topBar(){
  return h;
 }
 function vExample(){
- return '<div class="work"><div class="exhead"><span class="kicker">EXAMPLE · HOW IT WORKS</span><span class="dim" id="excap" style="font-size:13.5px"></span></div>'
+ return '<div class="work" data-stick><div class="exhead"><span class="kicker">EXAMPLE · HOW IT WORKS</span><span class="dim" id="excap" style="font-size:13.5px"></span></div>'
   +'<div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap"><b style="font:700 17px var(--mono)">SALT ROAD · scene 3</b><span class="dim" style="font-size:13.5px">a scene for your reel · solo · a made-up example</span></div>'
   +'<div class="steps" id="exsteps">'
   +'<div class="step" data-ex="0"><b>1 PLAN</b><span>Shot list, shoot day, call sheet</span><div class="ln"><i class="y"></i>1 WIDE · kitchen</div><div class="ln"><i class="y"></i>2 CLOSE · JUNE</div><div class="ln"><i class="y"></i>3 INSERT · keys</div></div>'
   +'<div class="step" data-ex="1"><b>2 SHOOT</b><span>Takes, the slate, match camera</span><div class="ln"><i class="y"></i>1 WIDE · take 2</div><div class="ln"><i id="exd2"></i>2 CLOSE · take <span id="extk">3</span></div><div class="ln"><i></i>3 INSERT</div></div>'
   +'<div class="step" data-ex="2"><b>3 FINISH</b><span>Rough cut, a line again, your editor\'s pack</span><div class="ln">ROUGH CUT · 1:42</div></div>'
   +'<div class="step" data-ex="3"><b>4 OUT</b><span>Back to YOU, where it gets seen</span><div class="ln"><i class="y"></i>Your reel</div><div class="ln"><i class="y"></i>Your page</div><div class="ln"><i></i>A postcard</div></div></div>'
-  +'<div class="row"><button class="btn pri" id="exstart">START A FILM</button><button class="btn" id="exfilms">YOUR FILMS</button></div>'
+  +'<div class="row"><button class="btn pri" id="exstart" data-ic="plus">START A FILM</button><button class="btn" id="exfilms" data-ic="fh">YOUR FILMS</button></div>'
   +'<p class="faint" style="font-size:12.5px;margin:10px 0 0">The example plays when nothing is open. Start a film and yours takes its place.</p></div>'
   +'<p class="faint" style="font-size:13px;margin:12px 0 0">Shot your own? Before you erase a camera card, <a href="../footage/check.html" id="excheck">CHECK THE COPY</a>: every file on your copies, matched to the card.</p>';
 }

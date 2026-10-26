@@ -195,8 +195,8 @@ function vProjects(){
  const P=projects();
  let h='';
  if(!P.length){
-  h+='<div class="frontdrop drop" id="drop"><b>Drop your drafts here</b><p class="note" style="margin:8px auto 14px;max-width:520px">Scripts: PDF, Final Draft, Fountain, text. Storyboards: Word or PDF. Several at once is fine. Drafts with the same title land in the same project. Nothing is uploaded.</p>'
-   +'<div class="row" style="justify-content:center"><button class="btn pri" type="button">PICK FILES</button><button class="btn" type="button" data-tab="add" onclick="event.stopPropagation()">Paste one</button></div></div>';
+  h+='<div class="frontdrop drop" id="drop" data-stick><b>Drop your drafts here</b><p class="note" style="margin:8px auto 14px;max-width:520px">Scripts: PDF, Final Draft, Fountain, text. Storyboards: Word or PDF. Several at once is fine. Drafts with the same title land in the same project. Nothing is uploaded.</p>'
+   +'<div class="row" style="justify-content:center"><button class="btn pri" type="button" data-ic="pt">PICK FILES</button><button class="btn" type="button" data-ic="wb" data-tab="add" onclick="event.stopPropagation()">Paste one</button></div></div>';
  } else {
   h+='<div class="row" style="margin-bottom:14px"><input class="field" id="gq" placeholder="Find a line, a name, a note, across every draft" value="'+esc(VIEW.gq||'')+'" style="flex:1"><button class="btn pri" data-tab="add">ADD DRAFTS</button></div>';
   if((VIEW.gq||'').trim().length>1){ const R=searchAll(VIEW.gq);
@@ -208,8 +208,8 @@ function vProjects(){
     +(c?'<div class="since">'+sinceLine(p)+'</div>':'')+'</div></button>'; }).join('')+'</div>';
  }
  h+='<div class="eyebrow" style="margin-top:26px">Folded until you ask</div>';
- h+='<details class="fold" id="fAcross"><summary>Across projects<i>Your universe · All characters · Sounds like you · All sent out</i></summary><div class="row"><button class="btn" data-tab="universe">Your universe</button><button class="btn" data-tab="allchars">All characters</button><button class="btn" data-tab="voice">Sounds like you</button><button class="btn" data-tab="allsent">All sent out</button></div></details>';
- h+='<details class="fold" id="fCopy"><summary>Your copy<i>Export everything · Bring in an export · Proof of every draft</i></summary><div class="row"><button class="btn ghost" id="exp">Export everything (.json)</button><button class="btn ghost" id="impb">Bring in an export</button><button class="btn ghost" id="proofall">Proof of every draft (.txt)</button>'
+ h+='<details class="fold" id="fAcross"><summary data-icr="uni"><span data-icl>Across projects</span><i>Your universe · All characters · Sounds like you · All sent out</i></summary><div class="row"><button class="btn" data-tab="universe">Your universe</button><button class="btn" data-tab="allchars">All characters</button><button class="btn" data-tab="voice">Sounds like you</button><button class="btn" data-tab="allsent">All sent out</button></div></details>';
+ h+='<details class="fold" id="fCopy"><summary data-icr="dev" data-icc="you"><span data-icl>Your copy</span><i>Export everything · Bring in an export · Proof of every draft</i></summary><div class="row"><button class="btn ghost" id="exp">Export everything (.json)</button><button class="btn ghost" id="impb">Bring in an export</button><button class="btn ghost" id="proofall">Proof of every draft (.txt)</button>'
   +'<label class="note"><input type="checkbox" id="showret"'+(SHOWRET?' checked':'')+'> show retired</label></div>'
   +'<p class="note">Bringing in an export adds what you don\'t have. It never removes or replaces anything here.</p></details>';
  return h;

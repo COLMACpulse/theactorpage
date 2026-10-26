@@ -67,9 +67,9 @@ function filmsView(){
  const L=films(), mk=L.filter(f=>f.from==='studio'), mine=L.filter(f=>f.from==='hand');
  let h='';
  if(window.Kit) h+=Kit.html([{id:'vnote',dev:'camera',label:'CAMERA',what:'Shoot a note',note:L.length?'On a film, sorted for you':'Add a film first',off:!L.length},{id:'anote',dev:'mic',label:'MIC',what:'Say a note',note:L.length?'Voice only':'Add a film first',off:!L.length}]);
- h+='<p class="kicker">Making now</p>'+(mk.length?mk.map(row).join(''):'<div class="card"><p class="dim small" style="margin:0">Nothing in Story Studio yet. Start a film there and it shows up here, counted from what you mark.</p><a class="btn" href="../film/?start=1" style="margin-top:10px;text-decoration:none">+ START A FILM</a></div>');
+ h+='<p class="kicker">Making now</p>'+(mk.length?mk.map(row).join(''):'<div class="card" data-stick data-icbig="ss"><p class="dim small" style="margin:0">Nothing in Story Studio yet. Start a film there and it shows up here, counted from what you mark.</p><a class="btn" href="../film/?start=1" data-ic="plus" style="margin-top:10px;text-decoration:none">START A FILM</a></div>');
  h+='<p class="kicker" style="margin-top:18px">Films you\'ve made</p>'+(mine.length?mine.map(card).join(''):'<p class="faint small">The ones from before, or made anywhere else. Add them here for the page.</p>');
- h+='<div class="row" style="margin-top:6px"><a class="btn add" href="../film/?start=1">+ START A FILM</a><button class="btn add" id="addfilm">+ ADD ONE YOU\'VE MADE</button></div>';
+ h+='<div class="row" style="margin-top:6px"><a class="btn add" href="../film/?start=1" data-ic="plus">START A FILM</a><button class="btn add" id="addfilm" data-ic="plus">ADD ONE YOU\'VE MADE</button></div>';
  return h;
 }
 function filmView(f){
