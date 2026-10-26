@@ -12,7 +12,7 @@ await c.addInitScript(()=>{ try{ sessionStorage.setItem('theactorpage_hot_ok','1
 const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
 let outside=[]; p.on('request',r=>{ if(!/^(http:\/\/localhost:8811\/|data:|blob:)/.test(r.url())) outside.push(r.url()); });
 await p.goto('http://localhost:8811/actor-os/index.html'); await p.evaluate(()=>{ indexedDB.deleteDatabase('actor_os_reader'); localStorage.setItem('actor_os_name','Sam Actor'); }); await p.reload(); await p.waitForTimeout(1200);
-await p.evaluate(t=>{ loadSides(t,'dry_creek.txt'); pickMe('WREN ASHBY'); boothReady(); },SIDES); await p.waitForTimeout(600);
+await p.evaluate(t=>{ loadSides(t,'dry_creek.txt'); pickMe('WREN ASHBY'); boothReady(); AosFront.details(true); },SIDES); await p.waitForTimeout(600);
 const box=await p.innerText('#readInBox');
 want('the booth: A FRIEND READS IN, on their own time', /A FRIEND READS IN/.test(box)&&/whenever suits them/.test(box)&&/No call, no set time/.test(box), box);
 await p.click('#riAsk'); await p.waitForTimeout(500);

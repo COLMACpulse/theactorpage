@@ -16,7 +16,7 @@ const c=await b.newContext({viewport:{width:390,height:844}}); await c.grantPerm
 await c.addInitScript(()=>{ try{ sessionStorage.setItem('theactorpage_hot_ok','1'); }catch(e){} });
 const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
 await p.goto('http://localhost:8811/actor-os/index.html'); await p.evaluate(()=>{ indexedDB.deleteDatabase('actor_os_reader'); }); await p.reload(); await p.waitForTimeout(1200);
-await p.evaluate(t=>{ loadSides(t,'Dry Creek diner.txt'); pickMe('WREN ASHBY'); boothReady(); },SIDES); await p.waitForTimeout(600);
+await p.evaluate(t=>{ loadSides(t,'Dry Creek diner.txt'); pickMe('WREN ASHBY'); boothReady(); AosFront.details(true); },SIDES); await p.waitForTimeout(600);
 let box=await p.innerText('#orBox');
 want('the booth offers ONE READ, and says what it does', /ONE READ/.test(box)&&/Read the scene out loud once, straight through/.test(box)&&/READ IT ALL/.test(box)&&/JUST THE OTHER PARTS/.test(box), box);
 await p.click('#orAll'); await p.waitForTimeout(400);

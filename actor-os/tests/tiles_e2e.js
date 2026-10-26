@@ -12,11 +12,14 @@ const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.messag
 await p.goto('http://localhost:8811/actor-os/index.html');
 await p.evaluate(()=>{ localStorage.clear(); indexedDB.deleteDatabase('actor_os_reader'); sessionStorage.setItem('theactorpage_hot_ok','1'); });
 await p.reload(); await p.waitForTimeout(1200);
+/* Oct 26: the front leads with bringing in an audition; the tiles sit under THE DETAILS, one tap away */
+want('the front leads with PASTE THE EMAIL', await p.isVisible('#fPaste'));
+await p.evaluate(()=>AosFront.details(true)); await p.waitForTimeout(200);
 const tiles=()=>p.evaluate(()=>[...document.querySelectorAll('#aosKit .kt')].map(t=>t.dataset.kit+':'+(t.querySelector('[data-kst]')?t.querySelector('[data-kst]').textContent:'-')+(t.classList.contains('off')?':off':'')));
 want('nothing on at page load', await p.evaluate(()=>{ const s=Hot.peek(); return !s.camera&&!s.mic; }));
 want('first screen: three tiles, all OFF, no sides yet so two are off', (await tiles()).join()==='tape:OFF,partner:OFF:off,lines:OFF:off', await tiles());
 const top=await p.evaluate(()=>[...document.querySelectorAll('#aosKit .kt')].map(t=>{ const r=t.getBoundingClientRect(); return r.bottom; }));
-want('the tiles are on the first screen', top.length===3&&top.every(y=>y>0&&y<=844), top);
+want('the details open: the three tiles are there', top.length===3&&top.every(y=>y>0), top);
 let m=await p.innerText('#aosKit');
 want('each says what it does', /Tape it/.test(m)&&/Your self-tape/.test(m)&&/Read with yourself/.test(m)&&/Record the other lines/.test(m)&&/Bring in your sides first/.test(m), m);
 await p.screenshot({path:SHOT});
@@ -44,7 +47,7 @@ await p.click('[data-kit="tape"]'); await p.waitForTimeout(2000);
 want('CAMERA tile: to SHOOT, the camera is on', await p.evaluate(()=>document.getElementById('shoot').classList.contains('on')&&!!document.getElementById('prevVid').videoWidth));
 await p.waitForTimeout(1600);
 want('the CAMERA chips say ON while it is on', /^tape:ON,partner:ON/.test((await tiles()).join()), await tiles());
-await p.click('nav button[data-tab="prep"]'); await p.waitForTimeout(1800);
+await p.evaluate(()=>goTab('home')); await p.waitForTimeout(1800);
 want('back in PREP the camera is off again, chips say OFF', /^tape:OFF,partner:OFF/.test((await tiles()).join()), await tiles());
 // PARTNER tile: the stage, in scene partner
 await p.click('[data-kit="partner"]'); await p.waitForTimeout(1500);

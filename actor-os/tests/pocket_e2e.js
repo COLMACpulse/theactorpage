@@ -12,7 +12,7 @@ await c.addInitScript(()=>{ try{ sessionStorage.setItem('theactorpage_hot_ok','1
  if(navigator.mediaSession){ const s=navigator.mediaSession.setActionHandler.bind(navigator.mediaSession); navigator.mediaSession.setActionHandler=(a,f)=>{ window.__acts[a]=f; try{ s(a,f); }catch(e){} }; } });
 const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
 await p.goto('http://localhost:8811/actor-os/index.html'); await p.evaluate(()=>{ localStorage.removeItem('actor_os_pocket'); indexedDB.deleteDatabase('actor_os_reader'); }); await p.reload(); await p.waitForTimeout(1200);
-await p.evaluate(t=>{ loadSides(t,'Dry Creek diner.txt'); pickMe('WREN ASHBY'); boothReady(); },SIDES); await p.waitForTimeout(600);
+await p.evaluate(t=>{ loadSides(t,'Dry Creek diner.txt'); pickMe('WREN ASHBY'); boothReady(); AosFront.details(true); },SIDES); await p.waitForTimeout(600);
 want('no reader line yet: no POCKET RUN', !(await p.$('#pocketBox')));
 // a friend's memo for HAL's first line only (a made-up tone, 1.5 s)
 await p.evaluate(async()=>{ const tone=s=>{ const sr=48000,a=new Float32Array(Math.round(s*sr)); for(let i=0;i<a.length;i++) a[i]=0.05*Math.sin(i/9); return new Blob([OneRead.wav(a,sr)],{type:'audio/wav'}); };

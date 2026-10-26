@@ -12,7 +12,7 @@ const p=await ctx.newPage(); const errs=[], dialogs=[]; p.on('pageerror',e=>errs
 let ok=true; const want=(n,c,x)=>{ console.log((c?'PASS ':'FAIL ')+n+(c||x===undefined?'':' '+JSON.stringify(x).slice(0,400))); if(!c) ok=false; };
 await p.goto('http://localhost:8811/actor-os/index.html'); await p.evaluate(()=>{ localStorage.removeItem('actor_os_words_ok'); indexedDB.deleteDatabase('actor_os_reader'); }); await p.reload(); await p.waitForTimeout(1200);
 const sides=fs.readFileSync(path.join(__dirname,'..','..','shared','fixtures','low_tide.fountain'),'utf8');
-await p.evaluate(t=>{ loadSides(t,'low_tide.fountain'); if(!SIDES.me) pickMe('ANNA'); boothReady(); },sides); await p.waitForTimeout(500);
+await p.evaluate(t=>{ loadSides(t,'low_tide.fountain'); if(!SIDES.me) pickMe('ANNA'); boothReady(); AosFront.details(true); },sides); await p.waitForTimeout(500);
 // a reader line recorded (fake mic), with a lower voice set for MR. DELL
 const k=await p.evaluate(()=>boothKey(activeScript().find(b=>!b.mine)));
 await p.evaluate(()=>ActorReader.setWantVideo(false));

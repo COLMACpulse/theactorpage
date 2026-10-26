@@ -178,7 +178,7 @@ body:has(#hotbar) #stage .sTop{top:calc(env(safe-area-inset-top) + 48px)}
    nothing there yet, amber means started, green means done.
    The active stage gets a tally light across the top - the same signal a camera
    gives when it is the one that is live. */
-nav{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;position:sticky;top:0;z-index:8;
+nav{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;position:sticky;top:0;z-index:8;
  background:var(--line);border-top:1px solid var(--line);border-bottom:1px solid var(--line);
  padding:0;margin:0 0 18px}
 nav button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -304,6 +304,27 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
 .stoast{bottom:auto!important;top:calc(84px + env(safe-area-inset-top))!important}
 .fmtwarn{margin-top:9px;border-color:#E0A23C!important}
 #aosKit .kit{--panel:var(--p1);--tung:var(--gold);--dim:var(--mut);margin:0 0 14px}#aosKit .kit .kt{font-weight:400}@media (max-width:440px){#aosKit .kit .kt:last-child:nth-child(odd){grid-column:1/-1;min-height:96px}}
+
+/* THE FRONT and the four steps (front.js) */
+.aosquiet{display:none!important}
+#aosHome,#readStep,#learnStep{max-width:760px;margin-left:auto;margin-right:auto}
+.frontbtn{display:block;margin:0 0 8px;min-height:40px;padding:0 12px;border:0;background:none;color:var(--gold);font-weight:700;font-size:12px;letter-spacing:.14em;text-align:left}
+.fcard{background:var(--p1);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:10px;margin:0 0 12px}.fcard.due{border-color:var(--gold)}
+.fk{font-size:11.5px;letter-spacing:.18em;color:var(--mut);font-weight:700}.fcard.due .fk{color:var(--gold)}.fk2{display:block;font-size:11px;letter-spacing:.14em;color:var(--mut);font-weight:700;margin-bottom:2px}
+.fh{font-size:22px;line-height:1.2;color:var(--ink)}.fp{margin:0;color:var(--mut);font-size:14.5px;line-height:1.45}
+.fask{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--ink)}
+.fgo{min-height:56px;border:0;border-radius:12px;background:var(--gold);color:#1a1206;font-size:15px;font-weight:800;letter-spacing:.08em;width:100%}
+.fgo2{min-height:50px;border:1px solid var(--gold);border-radius:12px;background:none;color:var(--gold);font-size:14px;font-weight:800;letter-spacing:.08em;width:100%;margin-top:10px}
+.fl{display:block;font-size:13px;color:var(--mut);margin:4px 0 -4px}.fcard textarea{width:100%;box-sizing:border-box}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.f2 button{min-height:48px;font-size:13.5px}
+.ftape{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:52px;border-radius:12px;margin:0 0 12px;font-size:14.5px}.ftape i{width:14px;height:14px;border-radius:50%;background:#c0392b;display:inline-block}
+.fpk{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px}.fpk a{display:flex;flex-direction:column;gap:2px;min-height:68px;justify-content:center;padding:0 14px;border:1px solid var(--line);border-radius:12px;background:var(--p1);color:var(--ink);text-decoration:none}.fpk a b{font-size:15px}.fpk a span{font-size:12.5px;color:var(--mut)}
+.fsteps{display:flex;flex-direction:column;background:var(--p1);border:1px solid var(--line);border-radius:14px;padding:2px 14px;margin:0 0 12px}
+.fstep{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:50px;border:0;border-bottom:1px solid var(--line);background:none;border-radius:0;padding:0;text-align:left;font-size:14.5px;color:var(--mut)}.fstep:last-child{border-bottom:0}.fstep i{font-style:normal;font-size:12.5px;color:var(--faint);text-align:right}
+.fstep.done span{color:var(--ink)}.fstep.done span::first-letter{color:var(--go)}.fstep.now span{color:var(--gold);font-weight:700}
+.fdet{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:50px;padding:0 14px;border-radius:12px;margin:12px 0;font-size:14px}.fdet i{font-style:normal;color:var(--mut);font-size:12.5px}
+.ffoot{text-align:center;color:var(--faint);font-size:12.5px;margin:14px 0 4px}.ffoot a{color:var(--mut)}
+.fstepframe{display:block;width:100%;height:calc(100dvh - 230px);min-height:520px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
 </style>
 </head><body><div class="app"><header><!-- ACTOR OS sigil. Raster because the mark is a gold-gradient render, not a
      flat shape; alpha-trimmed and unpremultiplied so the edges stay gold on
@@ -314,11 +335,11 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
      where there is no negative space to fill. -->
 <svg class="slatebar" height="30" preserveAspectRatio="none" aria-hidden="true" focusable="false"><defs><pattern id="clap" width="176" height="30" patternUnits="userSpaceOnUse"><path d="M0 0h22l11 15l-11 15H0l11-15Z" fill="#2b3038" transform="translate(-22)"/><path d="M0 0h22l11 15l-11 15H0l11-15Z" fill="#1f8a5c" transform="translate(0)"/><path d="M0 0h22l11 15l-11 15H0l11-15Z" fill="#d9b23a" transform="translate(22)"/><path d="M0 0h22l11 15l-11 15H0l11-15Z" fill="#2a5fa8" transform="translate(44)"/><path d="M0 0h22l11 15l-11 15H0l11-15Z" fill="#c0392b" transform="translate(66)"/><path d="M0 0h22l11 15l-11 15H0l11-15Z" fill="#e8e6e0" transform="translate(88)"/><path d="M0 0h22l11 15l-11 15H0l11-15Z" fill="#9aa0a8" transform="translate(110)"/><path d="M0 0h22l11 15l-11 15H0l11-15Z" fill="#5c636d" transform="translate(132)"/><path d="M0 0h22l11 15l-11 15H0l11-15Z" fill="#2b3038" transform="translate(154)"/></pattern></defs><rect width="100%" height="30" fill="url(#clap)"/></svg><div class="truth">YOUR VOICE · YOUR CAMERA<br><span id="saveState">KEPT ON THIS PHONE</span></div></header>
 <svg class="slatebar mobilebar" height="30" preserveAspectRatio="none" aria-hidden="true" focusable="false"><defs><pattern id="clapm" width="176" height="30" patternUnits="userSpaceOnUse"><path d="M0 0h22l11 15l-11 15H0l11-15Z" fill="#2b3038" transform="translate(-22)"/><path d="M0 0h22l11 15l-11 15H0l11-15Z" fill="#1f8a5c" transform="translate(0)"/><path d="M0 0h22l11 15l-11 15H0l11-15Z" fill="#d9b23a" transform="translate(22)"/><path d="M0 0h22l11 15l-11 15H0l11-15Z" fill="#2a5fa8" transform="translate(44)"/><path d="M0 0h22l11 15l-11 15H0l11-15Z" fill="#c0392b" transform="translate(66)"/><path d="M0 0h22l11 15l-11 15H0l11-15Z" fill="#e8e6e0" transform="translate(88)"/><path d="M0 0h22l11 15l-11 15H0l11-15Z" fill="#9aa0a8" transform="translate(110)"/><path d="M0 0h22l11 15l-11 15H0l11-15Z" fill="#5c636d" transform="translate(132)"/><path d="M0 0h22l11 15l-11 15H0l11-15Z" fill="#2b3038" transform="translate(154)"/></pattern></defs><rect width="100%" height="30" fill="url(#clapm)"/></svg>
+<button id="aosFrontBtn" class="frontbtn" onclick="goTab('home')" style="display:none">&#8249; YOUR AUDITION</button>
 <nav>
-<button data-tab="prep" class="on"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h9l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/><path d="M8 13h8M8 17h5"/></svg><b>PREP</b><s data-dot="prep"></s></button>
+<button data-tab="read"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h9l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/><path d="M8 13h8M8 17h5"/></svg><b>READ</b><s data-dot="read"></s></button>
+<button data-tab="learn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg><b>LEARN</b><s data-dot="learn"></s></button>
 <button data-tab="shoot"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 4v4M20 12h-4M12 20v-4M4 12h4"/></svg><b>SHOOT</b><s data-dot="shoot"></s></button>
-<button data-tab="cut"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.6"/><circle cx="6" cy="18" r="2.6"/><path d="M8 7.5 20 18M8 16.5 20 6"/></svg><b>CUT</b><s data-dot="cut"></s></button>
-<button data-tab="save"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v11"/><path d="M8 11l4 4 4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg><b>SAVE</b><s data-dot="save"></s></button>
 <button data-tab="send"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 3 10.5 13.5"/><path d="M21 3l-7 18-3.5-7.5L3 10z"/></svg><b>SEND</b><s data-dot="send"></s></button>
 </nav>
 <div id="jobBlock" style="display:none"><div><h2 id="jobTitle" onclick="renameJob()" title="tap to rename" style="cursor:pointer">Untitled Performance</h2><p id="jobMeta">AUDITION · Scene 1</p></div><button onclick="renameJob()">RENAME</button></div>
@@ -408,6 +429,7 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
   </div>
  </div>
 </div>
+<section id="home" class="panel on"><div id="aosHome"></div></section>
 <section id="prep" class="panel on">
 <div id="aosKit"></div>
 <div class="am">Everything here is optional. PREP supports the work; it does not gate RECORD.</div>
@@ -479,6 +501,8 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
   </div></div>
 </div>
 </section>
+<section id="read" class="panel"><div id="readStep"></div></section>
+<section id="learn" class="panel"><div id="learnStep"></div></section>
 <section id="shoot" class="panel">
 <div id="modePick">
   <div class="prevwrap">
@@ -581,7 +605,24 @@ const _NULLEL={textContent:'',innerHTML:'',value:'',style:{},classList:{add(){},
 const $=id=>document.getElementById(id)||_NULLEL; const save=()=>{state.job=Object.assign(state.job||{},{project:$('project').value,role:$('role').value,due:(document.getElementById('due')?$('due').value:((state.job&&state.job.due)||'')),instructions:$('instructions').value,research:$('research').value});localStorage.setItem(KEY,JSON.stringify(state));$('saveState').textContent='SAVED ON THIS PHONE';renderJob();};
 ['project','role','due','instructions','research','cue','actorLine','displayMode','advanceMode','anchor','action','forbidden','posture','reader'].forEach(id=>$(id)?.addEventListener('input',()=>{save();renderPrompt()}));
 function renderJob(){$('jobTitle').textContent=$('project').value||'Untitled Performance';$('jobMeta').textContent=((state.job.role||'PERFORMANCE').toUpperCase())+' · Scene '+state.scene;$('project').focus()}
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button,.panel').forEach(x=>x.classList.remove('on'));b.classList.add('on');$(b.dataset.tab).classList.add('on');navState();if(b.dataset.tab!=='shoot'&&!(typeof MODE!=='undefined'&&MODE)){try{releaseAll();const o=$('prevOff');if(o&&o.style)o.style.display='';}catch(e){}}if(b.dataset.tab==='cut'){renderCut();renderCutWork();}if(b.dataset.tab==='save')renderSave();if(b.dataset.tab==='send')renderSend();});
+/* FOUR STEPS (Col, Oct 26): READ, LEARN, SHOOT, SEND. The front (home) holds the audition and its details (PREP);
+   SHOOT shows the takes to keep under the camera (CUT); SEND saves and sends (SAVE). Old names still work. */
+const TABGROUP={home:['home','prep'],read:['read'],learn:['learn'],shoot:['shoot','cut'],send:['save','send'],prep:['home','prep'],cut:['shoot','cut'],save:['save','send']};
+const TABOF={prep:'home',cut:'shoot',save:'send'};
+let CURTAB='home';
+function showTab(t){ const tab=TABOF[t]||t, g=TABGROUP[tab]||[tab];
+ document.querySelectorAll('nav button,.panel').forEach(x=>x.classList.remove('on'));
+ const b=document.querySelector('nav button[data-tab="'+tab+'"]'); if(b) b.classList.add('on');
+ g.forEach(id=>{ const el=$(id); if(el) el.classList.add('on'); });
+ CURTAB=tab; try{ const fb=$('aosFrontBtn'); if(fb&&fb.style) fb.style.display=tab==='home'?'none':''; }catch(e){}
+ navState();
+ if(tab!=='shoot'&&!(typeof MODE!=='undefined'&&MODE)){try{releaseAll();const o=$('prevOff');if(o&&o.style)o.style.display='';}catch(e){}}
+ if(tab==='shoot'){ try{renderCut();renderCutWork();}catch(e){} }
+ if(tab==='send'){ try{renderSave();}catch(e){} try{renderSend();}catch(e){} }
+ try{ if(window.AosFront) AosFront.shown(tab); }catch(e){}
+ if(t==='cut'||t==='save'){ const el=$(t); if(el&&el.scrollIntoView) setTimeout(()=>el.scrollIntoView({block:'start'}),30); }
+}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 /* any language: every script's letters; Chinese, Japanese and Thai count a character as a word; accents don't decide a match */
 const WORDRE=/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]|[\p{L}\p{N}\p{M}]+(?:['\u2019][\p{L}\p{M}]+)?/gu;
 function toks(s){return (String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').normalize('NFC').replace(/\u2019/g,"'").match(WORDRE)||[])}
@@ -716,6 +757,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 <script src="../shared/yourscenes.js"></script>
 <script src="../shared/practice.js"></script>
 <script src="../shared/delivery.js"></script>
+<script src="../hub/request.js"></script>
 <script src="../shared/inbox.js"></script>
 <script src="sides.js"></script>
 <script src="takeread.js"></script>
@@ -1488,9 +1530,10 @@ function navState(){
  // PREP: sides in, character picked, scene locked
  const S=(typeof SIDES!=='undefined')?SIDES:null;
  const sidesIn=!!(S&&S.script&&S.script.length);
- set('prep', !sidesIn?null:(S.me&&S.ready?'done':'started'));
+ set('read', !sidesIn?null:(S.me?'done':'started'));
+ set('learn', (window.AosFront&&AosFront.learned)?AosFront.learned():null);
  // SHOOT: anything recorded
- set('shoot', !takes.length?null:'done');
+ set('shoot', !takes.length?null:(kept.length?'done':'started'));
  // CUT: a survivor chosen
  set('cut', !takes.length?null:(kept.length?'done':'started'));
  // SAVE: everything off the device
@@ -2195,8 +2238,7 @@ function copySendNote(){
 
 
 function goTab(t){
- const b=document.querySelector('nav button[data-tab="'+t+'"]');
- if(b&&b.click)b.click();
+ showTab(t);
 }
 function jobBlockState(){
  try{const t=$('jobTitle');if(t&&t.textContent!==undefined&&jobName())t.textContent=jobName();}catch(e){}
@@ -3675,5 +3717,6 @@ document.addEventListener('keydown',e=>{
 </div>
 
 <script>try{setLevel(getLevel());renderDue();}catch(e){} try{renderDaily();}catch(e){} try{aosKit();}catch(e){}</script>
+<script src="front.js"></script>
 <script src="../shared/view.js"></script>
 </body></html>

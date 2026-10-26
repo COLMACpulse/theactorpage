@@ -44,7 +44,7 @@ want('reopen Actor OS asking for them: your real sides are back', await p.evalua
 // the fold in Actor OS, TAPE IT in place
 const a=await p.evaluate(()=>{ const d=document.getElementById('dailySec'); return {tag:d.tagName,open:d.open}; });
 want('Actor OS: the practice scene is a closed fold', a.tag==='DETAILS'&&!a.open, a);
-await p.evaluate(()=>{ document.getElementById('dailySec').open=true; }); await p.waitForTimeout(100);
+await p.evaluate(()=>{ AosFront.details(true); document.getElementById('dailySec').open=true; }); await p.waitForTimeout(100);
 want('Actor OS fold: same note', /Written by AI, not by me/.test(await p.innerText('#dailyBox')));
 const t5=await p.$eval('#dailyBox .practice-card b',x=>x.textContent);
 await p.click('#dailyBox [data-pgo="tape"]'); await p.waitForTimeout(800);
