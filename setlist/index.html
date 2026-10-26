@@ -122,6 +122,8 @@ body.ovopen{overflow:hidden}
  .hero .go{width:auto;padding:0 28px;align-items:flex-start}
  .toast{left:calc(50% + min(21vw,290px))}
 }
+/* the slate sticks (Col, Oct 26), along the bottom of the bar */
+.top{padding-bottom:18px}.slstk{position:absolute;left:0;right:0;bottom:0;height:8px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='176' height='30' viewBox='0 0 176 30'%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232b3038' transform='translate%28-22%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%231f8a5c' transform='translate%280%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23d9b23a' transform='translate%2822%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232a5fa8' transform='translate%2844%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23c0392b' transform='translate%2866%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%23e8e6e0' transform='translate%2888%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%239aa0a8' transform='translate%28110%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%235c636d' transform='translate%28132%29'/%3E%3Cpath d='M0 0h22l11 15l-11 15H0l11-15Z' fill='%232b3038' transform='translate%28154%29'/%3E%3C/svg%3E") repeat-x 0 50%/auto 100%;opacity:.92}
 </style>
 </head>
 <body>
@@ -131,6 +133,7 @@ body.ovopen{overflow:hidden}
     <div class="k">SET LIST</div>
     <b id="title">Funny, in order</b>
     <div class="count" id="count"></div>
+    <i class="slstk" aria-hidden="true"></i>
   </header>
   <main id="main"></main>
 </div>
