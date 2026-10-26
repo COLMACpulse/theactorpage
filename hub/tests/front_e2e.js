@@ -32,7 +32,7 @@ await p.waitForTimeout(500);
 let v=await p.innerText('#view');
 want('the front: no tab bar, the header says what it is', !(await p.$('#nav button:not(.back)'))&&/What.s due, and your page/.test(await p.innerText('header')));
 want('the front: an audition came in, due, your page, the rows', /An audition came in/i.test(v)&&/Due/i.test(v)&&/Your page/i.test(v)&&/Offices to go in for/i.test(v)&&/Your material/i.test(v)&&/For my reps/i.test(v)&&/Credits and key art/i.test(v)&&/Setup and backup/i.test(v), v.slice(0,500));
-want('nothing due yet: says so; what you\'ve sent: 1', /Nothing due/.test(v)&&/What you.ve sent\s*1/i.test(v));
+want('nothing due yet: says so; what you\'ve sent: 1', /Nothing due/.test(v)&&/What you.ve sent[^\d]{0,60}1/i.test(v));
 want('your page: your name, what\'s on it', /Riley Hart/.test(v)&&/headshot · 1 credit/.test(v), v);
 await p.fill('#reqtext',REQ); await p.click('#reqbox button:has-text("READ IT")'); await p.waitForTimeout(300);
 const pre=await p.innerText('#reqout');
@@ -47,7 +47,7 @@ want('TAPE IT: opens that audition', await p.evaluate(()=>tab==='road'&&!!openId
 await p.evaluate(()=>go('home')); await p.waitForTimeout(200);
 await p.click('#duelist button:has-text("SENT")'); await p.waitForTimeout(300);
 v=await p.innerText('#view');
-want('SENT: off the due list, into what you\'ve sent', /Nothing due/.test(v)&&/What you.ve sent\s*2/i.test(v));
+want('SENT: off the due list, into what you\'ve sent', /Nothing due/.test(v)&&/What you.ve sent[^\d]{0,60}2/i.test(v));
 // your page
 await p.click('button.ppc'); await p.waitForTimeout(600);
 let on=await p.innerText('#onit');

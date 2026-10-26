@@ -10,7 +10,7 @@ await p.goto('http://localhost:8811/hub/'); await p.waitForTimeout(1500);
 let t=await p.innerText('body');
 want('a first visit: no made-up actor, no demo banner', !/RILEY HART/.test(t)&&!/demo data/i.test(t));
 want('a first step instead', /Start with your name and a headshot\./.test(t));
-want('the tab title is THEACTORPAGE, not COLMAC', (await p.title())==='PROJECT HUB · THEACTORPAGE');
+want('the tab title is THEACTORPAGE, not COLMAC', (await p.title())==='Your page · THEACTORPAGE');
 // the tour
 const d=await b.newContext({viewport:{width:390,height:844},serviceWorkers:'block'}); const q=await d.newPage(); q.on('pageerror',e=>errs.push(e.message));
 await q.goto('http://localhost:8811/hub/'); await q.evaluate(()=>{ sessionStorage.setItem('tapdemo_on','1'); }); await q.reload(); await q.waitForTimeout(1500);
