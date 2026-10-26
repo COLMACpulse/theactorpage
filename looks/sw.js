@@ -1,6 +1,6 @@
 /* LOOKS offline shell. Bump CACHE on every release. Only clears its own old copies. Network first. */
-const CACHE='looks-0.1.3';
-const FILES=['./','index.html','app.js','../shared/tour.js','../shared/view.js','../shared/you.js','../shared/zipw.js','../shared/looks.js','../shared/hot.js','../shared/capture.js','../shared/liveshot.js','../img/sigil-film-180.png'];
+const CACHE='looks-0.1.4';
+const FILES=['./','index.html','app.js','../shared/icons.js','../shared/tour.js','../shared/view.js','../shared/you.js','../shared/zipw.js','../shared/looks.js','../shared/hot.js','../shared/capture.js','../shared/liveshot.js','../img/sigil-film-180.png'];
 self.addEventListener('install',e=>{ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).catch(()=>{}).then(()=>self.skipWaiting())); });
 self.addEventListener('activate',e=>{ e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE&&k.startsWith('looks-')).map(k=>caches.delete(k)))).then(()=>self.clients.claim())); });
 self.addEventListener('fetch',e=>{ const u=new URL(e.request.url); if(e.request.method!=='GET'||u.origin!==location.origin) return;
