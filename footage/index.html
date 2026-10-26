@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <script src="../shared/tour.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>FOOTAGE · What you have, and where it is</title>
-<meta name="description" content="A map of your footage: every drive, folder and place it lives, and which project is where. It reads lists of files; nothing is copied or uploaded.">
+<title>FOOTAGE · Your footage</title>
+<meta name="description" content="Your footage library: everything you have shot, playable, by project; where each original is; and your own groupings. Originals never move; small copies play anywhere.">
 <meta name="theme-color" content="#121110">
 <link rel="icon" href="../img/sigil-film-64.png">
 <style>
@@ -123,11 +123,30 @@ div.place{display:flex;align-items:center;gap:12px}button.card.place{display:fle
 .tag{font-size:10.5px;letter-spacing:.12em;font-weight:700;color:var(--tung-text)}.tag.un{color:var(--faint)}
 button.fres{cursor:pointer}
 @media (max-width:600px){.frow .fm:nth-of-type(3){display:none}}
+/* THE LIBRARY (Col, Oct 26: all your footage, playable) */
+.lsum{margin:0 0 10px;color:var(--dim);font-size:14px}
+.lbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 14px}.lbar .find{flex:1;min-width:220px;margin:0}
+.grid.lib{grid-template-columns:1fr}@media (min-width:900px){.grid.lib{grid-template-columns:minmax(0,1fr) 300px}}
+.grp{margin:0 0 18px}.gh{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:0 0 8px}.gh b{font-size:17px;font-weight:600}.gh span{font-size:13px;color:var(--dim)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+@media (max-width:600px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
+.tile{display:flex;flex-direction:column;text-align:left;padding:0;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;color:var(--ink);font:inherit;cursor:pointer;min-width:0}
+.tile:hover{border-color:var(--tung)}
+.th{position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:16/9;background:#111 center/cover no-repeat}
+.th .pl{width:0;height:0;border-left:15px solid rgba(255,255,255,.85);border-top:9px solid transparent;border-bottom:9px solid transparent;margin-left:4px}.th.img .pl{filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
+.th .dur{position:absolute;right:6px;bottom:5px;font-size:11.5px;color:#fff;background:rgba(0,0,0,.6);padding:1px 6px;border-radius:4px}
+.th.au{background:#1b1916}.th .wv{display:flex;align-items:center;gap:2px;height:40%;width:80%}.th .wv b{flex:1;background:var(--tung);border-radius:2px;height:40%}.th .wv b:nth-child(3n){height:90%}.th .wv b:nth-child(4n+1){height:65%}
+.ti{display:flex;flex-direction:column;gap:2px;padding:8px 10px 10px;min-width:0}.ti b{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ti small{font-size:12px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{align-self:flex-start;margin-top:5px;font-size:10px;letter-spacing:.1em;font-weight:700;padding:2px 6px;border-radius:5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge.here{background:rgba(31,138,92,.16);color:var(--good)}.badge.away{background:var(--panel2);color:var(--dim)}.badge.cant{background:var(--panel2);color:var(--bad)}
+.stage .vid{max-height:62vh}.nostage{aspect-ratio:16/9;max-height:62vh;border-radius:12px;background:var(--panel2);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18px}.nostage p{margin:4px 0;max-width:440px}
+.irow{display:flex;gap:12px;padding:9px 0;border-top:1px solid var(--line);font-size:14px}.irow:first-of-type{border-top:0}.irow>b{width:104px;flex:none;font-size:11px;letter-spacing:.14em;color:var(--dim);padding-top:3px}.irow>span{flex:1;min-width:0;word-break:break-word}
+.seq{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}.seqi{display:flex;flex-direction:column;gap:6px}.sbtn{display:flex;gap:6px}
 </style>
 </head>
 <body>
 <div class="shell">
-  <header class="top bhead"><div class="bwrap"><svg class="hico" viewBox="0 0 64 80" role="img" aria-label="A strip of film"><rect class="pg" x="2" y="2" width="60" height="76" rx="5"/><rect class="ph" x="14" y="10" width="36" height="60" rx="3"/><path class="ln" d="M18 16h4M18 28h4M18 40h4M18 52h4M18 64h4M42 16h4M42 28h4M42 40h4M42 52h4M42 64h4"/><rect class="g" x="25" y="30" width="14" height="20" rx="2"/></svg><div class="btx"><div class="kicker" style="margin:0">ACT · FOOTAGE</div><h1>What you have, and where it is</h1><p>Every drive, folder and place your footage lives, and which project is where.</p></div><img class="bsig" src="../img/sigil-film-180.png" alt="THEACTORPAGE" width="64" height="64"></div></header>
+  <header class="top bhead"><div class="bwrap"><svg class="hico" viewBox="0 0 64 80" role="img" aria-label="A strip of film"><rect class="pg" x="2" y="2" width="60" height="76" rx="5"/><rect class="ph" x="14" y="10" width="36" height="60" rx="3"/><path class="ln" d="M18 16h4M18 28h4M18 40h4M18 52h4M18 64h4M42 16h4M42 28h4M42 40h4M42 52h4M42 64h4"/><rect class="g" x="25" y="30" width="14" height="20" rx="2"/></svg><div class="btx"><div class="kicker" style="margin:0">ACT · FOOTAGE</div><h1>Your footage</h1><p>Everything you've shot, played right here: what you have, where it is, and what goes together.</p></div><img class="bsig" src="../img/sigil-film-180.png" alt="THEACTORPAGE" width="64" height="64"></div></header>
   <i class="hstk" aria-hidden="true"></i>
   <main id="view"></main>
 </div>
@@ -141,6 +160,7 @@ button.fres{cursor:pointer}
 <script src="../actor-os/compress.js"></script>
 <script src="../shared/footage.js"></script>
 <script src="../shared/footmap.js"></script>
+<script src="../shared/footlib.js"></script>
 <script src="app.js"></script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
 <script src="../shared/view.js"></script>

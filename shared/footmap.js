@@ -5,6 +5,7 @@
    THE MAP: each project (your credits, your films, ones you name) and the places that hold it. Folder and file names
             say which project a file is; you fix what it gets wrong, and what it can't tell stays "Not matched".
    Unplug a drive and the map keeps what was on it, with the day it last looked.
+   PUT TOGETHER: your own groupings, in order. META: a piece's length, a playable copy here, or a format a browser can't play.
    localStorage theactorpage_footage_map_v1. Pure parts run in Node for the tests. */
 (function (g) {
   'use strict';
@@ -13,7 +14,7 @@
   M.VIDEO = /\.(mov|mp4|m4v|mxf|avi|mkv|webm|mts|m2ts|braw|r3d|crm|ari|3gp|wmv|mpe?g|dv|hevc|insv|lrv)$/i;
   const clean = s => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
   const uid = () => 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  const blank = () => ({ places: [], fix: {}, mine: [] });
+  const blank = () => ({ places: [], fix: {}, mine: [], sets: [], meta: {} });
   function read() { try { const d = JSON.parse((g.localStorage && localStorage.getItem(KEY)) || 'null'); if (d && Array.isArray(d.places)) return Object.assign(blank(), d); } catch (e) { } return blank(); }
   function write(d) { try { localStorage.setItem(KEY, JSON.stringify(d)); return true; } catch (e) { return false; } }
   M.read = read;
@@ -45,7 +46,7 @@
   /* a place that isn't on this computer: you say what's there */
   M.addNamed = function (name, note, holds) { const n = clean(name); if (!n) return null; const d = read(), p = { id: uid(), kind: 'named', name: n, note: clean(note), holds: (holds || []).map(clean).filter(Boolean) }; d.places.push(p); write(d); return p; };
   M.setPlace = function (id, patch) { const d = read(), p = d.places.find(x => x.id === id); if (!p) return null; ['name', 'note'].forEach(k => { if (patch[k] !== undefined) p[k] = clean(patch[k]) || (k === 'name' ? p.name : ''); }); if (patch.holds) p.holds = patch.holds.map(clean).filter(Boolean); write(d); return p; };
-  M.forget = function (id) { const d = read(); d.places = d.places.filter(p => p.id !== id); Object.keys(d.fix).forEach(k => { if (k.indexOf(id + '|') === 0) delete d.fix[k]; }); write(d); };
+  M.forget = function (id) { const d = read(); d.places = d.places.filter(p => p.id !== id); Object.keys(d.meta).forEach(k => { if (k.indexOf('f:' + id + '|') === 0) delete d.meta[k]; }); Object.keys(d.fix).forEach(k => { if (k.indexOf(id + '|') === 0) delete d.fix[k]; }); write(d); };
   /* projects you name yourself (a reel, a class) on top of your credits and films */
   M.addMine = function (t) { const x = clean(t); if (!x) return; const d = read(); if (!d.mine.some(m => M.norm(m) === M.norm(x))) d.mine.push(x); write(d); };
   M.mine = () => read().mine.slice();
@@ -95,6 +96,23 @@
     const by = {}; (p.files || []).forEach(f => { const i = f.p.lastIndexOf('/'), dir = i > 0 ? f.p.slice(0, i) : ''; (by[dir] = by[dir] || []).push(Object.assign({}, f, { n: f.p.slice(i + 1), what: M.what(d, p.id, f.p, titles) })); });
     return Object.keys(by).sort().map(dir => ({ dir, what: fixOf(d.fix, p.id, dir), files: by[dir] }));
   };
+
+  /* PUT TOGETHER: your own groupings of pieces, in order (a project from audition to air, a character across jobs) */
+  M.sets = () => read().sets.slice();
+  M.set = id => read().sets.find(x => x.id === id) || null;
+  M.addSet = function (name, keys) { const nm = clean(name); if (!nm) return null; const d = read(), x = { id: 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name: nm, items: (keys || []).slice() }; d.sets.push(x); write(d); return x; };
+  M.setSet = function (id, patch) { const d = read(), x = d.sets.find(y => y.id === id); if (!x) return null; if (patch.name !== undefined) x.name = clean(patch.name) || x.name; if (patch.items) x.items = patch.items.slice(); write(d); return x; };
+  M.dropSet = function (id) { const d = read(); d.sets = d.sets.filter(x => x.id !== id); write(d); };
+  M.toggleIn = function (id, key) { const x = M.set(id); if (!x) return null; const i = x.items.indexOf(key); if (i >= 0) x.items.splice(i, 1); else x.items.push(key); return M.setSet(id, { items: x.items }); };
+  M.move = function (id, key, by) { const x = M.set(id); if (!x) return; const i = x.items.indexOf(key), j = i + by; if (i < 0 || j < 0 || j >= x.items.length) return; const [k] = x.items.splice(i, 1); x.items.splice(j, 0, k); M.setSet(id, { items: x.items }); };
+  M.setsWith = key => read().sets.filter(x => x.items.indexOf(key) >= 0);
+  /* what we know about one piece: its length, a playable copy here, a browser that can't read it */
+  M.meta = key => read().meta[key] || {};
+  M.setMeta = function (key, patch) { const d = read(); d.meta[key] = Object.assign({}, d.meta[key] || {}, patch); write(d); return d.meta[key]; };
+  M.dropMeta = function (key) { const d = read(); delete d.meta[key]; write(d); };
+  /* a piece's key: a file on a place, or a take kept on this device */
+  M.fkey = (placeId, path) => 'f:' + placeId + '|' + path;
+  M.parse = key => { if (/^t:/.test(key)) return { kind: 'take', id: key.slice(2) }; const m = /^f:([^|]+)\|(.*)$/.exec(key || ''); return m ? { kind: 'file', place: m[1], path: m[2] } : null; };
   M.trim = (inS, outS, dur) => { const a = Math.max(0, Math.min(+inS || 0, dur)), b = Math.max(a + 0.2, Math.min(+outS || dur, dur)); return { trimStart: a, trimEnd: Math.max(0, dur - b), secs: Math.round((b - a) * 10) / 10 }; };
   M.time = s => { s = Math.max(0, +s || 0); const m = Math.floor(s / 60), r = s - m * 60; return m + ':' + (r < 10 ? '0' : '') + r.toFixed(1); };
   M.clipName = (title, role, ext) => ([title, role].filter(Boolean).join('_').replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_|_$/g, '') || 'clip') + '_clip.' + (ext || 'mp4');

@@ -61,7 +61,7 @@
       + room('act', 'ACT', 'Your audition life, between auditions',
         d('hub', 'Your page', 'hub/', 'résumé, credits, press') + d('head', 'Headshots', 'headshots/', c.shots ? 'and your looks · ' + c.shots : 'and your looks')
         + d('contacts', 'Contacts', 'contacts/', c.contacts ? 'who knows you · ' + c.contacts : 'who knows you') + d('vo', 'VO Booth', 'booth/', 'a VO audition from your desk') + d('arch', 'Reel Room', 'archbook/', 'a reel for the role')
-        + d('footage', 'Footage', 'footage/', 'what you have, and where') + d('notes', 'Notes', 'notes/', 'what they told you') + d('viz', 'Picture It', 'picture/', 'what you want'))
+        + d('footage', 'Footage', 'footage/', 'everything you\'ve shot, playable') + d('notes', 'Notes', 'notes/', 'what they told you') + d('viz', 'Picture It', 'picture/', 'what you want'))
       + room('write', 'WRITE', 'Make your own: the page',
         d('wb', 'THEACTORPAGES', 'write/writers-blockage.html', 'write it, or talk it out') + d('pt', 'Paper Trail', 'papertrail/', c.pt ? 'every draft · ' + n(c.pt, 'project') : 'every draft, kept and sent')
         + d('chars', 'Characters', 'characters/', 'every one, from every tool') + d('set', 'Set List', 'setlist/', 'funny, in order'))
