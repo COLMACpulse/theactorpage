@@ -191,7 +191,7 @@ async function finalBlob(){ return DB.cur?await getPhoto('final:'+DB.cur):null; 
 async function keepFinal(blob,name,secs,from){ const c=cur(); if(!c) return false; if(!(await putPhoto('final:'+DB.cur,blob))){ toast('This phone would not keep the cut. Save the file instead.'); return false; }
  cutOf().final={name,secs:Math.round((secs||0)*10)/10,size:blob.size,mime:blob.type,at:Date.now(),from}; if(FINALURL){ URL.revokeObjectURL(FINALURL); FINALURL=''; } save(); return true; }
 const DESTS=[
- ['footage','FOOTAGE','In your Footage list, with the clip','PUT IT IN'],
+ ['footage','FOOTAGE','On your footage map, so you know where it is','PUT IT ON'],
  ['reel','YOUR REEL','A reel clip in your Project Hub','ADD IT'],
  ['page','YOUR PAGE','Under your work, with the title','PUT IT ON'],
  ['package','A PACKAGE','For an agent, or for casting','BUILD ONE'],
@@ -219,8 +219,11 @@ async function sendOut(k){
   if(/Android|iPhone|iPad/i.test(navigator.userAgent)&&navigator.canShare&&navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file],title:f.name}); }catch(e){ return; } }
   else { const u=URL.createObjectURL(b), a=document.createElement('a'); a.href=u; a.download=f.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000); }
   o.file={at:Date.now()}; save(); render(); return; }
- if(k==='footage'){ const FT=window.Footage; if(!FT) return toast('Footage isn\'t here.'); const j=FT.add({title,role:c.me||'',kind:c.kind==='sketch'?'web':'short',note:'Made in Story Studio'}); if(!j) return toast('Footage would not take it.');
-  FT.addClip(j.id,{name:f.name,secs:f.secs}); o.footage={at:Date.now(),job:j.id}; save(); render(); toast('In Footage: '+title+'.'); return; }
+ if(k==='footage'){ const FM=window.FootMap; if(!FM) return toast('Footage isn\'t here.');
+  /* the finished film lives here, in Story Studio: a place on your footage map that holds it */
+  const NAME='Story Studio, on this computer'; let pl=FM.places().find(x=>x.kind==='named'&&x.name===NAME);
+  if(!pl) pl=FM.addNamed(NAME,'the finished film, kept in Story Studio',[title]); else if(!(pl.holds||[]).some(h=>FM.norm(h)===FM.norm(title))) FM.setPlace(pl.id,{holds:(pl.holds||[]).concat([title])});
+  if(!pl) return toast('Footage would not take it.'); o.footage={at:Date.now(),place:pl.id}; save(); render(); toast('On your footage map: '+title+'.'); return; }
  if(k==='reel'){ const T=window.Takes, b=await finalBlob(); if(!T||!b) return toast(b?'The takes shelf isn\'t here.':'The file isn\'t on this device any more.');
   const ext=(f.name.match(/\.(\w+)$/)||[])[1]||(/webm/.test(b.type)?'webm':'mp4');
   try{ const it=await T.put(b,{kind:'video',mime:b.type,ext,name:f.name,secs:f.secs,for:{type:'clip',title,role:c.me||''}}); o.reel={at:Date.now(),take:it.id}; save(); render(); toast('A reel clip in your Project Hub.'); }catch(e){ toast('This phone would not keep it. Save the file instead.'); } return; }

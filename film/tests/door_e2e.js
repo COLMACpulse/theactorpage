@@ -41,7 +41,7 @@ d=await db(); c=d.scripts[d.cur];
 want('the finished film is in: kept, its length read', c.cut&&c.cut.final&&c.cut.final.from==='file'&&c.cut.final.secs>=2&&/Where does it go/.test(await main()), c.cut&&c.cut.final);
 want('nothing sent yet', Object.keys(c.out||{}).length===0&&!(await p.evaluate(()=>localStorage.getItem('filmhub_v1'))));
 await p.click('[data-dest="footage"]'); await p.waitForTimeout(300);
-want('FOOTAGE: the film in your list, with the clip', await p.evaluate(()=>{ const j=Footage.jobs().find(x=>x.title==='Pasted script'); return !!j&&j.clips.length===1&&j.kind==='short'; }));
+want('FOOTAGE: on your footage map, Story Studio holds the film', await p.evaluate(()=>FootMap.places().some(x=>x.kind==='named'&&/Story Studio/.test(x.name)&&x.holds.includes('Pasted script'))));
 await p.click('[data-dest="reel"]'); await p.waitForTimeout(600);
 want('YOUR REEL: a reel clip for the Project Hub', await p.evaluate(()=>Takes.all('clip').some(x=>x.for.title==='Pasted script')));
 await p.click('[data-dest="page"]'); await p.waitForTimeout(300);

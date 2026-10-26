@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <script src="../shared/tour.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>FOOTAGE · Get your footage</title>
-<meta name="description" content="Every job you did, until it is a clip on your reel: when it comes out, who to ask, and a trimmer for the file.">
+<title>FOOTAGE · What you have, and where it is</title>
+<meta name="description" content="A map of your footage: every drive, folder and place it lives, and which project is where. It reads lists of files; nothing is copied or uploaded.">
 <meta name="theme-color" content="#121110">
 <link rel="icon" href="../img/sigil-film-64.png">
 <style>
@@ -109,11 +109,25 @@ textarea.note{min-height:170px;font:15px/1.5 var(--sans)}
 ol.how{margin:0;padding-left:20px}ol.how li{margin:5px 0}
 .card.ask{border-color:var(--tung)}
 .fold>summary.icrow{padding-top:10px;padding-bottom:10px}.fold>summary [data-icl]{display:flex;flex-direction:column}.btn[data-ic]{display:flex;align-items:center;justify-content:center}
+/* THE MAP (Col, Oct 26) */
+.prow{padding:12px 0;border-top:1px solid var(--line)}.card.list .prow:first-child{border-top:0}.prow>b{display:block;font-size:16px;font-weight:600}.prow>small{display:block;font-size:13px;color:var(--dim)}
+.prow.un>b{color:var(--dim)}
+.pchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pchip{display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font:500 13px var(--sans);cursor:pointer}.pchip.named{border-style:dashed;background:transparent}
+.pchip i,.pdot{display:block;width:10px;height:10px;border-radius:50%;flex:none}
+div.place{display:flex;align-items:center;gap:12px}button.card.place{display:flex;align-items:center;gap:12px;width:100%;text-align:left;color:var(--ink);font:inherit;cursor:pointer}.place .pt{flex:1;min-width:0}.place .ch{color:var(--dim)}
+.fhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0 8px}.fhead .q{font-size:13.5px;word-break:break-all}
+.fsel{display:flex;align-items:center;gap:8px}.fsel select{min-height:38px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font:14px var(--sans);padding:0 8px;max-width:240px}
+.frow{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line);width:100%;background:none;border-left:0;border-right:0;border-bottom:0;color:var(--ink);font:inherit;text-align:left}
+.frow .fn{flex:1;min-width:0}.frow .fn b{display:block;font-weight:500;font-size:14px;word-break:break-all}.frow .fm{font-size:12.5px;color:var(--dim);white-space:nowrap}
+.tag{font-size:10.5px;letter-spacing:.12em;font-weight:700;color:var(--tung-text)}.tag.un{color:var(--faint)}
+button.fres{cursor:pointer}
+@media (max-width:600px){.frow .fm:nth-of-type(3){display:none}}
 </style>
 </head>
 <body>
 <div class="shell">
-  <header class="top bhead"><div class="bwrap"><svg class="hico" viewBox="0 0 64 80" role="img" aria-label="A strip of film"><rect class="pg" x="2" y="2" width="60" height="76" rx="5"/><rect class="ph" x="14" y="10" width="36" height="60" rx="3"/><path class="ln" d="M18 16h4M18 28h4M18 40h4M18 52h4M18 64h4M42 16h4M42 28h4M42 40h4M42 52h4M42 64h4"/><rect class="g" x="25" y="30" width="14" height="20" rx="2"/></svg><div class="btx"><div class="kicker" style="margin:0">ACT · FOOTAGE</div><h1>Get your footage</h1><p>Every job you did, until it's a clip on your reel: when it comes out, who to ask, and a trimmer for the file.</p></div><img class="bsig" src="../img/sigil-film-180.png" alt="THEACTORPAGE" width="64" height="64"></div></header>
+  <header class="top bhead"><div class="bwrap"><svg class="hico" viewBox="0 0 64 80" role="img" aria-label="A strip of film"><rect class="pg" x="2" y="2" width="60" height="76" rx="5"/><rect class="ph" x="14" y="10" width="36" height="60" rx="3"/><path class="ln" d="M18 16h4M18 28h4M18 40h4M18 52h4M18 64h4M42 16h4M42 28h4M42 40h4M42 52h4M42 64h4"/><rect class="g" x="25" y="30" width="14" height="20" rx="2"/></svg><div class="btx"><div class="kicker" style="margin:0">ACT · FOOTAGE</div><h1>What you have, and where it is</h1><p>Every drive, folder and place your footage lives, and which project is where.</p></div><img class="bsig" src="../img/sigil-film-180.png" alt="THEACTORPAGE" width="64" height="64"></div></header>
   <i class="hstk" aria-hidden="true"></i>
   <main id="view"></main>
 </div>
@@ -126,6 +140,7 @@ ol.how{margin:0;padding-left:20px}ol.how li{margin:5px 0}
 <script src="../shared/takes.js"></script>
 <script src="../actor-os/compress.js"></script>
 <script src="../shared/footage.js"></script>
+<script src="../shared/footmap.js"></script>
 <script src="app.js"></script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
 <script src="../shared/view.js"></script>
