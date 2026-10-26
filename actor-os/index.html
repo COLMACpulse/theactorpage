@@ -305,6 +305,21 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
 .fmtwarn{margin-top:9px;border-color:#E0A23C!important}
 #aosKit .kit{--panel:var(--p1);--tung:var(--gold);--dim:var(--mut);margin:0 0 14px}#aosKit .kit .kt{font-weight:400}@media (max-width:440px){#aosKit .kit .kt:last-child:nth-child(odd){grid-column:1/-1;min-height:96px}}
 
+
+/* READ and LEARN, drawn here (steps.js) */
+#jobBlock{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:space-between;gap:10px;margin:0 0 10px}#jobBlock.aosquiet,#jobBlock[style*="display: none"],#jobBlock[style*="display:none"]{display:none!important}#jobBlock h2{font-size:16px;margin:0}#jobBlock p{margin:0;font-size:12.5px}#jobBlock button{min-height:34px;padding:0 10px;font-size:11px}
+.sseg,.slev{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}.sseg button,.slev button{min-height:40px;padding:0 14px;border-radius:20px;font-size:13px}.sseg button.on,.slev button.on{border-color:var(--gold);color:var(--gold);font-weight:700}
+.spage{background:var(--p1);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 12px;font-family:"Courier Prime",Courier,monospace;font-size:14px;line-height:1.5}
+.sblk{display:flex;flex-direction:column;align-items:center;padding:6px 8px;margin:4px 0;border-radius:6px}.sblk b{font-weight:700;letter-spacing:.06em}.sblk span{align-self:stretch;padding:0 6%}.sblk.mine{background:rgba(224,162,60,.16)}.sblk.mine b{color:var(--gold)}
+.scue{margin:12px 0 0;color:var(--mut);font-size:12.5px;font-family:Jost,system-ui,sans-serif}
+.sbody{background:var(--p1);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:-6px 0 12px}.sq{margin:6px 0;font-size:14px;line-height:1.45}.sq b{color:var(--mut);font-size:12px;letter-spacing:.08em;margin-right:6px}.sq.dim{color:var(--mut)}
+.sbody textarea{width:100%;box-sizing:border-box;margin-top:8px}
+.scard{background:var(--p1);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px;margin:0 0 12px}.scard.you{border-color:var(--gold);align-items:center;text-align:center;padding:24px 16px}
+.scuet{font-size:17px;line-height:1.4}.sline{font-family:"Courier Prime",Courier,monospace;font-size:24px;font-weight:700;letter-spacing:.2em;line-height:1.35}.sline.full{letter-spacing:0;font-size:19px;font-family:Jost,system-ui,sans-serif;font-weight:600}
+.sheard{border:1px solid #c0392b;border-radius:12px;padding:10px 14px;margin:0 0 12px;font-size:14px}.sheard b{color:#e0645a;margin-right:6px;font-size:12px;letter-spacing:.12em}
+.sresult{border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:0 0 12px;font-size:14px}.sresult.ok{border-color:var(--go);color:var(--go)}
+.smarks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 12px}.smarks button{min-height:52px;font-weight:800;letter-spacing:.08em}.smarks button[data-mark="got"]{border-color:var(--go);color:var(--go)}
+.scount{display:flex;justify-content:space-between;color:var(--mut);font-size:13.5px;margin:4px 2px 0}
 /* THE FRONT and the four steps (front.js) */
 .aosquiet{display:none!important}
 #aosHome,#readStep,#learnStep{max-width:760px;margin-left:auto;margin-right:auto}
@@ -3719,6 +3734,8 @@ document.addEventListener('keydown',e=>{
 </div>
 
 <script>try{setLevel(getLevel());renderDue();}catch(e){} try{renderDaily();}catch(e){} try{aosKit();}catch(e){}</script>
+<script src="../memorizer/engine.js"></script>
+<script src="steps.js"></script>
 <script src="front.js"></script>
 <script src="../shared/view.js"></script>
 </body></html>

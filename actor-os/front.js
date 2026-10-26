@@ -134,14 +134,10 @@
   function step(id, tool, what) {
     const el = $(id); if (!el) return;
     if (!hasSides()) { el.innerHTML = '<div class="fcard"><span class="fk">' + esc(what) + '</span><b class="fh">Bring in your sides first.</b><p class="fp">Paste the email, or drop the sides PDF, on the front.</p><button class="fgo" type="button" data-fgo="home">BRING IN YOUR SIDES</button></div>'; el.querySelectorAll('[data-fgo]').forEach(b => b.onclick = () => goTab(b.dataset.fgo)); return; }
-    const src = '../' + tool + '/?' + (window.SHELF_ID ? 'sides=' + encodeURIComponent(window.SHELF_ID) + '&' : 'open=1&') + 'embed=1';
-    const fr = el.querySelector('iframe');
-    if (!fr || fr.dataset.src !== src) el.innerHTML = '<iframe class="fstepframe" title="' + esc(what) + '" src="' + esc(src) + '" data-src="' + esc(src) + '"></iframe>'
-      + (id === 'learnStep' ? '<button class="fgo2" type="button" id="fGotIt">I\'VE GOT IT: SHOOT</button>' : '<button class="fgo2" type="button" data-fgo="learn">NEXT: LEARN IT</button>');
-    const g = $('fGotIt'); if (g) g.onclick = () => { try { localStorage.setItem('aos_learn_' + (window.SHELF_ID || ''), 'done'); } catch (e) { } goTab('shoot'); };
-    el.querySelectorAll('[data-fgo]').forEach(b => b.onclick = () => goTab(b.dataset.fgo));
+    /* drawn by Actor OS itself (steps.js): no second app inside this one */
+    if (window.AosSteps) { if (id === 'learnStep') AosSteps.learn(el); else AosSteps.read(el); }
   }
-  function shown(tab) { try { const jb = $('jobBlock'); if (jb) jb.classList.toggle('aosquiet', tab === 'home'); } catch (e) { } if (tab === 'home') home(); if (tab === 'read') step('readStep', 'breakdown', 'READ YOUR ROLE'); if (tab === 'learn') step('learnStep', 'memorizer', 'LEARN IT'); }
+  function shown(tab) { try { if (tab !== 'learn' && window.AosSteps) AosSteps.stop(); } catch (e) { } try { const jb = $('jobBlock'); if (jb) jb.classList.toggle('aosquiet', tab === 'home'); } catch (e) { } if (tab === 'home') home(); if (tab === 'read') step('readStep', 'breakdown', 'READ YOUR ROLE'); if (tab === 'learn') step('learnStep', 'memorizer', 'LEARN IT'); }
   window.AosFront = { home, shown, readEmail, details: on => { DETAILS = !!on; home(); }, learned: () => learned() === 'done' ? 'done' : null, _open: isOpen };
   /* the front draws once the rest of the page has loaded its sides and takes */
   const boot = () => { try { if (typeof CURTAB === 'undefined' || CURTAB === 'home') home(); } catch (e) { home(); } };
