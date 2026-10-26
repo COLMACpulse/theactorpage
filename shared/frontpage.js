@@ -1,5 +1,5 @@
 /* THEACTORPAGE · THE FRONT PAGE, your studio (index.html). Col, Oct 26.
-   A computer, set up: your studio, the three rooms (ACT, WRITE, FILM) as plain doors, Actor OS for your phone with a QR
+   A computer, set up: your studio, the three rooms (ACT, WRITE, FILM), each door with its house icon and each room under the slate sticks, Actor OS for your phone with a QR
    code, and your backup. A first visit: Start here, two things (your résumé, one headshot), then you're set.
    A phone: Actor OS, and Picture It; the studio is one tap away. The pitch lives on how.html.
    Reads on this device only: your profile (shared/you.js) and a count or two from the tools. Writes only your profile. */
@@ -51,25 +51,29 @@
     $('tlinks').innerHTML = h;
   }
 
+  const I = (id, cls) => window.Icons ? Icons.ring(id, cls) : '';
+  const B = id => window.Icons ? Icons.bare(id) : '';
   function studio() {
-    const c = counts(), d = (l, href, say) => '<a href="' + href + '"><b>' + esc(l) + '</b><span>' + esc(say) + '</span></a>';
+    const c = counts(), d = (ic, l, href, say) => '<a href="' + href + '">' + I(ic) + '<span><b>' + esc(l) + '</b><i>' + esc(say) + '</i></span></a>';
+    const room = (k, name, sub, doors) => '<section class="room ' + k + '" aria-label="' + name + '"><span class="sticks" aria-hidden="true"></span><div class="rin"><span class="k">' + name + '</span><span class="rsub">' + sub + '</span>' + doors + '</div></section>';
     return '<div class="shead"><h1>Your studio</h1><p>Set up here, at a desk. Audition day happens on your phone, in Actor OS.</p></div>'
       + '<div class="sgrid"><div class="rooms">'
-      + '<section class="room act" aria-label="ACT"><span class="k">ACT</span>'
-      + d('Your page', 'hub/', 'résumé, credits, press') + d('Headshots', 'headshots/', c.shots ? 'and your looks · ' + c.shots : 'and your looks')
-      + d('Contacts', 'contacts/', c.contacts ? 'who knows you · ' + c.contacts : 'who knows you') + d('Reel Room', 'archbook/', 'a reel for the role')
-      + d('Footage', 'footage/', 'get your scene, trim it') + d('Notes', 'notes/', 'what they told you') + d('Picture It', 'picture/', 'what you want') + '</section>'
-      + '<section class="room write" aria-label="WRITE"><span class="k">WRITE</span>'
-      + d('THEACTORPAGES', 'write/writers-blockage.html', 'write it, or talk it out') + d('Paper Trail', 'papertrail/', c.pt ? 'every draft · ' + n(c.pt, 'project') : 'every draft, kept and sent')
-      + d('Characters', 'characters/', 'every one, from every tool') + d('Set List', 'setlist/', 'funny, in order') + '</section>'
-      + '<section class="room film" aria-label="FILM"><span class="k">FILM</span>'
-      + d('Story Studio', 'film/', "shot list to editor's pack") + d('Film Hub', 'filmhub/', c.films ? 'your films · ' + c.films : 'your films')
-      + d('CHECK THE COPY', 'footage/check.html', 'before you erase a card') + '</section>'
+      + room('act', 'ACT', 'Your audition life, between auditions',
+        d('hub', 'Your page', 'hub/', 'résumé, credits, press') + d('head', 'Headshots', 'headshots/', c.shots ? 'and your looks · ' + c.shots : 'and your looks')
+        + d('contacts', 'Contacts', 'contacts/', c.contacts ? 'who knows you · ' + c.contacts : 'who knows you') + d('arch', 'Reel Room', 'archbook/', 'a reel for the role')
+        + d('footage', 'Footage', 'footage/', 'get your scene, trim it') + d('notes', 'Notes', 'notes/', 'what they told you') + d('viz', 'Picture It', 'picture/', 'what you want'))
+      + room('write', 'WRITE', 'Make your own: the page',
+        d('wb', 'THEACTORPAGES', 'write/writers-blockage.html', 'write it, or talk it out') + d('pt', 'Paper Trail', 'papertrail/', c.pt ? 'every draft · ' + n(c.pt, 'project') : 'every draft, kept and sent')
+        + d('chars', 'Characters', 'characters/', 'every one, from every tool') + d('set', 'Set List', 'setlist/', 'funny, in order'))
+      + room('film', 'FILM', 'Make your own: the shoot',
+        d('ss', 'Story Studio', 'film/', "shot list to editor's pack") + d('fh', 'Film Hub', 'filmhub/', c.films ? 'your films · ' + c.films : 'your films')
+        + d('slate', 'CHECK THE COPY', 'footage/check.html', 'before you erase a card'))
       + '</div><aside class="side">'
-      + '<div class="aos" id="aosCard"><span class="k">ACTOR OS · ON YOUR PHONE</span><b>Audition day: read it, learn it, shoot it, send it.</b>'
+      + '<div class="aos" id="aosCard"><span class="sticks" aria-hidden="true"></span><div class="ain"><span class="k">' + I('actor', 'sm') + 'ACTOR OS · ON YOUR PHONE</span><b>Audition day: read it, learn it, shoot it, send it.</b>'
+      + '<div class="fsteps4" aria-hidden="true"><span>READ</span><span>LEARN</span><span>SHOOT</span><span>SEND</span></div>'
       + '<div class="qr"><div class="code" aria-label="A code for your phone\'s camera: it opens Actor OS">' + qr(aosUrl()) + '</div><small>Point your phone\'s camera here, then Share › Add to Home Screen.</small></div>'
-      + '<small>Also in Actor OS: VO Booth, Read In, Spotted, a quick note.</small><a href="actor-os/">Open Actor OS here ›</a></div>'
-      + '<div class="yours"><span class="k">YOURS</span>Everything stays on this computer. Back it up, or move it to your phone, from <a href="device/">On This Device</a>.</div>'
+      + '<small>Also in Actor OS: VO Booth, Read In, Spotted, a quick note.</small><a href="actor-os/">Open Actor OS here ›</a></div></div>'
+      + '<div class="yours">' + I('dev') + '<div><span class="k">YOURS</span>Everything stays on this computer. Back it up, or move it to your phone, from <a href="device/">On This Device</a>.</div></div>'
       + '</aside></div>'
       + '<p class="foot"><a href="how.html">How it works</a><a href="how.html#act">Every tool</a><a href="how.html#cost">What it costs</a><a href="privacy/">Privacy</a></p>';
   }
@@ -80,10 +84,10 @@
     return '<div class="first"><div><span class="k lead">FOR ACTORS, AND THE ONES WHO WRITE AND SHOOT THEIR OWN</span>'
       + '<h1>Your studio on a computer.<br>Actor OS on your phone.</h1>'
       + '<p class="say">Set up your page, your headshots and your writing here. On audition day, your phone takes the sides to a sent tape. Free, and it all stays on your devices.</p>'
-      + '<div class="start" id="start"><b>Start here. Two things, then you\'re set.</b>'
+      + '<div class="start" id="start"><span class="sticks" aria-hidden="true"></span><div class="stin"><b>Start here. Two things, then you\'re set.</b>'
       + row('1 · Your résumé', 'PDF, Word or text. It fills in your credits, training and rep for every tool.', hasRes ? esc(y.resume.name) : '', '<label class="btn pri">ADD YOUR RÉSUMÉ<input type="file" id="stRes" accept=".pdf,.docx,.txt,.text,.rtf,.md"></label>')
       + row('2 · One headshot', 'It goes on your page, your slate and your postcard.', hasShot ? 'added' : '', '<label class="btn">ADD A HEADSHOT<input type="file" id="stShot" accept="image/*"></label>')
-      + '<span class="note">The rest fills in as you go. Sides come one audition at a time, on your phone.</span></div>'
+      + '<span class="note">The rest fills in as you go. Sides come one audition at a time, on your phone.</span></div></div>'
       + '<div class="alt"><a href="demo/?try">Or try it with a sample scene first ›</a><button type="button" class="lnk" id="stSkip" style="background:none;border:0;padding:0;color:var(--dim);font-size:14px">Skip, show me the studio ›</button></div></div>'
       + '<aside class="inside"><span class="k">WHAT\'S IN THE STUDIO</span>'
       + '<div class="ib act"><span class="k">ACT</span>Your page, headshots, contacts, reels, footage, notes, Picture It</div>'
@@ -94,12 +98,14 @@
   }
 
   function phone() {
-    return '<div class="phone"><div class="pcard"><span class="k">ON YOUR PHONE</span><b>Actor OS. Sides in, tape sent.</b>'
+    const st = (ic, w) => '<span>' + B(ic) + w + '</span>';
+    return '<div class="phone"><div class="pcard"><span class="sticks" aria-hidden="true"></span><div class="pin"><span class="k">' + I('actor', 'sm') + 'ON YOUR PHONE</span><b>Actor OS. Sides in, tape sent.</b>'
       + '<p>Read your role, learn it, shoot it and send it the way they asked.</p>'
-      + '<a class="btn pri" href="actor-os/" id="pAos">OPEN ACTOR OS</a><small>Then Share › Add to Home Screen, and it opens like an app.</small></div>'
-      + '<a class="plink" href="picture/"><b>Picture It</b><span>What you want, where you can see it.</span></a>'
-      + '<div class="pst"><span class="k">THE STUDIO</span>Your page, headshots, writing and films are built for a computer. Open theactorpage.com there.'
-      + '<button type="button" id="pStudio">Open the studio here anyway ›</button></div>'
+      + '<div class="psteps" aria-hidden="true">' + st('break', 'READ') + st('mem', 'LEARN') + st('slate', 'SHOOT') + st('send', 'SEND') + '</div>'
+      + '<a class="btn pri" href="actor-os/" id="pAos">OPEN ACTOR OS</a><small>Then Share › Add to Home Screen, and it opens like an app.</small></div></div>'
+      + '<a class="plink" href="picture/">' + I('viz', 'dim') + '<span><b>Picture It</b><span>What you want, where you can see it.</span></span></a>'
+      + '<div class="pst">' + I('hub', 'dim') + '<div><span class="k">THE STUDIO</span>Your page, headshots, writing and films are built for a computer. Open theactorpage.com there.'
+      + '<button type="button" id="pStudio">Open the studio here anyway ›</button></div></div>'
       + '<p class="foot"><a href="how.html">How it works</a><a href="how.html#cost">What it costs</a><a href="privacy/">Privacy</a></p></div>';
   }
 
