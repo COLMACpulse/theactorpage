@@ -1,6 +1,6 @@
 /* HEADSHOTS offline shell. Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='headshots-0.1.17';
-const FILES=['../shared/tour.js','../shared/view.js','./','../shared/hot.js', 'index.html','app.js','manifest.webmanifest','../shared/you.js','../shared/capture.js','../shared/kit.js','../shared/headshots.js','../shared/liveshot.js','../img/sigil-film-180.png',
+const CACHE='headshots-0.1.18';
+const FILES=['../shared/icons.js','../shared/tour.js','../shared/view.js','./','../shared/hot.js', 'index.html','app.js','manifest.webmanifest','../shared/you.js','../shared/capture.js','../shared/kit.js','../shared/headshots.js','../shared/liveshot.js','../img/sigil-film-180.png',
  'fonts/jost-latin-400-normal.woff2','fonts/jost-latin-500-normal.woff2','fonts/jost-latin-600-normal.woff2',
  'fonts/courier-prime-latin-400-normal.woff2','fonts/courier-prime-latin-700-normal.woff2',
  'icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png'];

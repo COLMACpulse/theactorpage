@@ -42,14 +42,14 @@
       + '<small>' + esc([x.company && C.key(x.company) !== C.key(x.name) ? x.company + (p && p.beat ? ', ' + p.beat : '') : '', x.from.join(' · ')].filter(Boolean).join(' · ') || (p && p.city) || 'Added by you') + '</small></span>' + (tag ? '<span class="tag">' + tag + '</span>' : '') + '</button>';
   }
   const listed = () => C.everyone(SRC).filter(x => inF(x, S.role) && C.match(x, S.q));
-  function listHtml() { const L = listed(); return L.length ? L.map(row).join('') : '<p class="empty">' + (S.q || S.role ? 'Nobody here for that.' : 'Nobody yet. They show up on their own when your tools meet them: an office on an audition in the Hub, a guest in NOTES, a name on your credits, casting on something you spotted.') + '</p>'; }
+  function listHtml() { const L = listed(); return L.length ? L.map(row).join('') : '<p class="empty"' + (S.q || S.role ? '' : ' data-icbig="contacts"') + '>' + (S.q || S.role ? 'Nobody here for that.' : 'Nobody yet. They show up on their own when your tools meet them: an office on an audition in the Hub, a guest in NOTES, a name on your credits, casting on something you spotted.') + '</p>'; }
   function repsHtml() {
     const mine = C.myReps();
     let h = '<p class="kicker">Your reps</p><div class="card" id="repsbox">';
     h += mine.length ? mine.map(p => '<div class="rep"><span class="pt"><b>' + esc(p.name) + '</b><small>' + esc([C.roleName(p.role).toLowerCase(), p.rep && p.rep.kind ? C.kindName(p.rep.kind).toLowerCase() : '', p.company].filter(Boolean).join(' · ')) + '</small></span>'
       + (p.email ? '<a class="mini" href="mailto:' + esc(p.email) + '">EMAIL</a>' : '') + (p.phone ? '<a class="mini" href="tel:' + esc(tel(p.phone)) + '">CALL</a>' : '') + '<button class="mini" data-open="' + esc(p.id) + '" aria-label="Details for ' + esc(p.name) + '">›</button></div>').join('')
       + '<p class="faint small" style="margin:10px 0 0">Spotted, FOR MY REPS and the résumé send to them.</p>'
-      : '<p class="dim small" style="margin:0 0 10px">No agent or manager here yet. Add yours and Spotted, FOR MY REPS and the résumé send to them.</p><button class="btn block" id="addmine">ADD YOUR REP</button>';
+      : '<p class="dim small" style="margin:0 0 10px">No agent or manager here yet. Add yours and Spotted, FOR MY REPS and the résumé send to them.</p><button class="btn block" id="addmine" data-ic="plus">ADD YOUR REP</button>';
     return h + '</div>';
   }
   function addRepHtml() {
@@ -63,7 +63,7 @@
   }
   function lookHtml() {
     const look = C.looking().sort((a, b) => a.name.localeCompare(b.name));
-    let h = '<details class="fold" id="lookfold"' + (S.look ? ' open' : '') + '><summary>LOOKING FOR A REP?</summary>';
+    let h = '<details class="fold" id="lookfold"' + (S.look ? ' open' : '') + '><summary data-icr="spot" data-icc="you" data-say="who to ask, and how"><span data-icl>LOOKING FOR A REP?</span></summary>';
     h += look.length ? '<div class="card" style="padding:4px 14px;background:var(--bg)">' + look.map(p => { const r = p.rep || {};
       return '<div class="look" data-rep="' + p.id + '"><div class="row" style="justify-content:space-between"><span class="pt"><b>' + esc(p.name) + '</b><small>' + esc([C.roleName(p.role).toLowerCase(), p.company, r.kind ? C.kindName(r.kind).toLowerCase() : ''].filter(Boolean).join(' · ')) + '</small></span><button class="mini" data-open="' + p.id + '">DETAILS</button></div>'
         + '<div class="grid2"><div><label class="lab">Reached out</label><input class="field" type="date" data-sent value="' + esc(r.sent || '') + '"></div><div><label class="lab">How they take submissions</label><select class="field" data-how>' + opts(C.HOW, r.how || 'unknown') + '</select></div></div>'
@@ -97,7 +97,7 @@
     if (S.adding) h += '<div class="card" id="detail"><p class="kicker">Add a person</p>' + personForm(null) + '<div class="row" style="margin-top:12px"><button class="btn pri" id="keepnew">ADD</button><button class="btn ghost" data-close>CANCEL</button></div></div>';
     h += '<div class="card list" id="plist">' + listHtml() + '</div></div>';
     h += '<div class="colB">' + repsHtml() + (S.addingRep ? addRepHtml() : '')
-      + '<div class="row" style="margin:0 0 12px"><button class="btn pri" id="add" style="flex:1">ADD A PERSON</button><label class="btn" id="listbtn" style="flex:1">BRING IN A LIST<input type="file" id="listfile" accept=".csv,.tsv,.txt,.xlsx,text/csv" hidden></label></div>'
+      + '<div class="row" style="margin:0 0 12px"><button class="btn pri" id="add" data-ic="plus" style="flex:1">ADD A PERSON</button><label class="btn" id="listbtn" data-ic="pt" style="flex:1">BRING IN A LIST<input type="file" id="listfile" accept=".csv,.tsv,.txt,.xlsx,text/csv" hidden></label></div>'
       + lookHtml() + '</div></div>';
     return h;
   }

@@ -26,7 +26,7 @@
       /* inside the tools: an icon on a button, a row, an empty card; a thin stick along the top of a card */
       + '[data-ic]{gap:10px}[data-ic]>svg.ic.bare{margin:0 2px 0 0;vertical-align:-4px}'
       + '.icrow{display:flex!important;align-items:center;gap:14px}.icrow>svg.ic{width:38px;height:38px}.icrow .icsay{display:block;font-size:13px;letter-spacing:0;text-transform:none;font-weight:400;opacity:.75;margin-top:2px}'
-      + '.icbig{display:flex!important;align-items:center;gap:18px}.icbig>svg.ic{width:64px;height:64px}'
+      + '.icbig{display:flex!important;align-items:center;gap:18px}.icbig>svg.ic{width:64px;height:64px}@media(max-width:600px){.icbig{flex-direction:column;align-items:flex-start!important;gap:10px}.icbig>svg.ic{width:48px;height:48px}}[data-ic]{white-space:nowrap}'
       + '[data-stick]{position:relative;overflow:hidden;padding-top:calc(var(--stick-pad,14px) + 10px)!important}[data-stick]::before{content:"";position:absolute;left:0;right:0;top:0;height:10px;background:url("' + STICKS + '") repeat-x 0 50%/auto 100%;opacity:.95}'
       + room + '@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) ' + roomD.replace(/\}\./g, '}:root:not([data-theme="light"]) .') + '}:root[data-theme="dark"] ' + roomD.replace(/\}\./g, '}:root[data-theme="dark"] .') + '</style>';
     (document.body || document.documentElement).appendChild(d);

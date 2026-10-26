@@ -27,14 +27,14 @@
   }
   async function wall() {
     const want = G.wanted(), got = G.gotten();
-    let h = tabs('wall') + '<div class="addbar"><button class="btn" type="button" id="addOpen">ADD WHAT YOU WANT</button>' +
+    let h = tabs('wall') + '<div class="addbar"><button class="btn" type="button" id="addOpen" data-ic="plus">ADD WHAT YOU WANT</button>' +
       (G.all().some(w => w.kind !== 'milestone' && w.kind !== 'role' && w.kind !== 'other') ? '<button class="btn ghost" type="button" id="news">CHECK THE NEWS</button>' : '') +
       (G.all().length ? '<button class="btn ghost" type="button" id="lockGo">MAKE IT MY LOCK SCREEN</button>' : '') + '</div><p class="msg" id="msg" role="status">' + esc(MSG) + '</p>';
     h += '<div class="card hide" id="addBox"><p class="kick">ADD WHAT YOU WANT</p><label class="lab" for="a_t">WHAT IS IT</label><input class="field" id="a_t" placeholder="The show, the film, the person, the role, the milestone" autocomplete="off">' +
       '<div class="chips" id="a_k">' + G.KINDS.map(k => '<button type="button" class="chip' + (k[0] === KIND ? ' on' : '') + '" data-k="' + k[0] + '">' + esc(k[1].toUpperCase()) + '</button>').join('') + '</div>' +
       '<div class="row" style="margin-top:10px"><label class="btn quiet">ADD A PICTURE<input type="file" id="a_p" accept="image/*"></label><span class="mut small" id="a_pn">A screenshot of the poster, a photo, anything that makes you see it.</span></div>' +
       '<div class="row" style="margin-top:12px"><button class="btn" type="button" id="a_go">PUT IT ON THE WALL</button><button class="btn quiet" type="button" id="a_x">CANCEL</button></div></div>';
-    if (!want.length && !got.length) h += '<div class="card"><p class="kick">YOUR WALL IS EMPTY</p><p class="dim">The show you want to be on. The director you want to work with. Your union card. Put it up here, with a picture, and keep it where you see it every day. When it happens, it stays up, with the date.</p></div>';
+    if (!want.length && !got.length) h += '<div class="card" data-stick data-icbig="viz"><p class="kick">YOUR WALL IS EMPTY</p><p class="dim">The show you want to be on. The director you want to work with. Your union card. Put it up here, with a picture, and keep it where you see it every day. When it happens, it stays up, with the date.</p></div>';
     if (want.length) { h += '<h2>WANT IT <i>' + want.length + '</i></h2><div class="wallbox"><div class="wall">'; for (const w of want) h += await tile(w); h += '</div></div>'; }
     if (got.length) { h += '<h2>GOT IT <i>' + got.length + '</i></h2><div class="wallbox"><div class="wall">'; for (const w of got) h += await tile(w); h += '</div></div>'; }
     V.innerHTML = h; wireTabs();

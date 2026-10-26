@@ -14,7 +14,7 @@ await p.goto('http://localhost:8811/footage/'); await p.evaluate(()=>{ localStor
  const k=Footage.add({title:'Harbor Lights',role:'Deckhand',kind:'tv',out:'2025-09-01'}); Footage.addClip(k.id,{name:'Harbor_Lights_Deckhand_clip.mp4',secs:41}); });
 await p.reload(); await p.waitForTimeout(700);
 const v=await p.innerText('#view'), w=await p.innerText('#waiting'), h=await p.innerText('#have');
-want('header: get your footage', /YOU · FOOTAGE/i.test(await p.textContent('header'))&&/Get your footage/.test(await p.innerText('header')));
+want('header: get your footage', /ACT · FOOTAGE/i.test(await p.textContent('header'))&&/Get your footage/.test(await p.innerText('header')));
 want('no reminders: nothing that needs you, no counts by stage', !/needs you|time to follow up|comes out in \d+ days/i.test(v)&&!(await p.$('.chips')), v.slice(0,300));
 want('still waiting on it: 3, each with what to do', /Salt Road · Sheriff[\s\S]*out since Feb 1, 2026 on Made Up TV · ask the producer[\s\S]*ASK FOR IT/.test(w)&&/Dry Gulch · Deputy[\s\S]*you asked the editor Apr 2, 2026[\s\S]*ASK AGAIN/.test(w)&&/Morning Brew · Dad[\s\S]*comes out/.test(w), w);
 want('you have it: trim, or how many clips', /Low Tide · Dock Cop[\s\S]*the file is here · no clip yet[\s\S]*TRIM YOUR MOMENT/.test(h)&&/Harbor Lights · Deckhand[\s\S]*1 clip · in Reel Room[\s\S]*TRIM ANOTHER/.test(h), h);

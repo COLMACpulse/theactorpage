@@ -18,7 +18,7 @@ await h.waitForTimeout(600);
 const p=await cx.newPage(); p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
 await p.goto('http://localhost:8811/contacts/'); await p.waitForTimeout(1000);
 let v=await p.innerText('#view');
-want('header: who knows you', /YOU · CONTACTS/i.test(await p.textContent('header'))&&/Who knows you/.test(await p.innerText('header')));
+want('header: who knows you', /ACT · CONTACTS/i.test(await p.textContent('header'))&&/Who knows you/.test(await p.innerText('header')));
 want('no tabs, no KEPT or FROM YOUR TOOLS tags', !(await p.$('.tabs'))&&!/FROM YOUR TOOLS|\bKEPT\b/.test(v));
 want("the office shows up on its own, one entry, with how you know them", /Dana Pell/.test(v)&&(await p.$$("#plist .person")).length===1&&/Hub: 2 auditions, last DRY CREEK/.test(v), v.slice(0,500));
 want('light theme', await p.evaluate(()=>getComputedStyle(document.body).backgroundColor)==='rgb(236, 231, 220)');

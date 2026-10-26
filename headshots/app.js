@@ -88,25 +88,25 @@ function liveRow(y){ const L=y.live; if(!L) return '';
  return '<div class="liverow" id="liverow"><video data-live class="lthumb" muted loop playsinline'+(RM()?'':' autoplay')+'></video><div class="lt"><b>The live one</b><span class="dim small">'+esc([mmss(L.secs),'loops','shot '+day(L.added),L.sound?'with sound':'no sound',st?'a still kept from it':''].filter(Boolean).join(' · '))+'</span></div><div class="row"><button type="button" class="btn sm" id="lsave">SAVE THE FILE</button><button type="button" class="btn sm ghost" id="lagain">SHOOT A NEW ONE</button><button type="button" class="lnk faint" id="lrm">remove</button></div></div>';
 }
 function exampleHtml(){
- return '<section class="example" id="example" data-step="0" aria-label="Example, how it works"><p class="kicker" style="margin:0 0 10px">EXAMPLE · HOW IT WORKS</p><div class="exgrid"><div class="exhero"><div class="exwho">'+SIL+'</div><span class="badge exlive"><i class="dot"></i>LIVE · 0:05 LOOP</span><span class="extag">KEEP</span></div>'
+ return '<section class="example" id="example" data-stick data-step="0" aria-label="Example, how it works"><p class="kicker" style="margin:0 0 10px">EXAMPLE · HOW IT WORKS</p><div class="exgrid"><div class="exhero"><div class="exwho">'+SIL+'</div><span class="badge exlive"><i class="dot"></i>LIVE · 0:05 LOOP</span><span class="extag">KEEP</span></div>'
   +'<ol class="exsteps"><li data-n="0"><b>Add your headshots.</b> The same ones your page and the Hub use.</li><li data-n="1"><b>Say what each one is for,</b> in your own words. Keep, retest or retire.</li><li data-n="2"><b>Shoot a live one:</b> five seconds of you. It loops.</li><li data-n="3"><b>Pick STILL or LIVE.</b> The live one plays on your page and the postcard.</li></ol></div><p class="faint small" style="margin:10px 0 0">An example. Nothing here is yours until you add it.</p></section>';
 }
 function playExample(){ clearInterval(EXT); const ex=$('example'); if(!ex||RM()) return; let n=0; EXT=setInterval(()=>{ const e=$('example'); if(!e){ clearInterval(EXT); return; } n=(n+1)%4; e.dataset.step=n; },2200); }
 function photosView(y){
  const hs=Y.headshots(), none=!hs.length&&!y.live;
  let h='<div class="front">';
- if(none){ h+='<div class="startrow"><label class="btn pri big"><input type="file" id="hf" accept="image/*" multiple hidden>+ ADD HEADSHOTS</label><button type="button" class="btn big" id="shoot"><i class="dot"></i>SHOOT A LIVE ONE</button></div>'+exampleHtml(); }
+ if(none){ h+='<div class="startrow"><label class="btn pri big" data-ic="plus"><input type="file" id="hf" accept="image/*" multiple hidden>ADD HEADSHOTS</label><button type="button" class="btn big" id="shoot"><i class="dot"></i>SHOOT A LIVE ONE</button></div>'+exampleHtml(); }
  else {
   h+='<div class="fgrid"><div class="fl">'+leadHtml(y)+'</div><div class="fr">';
-  h+='<div class="lhead"><span class="kicker" style="margin:0">YOUR HEADSHOTS · '+hs.length+'</span><span class="row"><label class="btn sm"><input type="file" id="hf" accept="image/*" multiple hidden>+ ADD HEADSHOTS</label><button type="button" class="btn sm pri" id="shoot"><i class="dot"></i>SHOOT A LIVE ONE</button></span></div>';
+  h+='<div class="lhead"><span class="kicker" style="margin:0">YOUR HEADSHOTS · '+hs.length+'</span><span class="row"><label class="btn sm" data-ic="plus"><input type="file" id="hf" accept="image/*" multiple hidden>ADD HEADSHOTS</label><button type="button" class="btn sm pri" id="shoot"><i class="dot"></i>SHOOT A LIVE ONE</button></span></div>';
   h+='<div class="shots">'+hs.map(p=>cardHtml(p,y)).join('')+'</div>';
   const o=OPEN&&hs.find(p=>p.id===OPEN); if(o) h+=detailHtml(o,y);
   h+=liveRow(y);
   h+='</div></div>';
  }
  /* YOUR LOOKS (Col, Oct 26): Looks lives in Headshots now, as a tab: a look is a set of headshots with its skills */
- h+='<div class="planning"><p class="kicker">FOR COMMERCIAL WORK</p><button type="button" class="fold" data-t="looks"><b>YOUR LOOKS</b><span>Each look in your words: its photos, its skills, a live one if you want</span><i>OPEN</i></button></div>';
- h+='<div class="planning"><p class="kicker">WHEN YOU\'RE PLANNING A SHOOT</p><button type="button" class="fold" data-t="plan"><b>THE PLAN</b><span>What you\'re called in for, what you want to be seen for, which have a keeper</span><i>OPEN</i></button><button type="button" class="fold" data-t="brief"><b>FOR THE PHOTOGRAPHER</b><span>A brief and your references, in your words</span><i>OPEN</i></button></div>';
+ h+='<div class="planning"><p class="kicker">FOR COMMERCIAL WORK</p><button type="button" class="fold" data-t="looks" data-icr="looks"><b>YOUR LOOKS</b><span>Each look in your words: its photos, its skills, a live one if you want</span><i>OPEN</i></button></div>';
+ h+='<div class="planning"><p class="kicker">WHEN YOU\'RE PLANNING A SHOOT</p><button type="button" class="fold" data-t="plan" data-icr="plan" data-icc="you"><b>THE PLAN</b><span>What you\'re called in for, what you want to be seen for, which have a keeper</span><i>OPEN</i></button><button type="button" class="fold" data-t="brief" data-icr="notes" data-icc="you"><b>FOR THE PHOTOGRAPHER</b><span>A brief and your references, in your words</span><i>OPEN</i></button></div>';
  h+=(window.Kit?'<div class="kitwrap">'+Kit.html([{id:'tshot',dev:'camera',label:'CAMERA',what:'Take a test shot',note:'Front or back camera. Reads the light and focus where you\'re standing. Kept only if you add it'}])+'</div>':'');
  return h+'</div>';
 }

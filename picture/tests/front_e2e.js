@@ -17,7 +17,7 @@ for(const [nm,vp,cs] of [['desk',{width:1280,height:900},'light'],['phone',{widt
   await p.goto('http://localhost:8811/picture/'); await p.waitForTimeout(800);
   const bg=await p.evaluate(()=>getComputedStyle(document.body).backgroundColor);
   want(nm+': the theme', bg===(cs==='dark'?'rgb(18, 17, 16)':'rgb(236, 231, 220)'), bg);
-  want(nm+': the house header, the sticks', /YOU · PICTURE IT/i.test(await p.innerText('header'))&&/What you want, where you see it/.test(await p.innerText('header h1'))&&!!(await p.$('.hstk'))&&!!(await p.$('img.bsig')));
+  want(nm+': the house header, the sticks', /ACT · PICTURE IT/i.test(await p.innerText('header'))&&/What you want, where you see it/.test(await p.innerText('header h1'))&&!!(await p.$('.hstk'))&&!!(await p.$('img.bsig')));
   want(nm+': the two tabs kept', /THE WALL/.test(await p.innerText('.tabsrow'))&&/SHAMELESS PLUG/.test(await p.innerText('.tabsrow')));
   want(nm+': the wall in its frame, with counts', (await p.$$('.wallbox')).length===2&&/WANT IT\s*3/.test(await p.innerText('#view'))&&/GOT IT\s*1/.test(await p.innerText('#view')));
   want(nm+': no picture: its name and its kind, colored by kind', await p.$eval('.poster[data-kind=person] .type',e=>/DANA WOLFE/.test(e.innerText)&&/PERSON/.test(e.innerText)&&getComputedStyle(e).backgroundColor!==getComputedStyle(document.querySelector('.poster[data-kind=milestone] .type')).backgroundColor));

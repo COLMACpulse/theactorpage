@@ -136,9 +136,9 @@ function homeView(){
  const all=N.all(), P=N.people().filter(p=>!N.SELF.test(p.name)), R=N.repeats(2), cur=U.cur?N.session(U.cur):null;
  let h='<div class="hgrid"><div class="hl">';
  if(cur) h+='<button class="btn block backroom" data-open="'+cur.id+'">BACK TO THE ROOM <span class="dim">'+esc(cur.who.map(w=>w.name).filter(Boolean).join(', ')||roomName(cur.room))+'</span></button>';
- h+='<button class="btn pri big block" id="newroom">+ A ROOM YOU WERE IN</button>';
+ h+='<button class="btn pri big block" id="newroom" data-ic="plus">A ROOM YOU WERE IN</button>';
  if(!all.notes.length&&!P.length){
-  h+='<div class="card how"><ol><li><b>A class, a workshop, a callback:</b> say who was in the room.</li><li><b>Keep what they told you,</b> in their words, typed or said. Tape yourself if you want.</li><li><b>Over time:</b> what each person told you, and what more than one of them said.</li></ol><p class="faint small" style="margin:8px 0 0">When one of them calls you in, home tells you that you\'ve met, and what they said.</p></div>';
+  h+='<div class="card how" data-stick data-icbig="notes"><ol><li><b>A class, a workshop, a callback:</b> say who was in the room.</li><li><b>Keep what they told you,</b> in their words, typed or said. Tape yourself if you want.</li><li><b>Over time:</b> what each person told you, and what more than one of them said.</li></ol><p class="faint small" style="margin:8px 0 0">When one of them calls you in, home tells you that you\'ve met, and what they said.</p></div>';
   return h+'</div></div>';
  }
  if(R.length) h+='<div class="card rep1"><p class="kicker" style="color:var(--tung-text)">MORE THAN ONE OF THEM SAID IT</p>'+R.slice(0,3).map(r=>{ const ns=all.notes.filter(n=>r.notes.includes(n.id)), who=[...new Set(ns.map(n=>n.giver).filter(Boolean))];
