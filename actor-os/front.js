@@ -79,7 +79,7 @@
   }
   /* YOUR DAYS TO THE DEADLINE: The Plan's own rules (shared/plan.js), from the email you pasted. Folded until you tap. */
   const TABOF = { read: 'read', breakdown: 'read', learn: 'learn', run: 'shoot', tape: 'shoot', send: 'send' };
-  function days() { try { const r = req(); if (!window.Plan || !r || !r.raw) return []; const today = Plan.iso(new Date()), h = Plan.hear(r.raw, today, {}); if (!h || !h.due) return []; return (Plan.build(h, today).steps || []).filter(x => x.date >= today); } catch (e) { return []; } }
+  function days() { try { const r = req(); if (!window.Plan || !r || !r.raw) return []; const today = Plan.iso(new Date()), h = Plan.hear(r.raw, today, {}); if (!h || !h.due) return []; return (Plan.build(h, today, { aos: true }).steps || []).filter(x => x.date >= today); } catch (e) { return []; } }
   function daysHtml() {
     const D = days(); if (!D.length) return '';
     const today = Plan.iso(new Date()), dn = new Set(D.map(x => x.date)).size;

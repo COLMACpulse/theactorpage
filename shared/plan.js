@@ -125,8 +125,9 @@
   };
 
   /* ---------- the plan: from the deadline back to today ---------- */
-  P.build = function (h, day) {
-    day = day || iso(new Date()); h = h || {};
+  /* opts.aos: the words Actor OS uses for its own steps (READ, LEARN), since it opens them in place (Oct 27) */
+  P.build = function (h, day, opts) {
+    day = day || iso(new Date()); h = h || {}; const AOS = !!(opts && opts.aos);
     const steps = [], heads = [];
     const due = h.due && h.due >= day ? h.due : '', tape = (h.tape || []).filter(d => d >= day && (!due || d <= due));
     const tapeDay = tape[0] || (due ? (diff(day, due) >= 1 ? add(due, -1) : due) : ''), backup = tape[1] || '';
@@ -137,8 +138,8 @@
     if (tapeDay) {
       const room = diff(day, tapeDay), runDay = room >= 1 ? add(tapeDay, -1) : day;
       const bdDay = room >= 3 ? add(day, 1) : day, learnDay = room >= 3 ? add(bdDay, 1) : room >= 2 ? add(day, 1) : day;
-      S(bdDay, 'Break it down: who you\'re talking to, what you want, scene by scene.', 'breakdown/?open=1', 'breakdown');
-      S(learnDay, 'Get off book in Memorizer. The lines you miss come back first.', 'memorizer/?open=1', 'learn');
+      S(bdDay, AOS ? 'READ it closely: who you\'re talking to, what you want, scene by scene.' : 'Break it down: who you\'re talking to, what you want, scene by scene.', 'breakdown/?open=1', 'breakdown');
+      S(learnDay, AOS ? 'LEARN it: get off book. The lines you miss come back first.' : 'Get off book in Memorizer. The lines you miss come back first.', 'memorizer/?open=1', 'learn');
       if (h.reader === 'have') S(runDay, 'Run it with your reader, and lock in a time with them for the tape.', 'actor-os/?open=1', 'run');
       else if (h.reader === 'need') S(day, 'Find a reader: read their lines once yourself in Actor OS, or send a friend the link to read in.', 'actor-os/?open=1', 'reader');
       else S(runDay, 'Run it out loud, with a reader or the one you recorded in Actor OS.', 'actor-os/?open=1', 'run');

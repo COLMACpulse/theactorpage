@@ -20,6 +20,9 @@ want('heard: the rest kept as you said it', h.notes.join('|') === 'same universe
 want('heard: "see casting notice" is never an office', !/notice/i.test(h.office));
 const b = P.build(h, D), L = b.steps.map(s => P.dayLabel(s.date, D) + ' | ' + s.what);
 want('the plan: read today with the notice, break it down, learn, run with your reader, tape, send', /^Today \| Read the sides and the casting notice/.test(L[0]) && /^Tomorrow \| Break it down/.test(L[1]) && /^Saturday \| Get off book/.test(L[2]) && /^Tuesday \| Run it with your reader/.test(L[3]) && /^Wednesday \| TAPE IT\. Backup: Thu, Oct 29 early, done by 9:00 AM\.$/.test(L[4]) && /^Thu, Oct 29 \| SEND IT by 10:00 AM, an hour before it's due: direct submit on Actors Access\./.test(L[5]), L);
+{ const A = P.build(h, D, { aos: true }).steps.map(s => s.what);
+  want('in Actor OS the same days say READ and LEARN, never another tool', A.some(x => /^READ it closely: who you're talking to/.test(x)) && A.some(x => /^LEARN it: get off book\. The lines you miss come back first\./.test(x)) && !A.some(x => /Memorizer|Break it down/.test(x)), A);
+  want('the days and the order are the same either way', JSON.stringify(P.build(h, D, { aos: true }).steps.map(s => s.date + s.kind)) === JSON.stringify(b.steps.map(s => s.date + s.kind))); }
 want('heads up: away, and where you and your reader will be on tape day', b.heads.join('|') === 'Working next week in ohio.|Your tape day is Wednesday. Where will you and your reader be?', b.heads);
 /* another way of saying it */
 const h2 = P.hear('Co-star on Night Shift for Mesa Casting. Never read for them. Due friday 10/30 by 5pm, send it to my agent. Need a reader. She is a nurse who has seen it all.', D, { titles: ['Night Shift'] });
