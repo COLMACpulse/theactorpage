@@ -153,6 +153,18 @@ A.stitch=async function(items,opts){
 
  const total=vids.reduce((n,x)=>n+(isFinite(x.v.duration)?x.v.duration:0),0)||1;
  let elapsed=0;
+ /* a clip of another shape sits whole on black (never stretched) */
+ const fitDraw=v=>{ const vw=v.videoWidth||outW, vh=v.videoHeight||outH;
+  if(Math.abs(vw/vh-outW/outH)<0.01){ ctx.drawImage(v,0,0,outW,outH); return; }
+  const k=Math.min(outW/vw,outH/vh), w=vw*k, h=vh*k; ctx.fillStyle='#000'; ctx.fillRect(0,0,outW,outH); ctx.drawImage(v,(outW-w)/2,(outH-h)/2,w,h); };
+ /* opts.card {lines:[big, small...], secs}: a plain card first, your name from Your page (Footage, Oct 27) */
+ if(o.card&&o.card.lines&&o.card.lines.length){
+  const secs=o.card.secs||2.5, t0=performance.now();
+  await new Promise(resolve=>{ const tick=()=>{ if(performance.now()-t0>=secs*1000){ resolve(); return; }
+    ctx.fillStyle='#000'; ctx.fillRect(0,0,outW,outH); ctx.fillStyle='#f2efe8'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    o.card.lines.forEach((l,k)=>{ const z=k?Math.round(outH/20):Math.round(outH/10); ctx.font=(k?'500 ':'600 ')+z+'px Jost, system-ui, sans-serif'; ctx.fillText(String(l),outW/2,outH/2+(k?Math.round(outH/14)+ (k-1)*Math.round(outH/16):-Math.round(outH/30))); });
+    requestAnimationFrame(tick); }; requestAnimationFrame(tick); });
+ }
  for(let i=0;i<vids.length;i++){
   const v=vids[i].v;
   let node=null;
@@ -165,7 +177,7 @@ A.stitch=async function(items,opts){
   await new Promise(resolve=>{
    const tick=()=>{
     if(v.ended||v.currentTime>=(v.duration-0.05)){ resolve(); return; }
-    ctx.drawImage(v,0,0,outW,outH);
+    fitDraw(v);
     if(o.onProgress)o.onProgress(Math.min(1,(elapsed+v.currentTime)/total), vids[i].name);
     requestAnimationFrame(tick);
    };

@@ -65,7 +65,9 @@
     h += '<div class="lbar"><input class="field find" id="find" placeholder="Find: a show, a scene, a name, a date" value="' + esc(S.q) + '" autocomplete="off" aria-label="Find a piece"><button type="button" class="chip' + (S.here ? ' on' : '') + '" id="here">ONLY WHAT PLAYS HERE</button></div>';
     if (S.msg) h += '<p class="msg" id="msg">' + esc(S.msg) + '</p>';
     h += '<div class="grid lib"><div class="colA">';
-    if (!P.length) h += '<div class="card" data-stick data-icbig="footage"><div><b>Nothing in your library yet.</b><p class="dim" style="margin:4px 0 0">Add the drives and folders your footage is on, or videos from this device. Your self-tapes, VO takes and clips from the other tools show up here on their own.</p></div></div>';
+    if (!P.length) h += '<div class="card first" data-stick><p class="kicker">Nothing in your library yet</p><b class="fbig">Bring in your clips. Pick as many as you want.</b><p class="dim" style="margin:6px 0 14px">Your self-tapes, scenes from set, the short you made. Each one gets a small copy that plays here any time; the original stays where it is.</p>'
+      + '<label class="btn pri big" data-ic="plus">ADD YOUR CLIPS<input type="file" id="addvids0" accept="video/*,audio/*" multiple hidden></label><p class="faint small" style="margin:8px 0 0">Kept on this device. Nothing is uploaded anywhere. Takes you keep in Actor OS show up here on their own.</p>'
+      + '<p class="dim small" style="margin:14px 0 0"><b>Then:</b> watch it, trim a moment, put moments together, make it one file and send it.</p></div>';
     else if (!shown.length) h += '<p class="empty">Nothing by that.</p>';
     const groups = {}; shown.forEach(p => { const k = p.title ? M.norm(p.title) : '~'; (groups[k] = groups[k] || { title: p.title, list: [] }).list.push(p); });
     Object.keys(groups).sort((a, b) => a === '~' ? 1 : b === '~' ? -1 : groups[a].title.localeCompare(groups[b].title)).forEach(k => { const g = groups[k], open = S.open[k] || q.length, L = open ? g.list : g.list.slice(0, 8);
@@ -77,10 +79,10 @@
     h += '<p class="kicker">Put together</p>' + (sets.length ? sets.map(x => '<button type="button" class="card place" data-set="' + x.id + '"><span class="pt"><b>' + esc(x.name) + '</b><small>' + n(x.items.length, 'piece') + '</small></span><span class="ch">\u203a</span></button>').join('') : '<p class="dim small" style="margin:0 2px 10px">Your own groupings, in order: a project from audition to air, a character across jobs. Open a piece and PUT IT WITH.</p>');
     h += '<p class="kicker" style="margin-top:16px">Places</p>';
     M.places().forEach(p => { h += '<button type="button" class="card place" data-place="' + p.id + '"><i class="pdot" style="background:' + dot(p.id) + '"></i><span class="pt"><b>' + esc(p.name) + '</b><small>' + esc(p.kind === 'named' ? 'a place you named' + (p.note ? ' · ' + p.note : '') : n((p.files || []).length, 'video') + ' · ' + M.size(p.bytes) + (p.looked ? ' · looked ' + nice(p.looked) : '')) + '</small></span><span class="ch">\u203a</span></button>'; });
-    h += (FSA() ? '<button type="button" class="btn pri block" id="adddrive_fsa" data-ic="footage" style="margin-bottom:8px">ADD A DRIVE OR FOLDER</button>' : '<label class="btn pri block" data-ic="footage" style="margin-bottom:8px">ADD A DRIVE OR FOLDER<input type="file" id="adddrive" webkitdirectory directory multiple hidden></label>')
-      + '<label class="btn block" data-ic="plus" style="margin-bottom:8px">ADD VIDEOS FROM THIS DEVICE<input type="file" id="addvids" accept="video/*,audio/*" multiple hidden></label>'
+    h += '<label class="btn pri block" data-ic="plus" style="margin-bottom:8px">ADD YOUR CLIPS<input type="file" id="addvids" accept="video/*,audio/*" multiple hidden></label>'
+      + (FSA() ? '<button type="button" class="btn block" id="adddrive_fsa" data-ic="footage" style="margin-bottom:8px">ADD A DRIVE OR FOLDER</button>' : '<label class="btn block" data-ic="footage" style="margin-bottom:8px">ADD A DRIVE OR FOLDER<input type="file" id="adddrive" webkitdirectory directory multiple hidden></label>')
       + (S.naming ? namingForm() : '<button type="button" class="btn block" id="name" data-ic="contacts">NAME A PLACE</button>')
-      + '<p class="dim small" style="margin:10px 2px 0">A drive is read as a list of files: nothing is copied or uploaded, and the map keeps it when you unplug. Videos from this device are kept here as small copies that play anywhere.</p>';
+      + '<p class="dim small" style="margin:10px 2px 0">A drive is read as a list of files: nothing is copied or uploaded, and the map keeps it when you unplug. Clips you add are kept here as small copies that play anywhere.</p>';
     if (m.titles.length || true) h += S.adding ? '<div class="row" style="margin-top:12px"><input class="field" id="mine" placeholder="A project: a reel, a class, a short" style="flex:1"><button class="btn" id="mineok">ADD IT</button></div>' : '<button type="button" class="lnk" id="addmine" style="margin-top:8px">+ a project that isn\u2019t in your credits</button>';
     h += '<details class="fold" id="checkfold" style="margin-top:16px"><summary data-icr="slate" data-icc="film" data-say="before you erase a card"><span data-icl>CHECK THE COPY</span></summary><p class="dim small" style="margin:0 0 10px">On your own shoot: every file on your copies has to match the card exactly before you erase it.</p><a class="btn" id="tocheck" href="check.html" style="text-decoration:none">OPEN CHECK THE COPY</a></details>';
     return h + '</aside></div>';
@@ -103,7 +105,7 @@
     h += '</div>';
     if (p.kind === 'file' && !plays(p) && S.busy !== p.key) h += '<div class="row" style="margin-top:10px">' + (FSA() && p.place && p.place.handle ? '<button class="btn pri" id="mk_go" data-ic="footage">MAKE IT PLAYABLE</button><button class="btn" id="og_play">PLAY THE ORIGINAL</button>' : '<label class="btn pri" data-ic="footage">MAKE IT PLAYABLE<input type="file" id="mk_file" accept="video/*,audio/*,.mov,.mxf,.mts" hidden></label>') + '</div>'
       + (FSA() && p.place && p.place.handle ? '' : '<p class="faint small" style="margin:6px 2px 0">Pick ' + esc(p.name) + ' from ' + esc(p.place.name) + ' (it has to be plugged in).</p>');
-    h += '<div class="row" style="margin-top:10px"><button class="btn" id="trimit"' + (plays(p) ? '' : ' disabled') + '>TRIM A MOMENT</button><button class="btn" id="withit">PUT IT WITH</button><button class="btn" id="stillit"' + (plays(p) && !p.audio ? '' : ' disabled') + '>KEEP A STILL</button><a class="btn ghost" href="../archbook/" style="text-decoration:none">REEL ROOM</a></div>';
+    h += '<div class="row" style="margin-top:10px"><button class="btn" id="trimit"' + (plays(p) ? '' : ' disabled') + '>TRIM A MOMENT</button><button class="btn" id="withit">PUT IT WITH</button><button class="btn" id="stillit"' + (plays(p) && !p.audio ? '' : ' disabled') + '>KEEP A STILL</button><button class="btn" id="sendit"' + (plays(p) ? '' : ' disabled') + '>SEND IT</button><a class="btn ghost" href="../archbook/" style="text-decoration:none">REEL ROOM</a></div>';
     if (S.withOpen) h += '<div class="card" id="withbox" style="margin-top:12px"><p class="kicker">Put it with</p>' + all.map(x => '<label class="chk"><input type="checkbox" data-with="' + x.id + '"' + (x.items.indexOf(p.key) >= 0 ? ' checked' : '') + '> ' + esc(x.name) + ' <span class="faint small">' + n(x.items.length, 'piece') + '</span></label>').join('')
       + '<div class="row" style="margin-top:8px"><input class="field" id="newset" placeholder="Something new: Salt Road, start to air" style="flex:1"><button class="btn" id="newsetok">START IT</button></div></div>';
     h += '</div><div class="colB"><div class="card" data-stick>'
@@ -130,6 +132,91 @@
     STAGED = { key: p.key, blob: b, from }; return true;
   }
   let STAGED = null;
+  /* several at once (Oct 27): a row each, a small copy each, one after another; what they're from, if you say */
+  function devicePlace() { let pl = M.places().find(p => p.kind === 'drive' && p.device); if (!pl) { pl = M.addDrive('On this device', { root: '', files: [] }, today()); const d = M.read(); d.places.find(y => y.id === pl.id).device = true; localStorage.setItem(M.KEY, JSON.stringify(d)); } return pl; }
+  let BATCH = null;
+  async function addMany(files) {
+    const pl = devicePlace();
+    BATCH = { rows: files.map(f => ({ f, name: f.name, state: 'next', key: M.fkey(pl.id, 'On this device/' + f.name), prog: 0, note: '' })), stop: false, title: '' };
+    for (const r of BATCH.rows) { const d = M.read(), x = d.places.find(y => y.id === pl.id), path = 'On this device/' + r.f.name; if (!x.files.some(y => y.p === path)) { x.files.push({ p: path, s: r.f.size, d: new Date(r.f.lastModified || Date.now()).toISOString().slice(0, 10) }); x.bytes = x.files.reduce((a, y) => a + (y.s || 0), 0); } localStorage.setItem(M.KEY, JSON.stringify(d)); }
+    S.view = 'batch'; render();
+    for (const r of BATCH.rows) {
+      if (BATCH.stop) { r.state = 'skipped'; continue; }
+      if (M.meta(r.key).proxy) { r.state = 'done'; r.note = 'Already plays here'; paintBatch(); continue; }
+      r.state = 'making'; paintBatch();
+      const res = await makeCopy(r.key, r.f, x => { r.prog = x; paintBatch(); });
+      r.state = res.ok ? 'done' : 'cant'; r.note = res.ok ? 'Plays here' + (res.secs ? ' · ' + len(res.secs) : '') : res.error; paintBatch();
+    }
+    const t = (BATCH.title || '').trim(); if (t) { BATCH.rows.forEach(r => M.setFix(pl.id, 'On this device/' + r.f.name, t)); if (!S.titles.some(x => M.norm(x) === M.norm(t))) { M.addMine(t); S.titles.push(t); } }
+    const ok = BATCH.rows.filter(r => r.state === 'done').length, bad = BATCH.rows.filter(r => r.state === 'cant').length; BATCH = null;
+    go('lib', { msg: n(ok, 'clip') + ' in your library' + (bad ? '; ' + bad + ' a browser can\u2019t play (export an H.264 copy and add that)' : '') + '.' });
+  }
+  function batchView() {
+    const B = BATCH; let h = '<div class="card" data-stick><p class="kicker">Bringing in ' + n(B.rows.length, 'clip') + '</p><p class="dim small" style="margin:2px 0 10px">Making a small copy of each so it plays here. Keep this page open; it takes about as long as the clips run.</p><div id="batchrows">' + batchRows() + '</div>'
+      + '<label class="lab" for="b_title">WHAT ARE THEY FROM (OPTIONAL)</label><input class="field" id="b_title" list="b_titles" placeholder="A show, a class, a short" value="' + esc(B.title) + '" autocomplete="off"><datalist id="b_titles">' + S.titles.map(t => '<option value="' + esc(t) + '">').join('') + '</datalist>'
+      + '<p class="faint small" style="margin:8px 0 0">Kept on this device. Nothing is uploaded.</p><div class="row" style="margin-top:10px"><button class="btn ghost" id="b_stop">STOP AFTER THIS ONE</button></div></div>';
+    return h;
+  }
+  function batchRows() { return BATCH.rows.map(r => '<div class="brow ' + r.state + '"><b>' + esc(r.name) + '</b>' + (r.state === 'making' ? '<div class="prog"><i style="width:' + Math.round(r.prog * 100) + '%"></i></div><small>Making it playable · ' + Math.round(r.prog * 100) + '%</small>' : '<small>' + esc(r.state === 'next' ? 'Next' : r.state === 'skipped' ? 'Not brought in' : r.note) + '</small>') + '</div>').join(''); }
+  function paintBatch() { const el = $('batchrows'); if (el && BATCH) el.innerHTML = batchRows(); }
+  /* the small copy, no screen of its own: {ok, secs} or {error} */
+  async function makeCopy(key, file, onP) {
+    if (!window.ActorCompress) return { error: 'this browser can\u2019t make copies' };
+    const pr = await Lb.probe(file); if (!pr.ok) { M.setMeta(key, { cant: true }); return { error: 'a browser can\u2019t play this format' }; }
+    try {
+      let out; if (/^audio\//.test(file.type)) out = file; else out = await ActorCompress.process(file, { h: 540, mbps: 1.1, onProgress: x => onP && onP(x || 0) });
+      const blob = out && out.blob ? out.blob : out; await Lb.proxy.put(key, blob);
+      const th = /^audio\//.test(file.type) ? null : await Lb.grab(blob, 1); if (th) await Lb.thumb.put(key, th);
+      M.setMeta(key, { proxy: true, psize: blob.size, secs: pr.secs, cant: false }); return { ok: true, secs: pr.secs };
+    } catch (e) { return { error: e.message || 'that file' }; }
+  }
+
+  /* ---------- SEND IT: your share sheet with the file, or saved to this computer (Oct 27) ---------- */
+  const canShare = f => { try { return !!(navigator.canShare && navigator.share && navigator.canShare({ files: [f] })); } catch (e) { return false; } };
+  async function sendFile(blob, name) {
+    const f = new File([blob], name, { type: blob.type || 'video/mp4' });
+    if (canShare(f)) { try { await navigator.share({ files: [f], title: name }); return 'sent'; } catch (e) { if (e && e.name === 'AbortError') return 'cancel'; } }
+    saveFile(blob, name); return 'saved';
+  }
+  function saveFile(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000); }
+  const sendWord = r => r === 'sent' ? 'Sent from your share sheet.' : r === 'cancel' ? 'Not sent.' : 'Saved to this device. Attach it to an email or drop it in Messages.';
+  async function pieceBlob(p) { if (p.kind === 'take') return Takes.blob(p.take.id); if (p.proxy) return Lb.proxy.get(p.key); return null; }
+  const fileName = (base, blob) => String(base || 'Footage').replace(/[\\/:*?"<>|]+/g, '').replace(/\.(mp4|mov|webm|m4v|wav|mp3|m4a)$/i, '').slice(0, 60).trim() + (/webm/.test(blob.type) ? '.webm' : /audio\//.test(blob.type) ? (/mpeg/.test(blob.type) ? '.mp3' : '.m4a') : '.mp4');
+
+  /* ---------- MAKE IT ONE FILE: a put-together, straight cuts, 540p or full from the originals ---------- */
+  let ONE = null;
+  function fullOk(items) { return items.length && items.every(p => p.kind === 'take' || (p.kind === 'file' && FSA() && p.place && p.place.handle)); }
+  function oneCard(x, items) {
+    const playable = items.filter(p => !p.gone && plays(p) && !p.audio), tot = playable.reduce((a, p) => a + (p.secs || 0), 0), full = fullOk(playable), q = ONE && ONE.set === x.id ? ONE : { q: '540', card: false };
+    let h = '<div class="card" id="onecard"><p class="kicker">Make it one file</p>';
+    if (ONE && ONE.set === x.id && ONE.busy) return h + '<p class="small" style="margin:0 0 8px">It plays through once while it records, so it takes ' + len(ONE.total || tot) + '. Keep this page open.</p><div class="prog"><i id="one_bar" style="width:' + Math.round((ONE.prog || 0) * 100) + '%"></i></div><p class="faint small" id="one_say" style="margin:6px 0 0">' + esc(ONE.say || 'Starting') + '</p></div>';
+    if (ONE && ONE.set === x.id && ONE.made) { const m = ONE.made; return h + '<p class="small" style="margin:0"><b>' + esc(m.name) + '</b></p><p class="faint small" style="margin:2px 0 10px">' + len(m.secs) + ' · ' + m.h + 'p · ' + M.size(m.blob.size) + '</p>'
+      + '<div class="row"><button class="btn pri" id="one_send">SEND IT</button><button class="btn" id="one_save">SAVE IT</button><button class="btn ghost" id="one_again">MAKE IT AGAIN</button></div><p class="faint small" style="margin:8px 0 0">SEND IT opens your share sheet (Mail, Messages, AirDrop) with the file. Where a browser has no share sheet, it saves the file for you to attach.</p></div>'; }
+    if (!playable.length) return h + '<p class="dim small" style="margin:0">Nothing in it plays here yet.</p></div>';
+    h += '<p class="small" style="margin:0 0 8px">' + n(playable.length, 'piece') + ' in this order' + (tot ? ', ' + len(tot) : '') + ', straight cuts.' + (playable.length < items.filter(p => !p.gone).length ? ' Pieces that don\u2019t play here are left out.' : '') + '</p>'
+      + '<div class="chips"><button type="button" class="chip' + (q.q === '540' ? ' on' : '') + '" data-oq="540" aria-pressed="' + (q.q === '540') + '">540P · SMALL, QUICK TO SEND</button><button type="button" class="chip' + (q.q === 'full' ? ' on' : '') + '" data-oq="full" aria-pressed="' + (q.q === 'full') + '"' + (full ? '' : ' disabled') + '>FULL QUALITY</button></div>'
+      + (full ? '' : '<p class="faint small" style="margin:2px 0 6px">Full quality works when every original is linked from a drive in Chrome, or kept here as a take.</p>')
+      + '<label class="chk" style="margin:6px 0"><input type="checkbox" id="one_cardon"' + (q.card ? ' checked' : '') + '> Your name at the start' + (you().name ? ' (' + esc(you().name) + (you().rep ? ', ' + esc(you().rep) : '') + ')' : ' (add it on Your page)') + '</label>'
+      + '<div class="row"><button class="btn pri" id="one_go">MAKE IT ONE FILE</button></div></div>';
+    return h;
+  }
+  function you() { try { return window.You ? You.get() : {}; } catch (e) { return {}; } }
+  async function makeOne(x) {
+    const all = pieces(), items = x.items.map(k => all.find(p => p.key === k)).filter(p => p && plays(p) && !p.audio);
+    if (!items.length || !window.ActorCompress || !ActorCompress.stitch) return;
+    const q = (ONE && ONE.set === x.id ? ONE.q : '540'), full = q === 'full' && fullOk(items), card = !!(ONE && ONE.set === x.id && ONE.card);
+    ONE = { set: x.id, q, card, busy: true, prog: 0, say: 'Getting the pieces', total: items.reduce((a, p) => a + (p.secs || 0), 0) }; render();
+    try {
+      const list = [];
+      for (const p of items) { let b = null; if (full && p.kind === 'file') b = await Lb.original(p.place.id, p.path, true); if (!b) b = await pieceBlob(p); if (b) list.push({ blob: b, name: p.label || p.name }); }
+      const y = you(), lines = card && y.name ? [y.name].concat([y.rep ? 'Rep: ' + y.rep : '', y.email || y.phone || ''].filter(Boolean)) : null;
+      const out = await ActorCompress.stitch(list, { h: full ? 1080 : 540, mbps: full ? 8 : 1.6, gapMs: 0, card: lines ? { lines, secs: 2.5 } : null, onProgress: (f, what) => { ONE.prog = f || 0; ONE.say = what ? 'Now: ' + what : ONE.say; const b = $('one_bar'); if (b) b.style.width = Math.round(ONE.prog * 100) + '%'; const s2 = $('one_say'); if (s2) s2.textContent = ONE.say; } });
+      ONE = { set: x.id, q, card, made: { blob: out.blob, name: fileName(x.name, out.blob), secs: out.seconds + (lines ? 2.5 : 0), h: out.height } };
+      S.msg = 'One file: ' + ONE.made.name + ', ' + M.size(out.blob.size) + '.';
+    } catch (e) { ONE = { set: x.id, q, card }; S.msg = 'Couldn\u2019t make one file: ' + (e.message || 'a piece wouldn\u2019t read') + '.'; }
+    render();
+  }
+
   async function makePlayable(p, file) {
     if (!window.ActorCompress) { S.msg = 'This browser can\u2019t make copies.'; render(); return; }
     const pr = await Lb.probe(file); if (!pr.ok) { M.setMeta(p.key, { cant: true }); S.msg = 'A browser can\u2019t play ' + file.name + '. Export an H.264 copy and add that.'; render(); return; }
@@ -151,6 +238,7 @@
     if (S.msg) h += '<p class="msg" id="msg">' + esc(S.msg) + '</p>';
     h += '<div class="card" data-stick>' + (S.renaming ? '<input class="field" id="rn" value="' + esc(x.name) + '">' : '<b class="pname">' + esc(x.name) + '</b>') + '<p class="dim small" style="margin:2px 0 0">' + n(items.length, 'piece') + (tot ? ' \u00b7 ' + len(tot) : '') + ' \u00b7 plays straight through what plays here</p>'
       + '<div class="row" style="margin-top:10px"><button class="btn pri" id="playall"' + (items.some(p => !p.gone && plays(p)) ? '' : ' disabled') + '>PLAY IT THROUGH</button>' + (S.renaming ? '<button class="btn" id="rnok">KEEP THE NAME</button>' : '<button class="btn" id="rename">RENAME</button>') + '<button class="btn ghost" id="dropset">TAKE IT APART</button></div></div>';
+    h += oneCard(x, items);
     h += '<div class="stage" id="stage" style="margin-bottom:12px" hidden></div>';
     h += '<div class="seq">' + items.map((p, i) => p.gone ? '<div class="seqi"><span class="faint small">A piece that isn\u2019t here any more</span><button class="mini" data-out="' + esc(p.key) + '">\u00d7</button></div>'
       : '<div class="seqi">' + tile(p) + '<span class="sbtn"><button class="mini" data-mv="' + esc(p.key) + '|-1"' + (i ? '' : ' disabled') + ' aria-label="Earlier">\u2191</button><button class="mini" data-mv="' + esc(p.key) + '|1"' + (i < items.length - 1 ? '' : ' disabled') + ' aria-label="Later">\u2193</button><button class="mini" data-out="' + esc(p.key) + '" aria-label="Take it out">\u00d7</button></span></div>').join('') + '</div>';
@@ -194,7 +282,7 @@
     h += '<div class="colB"><div class="card ask"><p class="kicker" style="color:var(--tung-text)">Your clip</p><p class="small" id="tr_len" style="margin:0 0 8px">Clip: ' + x.secs + ' seconds.</p>'
       + '<button class="btn pri block" id="tr_make"' + (TR.busy ? ' disabled' : '') + '>' + (TR.busy ? 'MAKING IT\u2026' : 'MAKE THE CLIP') + '</button><div class="prog" id="tr_prog"' + (TR.busy ? '' : ' hidden') + '><i id="tr_bar"></i></div>'
       + '<p class="faint small" style="margin:6px 0 0">It goes in your library, under ' + esc(t.title || 'its project') + ', and to Reel Room.' + (t.from === 'copy' ? ' It\u2019s cut from the small copy; cut from the original on the drive for full quality.' : '') + '</p></div>';
-    if (TR.made) h += '<div class="card" id="tr_done"><p class="kicker">Made</p><p class="small">' + esc(TR.made.name) + ' · ' + TR.made.secs + ' seconds.</p><div class="row"><a class="btn" id="tr_save" href="' + TR.made.url + '" download="' + esc(TR.made.name) + '">SAVE IT</a><a class="btn ghost" href="../archbook/">OPEN REEL ROOM</a></div></div>';
+    if (TR.made) h += '<div class="card" id="tr_done"><p class="kicker">Made</p><p class="small">' + esc(TR.made.name) + ' · ' + TR.made.secs + ' seconds.</p><div class="row"><button class="btn pri" id="tr_send">SEND IT</button><a class="btn" id="tr_save" href="' + TR.made.url + '" download="' + esc(TR.made.name) + '">SAVE IT</a><a class="btn ghost" href="../archbook/">OPEN REEL ROOM</a></div></div>';
     return h + '</div></div>';
   }
 
@@ -203,7 +291,7 @@
     let p = null; if (S.view === 'piece') { p = byKey(S.key); if (!p) S.view = 'lib'; }
     const pl = S.view === 'place' ? M.place(S.place) : null; if (S.view === 'place' && !pl) S.view = 'lib';
     const st = S.view === 'set' ? M.set(S.set) : null; if (S.view === 'set' && !st) S.view = 'lib';
-    $('view').innerHTML = S.trim ? trimView() : S.view === 'piece' ? pieceView(p) : S.view === 'place' ? placeView(pl) : S.view === 'set' ? setView(st) : libView();
+    $('view').innerHTML = S.view === 'batch' && BATCH ? batchView() : S.trim ? trimView() : S.view === 'piece' ? pieceView(p) : S.view === 'place' ? placeView(pl) : S.view === 'set' ? setView(st) : libView();
     S.msg = ''; wire(); thumbs(); if (S.view === 'piece' && p && !S.trim && plays(p) && S.busy !== p.key) stage(p);
   }
   async function thumbs() {
@@ -221,6 +309,7 @@
     go('place', { place: p.id, msg: placeId ? 'Looked again: ' + n(files.length, 'video') + '. Your fixes are kept.' : p.name + ': ' + n(files.length, 'video') + ' on the map. Plug it in and its originals play here too.' });
   }
   async function addVideos(files) {
+    if (files.length > 1) return addMany(files);
     let pl = M.places().find(p => p.kind === 'drive' && p.device); if (!pl) { pl = M.addDrive('On this device', { root: '', files: [] }, today()); const d = M.read(); d.places.find(y => y.id === pl.id).device = true; localStorage.setItem(M.KEY, JSON.stringify(d)); }
     for (const f of files) { const d = M.read(), x = d.places.find(y => y.id === pl.id); const path = 'On this device/' + f.name; if (!x.files.some(y => y.p === path)) { x.files.push({ p: path, s: f.size, d: new Date(f.lastModified || Date.now()).toISOString().slice(0, 10) }); x.bytes = x.files.reduce((a, y) => a + (y.s || 0), 0); x.looked = today(); localStorage.setItem(M.KEY, JSON.stringify(d)); }
       S.view = 'piece'; S.key = M.fkey(pl.id, path); await makePlayable(byKey(S.key), f); }
@@ -237,7 +326,17 @@
     on('here', () => { S.here = !S.here; render(); });
     const ad = $('adddrive'); if (ad) ad.onchange = () => { const r = M.fromFiles([...(ad.files || [])]); ad.value = ''; if (!r.root && !r.files.length) return; const p = M.addDrive(r.root, r, today()); go('place', { place: p.id, msg: r.files.length ? p.name + ': ' + n(r.files.length, 'video') + ' on the map. Say what the folders are where the names don\u2019t.' + (r.capped ? ' (The first 50,000.)' : '') : 'No video files in ' + p.name + '.' }); };
     on('adddrive_fsa', () => pickFolder(''));
-    const av = $('addvids'); if (av) av.onchange = () => { const f = [...(av.files || [])]; av.value = ''; if (f.length) addVideos(f); };
+    ['addvids', 'addvids0'].forEach(id => { const av = $(id); if (av) av.onchange = () => { const f = [...(av.files || [])]; av.value = ''; if (f.length) addVideos(f); }; });
+    const bt = $('b_title'); if (bt) bt.oninput = () => { if (BATCH) BATCH.title = bt.value; };
+    on('b_stop', () => { if (BATCH) { BATCH.stop = true; const b = $('b_stop'); if (b) { b.disabled = true; b.textContent = 'STOPPING AFTER THIS ONE'; } } });
+    if (S.view === 'set') { const x = M.set(S.set);
+      V.querySelectorAll('[data-oq]').forEach(b => b.onclick = () => { if (b.disabled) return; ONE = Object.assign({ set: x.id, card: false }, ONE && ONE.set === x.id ? ONE : {}, { q: b.dataset.oq, made: null }); render(); });
+      const cb = $('one_cardon'); if (cb) cb.onchange = () => { ONE = Object.assign({ set: x.id, q: '540' }, ONE && ONE.set === x.id ? ONE : {}, { card: cb.checked, made: null }); };
+      on('one_go', () => makeOne(x)); on('one_again', () => { ONE = { set: x.id, q: ONE.q, card: ONE.card }; render(); });
+      on('one_send', async () => { const r = await sendFile(ONE.made.blob, ONE.made.name); S.msg = sendWord(r); render(); });
+      on('one_save', () => { saveFile(ONE.made.blob, ONE.made.name); S.msg = 'Saved: ' + ONE.made.name + '.'; render(); }); }
+    on('sendit', async () => { const p = byKey(S.key); if (!p) return; const b = await pieceBlob(p); if (!b) return; const r = await sendFile(b, fileName(p.label || p.name, b)); S.msg = sendWord(r); render(); });
+    on('tr_send', async () => { if (!TR.made || !TR.made.blob) return; const r = await sendFile(TR.made.blob, TR.made.name); S.msg = sendWord(r); render(); });
     on('name', () => { S.naming = true; render(); const e = $('n_name'); if (e) e.focus(); });
     on('n_cancel', () => { S.naming = false; render(); });
     on('n_keep', () => { const nm = $('n_name').value; if (!nm.trim()) { $('n_name').focus(); return; } const holds = [...V.querySelectorAll('[data-holds]:checked')].map(c => S.titles[+c.dataset.holds]); const p = M.addNamed(nm, $('n_note').value, holds); S.naming = false; S.msg = p.name + ' is on the map.'; render(); });
@@ -303,12 +402,12 @@
           const out = await ActorCompress.process(TR.file, { h: 1080, mbps: 8, trimStart: t.trimStart, trimEnd: t.trimEnd, onProgress: x => { const b = $('tr_bar'); if (b) b.style.width = Math.round((x || 0) * 100) + '%'; } });
           const blob = out && out.blob ? out.blob : out, ext = /webm/.test(blob.type) ? 'webm' : 'mp4', name = M.clipName(T.title, role, ext);
           if (window.Takes) await Takes.put(blob, { kind: 'video', mime: blob.type, ext, name, secs: t.secs, for: { type: 'clip', title: T.title, role } });
-          TR.busy = false; TR.made = { name, secs: t.secs, url: URL.createObjectURL(blob) }; render();
+          TR.busy = false; TR.made = { name, secs: t.secs, url: URL.createObjectURL(blob), blob }; render();
         } catch (e) { TR.busy = false; S.msg = 'Couldn\u2019t make the clip: ' + (e.message || 'this browser can\u2019t read that file') + '.'; render(); }
       });
     }
   }
   gather(); render();
   (async () => { try { if (window.Offices) { const hb = await Offices.load(); if (hb && hb.credits) { hb.credits.forEach(c => { const x = String(c.title || '').trim(); if (x && !S.titles.some(t => M.norm(t) === M.norm(x))) S.titles.push(x); if (x && (c.role || c.character) && !S.roles[M.norm(x)]) S.roles[M.norm(x)] = c.role || c.character; }); render(); } } } catch (e) { } })();
-  window.FOOTAGE = { render, state: S, pieces, makePlayable, byKey, go };
+  window.FOOTAGE = { render, state: S, pieces, makePlayable, byKey, go, one: () => ONE, batch: () => BATCH };
 })();

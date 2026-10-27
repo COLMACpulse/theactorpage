@@ -15,7 +15,7 @@ for(const [nm,vp,cs,full] of [['computer',{width:1280,height:900},'light',true],
  const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
  await p.goto('http://localhost:8811/footage/'); await p.evaluate(async()=>{ localStorage.clear(); await new Promise(r=>{ const q=indexedDB.deleteDatabase('theactorpage_footage_lib'); q.onsuccess=q.onerror=q.onblocked=r; }); localStorage.setItem('film_os_v1',JSON.stringify({scripts:{a:{title:'Salt Road',text:'x'}},cur:'a'})); }); await p.reload(); await p.waitForTimeout(400);
  let v=await p.innerText('#view');
- want(nm+': empty: says it is your library; add a drive, videos, a place; no chasing', /Nothing in your library yet/.test(v)&&/ADD A DRIVE OR FOLDER/.test(v)&&/ADD VIDEOS FROM THIS DEVICE/.test(v)&&/NAME A PLACE/.test(v)&&!/ADD A JOB|who to ask/i.test(v), v.slice(0,200));
+ want(nm+': empty: says it is your library; add a drive, videos, a place; no chasing', /Nothing in your library yet/i.test(v)&&/ADD A DRIVE OR FOLDER/.test(v)&&/ADD YOUR CLIPS/.test(v)&&/Nothing is uploaded anywhere/.test(v)&&/NAME A PLACE/.test(v)&&!/ADD A JOB|who to ask/i.test(v), v.slice(0,200));
  want(nm+': the header: Your footage', /Your footage/.test(await p.innerText('header h1')));
  await p.setInputFiles('#adddrive',DIR); await p.waitForTimeout(500); await p.click('#back'); await p.waitForTimeout(300); v=await p.innerText('#view');
  want(nm+': the library: Salt Road with its piece, the other not matched, each saying where the original is', /Salt Road[\s\S]*SALT_ROAD_EP3_SC12_T04\.webm/.test(v)&&/Not matched yet[\s\S]*C0041\.MP4/.test(v)&&(v.match(/ORIGINAL ON BLACK SSD/g)||[]).length===2, v.slice(0,400));
