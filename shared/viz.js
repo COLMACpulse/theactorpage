@@ -182,7 +182,30 @@
   };
   G.picBlob = pid => pid ? op('readonly', st => st.get(pid)) : Promise.resolve(null);
   G.dropPic = async function (id) { const w = G.get(id); if (w && w.pic) { await op('readwrite', st => st.delete(w.pic)); G.set(id, { pic: '' }); } };
-  G.removeAll = async function (id) { await G.dropPic(id); G.remove(id); };
+  G.removeAll = async function (id) { const s = G.see(id); for (const pid of Object.values(s.pics).concat(s.sound ? [s.sound] : [])) await op('readwrite', st => st.delete(pid)); await G.dropPic(id); G.remove(id); };
+
+  /* ---------- SEE IT: your words and pictures for each beat, the mirror, the sound, the length (shared/seeit.js) ---------- */
+  G.see = function (id) { const w = G.get(id) || {}, s = w.see || {}; return { words: Object.assign({}, s.words), pics: Object.assign({}, s.pics), mirror: s.mirror === 'live' ? 'live' : 'shot', sound: s.sound || '', soundName: s.soundName || '', secs: [30, 45, 60].includes(+s.secs) ? +s.secs : 30 }; };
+  G.seeSet = function (id, patch) { const w = G.get(id); if (!w) return null; const s = Object.assign(G.see(id), patch); G.set(id, { see: s }); return s; };
+  G.seeWords = function (id, i, text) { const s = G.see(id); const t = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 140); if (t) s.words[i] = t; else delete s.words[i]; return G.seeSet(id, { words: s.words }); };
+  G.seePic = async function (id, i, file) {
+    if (!G.get(id)) return { error: 'not on your wall' };
+    const k = await keepPic(file); if (k.error) return k;
+    const s = G.see(id); if (s.pics[i]) await op('readwrite', st => st.delete(s.pics[i]));
+    s.pics[i] = k.pid; G.seeSet(id, { pics: s.pics }); return { ok: true };
+  };
+  G.seeNoPic = async function (id, i) { const s = G.see(id); if (s.pics[i]) { await op('readwrite', st => st.delete(s.pics[i])); delete s.pics[i]; G.seeSet(id, { pics: s.pics }); } };
+  /* a sound file you pick: your own voice memo or a song; kept as it is */
+  G.seeSound = async function (id, file) {
+    if (!G.get(id)) return { error: 'not on your wall' };
+    if (!file || !/^audio\//.test(file.type || '') && !/\.(m4a|mp3|wav|aac|ogg|webm)$/i.test(file.name || '')) return { error: 'not a sound file this page can play' };
+    if (file.size > 40e6) return { error: 'that file is over 40 MB' };
+    const pid = 's' + now().toString(36) + Math.random().toString(36).slice(2, 5);
+    if (!(await op('readwrite', st => st.put(file, pid)))) return { error: 'this device would not keep the file' };
+    const s = G.see(id); if (s.sound) await op('readwrite', st => st.delete(s.sound));
+    G.seeSet(id, { sound: pid, soundName: String(file.name || 'your sound').slice(0, 80) }); return { ok: true };
+  };
+  G.seeNoSound = async function (id) { const s = G.see(id); if (s.sound) await op('readwrite', st => st.delete(s.sound)); G.seeSet(id, { sound: '', soundName: '' }); };
 
   g.Viz = G;
   if (typeof module !== 'undefined') module.exports = G;

@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script src="../shared/hot.js"></script>
 <script src="../shared/tour.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>PICTURE IT · What you want, where you see it</title>
@@ -116,6 +117,34 @@ label.ck{min-height:44px;gap:10px;cursor:pointer}label.ck input{width:20px;heigh
 .who{list-style:none;margin:8px 0;padding:0}.who li{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;justify-content:space-between;padding:12px 0;border-top:1px solid var(--line)}
 .who .wn{display:flex;flex-direction:column;gap:3px;flex:1 1 220px;min-width:0}
 .warn{font-size:14px;color:var(--ink);background:var(--p2);border-left:3px solid var(--gold);border-radius:8px;padding:7px 10px}
+
+/* SEE IT */
+.wcell{display:flex;flex-direction:column;min-width:0}
+.seego{align-self:flex-start;margin-top:6px;font:600 12.5px var(--sans);letter-spacing:.1em;color:var(--gt);text-decoration:none;min-height:32px;display:inline-flex;align-items:center}
+.seego:hover{text-decoration:underline}
+.seegrid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start;margin-top:12px}
+@media (max-width:900px){.seegrid{grid-template-columns:1fr}}
+.stage{position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:16/9}
+.stage canvas{display:block;width:100%;height:100%}
+.stage .clock{position:absolute;right:12px;bottom:10px;font:500 13px var(--sans);color:#c9c1b2;background:rgba(0,0,0,.45);padding:2px 8px;border-radius:6px}
+.stage .seex{display:none;position:absolute;top:calc(12px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));min-height:44px;padding:0 14px;border-radius:10px;border:1px solid #4a443b;background:rgba(0,0,0,.6);color:#ece7dc;font:600 13px var(--sans);letter-spacing:.08em;cursor:pointer}
+.stage:fullscreen,.stage.full{border-radius:0;aspect-ratio:auto;display:flex;align-items:center;justify-content:center}
+.stage.full{position:fixed;inset:0;z-index:900}
+.stage:fullscreen canvas,.stage.full canvas{width:100%;height:auto;max-height:100%;object-fit:contain}
+.stage:fullscreen .seex,.stage.full .seex{display:block}
+.seeopts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:16px}
+@media (max-width:620px){.seeopts{grid-template-columns:1fr}}
+.seeopts .kick,.seebeats .kick{margin:0 0 4px}
+.seebeats{display:flex;flex-direction:column;gap:6px}
+.beat{border-top:1px solid var(--line);padding:2px 0}
+.beat[open]{padding-bottom:10px}.beat[open]>*:not(summary){margin-top:6px}
+.beat.on .bname span{color:var(--gt)}
+.bname{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;font:600 15px var(--sans);color:var(--ink);cursor:pointer;min-height:44px}
+.bname::-webkit-details-marker{display:none}
+.bname i{font:500 12.5px var(--sans);font-style:normal;color:var(--mut)}
+.beat[open] .bname i{display:none}
+.beat .row{margin-top:8px}
+.btn.sm{min-height:36px;padding:0 12px;font-size:12px}
 </style>
 </head>
 <body>
@@ -131,6 +160,7 @@ label.ck{min-height:44px;gap:10px;cursor:pointer}label.ck input{width:20px;heigh
 <script src="../shared/press.js"></script>
 <script src="../shared/wire.js"></script>
 <script src="../shared/viz.js"></script>
+<script src="../shared/seeit.js"></script>
 <script src="../shared/vendor/qrcode.min.js"></script>
 <script src="../shared/postcard.js"></script>
 <script src="../shared/icons.js"></script>

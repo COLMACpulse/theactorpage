@@ -19,7 +19,7 @@ await p.click('#addOpen'); await p.fill('#a_t','Union card'); await p.click('#a_
 await p.click('#addOpen'); await p.fill('#a_t','Dana Wolfe'); await p.click('#a_k [data-k="person"]'); await p.press('#a_t','Enter'); await p.waitForTimeout(300);
 const tiles=await p.$$eval('.wish',x=>x.map(e=>e.innerText.replace(/\s+/g,' ')));
 want('three on the wall, under WANT IT, the date they went up', tiles.length===3&&/WANT IT/.test(await p.innerText('main'))&&tiles.every(t=>/WANT IT [A-Z][a-z]{2} \d+, 20\d\d/.test(t)), tiles);
-want('your picture on its tile; no picture, its name in type', await p.$$eval('.wish img',x=>x.length)===1&&/UNION CARD/.test(await p.innerText('.wish:nth-child(2) .type')));
+want('your picture on its tile; no picture, its name in type', await p.$$eval('.wish img',x=>x.length)===1&&/UNION CARD/.test(await p.innerText('.wcell:nth-child(2) .wish .type')));
 /* a request for it */
 await p.evaluate(()=>Inbox.put('request',{title:'HARBOR LIGHTS',role:'Deckhand',due:new Date(Date.now()+864e5).toISOString().slice(0,10)}));
 await p.reload(); await p.waitForTimeout(400);

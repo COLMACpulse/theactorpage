@@ -1,0 +1,23 @@
+/* SEE IT, the pure parts: the timeline, the facts, what each beat says (facts only until you write the words). */
+const S=require('./seeit.js');
+let pass=0,fail=0; const ok=(n,c,x)=>{ if(c){pass++;console.log('PASS',n);} else {fail++;console.log('FAIL',n,x===undefined?'':JSON.stringify(x).slice(0,400));} };
+ok('six beats, call to mirror', S.BEATS.map(b=>b[0]).join()==='call,script,calltime,lot,door,mirror');
+ok('30 seconds: five each; 0 is beat 1, 29.9 is beat 6, the end stays on the mirror', S.at(0,30).i===0&&S.at(4.9,30).i===0&&S.at(5,30).i===1&&S.at(29.9,30).i===5&&S.at(30,30).i===5&&S.at(30,30).fade===1);
+ok('a dip to black between beats, clear in the middle', S.at(0,30).fade===0&&S.at(2.5,30).fade===1&&S.at(4.99,30).fade<0.05);
+ok('45 and 60 seconds stretch each beat', S.at(7.4,45).i===0&&S.at(7.6,45).i===1&&S.at(59,60).i===5);
+const F=S.facts({title:' Harbor  Lights ',role:'Deputy Ray Cole',kind:'show'},{name:'Sam Actor'});
+ok('the facts: your name, the title, your role', F.name==='Sam Actor'&&F.title==='Harbor Lights'&&F.role==='Deputy Ray Cole', F);
+ok('no name yet: says so plainly', S.facts({title:'X'},{}).name==='Your name');
+const all=S.BEATS.map((b,i)=>S.text(i,F,''));
+ok('the call: from your agent, the title and role, no sentence written for you', all[0].from==='Your agent'&&all[0].main==='Harbor Lights · Deputy Ray Cole', all[0]);
+ok('the script: the title, your name, as your role', all[1].main==='HARBOR LIGHTS'&&all[1].sub==='SAM ACTOR'&&all[1].sub2==='as DEPUTY RAY COLE');
+ok('the call sheet: you, your role, a call time', JSON.stringify(all[2].rows[1])===JSON.stringify(['Sam Actor','Deputy Ray Cole','6:00 AM']));
+ok('the door: your name and role', all[4].main==='SAM ACTOR'&&all[4].sub==='DEPUTY RAY COLE');
+const flat=JSON.stringify(all);
+ok('nothing says a sentence you did not write (no "you got it", "booked", "congrat")', !/got it|booked|congrat|you are|you're|dream|deserve/i.test(flat), flat);
+ok('no beat has words of its own unless you wrote them', all.every(t=>!t.say));
+const T=S.text(0,F,'  We got   it. ');
+ok('your words go in as you wrote them (spaces tidied)', T.main==='We got it.');
+ok('your words on another beat show under it', S.text(4,F,'My name on the door').say==='My name on the door');
+ok('no role: the door says the title, the call says the title', S.text(4,S.facts({title:'Harbor Lights'},{name:'Sam Actor'}),'').sub==='HARBOR LIGHTS'&&S.text(0,S.facts({title:'Harbor Lights'},{name:'Sam Actor'}),'').main==='Harbor Lights');
+console.log(pass+' passed, '+fail+' failed'); process.exit(fail?1:0);

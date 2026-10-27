@@ -12,7 +12,7 @@
   const isWork = w => w.kind === 'show' || w.kind === 'film';
   function requestsFor(w) { try { return window.Inbox ? Inbox.all('request').filter(r => G.forRequest(r.data && r.data.title, [w])) : []; } catch (e) { return []; } }
   function go(q) { history.replaceState(null, '', location.pathname + (q ? '?' + q : '')); route(); }
-  function route() { const p = new URLSearchParams(location.search); if (p.get('card') && G.plugGet(p.get('card'))) return cardView(p.get('card')); if (p.get('plug') && G.plugGet(p.get('plug'))) return plugOne(p.get('plug')); if (p.get('plugs') !== null || p.get('plug') === 'new') return plugs(); if (p.get('w') && G.get(p.get('w'))) return one(p.get('w')); if (p.get('lock') !== null) return lock(); wall(); }
+  function route() { const p = new URLSearchParams(location.search); if (p.get('card') && G.plugGet(p.get('card'))) return cardView(p.get('card')); if (p.get('plug') && G.plugGet(p.get('plug'))) return plugOne(p.get('plug')); if (p.get('plugs') !== null || p.get('plug') === 'new') return plugs(); if (p.get('see') && G.get(p.get('see'))) return seeView(p.get('see')); stopSee(); if (p.get('w') && G.get(p.get('w'))) return one(p.get('w')); if (p.get('lock') !== null) return lock(); wall(); }
 
   /* ---------- the wall ---------- */
   function poster(w, url) {
@@ -23,7 +23,8 @@
   }
   async function tile(w) {
     const at = G.at(w);
-    return '<button class="wish' + (G.got(w) ? ' got' : '') + '" type="button" data-w="' + w.id + '">' + poster(w, await picURL(w)) + '<b>' + esc(w.title) + '</b><i>' + esc(G.kindName(w.kind).toUpperCase()) + ' · ' + esc(at.label.toUpperCase()) + (at.date ? ' ' + esc(day(at.date)) : '') + '</i></button>';
+    return '<div class="wcell"><button class="wish' + (G.got(w) ? ' got' : '') + '" type="button" data-w="' + w.id + '">' + poster(w, await picURL(w)) + '<b>' + esc(w.title) + '</b><i>' + esc(G.kindName(w.kind).toUpperCase()) + ' · ' + esc(at.label.toUpperCase()) + (at.date ? ' ' + esc(day(at.date)) : '') + '</i></button>' +
+      (G.got(w) ? '' : '<a class="seego" href="?see=' + esc(w.id) + '" data-see="' + esc(w.id) + '">▶ SEE IT</a>') + '</div>';
   }
   async function wall() {
     const want = G.wanted(), got = G.gotten();
@@ -39,6 +40,7 @@
     if (got.length) { h += '<h2>GOT IT <i>' + got.length + '</i></h2><div class="wallbox"><div class="wall">'; for (const w of got) h += await tile(w); h += '</div></div>'; }
     V.innerHTML = h; wireTabs();
     V.querySelectorAll('[data-w]').forEach(b => b.onclick = () => go('w=' + b.dataset.w));
+    V.querySelectorAll('[data-see]').forEach(b => b.onclick = e => { e.preventDefault(); go('see=' + b.dataset.see); });
     let file = null;
     $('addOpen').onclick = () => { $('addBox').classList.remove('hide'); $('a_t').focus(); };
     $('a_x').onclick = () => { $('addBox').classList.add('hide'); file = null; };
@@ -73,6 +75,7 @@
     h += '<div class="one"><div>' + poster(w, url) + '<div class="row" style="margin-top:10px"><label class="btn quiet">' + (url ? 'CHANGE THE PICTURE' : 'ADD A PICTURE') + '<input type="file" id="o_p" accept="image/*"></label>' + (url ? '<button class="btn quiet" type="button" id="o_pd">TAKE IT OFF</button>' : '') + '</div></div><div>';
     const at = G.at(w);
     h += '<p class="kicker">' + esc(G.kindName(w.kind)) + '</p><p class="wtitle">' + esc(w.title) + '</p><p class="dim small" style="margin:0">' + esc(at.label) + (at.date ? ' · ' + esc(day(at.date)) : '') + (w.note ? '</p><p style="margin:10px 0 0">' + esc(w.note) : '') + '</p>';
+    if (!got) h += '<div class="row" style="margin:12px 0 4px"><a class="btn" href="?see=' + esc(w.id) + '" id="o_see">▶ SEE IT · ' + G.see(w.id).secs + ' SECONDS</a><span class="dim small">You, on it, from the call to the mirror.</span></div>';
     h += '<h2>THE TRAIL</h2><ul class="trail">' + steps.map(s => { const d = (w.trail || {})[s[0]] || ''; return '<li' + (d ? ' class="on"' : '') + '><b>' + esc(s[1]) + '</b><input type="date" data-step="' + s[0] + '" value="' + esc(d) + '" aria-label="' + esc(s[1]) + ' date">' +
       (s[0] === 'wanted' ? '' : d ? '<button class="btn quiet" type="button" data-clear="' + s[0] + '">TAKE IT OFF</button>' : '<button class="btn ghost" type="button" data-today="' + s[0] + '">' + (s === steps[steps.length - 1] ? 'IT HAPPENED, TODAY' : 'TODAY') + '</button>') + '</li>'; }).join('') + '</ul>';
     h += '<details class="fold" id="editfold"><summary>CHANGE IT · THE NAME, THE KIND, WHY</summary>';
@@ -381,6 +384,131 @@
     return new Promise(r => c.toBlob(r, 'image/png'));
   }
   function wrap(x, t, cx, cy, mw, lh) { const ws = t.split(/\s+/), L = []; let l = ''; ws.forEach(w => { const s = l ? l + ' ' + w : w; if (x.measureText(s).width > mw && l) { L.push(l); l = w; } else l = s; }); if (l) L.push(l); const y0 = cy - (L.length - 1) * lh / 2; L.forEach((s, i) => x.fillText(s, cx, y0 + i * lh)); }
+
+
+  /* ---------- SEE IT: the wish as 30 seconds of you, on it (shared/seeit.js) ---------- */
+  const SI = window.SeeIt;
+  let SEE = null, SEEOPEN = -1;
+  function stopSee() {
+    if (!SEE) return;
+    SEE.playing = false; cancelAnimationFrame(SEE.raf);
+    try { if (SEE.rec && SEE.rec.state !== 'inactive') SEE.rec.stop(); } catch (e) { }
+    camOff(); try { if (SEE.audio) { SEE.audio.pause(); SEE.audio.currentTime = 0; } } catch (e) { }
+    try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { }
+    const st = $('stage'); if (st) st.classList.remove('full');
+    document.body.classList.remove('seeing');
+  }
+  function camOff() { if (SEE && SEE.cam) { SEE.cam.getTracks().forEach(t => t.stop()); SEE.cam = null; SEE.live = null; } }
+  const clk = t => Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0');
+  async function bmp(blob) { if (!blob) return null; try { return await createImageBitmap(blob); } catch (e) { return null; } }
+  async function seeImages(id) {
+    const w = G.get(id), s = G.see(id), y = window.You ? You.get() : {}, ph = (y.photos || []).find(p => p.id === y.primary) || (y.photos || [])[0];
+    const img = { pics: {}, wall: await bmp(w && w.pic ? await G.picBlob(w.pic) : null), shot: ph && You.photoBlob ? await bmp(await You.photoBlob(ph.id)) : null };
+    for (const [i, pid] of Object.entries(s.pics)) img.pics[i] = await bmp(await G.picBlob(pid));
+    return img;
+  }
+  function seeTotal(id) { return +(window.__seeSecs || G.see(id).secs); }
+  function frame(t, forRecord) {
+    const cv = $('seeCv'); if (!cv || !SEE) return; const c = cv.getContext('2d'), w = G.get(SEE.id); if (!w) return;
+    const total = seeTotal(SEE.id), a = SI.at(t, total), s = G.see(SEE.id), F = SI.facts(w, window.You ? You.get() : {});
+    const im = { pic: SEE.img.pics[a.i] || null, wall: SEE.img.wall, shot: SEE.img.shot, live: !forRecord && SEE.live && a.i === 5 ? SEE.live : null };
+    SI.draw(c, cv.width, cv.height, a.i, a.p, F, s.words[a.i], im, a.fade);
+    const k = $('seeClock'); if (k) k.textContent = clk(Math.min(t, total)) + ' / ' + clk(total);
+    V.querySelectorAll('[data-beat]').forEach(r => r.classList.toggle('on', +r.dataset.beat === a.i));
+    SEE.t = t; SEE.i = a.i;
+  }
+  function still(i) { const total = seeTotal(SEE.id); frame((i + .5) * total / 6, true); }
+  async function camOn() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
+    try { SEE.cam = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false }); } catch (e) { say('The camera didn\'t come on, so the mirror shows your headshot.'); return false; }
+    const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.srcObject = SEE.cam; try { await v.play(); } catch (e) { } SEE.live = v; return true;
+  }
+  async function soundEl(id) {
+    const s = G.see(id); if (!s.sound) return null;
+    if (SEE.audio && SEE.audioFor === s.sound) return SEE.audio;
+    const b = await G.picBlob(s.sound); if (!b) return null;
+    const a = new Audio(URL.createObjectURL(b)); a.preload = 'auto'; SEE.audio = a; SEE.audioFor = s.sound; SEE.graph = null; return a;
+  }
+  async function play(record) {
+    if (!SEE || SEE.playing) return; const id = SEE.id, s = G.see(id), total = seeTotal(id), st = $('stage');
+    say(''); SEE.img = await seeImages(id);
+    if (!record && s.mirror === 'live') await camOn();
+    const audio = await soundEl(id);
+    let stream = null;
+    if (record) {
+      const cv = $('seeCv'); if (!cv.captureStream || !window.MediaRecorder) { say('This browser can\'t save a video of it. Chrome or Safari can.'); return; }
+      stream = cv.captureStream(30);
+      if (audio) { try { if (!SEE.graph) { const ac = new (window.AudioContext || window.webkitAudioContext)(); const src = ac.createMediaElementSource(audio), dest = ac.createMediaStreamDestination(); src.connect(dest); src.connect(ac.destination); SEE.graph = { ac, dest }; } await SEE.graph.ac.resume(); SEE.graph.dest.stream.getAudioTracks().forEach(t => stream.addTrack(t)); } catch (e) { } }
+      const mime = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(m => { try { return MediaRecorder.isTypeSupported(m); } catch (e) { return false; } });
+      try { SEE.rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined); } catch (e) { say('This browser can\'t save a video of it.'); return; }
+      const chunks = []; SEE.rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+      SEE.rec.onstop = () => { stream.getTracks().filter(t => t.kind === 'video').forEach(t => t.stop()); if (chunks.length) saveVideo(new Blob(chunks, { type: SEE.rec.mimeType || mime || 'video/webm' }), id); };
+      SEE.rec.start(500);
+    } else {
+      try { if (st.requestFullscreen && !window.__seeNoFull) await st.requestFullscreen(); else st.classList.add('full'); } catch (e) { st.classList.add('full'); }
+    }
+    document.body.classList.add('seeing');
+    if (audio) { try { audio.currentTime = 0; await audio.play(); } catch (e) { } }
+    SEE.playing = true; SEE.recording = !!record; const t0 = performance.now();
+    $('seePlay').textContent = '■ STOP'; $('seeSave').disabled = true;
+    const tick = () => { if (!SEE || !SEE.playing) return; const t = (performance.now() - t0) / 1000; frame(Math.min(t, total), record); if (t >= total) return done(); SEE.raf = requestAnimationFrame(tick); };
+    SEE.raf = requestAnimationFrame(tick);
+  }
+  function done() {
+    const rec = SEE.recording; stopSee(); SEE.recording = false;
+    const p = $('seePlay'); if (p) p.textContent = '▶ AGAIN'; const v = $('seeSave'); if (v) v.disabled = false;
+    still(5); if (!rec) say('That\'s you. Again any time.');
+  }
+  async function saveVideo(blob, id) {
+    const w = G.get(id) || { title: 'See it' }, ext = /mp4/.test(blob.type) ? 'mp4' : 'webm', name = ('See it - ' + w.title).replace(/[\\/:*?"<>|]+/g, '').slice(0, 60) + '.' + ext;
+    const file = new File([blob], name, { type: blob.type });
+    try { if (navigator.canShare && navigator.canShare({ files: [file] }) && matchMedia('(pointer:coarse)').matches) { await navigator.share({ files: [file], title: w.title }); say('Saved where you picked.'); return; } } catch (e) { if (e && e.name === 'AbortError') { say('Not saved.'); return; } }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    say('Saved: ' + name + (ext === 'webm' ? '. A WebM plays in Chrome and most players; an iPhone saves an MP4.' : '.'));
+  }
+  async function seeView(id) {
+    const w = G.get(id); if (!w) return go('');
+    stopSee(); SEE = { id, img: { pics: {} }, playing: false };
+    const s = G.see(id), F = SI.facts(w, window.You ? You.get() : {});
+    const chip = (grp, v, l, on) => '<button type="button" class="chip' + (on ? ' on' : '') + '" data-' + grp + '="' + v + '" aria-pressed="' + !!on + '">' + l + '</button>';
+    let h = '<div class="backbar"><a class="btn ghost" href="?w=' + esc(id) + '" id="seeBack">‹ ' + esc(w.title.toUpperCase()) + '</a></div><p class="msg" id="msg" role="status">' + esc(MSG) + '</p>';
+    h += '<p class="kicker">SEE IT</p><p class="wtitle">' + esc(w.title) + (F.role ? ', as ' + esc(F.role) : '') + '</p>';
+    h += '<div class="seegrid"><div class="seemain"><div class="stage" id="stage"><canvas id="seeCv" width="1280" height="720" role="img" aria-label="See it: ' + esc(w.title) + ', six beats from the call to the mirror"></canvas><span class="clock" id="seeClock"></span><button type="button" class="seex" id="seeX" aria-label="Stop">■ STOP</button></div>' +
+      '<div class="row" style="margin-top:12px"><button class="btn" type="button" id="seePlay">▶ SEE IT</button><button class="btn ghost" type="button" id="seeSave">SAVE THE VIDEO</button></div>' +
+      '<p class="dim small" style="margin:8px 0 0">Full screen, sound up. A saved video uses your headshot in the mirror, never the camera.</p>' +
+      '<div class="seeopts"><div><p class="kick">THE MIRROR</p><div class="chips">' + chip('mirror', 'shot', 'YOUR HEADSHOT', s.mirror === 'shot') + chip('mirror', 'live', 'THE CAMERA, LIVE', s.mirror === 'live') + '</div>' + (s.mirror === 'live' ? '<p class="dim small">The camera comes on when you press SEE IT, and goes off at the end. The bar up top says so while it\'s on.</p>' : '') + '</div>' +
+      '<div><p class="kick">SOUND</p><div class="chips">' + chip('sound', 'quiet', 'QUIET', !s.sound) + '<label class="chip' + (s.sound ? ' on' : '') + '">' + (s.sound ? esc(s.soundName.toUpperCase().slice(0, 28)) : 'YOUR VOICE OR A SONG') + '<input type="file" id="seeSnd" accept="audio/*,.m4a,.mp3,.wav" hidden></label></div><p class="dim small">A voice memo of you, or a song you pick. Never a computer voice.</p></div>' +
+      '<div><p class="kick">LENGTH</p><div class="chips">' + SI.LENGTHS.map(n => chip('secs', n, n + ' SECONDS', s.secs === n)).join('') + '</div></div></div></div>';
+    h += '<aside class="card seebeats"><p class="kick">THE BEATS · MAKE THEM YOURS</p><p class="dim small" style="margin:0 0 6px">Each one works as it is. A picture or your words are up to you.</p>' +
+      '<label class="lab" for="seeRole">YOUR ROLE (OPTIONAL)</label><input class="field" id="seeRole" value="' + esc(w.role || '') + '" placeholder="The part you see yourself in" autocomplete="off">';
+    SI.BEATS.forEach((b, i) => {
+      const has = !!s.pics[i];
+      const mine = [s.words[i] ? 'your words' : '', has ? 'a picture' : ''].filter(Boolean).join(' · ');
+      h += '<details class="beat" data-beat="' + i + '"' + (SEEOPEN === i ? ' open' : '') + '><summary class="bname" data-show="' + i + '"><span>' + String(i + 1).padStart(2, '0') + ' · ' + esc(b[1]) + '</span><i>' + esc(mine || 'as it is') + '</i></summary>' +
+        '<label class="lab" for="sw' + i + '">' + (i === 0 ? 'THE WORDS YOU WANT TO READ' : 'YOUR WORDS ON IT') + '</label><input class="field" id="sw' + i + '" data-words="' + i + '" maxlength="140" value="' + esc(s.words[i] || '') + '" autocomplete="off">' +
+        (i === 5 ? '' : '<div class="row"><label class="btn quiet sm">' + (has ? 'CHANGE THE PICTURE' : '+ A PICTURE') + '<input type="file" accept="image/*" data-pic="' + i + '" hidden></label>' + (has ? '<button type="button" class="btn quiet sm" data-nopic="' + i + '">TAKE IT OFF</button>' : '') + (i === 3 && !has && w.pic ? '<span class="dim small">Uses the wall\'s picture</span>' : '') + '</div>') + '</details>';
+    });
+    h += '<p class="dim small" style="margin-top:10px">Kept on this device, with your wall. Nothing is uploaded.</p></aside></div>';
+    V.innerHTML = h;
+    $('seeBack').onclick = e => { e.preventDefault(); go('w=' + id); };
+    $('seePlay').onclick = () => { if (SEE.playing) done(); else play(false); };
+    $('seeX').onclick = () => done();
+    $('seeSave').onclick = () => { say('Making the video. It plays through once while it records.'); play(true); };
+    document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && SEE && SEE.playing && !SEE.recording) done(); }, { once: true });
+    V.querySelectorAll('[data-mirror]').forEach(b => b.onclick = () => { G.seeSet(id, { mirror: b.dataset.mirror }); seeView(id); });
+    V.querySelectorAll('[data-secs]').forEach(b => b.onclick = () => { G.seeSet(id, { secs: +b.dataset.secs }); seeView(id); });
+    V.querySelectorAll('[data-sound]').forEach(b => b.onclick = async () => { await G.seeNoSound(id); seeView(id); });
+    $('seeSnd').onchange = async e => { const f = e.target.files && e.target.files[0]; if (!f) return; const r = await G.seeSound(id, f); say(r.error ? 'That didn\'t take: ' + r.error + '.' : 'It plays under the whole thing.'); seeView(id); };
+    $('seeRole').onchange = e => { G.set(id, { role: String(e.target.value || '').replace(/\s+/g, ' ').trim() }); seeView(id); };
+    V.querySelectorAll('[data-words]').forEach(inp => { inp.onchange = () => { G.seeWords(id, +inp.dataset.words, inp.value); still(+inp.dataset.words); }; inp.onfocus = () => still(+inp.dataset.words); });
+    V.querySelectorAll('details.beat').forEach(d => d.ontoggle = () => { if (d.open) { SEEOPEN = +d.dataset.beat; still(SEEOPEN); V.querySelectorAll('details.beat').forEach(o => { if (o !== d) o.open = false; }); } });
+    V.querySelectorAll('[data-show]').forEach(b => b.onclick = () => still(+b.dataset.show));
+    V.querySelectorAll('[data-pic]').forEach(inp => inp.onchange = async e => { const f = e.target.files && e.target.files[0]; if (!f) return; const r = await G.seePic(id, +inp.dataset.pic, f); say(r.error ? 'That picture didn\'t take: ' + r.error + '.' : ''); await seeView(id); still(+inp.dataset.pic); });
+    V.querySelectorAll('[data-nopic]').forEach(b => b.onclick = async () => { await G.seeNoPic(id, +b.dataset.nopic); await seeView(id); still(+b.dataset.nopic); });
+    try { await Promise.all([document.fonts.load('600 40px Jost'), document.fonts.load('700 30px "Courier Prime"')]); } catch (e) { }
+    SEE.img = await seeImages(id); still(SEEOPEN >= 0 ? SEEOPEN : 0);
+  }
+  window.__see = { frame: t => frame(t, true), state: () => SEE, stop: stopSee };
 
   window.__viz = { route, drawLock, cardBlob };
   route();
