@@ -3,7 +3,7 @@
    a rep's or casting's email, a trade story about a new show, a casting director's post, a public listing.
    Paste it (or share it) and this pulls what's written: the project, the role, who's casting, the dates,
    the pay as written, the conflicts, and the musts, quoted. Nothing is guessed; what isn't written stays blank.
-   Then your facts next to it (from the Hub and NOTES), and three notes built from them:
+   Then your facts next to it (from the Hub), and three notes built from them:
    pass it along to your reps, a pitch your rep can send, and a note straight to the office.
    Pure, so it runs in Node for the tests. Nothing is sent anywhere; you send it. */
 (function(g){
@@ -215,7 +215,7 @@ S.facts=function(card,ctx){
  // you've spotted this office before
  if(names.length&&ctx.spotted){ const ks=names.map(S.key).filter(Boolean); const prev=ctx.spotted.filter(x=>x.id!==(ctx.selfId||card.id)&&x.card!==card&&(x.card.casting||[]).some(n=>ks.includes(S.key(n))));
   if(prev.length) out.push({k:'spotted',t:'You spotted '+pl(prev.length,'other')+' from '+names[0]+': '+prev.slice(0,3).map(x=>x.card.project||'(no title)').join(', ')+'.'}); }
- if(names.length&&!out.some(x=>x.k==='office'||x.k==='notes')) out.push({k:'office',t:'Nothing from '+names.join(', ')+' in your Hub or NOTES yet.'});
+ if(names.length&&!out.some(x=>x.k==='office'||x.k==='notes')) out.push({k:'office',t:'Nothing from '+names.join(', ')+' in your Hub yet.'});
  return out;
 };
 

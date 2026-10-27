@@ -21,7 +21,7 @@ for(const [nm,vp,cs] of [['desk',{width:1280,height:900},'light'],['phone',{widt
  want(nm+': the full wording is folded under each row', await p.$$eval('.lv',x=>x.every(d=>!d.open)));
  await p.click('.lv:has-text("Speak to a tool") summary'); await p.waitForTimeout(200);
  const sp=await p.innerText('.lv:has-text("Speak to a tool") .more');
- want(nm+': one tap: the eleven speech places, Story Studio in it, LISTENING stays here', /Eleven places/.test(sp)&&/Story Studio/.test(sp)&&/THE PLAN/.test(sp)&&/LISTENING/.test(sp)&&/stays on the device/.test(sp), sp);
+ want(nm+': one tap: the ten speech places, Story Studio in it, LISTENING stays here', /Ten places/.test(sp)&&/Story Studio/.test(sp)&&/THE PLAN/.test(sp)&&/LISTENING/.test(sp)&&/stays on the device/.test(sp), sp);
  await p.click('.lv:has-text("Check the news") summary'); await p.waitForTimeout(200);
  want(nm+': the news is Picture It now, nothing about you', /CHECK THE NEWS in Picture It/.test(await p.innerText('.lv:has-text("Check the news") .more'))&&!/postcard/i.test(await p.innerText('body')));
  want(nm+': your page online: says it isn\'t switched on yet', /Not switched on yet/.test(await p.innerText('.lv:has-text("Put your page online") summary')));

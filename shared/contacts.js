@@ -1,6 +1,5 @@
 /* THEACTORPAGE CONTACTS: the who. One list of the people in your work: casting, your reps, directors, producers,
    coaches, the actors you work with. The ones you add, plus the ones the other tools already know:
-     NOTES    the people in your sessions (who gave you a note, who ran the class)
      HUB      the casting offices on your auditions, with your counts
      SPOTTED  casting on the projects you spotted, and the reps you send things to
    A person the tools know shows up here on their own; tap KEEP to add a phone, an email, a note of your own.
@@ -98,7 +97,6 @@
   C.sources = async function () {
     const s = { notes: [], projects: [], spotted: {}, worked: [] };
     try { const w = JSON.parse(LS().getItem('theactorpage_workedwith_v1') || 'null'); if (w && w.people) s.worked = Object.keys(w.people).map(k => w.people[k]); } catch (e) { }
-    try { if (g.Notes) s.notes = g.Notes.people().map(p => ({ name: p.name, role: p.role, sessions: p.sessions || (p.sids ? p.sids.length : 0), notes: p.notes || p.count || 0 })); } catch (e) { }
     try { s.spotted = JSON.parse(LS().getItem('theactorpage_spotted_v1') || '{}') || {}; } catch (e) { }
     try { if (g.Offices) { const h = await g.Offices.load(); if (h) s.projects = h.projects || []; } } catch (e) { }
     return s;

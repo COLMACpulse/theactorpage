@@ -25,7 +25,7 @@ D.TOOLS=[
  {id:'you', name:'Your profile (headshots, résumé)', href:'../', ls:[/^theactorpage_you/], db:[/^theactorpage_you$/]},
  {id:'takes', name:'Takes shelf', href:'../', ls:[/^theactorpage_takes/], db:[/^theactorpage_takes$/]},
  {id:'inbox', name:'Requests and drafts on home', href:'../', ls:[/^theactorpage_inbox/], db:[]},
- {id:'notes', name:'Notes', href:'../notes/', ls:[/^theactorpage_notes/,/^notes_ui/], db:[]},
+ {id:'notes', name:'Notes, from before', href:'', ls:[/^theactorpage_notes/,/^notes_ui/], db:[]},
  {id:'spotted', name:'Spotted', href:'../spotted/', ls:[/^theactorpage_spotted/,/^spotted_ui/], db:[/^theactorpage_spotted_pics$/]},
  {id:'headshots', name:'Headshots', href:'../headshots/', ls:[/^theactorpage_headshots/,/^headshots_ui/,/^headshots_shoot_v1$/], db:[/^theactorpage_headshot_refs$/]},
  {id:'booth', name:'VO Booth', href:'../booth/', ls:[/^booth_/,/^theactorpage_wave_v1$/], db:[/^booth_media$/]},

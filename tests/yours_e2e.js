@@ -9,7 +9,6 @@ await p.goto('http://localhost:8811/how.html'); await p.evaluate(()=>localStorag
 want('nothing of yours yet: no YOURS section at all, no samples', await p.evaluate(()=>document.getElementById('yours').hidden&&!document.querySelector('#yours .ytile.mine')));
 want('the footer stays a list', !(await p.$('footer .ytile')));
 await p.evaluate(()=>{
- const s=Notes.addSession({title:'Low Tide',who:[{name:'Pat Coach'}]}); Notes.addNote({sid:s.id,text:'Take the pause before the door.',giver:'Pat Coach'});
  Viz.add({title:'Harbor Lights',kind:'show'});
  localStorage.setItem('theactorpage_spotted_v1',JSON.stringify({items:[{id:'i1',at:Date.now(),card:{project:'Dry Creek',role:'Series regular',where:'Austin',casting:['Pell Casting'],source:'https://example.com/story'}}],me:{},held:[]}));
  Contacts.add({name:'Morgan Lee',role:'agent'});
@@ -20,7 +19,7 @@ await p.reload(); await p.waitForTimeout(1200);
 const t1=await p.$$eval('#yours .ytile',x=>x.map(e=>({k:e.dataset.y,tag:e.classList.contains('mine')?'YOURS':'SAMPLE',t:e.querySelector('.yart').innerText.replace(/\s+/g,' ')})));
 want('with yours: the section shows, Footage a plain link, no Expenses', await p.evaluate(()=>!document.getElementById('yours').hidden)&&!/Expenses/.test(await p.innerText('#yours .yrow'))&&/Footage/.test(await p.innerText('#yours .yrow')));
 const by=k=>t1.find(x=>x.k===k)||{};
-want('Notes: no tile, a plain link', !t1.some(x=>x.k==='notes')&&/Notes/.test(await p.innerText('#yours .yrow')));
+want('Notes is gone: no tile, no link', !t1.some(x=>x.k==='notes')&&!/Notes/.test(await p.innerText('#yours .yrow')));
 want('Spotted: the last thing you spotted, where it came from', by('spotted').tag==='YOURS'&&/Dry Creek/.test(by('spotted').t)&&/EXAMPLE\.COM/.test(by('spotted').t), by('spotted'));
 want('Picture It: your wall', by('picture').tag==='YOURS'&&/HARBOR LIGHTS|Harbor Lights/i.test(by('picture').t)&&/WANT IT/.test(by('picture').t), by('picture'));
 want('Press: your last plug, in your words', by('press').tag==='YOURS'&&/Tune in/.test(by('press').t), by('press'));

@@ -1,5 +1,5 @@
 /* FOR MY REPS in the Hub: the made-up actor's offices and credits, plus things spotted (SPOTTED), people from a class
-   (NOTES), your words (YOU) and the roles you want (HEADSHOTS). The first sheet; I SENT IT; then a new read and a
+   your words (YOU) and the roles you want (HEADSHOTS). The first sheet; I SENT IT; then a new read and a
    callback come in, and only those show as new. The rhythm you pick sticks. Made-up names only. Server on :8811. */
 const {chromium}=require('playwright'); const fs=require('fs'), path=require('path'), os=require('os');
 (async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
@@ -10,7 +10,6 @@ await p.goto('http://localhost:8811/how.html'); await p.evaluate(()=>{ localStor
   {id:'s1',at:Date.now()-86400000,status:'spotted',card:{project:'Dust Road',network:'Netflix',role:'Sheriff Cole',casting:['Canyon Casting'],type:'Series, western',source:'https://deadline.com/dust-road'}},
   {id:'s2',at:Date.now()-3600000,status:'passed',card:{project:'Zoom Room',casting:['Canyon Casting'],source:'https://zoom.us/j/123'}}],me:{reps:[{name:'Agent A',email:'agent@example.com'},{name:'Manager M',email:'manager@example.com'}]},held:[]}));
  localStorage.setItem('theactorpage_headshots_v1',JSON.stringify({called:['Law enforcement'],want:['Western / period']}));
- Notes.addSession({date:'2026-09-12',room:'class',who:[{name:'Jo Banner',role:'casting'}],title:'Scene night'});
 });
 await p.goto('http://localhost:8811/hub/?tab=reps'); await p.waitForTimeout(1800);
 want('FOR MY REPS in the Hub: its own page, back to the front', /For my reps/i.test(await p.innerText('#nav'))&&/YOUR PAGE/.test(await p.innerText('#nav')));
@@ -22,8 +21,7 @@ await p.fill('.form input >> nth=1','westerns, dark drama'); await p.press('.for
 const sheet=()=>p.$eval('#view textarea',t=>t.value);
 let t=await sheet();
 want('the sheet: where I stand from the Hub\'s offices', /WHERE I STAND/.test(t)&&/reads? in all|read/.test(t), t.slice(0,600));
-want('a casting director from a class: on the sheet as seen me work', /- Jo Banner: seen me work in a class or workshop\./.test(t), t);
-want('networks and people: from credits, and casting from a class in NOTES', /NETWORKS I'VE WORKED FOR\n- /.test(t)&&/Jo Banner, casting, seen me work/.test(t), t);
+want('networks from your credits', /NETWORKS I'VE WORKED FOR\n- /.test(t), t);
 want('on my radar: an office casting now that never had me in (from SPOTTED)', /Canyon Casting: casting Zoom Room, Dust Road\. Never had me in\./.test(t), t);
 want('your words: right for (with the roles you\'re called in for), want more of, want to be seen for', /cop, dad, rancher, western, Law enforcement/.test(t)&&/westerns, dark drama/.test(t)&&/Roles I want to be seen for: Western \/ period/.test(t));
 want('casting that fits: the western, with its link; never the Zoom link', /Dust Road \(Netflix\)\. Canyon Casting casting\. Role: Sheriff Cole\. My words: western\./.test(t)&&!/Zoom Room \(/.test(t.split('CASTING NOW THAT FITS ME')[1]||'')&&/deadline\.com\/dust-road/.test(t)&&!/zoom\.us/.test(t));

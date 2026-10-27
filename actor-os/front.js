@@ -90,7 +90,7 @@
   }
   const n = (x, w) => x + ' ' + (x === 1 ? w : w + 's');
   function pocket() {
-    const it = [['../booth/', 'VO Booth', 'A VO audition from a closet', 'vo'], ['../read/', 'Read In', "Read for a friend's tape", 'chars'], ['../spotted/', 'Spotted', 'Send your reps a role', 'spot'], ['../notes/', 'A note', 'What they told you', 'notes']];
+    const it = [['../booth/', 'VO Booth', 'A VO audition from a closet', 'vo'], ['../read/', 'Read In', "Read for a friend's tape", 'chars'], ['../spotted/', 'Spotted', 'Send your reps a role', 'spot']];
     return '<p class="fk" style="margin:18px 2px 8px">IN YOUR POCKET</p><div class="fpk">' + it.map(x => '<a href="' + x[0] + '">' + (window.Icons ? Icons.ring(x[3]) : '') + '<b>' + x[1] + '</b><span>' + x[2] + '</span></a>').join('') + '</div>';
   }
   function tapesRow() { const n = takes().length; return n ? '<button type="button" class="fdet" data-fgo="send"><span>Your takes</span><i>' + n + ' ›</i></button>' : ''; }

@@ -237,7 +237,6 @@ div.ppc{cursor:default}
 <script src="../shared/workedwith.js"></script>
 <script src="../shared/offices.js"></script>
 <script src="../shared/contacts.js"></script>
-<script src="../shared/notes.js"></script>
 <script src="../shared/spotted.js"></script>
 <script src="../shared/takes.js"></script>
 <script src="../resume/engine.js"></script>
@@ -1978,7 +1977,7 @@ function repsSource(){
   spotted.fits=(rep.fits||[]).map(x=>({id:x.it.id,project:x.it.card.project,network:x.it.card.network,role:x.it.card.role,casting:x.it.card.casting||[],url:x.it.card.source,mine:x.m||[]}));
   spotted.fresh=(rep.fresh||[]).map(o=>({name:o.name,projects:o.now.map(n=>n.card.project||'(no title)')})); }
   if(window.Spotted&&Spotted.news) spotted.news=Spotted.news(sd.items||[]); }catch(e){}
- let people=[]; try{ if(window.Notes) people=Notes.people(); }catch(e){}
+ let people=[];
  return {name:profile.name||y.name||'',page:(online().live&&online().url)||pkgSel.site||'',at:Date.now(),offices,
   credits:credits.filter(c=>c.kind==='credit').map(c=>({title:c.title,net:c.net,director:c.director,role:c.role})),people,
   pitch:window.WorkedWith?WorkedWith.pitches().map(x=>({name:x.name,on:WorkedWith.onWords(x.on),project:x.project})):[],
@@ -2121,7 +2120,6 @@ function officeGate(name){
  if(o&&o.booked)return 'worked_with';                 // you booked there (a credit, or an audition marked booked)
  if(o&&o.inroom>0)return 'warm';                      // they had you in the room
  if(o&&o.total>=3)return 'seen_you';                  // repeatedly submitted, never in
- if(window.Notes&&Notes.met(name))return 'seen_you';  // you worked in front of them in a class or workshop (NOTES)
  return 'cold';}
 function setGate(name,g){const k=officeKey(name);OFFMETA[k]=OFFMETA[k]||{};OFFMETA[k].gate=g;saveOffMeta();drawOffice();render();}
 function officeKey(x){return String(x||'').toLowerCase().replace(/\b(casting|cd|office|inc|llc|ltd|and|&|,|\.)\b/g,'').replace(/[^a-z0-9]+/g,'');}
@@ -2152,8 +2150,6 @@ function officeIndex(){
   if(!off)return;
   put(off,{kind:'credit',title:c.title||'',role:c.character||c.role||'',who:'',cid:c.cid,when:c.year||''});});
  Object.keys(OFFMETA||{}).forEach(k=>{ const m=OFFMETA[k]; if(m&&m.name&&!idx[k]) idx[k]={name:m.name,reads:[],credits:[],people:new Set()}; });
- // casting you were in a room with (NOTES: a class, a workshop, a callback) is on the list even with no reads
- try{ if(window.Notes) Notes.people().filter(p=>p.role==='casting'&&p.sessions).forEach(p=>{ const k=officeKey(p.name); if(k&&!idx[k]) idx[k]={name:p.name,reads:[],credits:[],people:new Set()}; }); }catch(e){}
  return Object.keys(idx).filter(k=>!(OFFMETA[k]&&OFFMETA[k].hidden)).map(k=>{const o=idx[k];
    (OFFMETA[k]&&OFFMETA[k].people||[]).forEach(x=>o.people.add(x));
    o.note=(OFFMETA[k]&&OFFMETA[k].note)||'';
@@ -2173,15 +2169,9 @@ function officeIndex(){
 
 /* v0.9.4: your real history with the office, on the card, the moment a request is in (shared/offices.js) */
 function offHistLine(a){ if(!window.Offices) return ''; const names=a.request&&a.request.castingDirectors&&a.request.castingDirectors.length?a.request.castingDirectors:[a.casting||''];
- if(!names.join('').trim()) return ''; const h=Offices.history(projects,credits,names,a.id), nl=window.Notes?Notes.lineFor(names):'';
+ if(!names.join('').trim()) return ''; const h=Offices.history(projects,credits,names,a.id), nl='';
  let w=Offices.words(h); if(nl&&h&&!h.reads&&!h.credits) w=''; // met in a room: not "first time"
  return (w?`<div class="offhist">${esc(w)}</div>`:'')+(nl?`<div class="offhist">${esc(nl)}</div>`:''); }
-/* v0.9.5: NOTES. The rooms you were in with them and what they told you. */
-function offNotesBlock(name){ if(!window.Notes) return ''; const m=Notes.met(name), L=Notes.byPerson(name); if(!m&&!L.length) return '';
- const room=r=>((Notes.ROOMS.find(x=>x[0]===r)||[0,'a session'])[1]).toLowerCase();
- return `<div class="wsgrp"><div class="wsh">In a room with you</div><div class="note" style="margin:0;color:var(--ink)">${m?`${m.sessions} session${m.sessions===1?'':'s'}, the last ${esc(m.last)} (${esc(room(m.room))})`:''}${L.length?` &middot; ${L.length} note${L.length===1?'':'s'}`:''}</div>
-  ${L.slice(0,4).map(n=>`<div class="note" style="margin:6px 0 0;color:var(--ink)">&ldquo;${esc(n.text||'voice memo')}&rdquo; <span style="color:var(--mut)">${esc(n.date)}${n.title?' &middot; '+esc(n.title):''}</span></div>`).join('')}
-  <a class="note" href="../notes/" style="color:var(--tung);display:inline-block;margin-top:6px">All in NOTES</a></div>`; }
 function officeFor(name){const k=officeKey(name);return officeIndex().find(o=>officeKey(o.name)===k)||null;}
 function officeChip(name){
  const o=officeFor(name);
@@ -2218,7 +2208,6 @@ function drawOffice(){
    <button class="ghost act sm" onclick="closeOffice()">&times; Close</button></div>
   <div class="wsbody" style="grid-template-columns:1fr">
    <div class="wsmain" style="max-width:860px">
-    ${offNotesBlock(o.name)}
     ${(officeGate(o.name)==='want'||o.why||o.cast.length)?`<div class="wsgrp"><div class="wsh">Why them</div>
       <input class="whyin2" value="${esc(o.why)}" placeholder="One line: why this office" onchange="offWhy('${esc2(o.name)}',this.value)">
       ${o.cast.length?`<div class="note" style="margin:8px 0 0;color:var(--ink)"><b style="color:var(--mut);font-weight:400">What they cast:</b> ${o.cast.map(esc).join(' &middot; ')}</div>`:''}

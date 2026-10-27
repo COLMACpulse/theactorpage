@@ -15,7 +15,7 @@ for(const [nm,vp,cs] of [['phone',{width:390,height:844},'dark'],['desk',{width:
  let m=await p.innerText('#aosHome');
  want(nm+': nothing due: bring it in, PASTE THE EMAIL first', /NO AUDITION OPEN/.test(m)&&/Got an audition\? Bring it in\./.test(m)&&(await p.$eval('#aosHome .fgo',e=>e.textContent))==='PASTE THE EMAIL', m.slice(0,200));
  want(nm+': the details stay folded until you ask', !(await p.isVisible('#prep')));
- want(nm+': your pocket: VO Booth, Read In, Spotted, a note', (await p.$$eval('#aosHome .fpk a',x=>x.map(a=>a.getAttribute('href')))).join()==='../booth/,../read/,../spotted/,../notes/');
+ want(nm+': your pocket: VO Booth, Read In, Spotted', (await p.$$eval('#aosHome .fpk a',x=>x.map(a=>a.getAttribute('href')))).join()==='../booth/,../read/,../spotted/');
  await p.screenshot({path:SHOTS+'/aos_front_'+nm+'.png',fullPage:true});
  await p.click('#fPaste'); await p.fill('#fPasteText',EMAIL); await p.click('#fRead'); await p.waitForTimeout(900);
  m=await p.innerText('#aosHome');

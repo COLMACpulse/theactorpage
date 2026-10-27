@@ -1,6 +1,6 @@
 /* THEACTORPAGE YOURS, on home: a picture for each of your tools. The sample shows what the tool holds; once you've
    added your own, the tile shows your newest: your next audition, your last note, the last thing you spotted, your
-   people (each one a link), your plan, your wall, your last plug. Notes and Footage are plain links. No samples: a tile shows only once it has yours, and the section
+   people (each one a link), your plan, your wall, your last plug. Footage is a plain link. No samples: a tile shows only once it has yours, and the section
    only once one does. Read here from this device only: nothing is sent anywhere, and
    these pictures only ever show on your own phone or computer. Footage stays a plain link. */
 (function (g) {

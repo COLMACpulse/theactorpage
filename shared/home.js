@@ -51,8 +51,6 @@ async function route(items){
   x.went='In the Hub next time you open it.'; x.inboxId=it.id;
   if(r.invitedActor){ if(Y) Y.fill({name:title(r.invitedActor)},'a self-tape request'); try{ if(!localStorage.getItem('actor_os_name')){ localStorage.setItem('actor_os_name',r.invitedActor); x.named=r.invitedActor; } }catch(e){} }
  });
- // a note from someone on the request, from NOTES (a class, a workshop, a callback)
- if(window.Notes) reqs.forEach(x=>{ const names=(x.req.castingDirectors||[]).filter(Boolean); if(names.length) x.noteWords=Notes.lineFor(names); });
  // your real history with the office on the request, from the Hub on this device (plain counts)
  if(reqs.length&&window.Offices){ const D=await Offices.load();
   if(D) reqs.forEach(x=>{ const r=x.req, k=[r.title||r.show,r.role].map(v=>String(v||'').toLowerCase().replace(/[^a-z0-9]+/g,'')).join('|');

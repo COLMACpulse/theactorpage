@@ -66,9 +66,9 @@
     return me + '<div class="shead"><h1>Your studio</h1><p>Set up here, at a desk. Audition day happens on your phone, in Actor OS.</p></div>'
       + '<div class="sgrid"><div class="rooms">'
       + room('act', 'ACT', 'Your audition life, between auditions',
-        d('hub', 'Your page', 'hub/', 'résumé, credits, press') + d('head', 'Headshots', 'headshots/', c.shots ? 'and your looks · ' + c.shots : 'and your looks')
+        d('hub', 'Your page', 'hub/', 'résumé, credits, press') + d('mem', 'Memorizer', 'memorizer/', 'learn your lines at your desk') + d('head', 'Headshots', 'headshots/', c.shots ? 'and your looks · ' + c.shots : 'and your looks')
         + d('vo', 'VO Booth', 'booth/', 'a VO audition from your desk') + d('arch', 'Reel Room', 'archbook/', 'a reel for the role')
-        + d('footage', 'Footage', 'footage/', 'everything you\'ve shot, playable') + d('notes', 'Notes', 'notes/', 'what they told you') + d('viz', 'Picture It', 'picture/', 'what you want'))
+        + d('footage', 'Footage', 'footage/', 'everything you\'ve shot, playable') + d('viz', 'Picture It', 'picture/', 'what you want'))
       + room('write', 'WRITE', 'Make your own: the page',
         d('wb', 'THEACTORPAGES', 'write/writers-blockage.html', 'write it, or talk it out') + d('pt', 'Paper Trail', 'papertrail/', c.pt ? 'every draft · ' + n(c.pt, 'project') : 'every draft, kept and sent')
         + d('chars', 'Characters', 'characters/', 'every one, from every tool') + d('set', 'Set List', 'setlist/', 'funny, in order'))
@@ -79,7 +79,7 @@
       + '<div class="aos" id="aosCard"><span class="sticks" aria-hidden="true"></span><div class="ain"><span class="k">' + I('actor', 'sm') + 'ACTOR OS · ON YOUR PHONE</span><b>Audition day: read it, learn it, shoot it, send it.</b>'
       + '<div class="fsteps4" aria-hidden="true"><span>READ</span><span>LEARN</span><span>SHOOT</span><span>SEND</span></div>'
       + '<div class="qr"><div class="code" aria-label="A code for your phone\'s camera: it opens Actor OS">' + qr(aosUrl()) + '</div><small>Point your phone\'s camera here, then Share › Add to Home Screen.</small></div>'
-      + '<small>Also in Actor OS: VO Booth, Read In, Spotted, a quick note.</small><a href="actor-os/">Open Actor OS here ›</a></div></div>'
+      + '<small>Also in Actor OS: VO Booth, Read In, Spotted.</small><a href="actor-os/">Open Actor OS here ›</a></div></div>'
       + '<div class="yours">' + I('dev') + '<div><span class="k">YOURS</span>Everything stays on this computer. Back it up, or move it to your phone, from <a href="device/">On This Device</a>.</div></div>'
       + '</aside></div>'
       + '<p class="foot"><a href="how.html">How it works</a><a href="how.html#act">Every tool</a><a href="how.html#cost">What it costs</a><a href="privacy/">Privacy</a></p>';

@@ -5,7 +5,7 @@
          the screenshot and the note; on a computer the screenshot is copied and your mail opens with the note.
          Folded away: what it says, a pitch for your rep, a note straight to the office, a cut from Reel Room.
    No tracking: it says when you sent it, nothing more. Nothing uploaded. localStorage theactorpage_spotted_v1, the
-   screenshots in IndexedDB theactorpage_spotted_pics. The Hub and NOTES are read, never written. */
+   screenshots in IndexedDB theactorpage_spotted_pics. The Hub is read, never written. */
 (function(){
 const S=window.Spotted, O=window.Offices, N=window.Notes, Y=window.You;
 const $=id=>document.getElementById(id);

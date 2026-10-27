@@ -228,6 +228,7 @@ function renderDrill(){
   h+='</div>';
  }
  h+=`<p class="faint" style="font-size:13px;margin-top:16px">Line ${it.n} of ${ITEMS.length}${D.round?' · '+D.round+' done this sitting':''}</p>`;
+ h+=`<p class="keys" aria-hidden="true">On a keyboard: <kbd>SPACE</kbd> shows the line · <kbd>1</kbd> got it · <kbd>2</kbd> close · <kbd>3</kbd> missed</p>`;
  m.innerHTML=tiles()+'<div class="work">'+h+'</div>'; wireTiles();
 }
 function diffHtml(target,c){
@@ -419,6 +420,7 @@ function renderScene(){
    <button class="btn got" onclick="MEM.sceneMark('got')">GOT IT</button>
    <button class="btn miss" onclick="MEM.sceneMark('miss')">DROPPED IT</button></div>`;
  }
+ if(R.pos>=0) h+=`<p class="keys" aria-hidden="true">On a keyboard: <kbd>SPACE</kbd> shows it · <kbd>1</kbd> got it · <kbd>2</kbd> dropped it</p>`;
  m.innerHTML=h;
  const n=$('now'); if(n&&n.scrollIntoView) n.scrollIntoView({block:'center'});
  else if(R.pos<0) window.scrollTo(0,document.body.scrollHeight);
@@ -544,6 +546,19 @@ function removeScript(id){
 }
 
 /* ---------- boot ---------- */
+/* At a desk: keys for the buttons on screen (Col, Oct 26: "a user might want to study on a pc").
+   SPACE or ENTER presses the next step; 1 2 3 mark it. Never while you're typing. */
+document.addEventListener('keydown',e=>{
+ if(e.ctrlKey||e.metaKey||e.altKey) return; const t=e.target, tg=(t&&t.tagName)||'';
+ if(/^(INPUT|TEXTAREA|SELECT)$/.test(tg)||(t&&t.isContentEditable)) return;
+ const vis=sel=>[...document.querySelectorAll(sel)].find(b=>b.offsetParent!==null&&!b.disabled);
+ let b=null;
+ if(e.key===' '||e.key==='Enter'){ if(tg==='BUTTON'||tg==='A') return; b=vis('button[onclick="MEM.reveal()"]')||vis('button[onclick="MEM.sceneShow()"]')||vis('.reveal .row button.pri')||vis('button[onclick="MEM.sceneRetry()"]'); }
+ else if(e.key==='1') b=vis(`button[onclick="MEM.mark('got')"]`)||vis(`button[onclick="MEM.sceneMark('got')"]`);
+ else if(e.key==='2') b=vis(`button[onclick="MEM.mark('close')"]`)||vis(`button[onclick="MEM.sceneMark('miss')"]`);
+ else if(e.key==='3') b=vis(`button[onclick="MEM.mark('miss')"]`);
+ if(b){ e.preventDefault(); b.click(); }
+});
 window.MEM={tab:tab,level:setLevel,beat:setBeat,again:again,reveal:reveal,typing:typing,checkTyped:checkTyped,mark:mark,anyway:anyway,
  listen:listen,scene:sceneStart,sceneShow:sceneShow,sceneMark:sceneMark,sceneRetry:sceneRetry,verb:setVerb,resetProgress:resetProgress,
  pickMe:pickMe,takeAO:takeAO,panel:panel,bring:bring,offShelf:offShelf,recYou:recYou,hear:hear,hearAll:hearAll,shelfAll:()=>{ SHELFALL=true; renderSides(); },sayAll:sayAll,sayKeep:sayKeep,sayClear:sayClear,paste:pasteIt,open:openScript,remove:removeScript,fromShelf:fromShelf,

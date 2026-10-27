@@ -1,6 +1,6 @@
 /* THEACTORPAGE CHARACTERS: every character, from every tool, in the places they sit for you.
    Read on this device only, never written back to the tools. Seven places:
-     aud    Auditioned for        Project Hub, your sides, Actor OS takes, Breakdown, Memorizer, Notes, Spotted
+     aud    Auditioned for        Project Hub, your sides, Actor OS takes, Breakdown, Memorizer, Spotted
      booked Booked                Project Hub (booked, credits), your credits, Virtual Résumé, Picture It, Spotted
      pull   I can pull off        Virtual Résumé (what you can play), Looks, Picture It (roles you want)
      made   I created             Character Bank, Character Capsules, Set List
@@ -81,9 +81,6 @@
     // Memorizer
     const mz = LS('memorizer_v1');
     Object.values((mz && mz.scripts) || {}).forEach(s => { if (!s.me || /^(?:Practice scene|Today's scene) - /.test(s.file || '')) return; add({ name: s.me, project: fileTitle(s.file), group: 'aud', tool: 'memorizer', label: 'Memorizer', href: '../memorizer/', at: s.added }); });
-    // Notes: the rooms you were in for a role
-    const nt = LS('theactorpage_notes_v1'), ns = (nt && (nt.sessions || nt.list)) || [];
-    (Array.isArray(ns) ? ns : []).forEach(s => { if (!s || !s.part) return; add({ name: s.part, project: s.title, group: 'aud', tool: 'notes', label: 'Notes', href: '../notes/', at: s.at || s.date, step: s.room === 'callback' ? 'Callback' : '', detail: s.room || '' }); });
     // Spotted
     const sp = LS('theactorpage_spotted_v1'), sl = (sp && (sp.list || sp.items)) || (Array.isArray(sp) ? sp : []);
     (Array.isArray(sl) ? sl : []).forEach(x => { const cd = x.card || {}, st = x.status || ''; const roles = cd.role ? [cd.role] : (cd.roles || []).map(r => r.name);

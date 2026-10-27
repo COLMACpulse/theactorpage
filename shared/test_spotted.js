@@ -1,6 +1,6 @@
 /* node shared/test_spotted.js : SPOTTED. Every notice, name, office and number here is made up. */
 const store={}; global.localStorage={getItem:k=>store[k]||null,setItem:(k,v)=>{store[k]=String(v);},removeItem:k=>{delete store[k];}};
-const S=require('./spotted.js'), O=require('./offices.js'), N=require('./notes.js'), fs=require('fs');
+const S=require('./spotted.js'), O=require('./offices.js'), fs=require('fs');
 let pass=0,fail=0; const ok=(n,c,x)=>{ if(c){pass++;console.log('PASS',n);} else {fail++;console.log('FAIL',n,x===undefined?'':JSON.stringify(x).slice(0,600));} };
 const fx=f=>fs.readFileSync(__dirname+'/fixtures/spotted_'+f+'.txt','utf8');
 
@@ -49,19 +49,16 @@ const projects=[
  {id:'p2',aaid:'A2',project:'DRY CREEK',role:'DEPUTY',casting_office:'Dana Pell',status:'Confirmed',date:'2026-06-10'},
  {id:'p3',aaid:'A3',project:'Salt Flats',role:'DAD AT PARK',casting_office:'Ross Okafor',status:'Received',date:'2026-07-01'}];
 const credits=[{title:'Northgate Tea',role:'',character:'Barista',kind:'credit',medium:'Commercial',casting:'Lena Marsh'},{title:'Morning Ride',character:'Cycling Dad',medium:'Commercial'},{title:'SALT FLATS',character:'Hal',medium:'Film'}];
-const s1=N.addSession({date:'2026-03-12',room:'class',who:[{name:'Dana Pell',role:'casting'}],title:'LOW TIDE',part:'ANNA'});
-N.addNote({sid:s1.id,text:'Let the silence sit.'});
 c=S.read(fx('northgate_notice'));
 const held=[{brand:'Morning Brew Co',category:'coffee',until:'2027-06-30'},{brand:'Old Spot',category:'coffee',until:'2025-01-01'}];
-let F=S.facts(c,{projects,credits,offices:O,notes:N,held,today:'2026-10-16'});
+let F=S.facts(c,{projects,credits,offices:O,held,today:'2026-10-16'});
 const fk=k=>F.find(x=>x.k===k);
 ok('facts: the office line, plain counts', fk('office')&&/^You and Dana Pell: 2 reads before this/.test(fk('office').t), F);
-ok('facts: the NOTES line', fk('notes')&&/Dana Pell gave you a note/.test(fk('notes').t), F);
 ok('facts: your roles with the word "dad" and "barista"', F.filter(x=>x.k==='roles').length===2&&F.some(x=>x.k==='roles'&&/"dad": 1 booked: Cycling Dad \(Morning Ride\); 1 read/.test(x.t))&&F.some(x=>x.k==='roles'&&/"barista": 1 booked: Barista \(Northgate Tea\)/.test(x.t)), F.filter(x=>x.k==='roles'));
 ok('facts: a conflict you hold that is still running, not the expired one', F.filter(x=>x.k==='conflict').length===1&&/You hold Morning Brew Co \(coffee\) through 2027-06-30\. This one lists Coffee, Quick Service Restaurants\./.test(fk('conflict').t), F);
 ok('facts: no score, no verdict anywhere', !F.some(x=>/\d+%|score|right for|should|recommend/i.test(x.t)), F);
 const c2=S.read(fx('drycreek_news'));
-let F2=S.facts(c2,{projects,credits,offices:O,notes:N});
+let F2=S.facts(c2,{projects,credits,offices:O});
 ok('facts: an office you have never met says so', F2.some(x=>x.k==='office'&&x.t==='First time with Wren Ashby. Nothing from them in your Hub.'), F2);
 ok('facts: the kind of job against your credits ("pilot" is TV; none on file)', !F2.some(x=>x.k==='kind'), F2);
 const c3=S.read(fx('saltflats_email'));
