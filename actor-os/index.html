@@ -1694,7 +1694,7 @@ function remoteFire(src){
  const el=$('sCoach');
  if(el&&el.classList){
   el.className='sCoach on check';
-  el.textContent=(sRecOn?'Recording':'Stopped')+' \u2014 '+src;
+  el.textContent=(sRecOn?'Recording':(sCount?'Rolling in 3':'Stopped'))+' · from your '+src;
   setTimeout(()=>{ if(el.classList)el.classList.remove('on'); },1400);
  }
 }
