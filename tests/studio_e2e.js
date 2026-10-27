@@ -21,7 +21,7 @@ for(const [nm,cs] of [['desk',"light"],['deskdark','dark']]){
   await p.screenshot({path:SHOTS+'/studio_first_'+nm+'.png',fullPage:true});
   await p.setInputFiles('#stShot',path.join(FX,'made_up_face.jpg')); await p.waitForTimeout(2600);
   want('both in: on to your studio', await p.evaluate(()=>document.body.dataset.view)==='studio'&&await p.evaluate(()=>You.get().photos.length===1));
-  want('your name and headshot up top, a way to your page', /Sam/i.test(await p.innerText('.who'))&&await p.getAttribute('.who','href')==='hub/'&&!!(await p.$('.who img[src^="blob:"]')));
+  want('your name and headshot, big, under the bar; Your page up top', /Sam/i.test(await p.innerText('.me .mename'))&&!!(await p.$('.me .mephoto img[src^="blob:"]'))&&await p.getAttribute('.who','href')==='hub/');
  } else { await p.click('#stSkip'); await p.waitForTimeout(400); want(nm+': skip it: the studio', await p.evaluate(()=>document.body.dataset.view)==='studio'); }
  m=await p.innerText('#main');
  const doors=await p.$$eval('.room',R=>R.map(r=>r.querySelector('.k').textContent+':'+[...r.querySelectorAll('a')].map(a=>a.getAttribute('href')).join(',')));

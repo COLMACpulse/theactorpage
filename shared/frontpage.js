@@ -45,9 +45,9 @@
   const aosUrl = () => { try { return new URL('actor-os/', location.href).href; } catch (e) { return 'actor-os/'; } };
 
   function topLinks(v) {
-    const y = you(), p = shots()[0];
+    const y = you();
     let h = '<a href="how.html" class="hide-s">How it works</a><a href="how.html#cost" class="hide-s">What it costs</a><a href="privacy/">Privacy</a>';
-    if (v === 'studio') h = '<a href="device/">On This Device</a>' + h + '<a class="who" href="hub/" aria-label="Your page">' + (p ? '<img data-photo="' + esc(p.id) + '" alt="">' : '<i></i>') + '<span>' + esc(y.name || 'Your page') + '</span></a>';
+    if (v === 'studio') h = '<a href="device/">On This Device</a>' + h + '<a class="who" href="hub/" aria-label="Your page">' + '<span>Your page</span></a>';
     $('tlinks').innerHTML = h;
   }
 
@@ -56,7 +56,14 @@
   function studio() {
     const c = counts(), d = (ic, l, href, say) => '<a href="' + href + '">' + I(ic) + '<span><b>' + esc(l) + '</b><i>' + esc(say) + '</i></span></a>';
     const room = (k, name, sub, doors) => '<section class="room ' + k + '" aria-label="' + name + '"><span class="sticks" aria-hidden="true"></span><div class="rin"><span class="k">' + name + '</span><span class="rsub">' + sub + '</span>' + doors + '</div></section>';
-    return '<div class="shead"><h1>Your studio</h1><p>Set up here, at a desk. Audition day happens on your phone, in Actor OS.</p></div>'
+    /* you, first (Col, Oct 26): your headshot, big, under the bar and above Your studio */
+    const y = you(), sh = shots(), ph = sh.find(x => x.id === y.primary) || sh[0];
+    const facts = [y.union, y.locations, y.rep ? 'rep: ' + y.rep : ''].filter(Boolean).join(' · ');
+    const me = '<section class="me" aria-label="You">' + (ph ? '<a class="mephoto" href="headshots/" aria-label="Your headshots"><img data-photo="' + esc(ph.id) + '" alt="Your headshot"></a>'
+        : '<label class="mephoto none"><input type="file" id="meShot" accept="image/*" hidden><span>ADD A HEADSHOT</span></label>')
+      + '<div class="metx"><b class="mename">' + esc(y.name || 'Your name') + '</b>' + (facts ? '<span class="mefacts">' + esc(facts) + '</span>' : '')
+      + '<span class="melinks"><a href="hub/">Your page ›</a><a href="headshots/">Headshots' + (sh.length ? ' · ' + sh.length : '') + ' ›</a>' + (y.resume ? '' : '<a href="hub/?tab=intake">Add your résumé ›</a>') + '</span></div></section>';
+    return me + '<div class="shead"><h1>Your studio</h1><p>Set up here, at a desk. Audition day happens on your phone, in Actor OS.</p></div>'
       + '<div class="sgrid"><div class="rooms">'
       + room('act', 'ACT', 'Your audition life, between auditions',
         d('hub', 'Your page', 'hub/', 'résumé, credits, press') + d('head', 'Headshots', 'headshots/', c.shots ? 'and your looks · ' + c.shots : 'and your looks')
@@ -142,6 +149,7 @@
     $('main').innerHTML = v === 'phone' ? phone() : v === 'first' ? first() : studio();
     const r = $('stRes'); if (r) r.onchange = () => addResume(r.files[0]);
     const s = $('stShot'); if (s) s.onchange = () => addShot(s.files[0]);
+    const ms = $('meShot'); if (ms) ms.onchange = () => addShot(ms.files[0]);
     const k = $('stSkip'); if (k) k.onclick = () => { ss('tap_skip', '1'); render(); };
     const ps = $('pStudio'); if (ps) ps.onclick = () => { ss('tap_studio', '1'); render(); scrollTo(0, 0); };
     /* both done on a first visit: on to the studio */
