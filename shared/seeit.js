@@ -40,6 +40,20 @@
     return { main: '' };
   };
 
+  /* the line under a picture you added: your words, or the facts */
+  S.caption = function (i, F, words) {
+    const w = clean(words); if (w) return w; const role = F.role;
+    switch (S.BEATS[i] && S.BEATS[i][0]) {
+      case 'call': return [F.title, role].filter(Boolean).join(' · ');
+      case 'script': return F.name + (role ? ' as ' + role : '') + ' · ' + F.title;
+      case 'calltime': return 'Call 6:00 AM · ' + F.name + (role ? ' · ' + role : '');
+      case 'lot': return F.title;
+      case 'door': return F.name + (role ? ' · ' + role : '');
+      case 'mirror': return F.name + (role ? ' as ' + role : '');
+    }
+    return '';
+  };
+
   /* ---------- drawing (browser) ---------- */
   const FONT = 'Jost,system-ui,-apple-system,"Segoe UI",sans-serif', MONO = '"Courier Prime","Courier New",monospace';
   function rr(c, x, y, w, h, r) { c.beginPath(); if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h); }
@@ -56,6 +70,18 @@
     img = img || {}; const T = S.text(i, F, words), k = S.BEATS[i][0], z = 1 + .06 * p;
     c.save(); c.clearRect(0, 0, W, H);
     c.translate(W / 2, H / 2); c.scale(z, z); c.translate(-W / 2, -H / 2);
+    const own = img.pic || (k === 'lot' ? img.wall : null);
+    if (own && !(k === 'mirror' && img.live)) {
+      /* your picture, the whole frame; the line under it */
+      c.fillStyle = '#000'; c.fillRect(0, 0, W, H); cover(c, own, 0, 0, W, H, 1);
+      c.restore(); c.save();
+      const gr = c.createLinearGradient(0, H - 260, 0, H); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.82)'); c.fillStyle = gr; c.fillRect(0, H - 260, W, 260);
+      txt(c, S.BEATS[i][1].toUpperCase(), 56, H - 92, 40, { align: 'left', color: '#f2e3c4', weight: 600, spacing: 4, max: W - 112 });
+      txt(c, S.caption(i, F, words), 56, H - 46, 28, { align: 'left', color: '#ece7dc', weight: 500, max: W - 112 });
+      c.restore();
+      if (fade < 1) { c.fillStyle = 'rgba(0,0,0,' + (1 - fade).toFixed(3) + ')'; c.fillRect(0, 0, W, H); }
+      return;
+    }
     if (k === 'call') {
       grad(c, W, H, '#1a2230', '#0b0e13'); bg(c, W, H, img.pic, 1);
       const w = 560, h = 230, x = (W - w) / 2, y = (H - h) / 2 - 20;

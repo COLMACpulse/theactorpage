@@ -27,19 +27,26 @@ let v=await p.innerText('#view');
 want('See It: the title and your role, the stage, SEE IT and SAVE THE VIDEO', /Harbor Lights, as Deputy Ray Cole/.test(v)&&!!(await p.$('#seeCv'))&&/SEE IT/.test(await p.innerText('#seePlay'))&&/SAVE THE VIDEO/.test(v));
 const drawn=()=>p.evaluate(()=>{ const c=document.getElementById('seeCv'), d=c.getContext('2d').getImageData(0,0,c.width,c.height).data; let lit=0; for(let i=0;i<d.length;i+=4*97) if(d[i]+d[i+1]+d[i+2]>120) lit++; return lit; });
 want('the first beat is drawn on the stage', (await drawn())>50, await drawn());
-want('the beats are folded: six rows, each "as it is"', (await p.$$eval('details.beat',x=>x.length))===6&&(await p.$$eval('details.beat[open]',x=>x.length))===0&&(await p.$$eval('details.beat .bname i',x=>x.every(i=>/as it is/.test(i.textContent)))));
+want('six beats, each with ADD A PICTURE and a place for your words, none erased yet', (await p.$$eval('.beat',x=>x.length))===6&&(await p.$$eval('.beat input[data-pic]',x=>x.length))===6&&(await p.$$eval('.beat input[data-words]',x=>x.length))===6&&!(await p.$('[data-nopic]'))&&!(await p.$('#seeEraseAll')));
 want('the mirror is your headshot, the sound is quiet, 30 seconds', await p.evaluate(()=>['[data-mirror="shot"]','[data-sound="quiet"]','[data-secs="30"]'].every(s=>document.querySelector(s).classList.contains('on'))));
 want('nothing is written for you: no sentence on any beat', await p.evaluate(()=>{ const F=SeeIt.facts(Viz.all().find(w=>w.title==='Harbor Lights'),You.get()); return SeeIt.BEATS.every((b,i)=>{ const t=SeeIt.text(i,F,''); return !t.say&&!/got it|booked|congrat|you are/i.test(JSON.stringify(t)); }); }));
 
 /* your words on the call */
-await p.click('details.beat[data-beat="0"] summary'); await p.waitForTimeout(300);
 await p.fill('#sw0','We got it. They want you.'); await p.press('#sw0','Tab'); await p.waitForTimeout(400);
 want('your words: kept for that beat', await p.evaluate(id=>Viz.see(id).words[0]==='We got it. They want you.',id));
 /* a picture on the script beat */
-await p.click('details.beat[data-beat="1"] summary'); await p.waitForTimeout(300);
-await p.setInputFiles('details.beat[data-beat="1"] input[data-pic="1"]',path.join(__dirname,'poster_a.jpg')); await p.waitForTimeout(1500);
-want('a picture: kept on this device for that beat, the row says so', await p.evaluate(id=>!!Viz.see(id).pics[1],id)&&/your words/.test(await p.innerText('details.beat[data-beat="0"] .bname i'))&&/a picture/.test(await p.$eval('details.beat[data-beat="1"] .bname i',i=>i.textContent)));
-await p.click('details.beat[data-beat="1"] [data-nopic="1"]'); await p.waitForTimeout(700);
+const before=await p.evaluate(()=>{ __see.frame(7.5); return document.getElementById('seeCv').toDataURL().length; });
+await p.setInputFiles('input[data-pic="1"]',path.join(__dirname,'poster_a.jpg')); await p.waitForTimeout(1500);
+want('a picture: kept for that beat, its thumbnail and ERASE right on the row', await p.evaluate(id=>!!Viz.see(id).pics[1],id)&&/^blob:/.test(await p.$eval('img[data-thumb="1"]',i=>i.src))&&!!(await p.$('[data-nopic="1"]'))&&/CHANGE/.test(await p.innerText('.beat[data-beat="1"]')));
+want('it fills the whole frame for that beat, your line under it', await p.evaluate(()=>{ __see.frame(7.5); const c=document.getElementById('seeCv'), d=c.getContext('2d').getImageData(40,40,1,1).data; return d[0]+d[1]+d[2]>0; })&&(await p.evaluate(()=>SeeIt.caption(1,SeeIt.facts(Viz.all().find(w=>w.title==='Harbor Lights'),You.get()),'')))==='Sam Actor as Deputy Ray Cole · Harbor Lights');
+await p.setInputFiles('input[data-pic="4"]',path.join(__dirname,'poster_b.jpg')); await p.waitForTimeout(1500);
+want('ERASE ALL: shows once there are pictures, with the count', /ERASE ALL 2 PICTURES/.test(await p.innerText('#seeEraseAll')));
+await p.click('#seeEraseAll'); await p.waitForTimeout(300);
+want('ERASE ALL asks once, on the page, and says the wall picture stays', /YES, ERASE THEM ALL/.test(await p.innerText('#seeEraseAll'))&&/wall.s picture stays/.test(await p.innerText('#seeSure'))&&await p.evaluate(id=>Object.keys(Viz.see(id).pics).length===2,id));
+await p.click('#seeEraseAll'); await p.waitForTimeout(900);
+want('then every beat picture is gone, from the device too', await p.evaluate(id=>Object.keys(Viz.see(id).pics).length===0,id)&&!(await p.$('#seeEraseAll'))&&/Erased/.test(await p.innerText('#msg')));
+await p.setInputFiles('input[data-pic="1"]',path.join(__dirname,'poster_a.jpg')); await p.waitForTimeout(1500);
+await p.click('[data-nopic="1"]'); await p.waitForTimeout(700);
 want('TAKE IT OFF: gone, and from the device', await p.evaluate(async id=>!Viz.see(id).pics[1],id));
 /* length and sound */
 await p.click('[data-secs="45"]'); await p.waitForTimeout(700);
@@ -92,7 +99,7 @@ await p.screenshot({path:path.join(os.tmpdir(),'seeit_desk.png'),fullPage:true})
 const q=await (await b.newContext({viewport:{width:390,height:844},colorScheme:'dark',isMobile:true,hasTouch:true})).newPage(); const e2=[]; q.on('pageerror',e=>e2.push(e.message));
 await q.goto('http://localhost:8811/picture/'); const qid=await q.evaluate(()=>{ localStorage.clear(); sessionStorage.setItem('theactorpage_hot_ok','1'); You.set('name','Sam Actor'); return Viz.add({title:'Harbor Lights',kind:'show',role:'Deputy Ray Cole'}).id; });
 await q.goto('http://localhost:8811/picture/?see='+qid); await q.waitForTimeout(1500);
-want('phone: the stage first, the beats folded under, nothing sideways', await q.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)&&await q.evaluate(()=>document.getElementById('stage').getBoundingClientRect().top<document.querySelector('.seebeats').getBoundingClientRect().top)&&(await q.$$eval('details.beat[open]',x=>x.length))===0);
+want('phone: the stage first, the beats under, nothing sideways', await q.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)&&await q.evaluate(()=>document.getElementById('stage').getBoundingClientRect().top<document.querySelector('.seebeats').getBoundingClientRect().top));
 want('phone: no page errors', !e2.length, e2);
 await q.screenshot({path:path.join(os.tmpdir(),'seeit_phone.png'),fullPage:true});
 fs.unlinkSync(SND);

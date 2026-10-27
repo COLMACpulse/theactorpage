@@ -479,15 +479,17 @@
       '<div class="seeopts"><div><p class="kick">THE MIRROR</p><div class="chips">' + chip('mirror', 'shot', 'YOUR HEADSHOT', s.mirror === 'shot') + chip('mirror', 'live', 'THE CAMERA, LIVE', s.mirror === 'live') + '</div>' + (s.mirror === 'live' ? '<p class="dim small">The camera comes on when you press SEE IT, and goes off at the end. The bar up top says so while it\'s on.</p>' : '') + '</div>' +
       '<div><p class="kick">SOUND</p><div class="chips">' + chip('sound', 'quiet', 'QUIET', !s.sound) + '<label class="chip' + (s.sound ? ' on' : '') + '">' + (s.sound ? esc(s.soundName.toUpperCase().slice(0, 28)) : 'YOUR VOICE OR A SONG') + '<input type="file" id="seeSnd" accept="audio/*,.m4a,.mp3,.wav" hidden></label></div><p class="dim small">A voice memo of you, or a song you pick. Never a computer voice.</p></div>' +
       '<div><p class="kick">LENGTH</p><div class="chips">' + SI.LENGTHS.map(n => chip('secs', n, n + ' SECONDS', s.secs === n)).join('') + '</div></div></div></div>';
-    h += '<aside class="card seebeats"><p class="kick">THE BEATS · MAKE THEM YOURS</p><p class="dim small" style="margin:0 0 6px">Each one works as it is. A picture or your words are up to you.</p>' +
+    h += '<aside class="card seebeats"><p class="kick">THE BEATS · MAKE THEM YOURS</p><p class="dim small" style="margin:0 0 6px">Each one works as it is. A picture you add fills the frame; erase it any time.</p>' +
       '<label class="lab" for="seeRole">YOUR ROLE (OPTIONAL)</label><input class="field" id="seeRole" value="' + esc(w.role || '') + '" placeholder="The part you see yourself in" autocomplete="off">';
+    const nPics = Object.keys(s.pics).length;
     SI.BEATS.forEach((b, i) => {
-      const has = !!s.pics[i];
-      const mine = [s.words[i] ? 'your words' : '', has ? 'a picture' : ''].filter(Boolean).join(' · ');
-      h += '<details class="beat" data-beat="' + i + '"' + (SEEOPEN === i ? ' open' : '') + '><summary class="bname" data-show="' + i + '"><span>' + String(i + 1).padStart(2, '0') + ' · ' + esc(b[1]) + '</span><i>' + esc(mine || 'as it is') + '</i></summary>' +
-        '<label class="lab" for="sw' + i + '">' + (i === 0 ? 'THE WORDS YOU WANT TO READ' : 'YOUR WORDS ON IT') + '</label><input class="field" id="sw' + i + '" data-words="' + i + '" maxlength="140" value="' + esc(s.words[i] || '') + '" autocomplete="off">' +
-        (i === 5 ? '' : '<div class="row"><label class="btn quiet sm">' + (has ? 'CHANGE THE PICTURE' : '+ A PICTURE') + '<input type="file" accept="image/*" data-pic="' + i + '" hidden></label>' + (has ? '<button type="button" class="btn quiet sm" data-nopic="' + i + '">TAKE IT OFF</button>' : '') + (i === 3 && !has && w.pic ? '<span class="dim small">Uses the wall\'s picture</span>' : '') + '</div>') + '</details>';
+      const has = !!s.pics[i], wallPic = i === 3 && !has && w.pic;
+      h += '<div class="beat" data-beat="' + i + '"><div class="brow"><button type="button" class="bthumb" data-show="' + i + '" aria-label="Show ' + esc(b[1]) + '">' + (has || wallPic ? '<img data-thumb="' + i + '" alt="">' : '<span>' + String(i + 1).padStart(2, '0') + '</span>') + '</button>' +
+        '<button type="button" class="bname" data-show="' + i + '">' + esc(b[1]) + (wallPic ? '<i>the wall\'s picture</i>' : '') + '</button>' +
+        '<label class="btn quiet sm">' + (has ? 'CHANGE' : 'ADD A PICTURE') + '<input type="file" accept="image/*" data-pic="' + i + '" hidden></label>' + (has ? '<button type="button" class="btn quiet sm" data-nopic="' + i + '">ERASE</button>' : '') + '</div>' +
+        '<label class="vh" for="sw' + i + '">Your words on ' + esc(b[1]) + '</label><input class="field bw" id="sw' + i + '" data-words="' + i + '" maxlength="140" value="' + esc(s.words[i] || '') + '" placeholder="Your words (optional)" autocomplete="off"></div>';
     });
+    if (nPics) h += '<div class="row" style="margin-top:10px"><button type="button" class="btn quiet sm" id="seeEraseAll">ERASE ALL ' + nPics + ' PICTURE' + (nPics === 1 ? '' : 'S') + '</button></div><p class="msg" id="seeSure" role="status"></p>';
     h += '<p class="dim small" style="margin-top:10px">Kept on this device, with your wall. Nothing is uploaded.</p></aside></div>';
     V.innerHTML = h;
     $('seeBack').onclick = e => { e.preventDefault(); go('w=' + id); };
@@ -501,12 +503,13 @@
     $('seeSnd').onchange = async e => { const f = e.target.files && e.target.files[0]; if (!f) return; const r = await G.seeSound(id, f); say(r.error ? 'That didn\'t take: ' + r.error + '.' : 'It plays under the whole thing.'); seeView(id); };
     $('seeRole').onchange = e => { G.set(id, { role: String(e.target.value || '').replace(/\s+/g, ' ').trim() }); seeView(id); };
     V.querySelectorAll('[data-words]').forEach(inp => { inp.onchange = () => { G.seeWords(id, +inp.dataset.words, inp.value); still(+inp.dataset.words); }; inp.onfocus = () => still(+inp.dataset.words); });
-    V.querySelectorAll('details.beat').forEach(d => d.ontoggle = () => { if (d.open) { SEEOPEN = +d.dataset.beat; still(SEEOPEN); V.querySelectorAll('details.beat').forEach(o => { if (o !== d) o.open = false; }); } });
-    V.querySelectorAll('[data-show]').forEach(b => b.onclick = () => still(+b.dataset.show));
-    V.querySelectorAll('[data-pic]').forEach(inp => inp.onchange = async e => { const f = e.target.files && e.target.files[0]; if (!f) return; const r = await G.seePic(id, +inp.dataset.pic, f); say(r.error ? 'That picture didn\'t take: ' + r.error + '.' : ''); await seeView(id); still(+inp.dataset.pic); });
-    V.querySelectorAll('[data-nopic]').forEach(b => b.onclick = async () => { await G.seeNoPic(id, +b.dataset.nopic); await seeView(id); still(+b.dataset.nopic); });
+    V.querySelectorAll('[data-show]').forEach(b => b.onclick = () => { SEEOPEN = +b.dataset.show; still(SEEOPEN); });
+    const ea = $('seeEraseAll'); if (ea) ea.onclick = async () => { if (ea.dataset.sure !== '1') { ea.dataset.sure = '1'; ea.textContent = 'YES, ERASE THEM ALL'; $('seeSure').textContent = 'Every picture you added to these beats goes. The wall\'s picture stays.'; return; } for (const k of Object.keys(G.see(id).pics)) await G.seeNoPic(id, +k); say('Erased. The beats are back to how they were drawn.'); await seeView(id); };
+    V.querySelectorAll('[data-pic]').forEach(inp => inp.onchange = async e => { const f = e.target.files && e.target.files[0]; if (!f) return; const r = await G.seePic(id, +inp.dataset.pic, f); say(r.error ? 'That picture didn\'t take: ' + r.error + '.' : 'It fills the frame for that beat.'); SEEOPEN = +inp.dataset.pic; await seeView(id); });
+    V.querySelectorAll('[data-nopic]').forEach(b => b.onclick = async () => { await G.seeNoPic(id, +b.dataset.nopic); SEEOPEN = +b.dataset.nopic; say('Erased.'); await seeView(id); });
     try { await Promise.all([document.fonts.load('600 40px Jost'), document.fonts.load('700 30px "Courier Prime"')]); } catch (e) { }
     SEE.img = await seeImages(id); still(SEEOPEN >= 0 ? SEEOPEN : 0);
+    for (const im of V.querySelectorAll('img[data-thumb]')) { const k = +im.dataset.thumb, pid = s.pics[k] || (k === 3 ? w.pic : ''); const bl = pid ? await G.picBlob(pid) : null; if (bl instanceof Blob) im.src = URL.createObjectURL(bl); }
   }
   window.__see = { frame: t => frame(t, true), state: () => SEE, stop: stopSee };
 

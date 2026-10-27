@@ -136,14 +136,16 @@ label.ck{min-height:44px;gap:10px;cursor:pointer}label.ck input{width:20px;heigh
 @media (max-width:620px){.seeopts{grid-template-columns:1fr}}
 .seeopts .kick,.seebeats .kick{margin:0 0 4px}
 .seebeats{display:flex;flex-direction:column;gap:6px}
-.beat{border-top:1px solid var(--line);padding:2px 0}
-.beat[open]{padding-bottom:10px}.beat[open]>*:not(summary){margin-top:6px}
-.beat.on .bname span{color:var(--gt)}
-.bname{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;font:600 15px var(--sans);color:var(--ink);cursor:pointer;min-height:44px}
-.bname::-webkit-details-marker{display:none}
-.bname i{font:500 12.5px var(--sans);font-style:normal;color:var(--mut)}
-.beat[open] .bname i{display:none}
-.beat .row{margin-top:8px}
+.beat{border-top:1px solid var(--line);padding:8px 0;display:flex;flex-direction:column;gap:6px}
+.brow{display:flex;align-items:center;gap:10px}
+.bthumb{flex:none;width:64px;height:36px;border-radius:5px;border:1px solid var(--line);background:var(--p2);padding:0;overflow:hidden;cursor:pointer;display:grid;place-items:center;color:var(--mut);font:600 12px var(--sans)}
+.bthumb img{width:100%;height:100%;object-fit:cover;display:block}
+.beat.on .bthumb{outline:2px solid var(--gold);outline-offset:1px}
+.bname{flex:1;min-width:0;background:none;border:0;padding:0;text-align:left;font:600 15px var(--sans);color:var(--ink);cursor:pointer;min-height:44px;display:flex;flex-direction:column;justify-content:center}
+.bname i{font:500 12px var(--sans);font-style:normal;color:var(--mut)}
+.beat.on .bname{color:var(--gt)}
+.field.bw{min-height:38px;padding:6px 10px;font-size:14px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .btn.sm{min-height:36px;padding:0 12px;font-size:12px}
 </style>
 </head>
