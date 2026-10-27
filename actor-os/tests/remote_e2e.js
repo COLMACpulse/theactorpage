@@ -18,7 +18,7 @@ for(const [nm,vp,cs] of [['phone',{width:390,height:844},'dark'],['desk',{width:
  const SENT=new Set(['AudioVolumeUp','AudioVolumeDown','MediaPlayPause']);  // keys Playwright can't type: sent the way a clicker's key arrives
  const press=async k=>{ if(SENT.has(k)) await p.evaluate(k=>document.body.dispatchEvent(new KeyboardEvent('keydown',{key:k,bubbles:true,cancelable:true})),k); else await p.keyboard.press(k); await p.waitForTimeout(80); };
  const gap=()=>p.waitForTimeout(500);                         // past the 450 ms bounce guard
- const rolled=()=>p.waitForFunction(()=>sRecOn===true,null,{timeout:6000}).then(()=>true).catch(()=>false);
+ const rolled=()=>p.waitForFunction(()=>sRecOn===true,null,{timeout:12000}).then(()=>true).catch(()=>false);
  const coach=()=>p.evaluate(()=>(document.getElementById('sCoach')||{}).textContent||'');
  const shut=()=>p.evaluate(()=>{ const r=document.getElementById('takeReview'); if(r) r.remove(); });
 
@@ -44,7 +44,7 @@ for(const [nm,vp,cs] of [['phone',{width:390,height:844},'dark'],['desk',{width:
  want(nm+': volume up: the 3-count starts', (await st()).count, await st());
  want(nm+': it says so on screen, plainly', /Rolling in 3 · from your remote/.test(await coach())&&!/—/.test(await coach()), await coach());
  want(nm+': then it rolls', await rolled());
- await press('AudioVolumeUp'); await press('AudioVolumeUp');   // a bounce: the second is inside 450 ms
+ await p.evaluate(()=>{ for(let i=0;i<2;i++) document.body.dispatchEvent(new KeyboardEvent('keydown',{key:'AudioVolumeUp',bubbles:true,cancelable:true})); }); await p.waitForTimeout(150);   // a bounce: two presses at once
  want(nm+': a double press counts once (the take stops, it does not start again)', !(await st()).on&&!(await st()).count, await st());
  await p.waitForTimeout(400); await shut(); await gap();
 

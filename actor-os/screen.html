@@ -28,7 +28,17 @@ textarea{width:100%;min-height:80px;background:var(--panel2);color:var(--ink);bo
 @media(min-width:900px){.grid.two{grid-template-columns:1fr 1fr}}
 .screen{position:relative;background:#000;border-radius:10px;overflow:hidden;aspect-ratio:16/9}
 .screen video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
-.screen.mirror #v{transform:scaleX(-1)}
+.screen.g-mirror #v,.screen.g-mirror .ov canvas{transform:scaleX(-1)}
+.ov{position:absolute;pointer-events:none}
+.ov canvas{position:absolute;inset:0;width:100%;height:100%;display:none}.screen.g-freeze .ov canvas{display:block}
+.ov .th,.ov .sf{display:none;position:absolute}
+.screen.g-thirds .ov .th{display:block;inset:0}
+.ov .th::before{content:"";position:absolute;top:0;bottom:0;left:33.333%;width:33.334%;border-left:1px solid rgba(255,255,255,.65);border-right:1px solid rgba(255,255,255,.65);box-shadow:0 0 0 0 transparent}
+.ov .th::after{content:"";position:absolute;left:0;right:0;top:33.333%;height:33.334%;border-top:1px solid rgba(255,255,255,.65);border-bottom:1px solid rgba(255,255,255,.65)}
+.screen.g-safe .ov .sf{display:block;inset:5%;border:2px dashed rgba(255,214,120,.9);border-radius:4px}
+.frztag{display:none;position:absolute;right:10px;bottom:10px;font:700 12px var(--mono);letter-spacing:.14em;padding:5px 9px;border-radius:6px;background:#8fb6ec;color:#0d0f12}.screen.g-freeze .frztag{display:block}
+.btn.tg.on{border-color:#8fb6ec;color:#8fb6ec;background:rgba(42,95,168,.18)}
+.screen:fullscreen{border-radius:0;aspect-ratio:auto}
 .state{position:absolute;left:10px;top:10px;font:700 12px var(--mono);letter-spacing:.16em;padding:5px 9px;border-radius:6px;background:rgba(13,15,18,.8);color:var(--dim)}
 .state.rec{background:var(--red);color:#fff}
 .sensor{font:700 12px var(--mono);letter-spacing:.14em;color:#8fb6ec;margin:0 0 8px}
@@ -68,7 +78,7 @@ textarea{width:100%;min-height:80px;background:var(--panel2);color:var(--ink);bo
 'use strict';
 const L=window.MonitorLink, $=id=>document.getElementById(id), app=$('app');
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const M={pc:null,dc:null,stream:null,answer:'',up:false,mirror:false,st:{},take:null,url:'',got:0,lock:null};
+const M={pc:null,dc:null,stream:null,answer:'',up:false,g:{thirds:false,safe:false,mirror:false,freeze:false},st:{},take:null,url:'',got:0,lock:null};
 window.__screen=M;
 /* the offer rides in the part of the link after #, which the browser never sends to any server */
 const hash=new URLSearchParams(location.hash.slice(1)), offer=hash.get('o');
@@ -83,7 +93,7 @@ async function start(code){
  app.innerHTML='<div class="card"><p class="dim">Making the code for the phone…</p></div>';
  try{
   const r=await L.answer(code,s=>{ M.stream=s; if(M.up) live(); },dc=>{ M.dc=dc; L.receive(dc,onMsg,onFile,onProg); dc.onopen=()=>{ M.up=true; live(); role(); }; dc.onclose=()=>lost(); });
-  M.pc=r.pc; M.answer=r.code; M.mirror=r.meta&&r.meta.facing==='user';
+  M.pc=r.pc; M.answer=r.code;
   M.pc.addEventListener('connectionstatechange',()=>{ const s=M.pc.connectionState; if(M.up&&(s==='failed'||s==='closed')) lost(); });
   showAnswer();
  }catch(e){ ask(e&&e.message&&/Story Studio/.test(e.message)?'That code isn\'t from Actor OS.':'That code didn\'t work. Make a new one on the phone.'); }
@@ -100,6 +110,10 @@ const AR=window.ActorReader;
 M.clips=new Map(); M.sides={id:'',lines:[]}; M.speaker=false; M.cam=null; M.rec=null; M.chunks=[]; M.angles=[]; M.facing='environment'; M.withSound=true; M.q=Promise.resolve();
 const queue=fn=>(M.q=M.q.then(fn).catch(()=>{}));
 const role=()=>send({t:'role',view:VIEW,speaker:M.speaker,cam:!!M.cam});
+/* GUIDES on the monitor (Oct 27): thirds, safe area, mirror, freeze. All off until you tap one; this screen only. */
+function guides(){ const s=$('scr'); if(!s) return; ['thirds','safe','mirror','freeze'].forEach(k=>{ s.classList.toggle('g-'+k,!!M.g[k]); const b=app.querySelector('[data-g="'+k+'"]'); if(b){ b.classList.toggle('on',!!M.g[k]); b.setAttribute('aria-pressed',String(!!M.g[k])); } }); }
+function fitGuides(){ const s=$('scr'), v=$('v'), o=$('ov'); if(!s||!v||!o) return; const W=s.clientWidth, H=s.clientHeight, vw=v.videoWidth||16, vh=v.videoHeight||9, k=Math.min(W/vw,H/vh), w=vw*k, h=vh*k; o.style.left=((W-w)/2)+'px'; o.style.top=((H-h)/2)+'px'; o.style.width=w+'px'; o.style.height=h+'px'; }
+function freezeFrame(on){ const c=$('frz'), v=$('v'); if(!c||!v) return; if(on&&v.videoWidth){ c.width=v.videoWidth; c.height=v.videoHeight; c.getContext('2d').drawImage(v,0,0); } else { M.g.freeze=false; c.width=1; c.height=1; } }
 function live(){
  if(!M.up) return;
  try{ if(navigator.wakeLock&&!M.lock) navigator.wakeLock.request('screen').then(l=>M.lock=l).catch(()=>{}); }catch(e){}
@@ -108,8 +122,9 @@ function live(){
   +'<button class="tab spk'+(M.speaker?' on':'')+'" id="spk" aria-pressed="'+(M.speaker?'true':'false')+'">'+(M.speaker?'♪ READER PLAYS HERE':'♪ PLAY THE READER HERE')+'</button></div>'
   +'<div class="top"><span class="tag" id="st">LINKED</span><button class="btn roll" id="roll">● ROLL</button></div>';
  if(VIEW==='monitor') h+='<div class="grid two"><div class="card"><p class="sensor">MONITOR · THE PHONE\'S CAMERA · NO SOUND</p>'
-  +'<div class="screen'+(M.mirror?' mirror':'')+'" id="scr"><video id="v" playsinline muted autoplay></video></div>'
-  +'<div class="row"><button class="btn" id="mir">MIRROR</button><button class="btn" id="full">FULL SCREEN</button></div>'
+  +'<div class="screen" id="scr"><video id="v" playsinline muted autoplay></video><div class="ov" id="ov" aria-hidden="true"><canvas id="frz"></canvas><i class="th"></i><i class="sf"></i></div><span class="frztag">FROZEN · THE PHONE IS STILL LIVE</span></div>'
+  +'<div class="row guides" role="group" aria-label="Guides on the picture">'+[['thirds','THIRDS'],['safe','SAFE AREA'],['mirror','MIRROR'],['freeze','FREEZE']].map(x=>'<button class="btn tg" data-g="'+x[0]+'" aria-pressed="false">'+x[1]+'</button>').join('')+'<button class="btn" id="full">FULL SCREEN</button></div>'
+  +'<p class="faint">Guides are on this screen only; they never go in the take. THIRDS for your eyes on the top line, SAFE AREA for what a small screen may cut off, MIRROR to move the way you see yourself, FREEZE to hold a frame and look.</p>'
   +'<p class="faint">ROLL counts you in on the phone, then records there. Space bar or a clicker paired to this device works too.</p></div>'
   +'<div class="card"><p class="sensor">PLAYBACK</p><div id="pb"></div></div></div>';
  else if(VIEW==='sides') h+='<div class="card"><p class="sensor">SIDES · THE LINE YOU\'RE ON, LIT UP</p><div class="row"><button class="btn" id="fsm" aria-label="Smaller words">A−</button><button class="btn" id="fbg" aria-label="Bigger words">A+</button><span class="faint">Put this screen beside the lens.</span></div><div class="sides" id="sides"></div></div>';
@@ -120,7 +135,9 @@ function live(){
  $('spk').onclick=()=>{ M.speaker=!M.speaker; if(M.speaker&&AR) AR.wake(); else if(AR) AR.stopPlay(); role(); live(); };
  $('roll').onclick=()=>send({t:M.st.rec||M.st.count?'cut':'roll'});
  if(VIEW==='monitor'){ const v=$('v'); if(M.stream){ v.srcObject=M.stream; v.play&&v.play().catch(()=>{}); }
-  $('mir').onclick=()=>{ M.mirror=!M.mirror; $('scr').classList.toggle('mirror',M.mirror); };
+  M.g.freeze=false; guides(); fitGuides(); v.onloadedmetadata=fitGuides; v.onresize=fitGuides;
+  try{ if(!M.ro){ M.ro=new ResizeObserver(()=>fitGuides()); } M.ro.disconnect(); M.ro.observe($('scr')); }catch(e){ addEventListener('resize',fitGuides); }
+  app.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{ const k=b.dataset.g; M.g[k]=!M.g[k]; if(k==='freeze') freezeFrame(M.g.freeze); guides(); });
   $('full').onclick=()=>{ const s=$('scr'); if(document.fullscreenElement) document.exitFullscreen(); else if(s.requestFullscreen) s.requestFullscreen().catch(()=>{}); };
   paintTake(); }
  if(VIEW==='sides'){ const fs=k=>{ let n=26; try{ n=+localStorage.getItem('aos_screen_fs')||26; }catch(e){} n=Math.max(16,Math.min(60,n+k)); try{ localStorage.setItem('aos_screen_fs',n); }catch(e){} $('sides').style.setProperty('--fs',n+'px'); };
