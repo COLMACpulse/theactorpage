@@ -58,6 +58,7 @@ want('redo: recording that one line, the bar shows it', /Recording line 5/.test(
 await p.waitForTimeout(Math.min(MICLEN,30)*1000);
 await p.click('.cut[data-id="'+id+'"] [data-a="redo"]');
 await p.waitForFunction(()=>/redone/.test(document.getElementById('msg').innerText),null,{timeout:20000}).catch(()=>{});
+await p.waitForFunction(()=>document.querySelectorAll('.tag.redo').length>0,null,{timeout:5000}).catch(()=>{});
 want('the line is marked REDONE, the rest untouched', /REDONE/.test(await p.innerText('.cut[data-id="'+id+'"]'))&&(await p.$$eval('.tag.redo',x=>x.length))===1, await p.innerText('#msg'));
 const rl=await p.evaluate(i=>MyVoice.clips().then(c=>c[i].size),id);
 const exp=(one.truth[0][1]-one.truth[0][0]);
