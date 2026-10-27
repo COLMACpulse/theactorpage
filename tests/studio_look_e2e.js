@@ -14,7 +14,7 @@ for(const cs of ['light','dark']){
  want(cs+': icons colored by room (ACT gold, MAKE YOUR OWN green)', new Set(col).size===2, col);
  want(cs+': the sticks under the header and on every card', await p.$$eval('.sticks',s=>s.filter(x=>x.offsetHeight>=10).length)>=5);
  want(cs+': nothing moves', await p.evaluate(()=>[...document.querySelectorAll('svg.ic,.sticks')].every(e=>getComputedStyle(e).animationName==='none')));
- want(cs+': about one screen', await p.evaluate(()=>document.documentElement.scrollHeight)<=1100, await p.evaluate(()=>document.documentElement.scrollHeight));
+ want(cs+': about one screen (a little more for the bigger Actor OS button)', await p.evaluate(()=>document.documentElement.scrollHeight)<=1180, await p.evaluate(()=>document.documentElement.scrollHeight));
  want(cs+': you first: a big headshot spot under the bar, above Your studio', await p.evaluate(()=>{ const m=document.querySelector('.me'), h=document.querySelector('.shead'), ph=document.querySelector('.mephoto'); return !!m&&!!h&&m.getBoundingClientRect().bottom<=h.getBoundingClientRect().top&&ph.getBoundingClientRect().height>=150; }));
  want(cs+': Actor OS card shows the four steps', /READ\s*LEARN\s*SHOOT\s*SEND/.test(await p.innerText('#aosCard')));
  want(cs+': no page errors', !errs.length, errs); await c.close(); }

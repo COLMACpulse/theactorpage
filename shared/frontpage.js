@@ -74,10 +74,12 @@
       + room('write own', 'MAKE YOUR OWN', 'When nobody\'s sending you sides',
         d('wb', 'THEACTORPAGES', 'write/writers-blockage.html', 'a monologue, a scene, a short: write it, every draft kept'))
       + '</div><aside class="side">'
-      + '<div class="aos" id="aosCard"><span class="sticks" aria-hidden="true"></span><div class="ain"><span class="k">' + I('actor', 'sm') + 'ACTOR OS · ON YOUR PHONE</span><b>Audition day: read it, learn it, shoot it, send it.</b>'
+      + '<div class="aos" id="aosCard"><span class="sticks" aria-hidden="true"></span><div class="ain"><span class="k">' + I('actor', 'sm') + 'ACTOR OS · HERE OR ON YOUR PHONE</span><b>Audition day: read it, learn it, shoot it, send it.</b>'
       + '<div class="fsteps4" aria-hidden="true"><span>READ</span><span>LEARN</span><span>SHOOT</span><span>SEND</span></div>'
-      + '<div class="qr"><div class="code" aria-label="A code for your phone\'s camera: it opens Actor OS">' + qr(aosUrl()) + '</div><small>Point your phone\'s camera here, then Share › Add to Home Screen.</small></div>'
-      + '<small>Also in Actor OS: VO Booth, Read In, Spotted.</small><a href="actor-os/">Open Actor OS here ›</a></div></div>'
+      + '<a class="aosgo" href="actor-os/" id="aosHere"><span>OPEN ACTOR OS ON THIS COMPUTER</span><i>Works the same on a laptop or a tablet</i></a>'
+      + '<p class="aossay">Paste the casting email or drop the sides. It reads your role, runs your lines with you, tapes you with this camera and sends it the way they asked. VO Booth, Read In and Spotted are in there too.</p>'
+      + '<span class="aosor">OR ON YOUR PHONE</span>'
+      + '<div class="qr"><div class="code" aria-label="A code for your phone\'s camera: it opens Actor OS">' + qr(aosUrl()) + '</div><small>Point your phone\'s camera here, then Share › Add to Home Screen.</small></div></div></div>'
       + '<div class="yours">' + I('dev') + '<div><span class="k">YOURS</span>Everything stays on this computer. Back it up, or move it to your phone, from <a href="device/">On This Device</a>.</div></div>'
       + '</aside></div>'
       + '<p class="foot"><a href="how.html">How it works</a><a href="how.html#act">Every tool</a><a href="how.html#cost">What it costs</a><a href="privacy/">Privacy</a></p>';
@@ -98,7 +100,7 @@
       + '<div class="ib act"><span class="k">SHOWCASE</span>Your page, headshots, reels, everything you\'ve shot</div>'
       + '<div class="ib act"><span class="k">THE WORK</span>Learn your lines, a VO booth, every role you\'ve played, Picture It</div>'
       + '<div class="ib write"><span class="k">MAKE YOUR OWN</span>Write a monologue, a scene or a short, every draft kept</div>'
-      + '<div class="ib aosb"><span class="k">ACTOR OS · YOUR PHONE</span>Read it, learn it, shoot it, send it. Plus a VO booth for the closet.</div>'
+      + '<div class="ib aosb"><span class="k">ACTOR OS · HERE OR ON YOUR PHONE</span>Read it, learn it, shoot it, send it, on this computer or your phone. Plus a VO booth for the closet.</div>'
       + '</aside></div>';
   }
 
