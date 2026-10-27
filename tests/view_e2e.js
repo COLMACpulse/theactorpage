@@ -8,7 +8,7 @@ const shown=sel=>p.$eval(sel,e=>!!(e.offsetWidth||e.offsetHeight||e.getClientRec
 await p.goto('http://localhost:8811/how.html'); await p.evaluate(()=>{ localStorage.setItem('theactorpage_view',JSON.stringify({act:true,write:false,film:false})); sessionStorage.setItem('theactorpage_sigil','1'); }); await p.reload(); await p.waitForTimeout(800);
 const f=await p.innerText('footer');
 want('the footer: no SHOW ON THIS SITE row', !(await p.$('#viewrow'))&&!(await p.$('[data-view]'))&&!/SHOW ON THIS SITE/.test(f));
-want('an old hidden choice is cleared: every band and footer column shows', await shown('.door.w')&&await shown('.door.f')&&await shown('.fcol[data-dept="write"]')&&await shown('.fcol[data-dept="film"]')&&!(await p.$('[data-vhide]'))&&await p.evaluate(()=>localStorage.getItem('theactorpage_view')===null));
+want('an old hidden choice is cleared: every band and footer column shows', await shown('.door.w')&&!(await p.$('.door.f'))&&await shown('.fcol[data-dept="write"]')&&!(await p.$('.fcol[data-dept="film"]'))&&!(await p.$('[data-vhide]'))&&await p.evaluate(()=>localStorage.getItem('theactorpage_view')===null));
 const im=await p.$eval('.maker img',e=>({src:e.getAttribute('src'),w:e.naturalWidth,show:e.offsetWidth}));
 want('COLMAC TOOLWORKS: the sigil, loaded, beside the name', im.src==='img/colmac-sigil-96.png'&&im.w===96&&im.show===48&&/COLMAC TOOLWORKS/.test(f), im);
 want('no page errors', !errs.length, errs);

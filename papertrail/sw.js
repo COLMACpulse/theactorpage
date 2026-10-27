@@ -1,5 +1,5 @@
 /* PAPER TRAIL offline shell. Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='paper-trail-0.11.32';
+const CACHE='paper-trail-0.11.33';
 const FILES=['../shared/icons.js','../shared/tour.js','../shared/view.js','./','index.html','../shared/hot.js','../shared/kit.js','../shared/capture.js','../shared/notecam.js','app.js','trail.js','../shared/characters.js','../shared/graph.js','../shared/you.js','../shared/textpdf.js','manifest.webmanifest',
  '../shared/shelf.js','../shared/inbox.js','../shared/xlsx.js','../actor-os/sides.js','../actor-os/pdf.js','../film/film.js',
  'icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png','../img/sigil-film-180.png','../fonts/jost-latin-400-normal.woff2','../fonts/jost-latin-500-normal.woff2','../fonts/jost-latin-600-normal.woff2','../fonts/courier-prime-latin-400-normal.woff2','../fonts/courier-prime-latin-700-normal.woff2'];

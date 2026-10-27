@@ -7,7 +7,7 @@ let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===und
 const c=await b.newContext({viewport:{width:1300,height:900}}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message));
 await p.goto('http://localhost:8811/how.html'); await p.evaluate(()=>{ localStorage.clear(); sessionStorage.clear(); }); await p.reload(); await p.waitForTimeout(700);
 want('nothing in: IN PLAY says nothing of yours yet, and offers the sample', /nothing of yours yet/.test(await p.innerText('#inplay'))&&/Low Tide/.test(await p.innerText('#inplay'))&&(await p.getAttribute('#inplay a','href'))==='demo/?try');
-want('SPARK on ACT, WRITE and FILM, and nothing shown until tapped', (await p.$$eval('[data-spark]',x=>x.map(y=>y.dataset.spark))).join()==='act,write,film'&&await p.$$eval('.spark-card',x=>x.length)===0);
+want('SPARK on ACT and WRITE (no FILM), and nothing shown until tapped', (await p.$$eval('[data-spark]',x=>x.map(y=>y.dataset.spark))).join()==='act,write'&&await p.$$eval('.spark-card',x=>x.length)===0);
 // fill: five sides, a tape due tomorrow, a draft
 const text=fs.readFileSync(path.join(__dirname,'..','shared','fixtures','low_tide.fountain'),'utf8');
 await p.evaluate(t=>{ ['The Watch','Discharge','Low Tide','Dry Creek','Salt Flats'].forEach((n,i)=>Shelf.put({text:t+'\n'+i,file:n+'.fountain',me:i===0?'SAGE':'',from:'home'}));
@@ -50,11 +50,9 @@ await p.click('[data-spark="act"] [data-another]'); await p.waitForTimeout(100);
 want('ANOTHER: a different one', (await p.innerText('[data-spark="act"] .spark-card p'))!==first);
 await p.click('[data-spark="act"] [data-notnow]');
 want('NOT NOW: gone', await p.$$eval('.spark-card',x=>x.length)===0);
-await p.click('.door[data-door="write"]'); await p.click('.door[data-door="film"]'); await p.waitForTimeout(200); await p.click('[data-spark="write"] .spark-btn'); await p.waitForTimeout(100);
+await p.click('.door[data-door="write"]'); await p.waitForTimeout(200); await p.click('[data-spark="write"] .spark-btn'); await p.waitForTimeout(100);
 const go=await p.$eval('[data-spark="write"] .spark-go',x=>x.getAttribute('href')||x.tagName);
 want('WRITE SPARK goes to GO or Paper Trail', /writers-blockage\.html\?go|papertrail\//.test(go), go);
-await p.click('[data-spark="film"] .spark-btn'); await p.waitForTimeout(100);
-want('FILM SPARK: a thing to shoot', /Shoot|Scout|Film|photo/i.test(await p.innerText('[data-spark="film"] .spark-card p')));
 want('the spark\'s sides and part come from the same script', await p.evaluate(()=>{ const c=Spark.ctx(); return c.me==='SAGE'&&c.sides==='The Watch'; }), await p.evaluate(()=>Spark.ctx()));
 want('no counts or streaks anywhere in a spark', !/streak|in a row|\d+ days/i.test(await p.innerText('body')));
 want('no em dashes in sparks or IN PLAY', !/—/.test(await p.innerText('#inplay')+await p.$$eval('.spark-card',x=>x.map(y=>y.textContent).join(''))));

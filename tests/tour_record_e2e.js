@@ -23,7 +23,7 @@ await c.addInitScript(()=>{ try{ sessionStorage.setItem('theactorpage_hot_ok','1
 const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
 await p.goto('http://localhost:8811/demo/record.html'); await p.evaluate(()=>MyVoice.clear()); await p.reload(); await p.waitForTimeout(500);
 const head=await p.innerText('main');
-want('says what it is: one take, cut into one clip per stop, the two-count', /Read the whole tour, once/.test(head)&&/28 clips/.test(head)&&/slow two-count/.test(head)&&/redo any single line/.test(head));
+want('says what it is: one take, cut into one clip per stop, the two-count', /Read the whole tour, once/.test(head)&&/24 clips/.test(head)&&/slow two-count/.test(head)&&/redo any single line/.test(head));
 want('the whole script is there, in order, numbered', (await p.$$eval('.ln',x=>x.length))===L.length&&/^1/.test(await p.innerText('.ln')));
 want('nobody gets here from the site, and search engines are told to skip it', /noindex/.test(await p.getAttribute('meta[name=robots]','content')));
 
@@ -39,14 +39,14 @@ want('CANCEL leaves the line as it was', (await p.innerText('.ln[data-id="A00"] 
 await p.setInputFiles('#fileIn',FULL);
 await p.waitForFunction(()=>!document.getElementById('cutsBox').classList.contains('hide'),null,{timeout:60000}).catch(()=>{});
 const sum=await p.innerText('#sum');
-want('all 28 clips cut, nothing missing, nothing to check', /^28 of 28 clips cut/.test(sum)&&!/not found|look off/i.test(sum), sum);
+want('all 24 clips cut, nothing missing, nothing to check', /^24 of 24 clips cut/.test(sum)&&!/not found|look off/i.test(sum), sum);
 const meta=await p.evaluate(()=>MyVoice.get('cuts'));
 
 const bad=meta.cuts.filter((x,i)=>x.start==null||Math.abs(x.start-full.truth[i][0])>0.4||Math.abs(x.end-full.truth[i][1])>0.6).map(x=>x.id);
 want('every clip starts and ends where its line does', bad.length===0, bad);
 want('the full take is kept too, so a reload loses nothing', !!(await p.evaluate(()=>MyVoice.get('take').then(x=>x&&x.size))));
 await p.reload(); await p.waitForTimeout(600);
-want('after a reload the clips are still there', /^28 of 28/.test(await p.innerText('#sum'))&&(await p.$$eval('.cut',x=>x.length))===28);
+want('after a reload the clips are still there', /^24 of 24/.test(await p.innerText('#sum'))&&(await p.$$eval('.cut',x=>x.length))===24);
 await p.click('.cut[data-id="O01"] [data-a="play"]'); await p.waitForTimeout(500);
 want('PLAY plays a clip, and becomes STOP', (await p.innerText('.cut[data-id="O01"] [data-a="play"]'))==='STOP');
 await p.click('.cut[data-id="O01"] [data-a="play"]');
@@ -68,7 +68,7 @@ want('mic off after', !(await p.evaluate(()=>Hot.peek().mic)));
 const [dl]=await Promise.all([p.waitForEvent('download'),p.click('#saveBtn')]);
 const zf=path.join(T,'z.zip'); await dl.saveAs(zf);
 const names=require('child_process').execSync('unzip -Z1 '+zf).toString().trim().split('\n');
-want('SAVE FOR THE SITE: one zip, a WAV per stop, cuts.json and the full read', dl.suggestedFilename()==='tour-voice.zip'&&names.filter(n=>/^vo\/[A-Z]\d\d\.wav$/.test(n)).length===28&&names.includes('cuts.json')&&names.some(n=>/^full-read\./.test(n)), names.slice(0,5));
+want('SAVE FOR THE SITE: one zip, a WAV per stop, cuts.json and the full read', dl.suggestedFilename()==='tour-voice.zip'&&names.filter(n=>/^vo\/[A-Z]\d\d\.wav$/.test(n)).length===24&&names.includes('cuts.json')&&names.some(n=>/^full-read\./.test(n)), names.slice(0,5));
 const wj=JSON.parse(require('child_process').execSync('unzip -p '+zf+' words.json').toString());
 want('the zip says which lines are in your words, what they were and what you said', Object.keys(wj).join()==='O01'&&wj.O01.was===L[0].line&&wj.O01.now===NEW);
 const probe=require('child_process').execSync('unzip -p '+zf+' vo/O01.wav | ffprobe -v error -show_entries stream=sample_rate,channels -of csv=p=0 -i pipe:0').toString().trim();
@@ -77,8 +77,8 @@ want('the clips are mono, 32 kHz', probe==='32000,1', probe);
 /* the tour plays them */
 const q=await c.newPage(); q.on('pageerror',e=>errs.push(e.message));
 await q.addInitScript(()=>{ window.__said=[]; const S={getVoices:()=>[],cancel(){},speak(u){ window.__said.push(u.text); setTimeout(()=>u.onend&&u.onend(),60); }}; Object.defineProperty(window,'speechSynthesis',{value:S,configurable:true}); });
-await q.goto('http://localhost:8811/demo/'); await q.waitForFunction(()=>window.__tour&&window.__tour.mine===28,null,{timeout:8000}).catch(()=>{});
-want('the tour on this device has your 28 clips', await q.evaluate(()=>window.__tour.mine)===28);
+await q.goto('http://localhost:8811/demo/'); await q.waitForFunction(()=>window.__tour&&window.__tour.mine===24,null,{timeout:8000}).catch(()=>{});
+want('the tour on this device has your 24 clips', await q.evaluate(()=>window.__tour.mine)===24);
 await q.click('#go'); await q.waitForFunction(()=>window.__tour.at==='O01',null,{timeout:30000}).catch(()=>{}); await q.waitForTimeout(1200);
 want('and plays yours, not a computer voice', /^blob:/.test(await q.evaluate(()=>document.getElementById('vo').src))&&!(await q.evaluate(()=>window.__said.filter(s=>s.trim()).length)), await q.evaluate(()=>document.getElementById('vo').src));
 
@@ -92,7 +92,7 @@ want('RECORD THE TOUR: the clock runs, the bar says recording', await p.isVisibl
 await p.waitForTimeout(4000); await p.click('#stopBtn');
 await p.waitForFunction(()=>!document.getElementById('cutsBox').classList.contains('hide'),null,{timeout:30000}).catch(()=>{});
 const s2=await p.innerText('#sum');
-want('STOP: it cuts what it heard and says which lines it did not find', /of 28 clips cut/.test(s2)&&/not found: redo those on their own/.test(s2)&&!(await p.evaluate(()=>Hot.peek().mic)), s2);
+want('STOP: it cuts what it heard and says which lines it did not find', /of 24 clips cut/.test(s2)&&/not found: redo those on their own/.test(s2)&&!(await p.evaluate(()=>Hot.peek().mic)), s2);
 await p.click('#againBtn'); await p.waitForTimeout(300);
 want('no page errors', errs.length===0, errs);
 await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();

@@ -8,7 +8,7 @@ await p.goto('http://localhost:8811/how.html'); await p.waitForTimeout(800);
 const six=['spotted/','footage/','press/'];
 const hrefs=sel=>p.$$eval(sel,x=>x.map(a=>a.getAttribute('href')));
 const youCards=await hrefs('#you details.dept[data-d="you"] .toolfoot a.btn'), actCards=await hrefs('#act details.dept[data-d="act"] .toolfoot a.btn');
-want('YOU: the three tools, no Expenses, no Contacts, no Notes', six.every(h=>youCards.includes(h))&&youCards.length===3&&!youCards.includes('expenses/'), youCards);
+want('YOU: Spotted, Footage, Press and Characters, no Expenses, no Contacts, no Notes', six.every(h=>youCards.includes(h))&&youCards.includes('characters/')&&youCards.length===4&&!youCards.includes('expenses/'), youCards);
 want('ACT: not there any more', six.every(h=>!actCards.includes(h)), actCards);
 want('ACT keeps its own', ['actor-os/','breakdown/','memorizer/','cps/','booth/','headshots/','looks/','archbook/','resume/'].every(h=>actCards.includes(h)), actCards);
 const yg=await hrefs('#you nav.deptgrid a'), ag=await hrefs('#act nav.deptgrid a');
@@ -17,7 +17,7 @@ const fy=await p.$$eval('.ftools .fcol',c=>{ const f=c.find(x=>/YOURS/.test(x.qu
 want('the same as the footer, no Expenses', six.every(h=>fy.includes(h))&&!fy.includes('expenses/'), fy);
 want('closed until you open it', await p.$eval('#you details.dept[data-d="you"]',d=>!d.open));
 await p.click('#you details.dept[data-d="you"] summary'); await p.waitForTimeout(200);
-want('open: every card shows', await p.$$eval('#you details.dept[data-d="you"] .tool',x=>x.filter(e=>e.offsetHeight>0).length)===3);
+want('open: every card shows', await p.$$eval('#you details.dept[data-d="you"] .tool',x=>x.filter(e=>e.offsetHeight>0).length)===4);
 want('no em dashes in YOU', !/—/.test(await p.innerText('#you')));
 want('no page errors', !errs.length, errs);
 await b.close(); console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1); })();

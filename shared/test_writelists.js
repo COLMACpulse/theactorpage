@@ -12,7 +12,7 @@ const fc=s.match(/<div class="fcol" data-dept="write">([\s\S]*?)<\/div><div clas
 const F=[...fc.matchAll(/<a class="ftool" href="([^"]+)">([\s\S]*?)<\/a>/g)].map(m=>({name:txt((m[2].match(/<b>([\s\S]*?)<\/b>/)||[])[1]||'').toLowerCase(),role:txt((m[2].match(/<i>([\s\S]*?)<\/i>/)||[])[1]||''),href:m[1],icon:(m[2].match(/href="#([^"]+)"/)||[])[1],raw:txt((m[2].match(/<b>([\s\S]*?)<\/b>/)||[])[1]||'')}));
 const sum=txt(band.match(/<summary class="deptsum"><b>[\s\S]*?<\/b><span>([\s\S]*?)<\/span>/)[1]).split(/,\s*/).map(x=>x.toLowerCase());
 const key=x=>x.map(t=>[t.name,t.role,t.href,t.icon].join(' | '));
-want('five WRITE tools in each list', A.length===5&&F.length===5&&sum.length===5, [A.length,F.length,sum.length]);
+want('three WRITE tools in each list (THEACTORPAGES, Paper Trail, Your universe)', A.length===3&&F.length===3&&sum.length===3, [A.length,F.length,sum.length]);
 want('the WRITE section and EVERY TOOL: same tools, order, words, links, icons', JSON.stringify(key(A))===JSON.stringify(key(F)), {A:key(A),F:key(F)});
 want('OPEN WRITE names them in the same order', JSON.stringify(sum)===JSON.stringify(A.map(t=>t.name)), {sum,A:A.map(t=>t.name)});
 want('each button opens the tool it names', A.every(t=>t.btn.toLowerCase()==='open '+t.name), A.map(t=>t.btn));

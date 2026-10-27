@@ -1,5 +1,5 @@
 /* VO BOOTH offline shell. Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='booth-0.1.26';
+const CACHE='booth-0.1.27';
 const FILES=['../shared/icons.js','../shared/tour.js','../shared/view.js','./','index.html','app.js','demo.js','voices.js','../shared/wave.js','../img/sigil-film-180.png','../shared/vodemo.js','manifest.webmanifest','../shared/hot.js','../shared/kit.js','../shared/capture.js','../shared/you.js','../actor-os/sides.js','../actor-os/pdf.js','../shared/intake.js',
  '../shared/inbox.js','../shared/takes.js','../shared/delivery.js','../shared/vocopy.js','../shared/voaudio.js','../shared/vendor/lame.min.js',
  'fonts/jost-latin-400-normal.woff2','fonts/jost-latin-500-normal.woff2','fonts/jost-latin-600-normal.woff2',

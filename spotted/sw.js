@@ -1,5 +1,5 @@
 /* SPOTTED offline shell. Bump CACHE on every release. Only clears its own old copies. */
-const CACHE='spotted-0.2.26';
+const CACHE='spotted-0.2.27';
 const FILES=['../shared/icons.js','../shared/tour.js','../shared/view.js','./','index.html','app.js','manifest.webmanifest','../shared/hot.js','../shared/offices.js','../shared/you.js','../shared/workedwith.js','../shared/spotted.js','../shared/contacts.js','../img/sigil-film-180.png',
  'fonts/jost-latin-400-normal.woff2','fonts/jost-latin-500-normal.woff2','fonts/jost-latin-600-normal.woff2',
  'fonts/courier-prime-latin-400-normal.woff2','fonts/courier-prime-latin-700-normal.woff2',
