@@ -69,9 +69,6 @@ await q.screenshot({path:SHOTS+'/pr_phone_found.png'});
 want('phone: the form is in view', await q.evaluate(()=>{ const r=document.getElementById('hitform').getBoundingClientRect(); return r.top<844&&r.bottom>0; }));
 await q.evaluate(()=>{ localStorage.removeItem('theactorpage_you_v1'); }); await q.goto('http://localhost:8811/press/'); await q.waitForTimeout(400);
 want('no name yet: no search goes out', await q.getAttribute('#s_news','href')==='#'&&/Add your name first/.test(await q.textContent('#qline')));
-// Contacts still opens a press contact from a story
-await p.goto('http://localhost:8811/contacts/?press='+encodeURIComponent('Made Up Weekly')+'&link='+encodeURIComponent('https://example.com/story')+'&story='+encodeURIComponent('A made-up story')); await p.waitForTimeout(800);
-want('Contacts: a press contact, the outlet filled in', await p.inputValue('#f_role')==='press'&&await p.inputValue('#f_company')==='Made Up Weekly');
 want('nothing went anywhere on its own', outside.length===0, outside);
 const all=await p.innerText('body');
 want('no em dashes', !/—/.test(v+all));

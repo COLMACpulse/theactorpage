@@ -1,6 +1,6 @@
 /* NOTES: what they told you. Casting, coaches, directors: who you met, what they said, what more than one of them said.
    We don't run the room; we keep what you get from it.
-   FRONT    + A ROOM YOU WERE IN; what more than one of them said; lately; the people you've met (and if they're in Contacts)
+   FRONT    + A ROOM YOU WERE IN; what more than one of them said; lately; the people you've met
    SESSION  (a room) who's in the room, the sides (onto the shelf), a 30-second Zoom check, TAPE IT (this phone records you while
             you perform on Zoom) with MARK when a note starts, then NOTE IT: their words, typed or said, tied to the moment
    NOTES    every note, newest first, or by scene
@@ -147,7 +147,7 @@ function homeView(){
  const late=all.notes.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))||b.t-a.t).slice(0,5);
  if(late.length) h+='<div class="lhead"><span class="kicker" style="margin:0">LATELY</span><button class="btn sm ghost" data-t="notes">ALL YOUR NOTES · '+all.notes.length+'</button></div><div class="card">'+late.map(noteRow).join('')+'</div>';
  h+='</div><aside class="hr"><div class="lhead" style="margin-top:0"><span class="kicker" style="margin:0">THE PEOPLE YOU\'VE MET</span>'+(P.length?'<button class="btn sm ghost" data-t="people">EVERYONE · '+P.length+'</button>':'')+'</div>';
- h+='<div class="card">'+(P.length?P.slice().sort((a,b)=>String(b.last).localeCompare(String(a.last))).slice(0,8).map(p=>{ const L=N.byPerson(p.name); return '<div class="prow"><span class="pt"><b>'+esc(p.name)+'</b><small>'+esc([p.role?roleName(p.role).toLowerCase():'',p.sessions+(p.sessions===1?' room':' rooms'),L.length+(L.length===1?' note':' notes')].filter(Boolean).join(' · '))+'</small></span>'+(inContacts(p.name)?'<span class="tag">IN CONTACTS</span>':'')+'</div>'; }).join(''):'<p class="faint small" style="margin:0">Nobody yet.</p>')+'</div>';
+ h+='<div class="card">'+(P.length?P.slice().sort((a,b)=>String(b.last).localeCompare(String(a.last))).slice(0,8).map(p=>{ const L=N.byPerson(p.name); return '<div class="prow"><span class="pt"><b>'+esc(p.name)+'</b><small>'+esc([p.role?roleName(p.role).toLowerCase():'',p.sessions+(p.sessions===1?' room':' rooms'),L.length+(L.length===1?' note':' notes')].filter(Boolean).join(' · '))+'</small></span>'+'</div>'; }).join(''):'<p class="faint small" style="margin:0">Nobody yet.</p>')+'</div>';
  h+='<div class="card"><p class="kicker">WHEN ONE OF THEM CALLS YOU IN</p><p class="small" style="margin:0">A request from someone you\'ve met says so on home: when you met, and what they told you.</p></div></aside></div>';
  return h;
 }
@@ -210,7 +210,7 @@ function peopleView(){
  if(R.length) h+='<div class="card"><p class="kicker">More than one person told you</p><p class="faint small">Words and phrases in notes from different people. Plain matching on your own notes; nothing is guessed or scored.</p>'
   +R.slice(0,12).map(r=>'<details class="rep"><summary><b>"'+esc(N.spell(r.term))+'"</b> <span class="dim small">'+r.people+' people</span></summary>'+N.all().notes.filter(n=>r.notes.includes(n.id)).map(noteRow).join('')+'</details>').join('')+'</div>';
  h+='<div class="card"><p class="kicker">Everyone</p>'+P.map(p=>{ const L=N.byPerson(p.name);
-  return '<details class="rep"><summary><b>'+esc(p.name)+'</b> <span class="dim small">'+(p.role?roleName(p.role)+' · ':'')+p.sessions+' room'+(p.sessions===1?'':'s')+(inContacts(p.name)?' · in Contacts':'')+' · '+L.length+' note'+(L.length===1?'':'s')+' · last '+esc(day(p.last))+'</span></summary>'+(L.length?L.map(noteRow).join(''):'<p class="faint small">No notes from them yet.</p>')+'</details>'; }).join('')+'</div>';
+  return '<details class="rep"><summary><b>'+esc(p.name)+'</b> <span class="dim small">'+(p.role?roleName(p.role)+' · ':'')+p.sessions+' room'+(p.sessions===1?'':'s')+' · '+L.length+' note'+(L.length===1?'':'s')+' · last '+esc(day(p.last))+'</span></summary>'+(L.length?L.map(noteRow).join(''):'<p class="faint small">No notes from them yet.</p>')+'</details>'; }).join('')+'</div>';
  return h;
 }
 function wire(){

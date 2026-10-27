@@ -236,6 +236,7 @@ div.ppc{cursor:default}
 <script src="../shared/vodemo.js"></script>
 <script src="../shared/workedwith.js"></script>
 <script src="../shared/offices.js"></script>
+<script src="../shared/contacts.js"></script>
 <script src="../shared/notes.js"></script>
 <script src="../shared/spotted.js"></script>
 <script src="../shared/takes.js"></script>
@@ -514,7 +515,7 @@ async function wwFind(){
 function wwPanel(){
  if(!window.WorkedWith) return ''; const P=WorkedWith.all(), n={}; P.forEach(p=>p.on.forEach(o=>{ n[o.job]=(n[o.job]||0)+1; }));
  const left=credits.filter(c=>c.kind==='credit'&&c.title&&!WorkedWith.fetched(c.title)).length;
- let h=`<div class="panel"><h2>Who you've worked with &middot; ${P.length}</h2><small class="note">From your credits: the director each one names. With your TMDb key: the director, writer, director of photography, producers and casting TMDb lists for each credit. For TV that's everyone on the series, not just your episode. Only names, jobs and credits; nothing else is looked up. They show in <a href="../contacts/">Contacts</a>, and when one of them turns up on a breakdown or in Spotted, it says so.</small>`;
+ let h=`<div class="panel"><h2>Who you've worked with &middot; ${P.length}</h2><small class="note">From your credits: the director each one names. With your TMDb key: the director, writer, director of photography, producers and casting TMDb lists for each credit. For TV that's everyone on the series, not just your episode. Only names, jobs and credits; nothing else is looked up. When one of them turns up on a breakdown or in Spotted, it says so.</small>`;
  h+=`<div style="padding:10px 13px">`+(P.length?`<div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:8px">${WorkedWith.JOBS.filter(j=>n[j[0]]).map(j=>`<span class="tag">${esc(j[1])} ${n[j[0]]}</span>`).join('')}</div>`:'')
   +(WWST.busy?`<small class="note">Looking up ${WWST.done} of ${WWST.of}&hellip;</small>`:`<button class="act sm" onclick="wwFind()"${left?'':' disabled'}>${left?'FIND WHO YOU WORKED WITH ON '+left+' CREDIT'+(left===1?'':'S'):'EVERY CREDIT LOOKED UP'}</button>`)
   +(WWST.added&&!WWST.busy?` <small class="note">${WWST.added} new.</small>`:'')+(WWST.err?`<div style="color:var(--bad);font-size:12px;margin-top:6px">${esc(WWST.err)}</div>`:'');
@@ -1984,7 +1985,20 @@ function repsSource(){
   rightFor:(y.types||[]).concat(hp.called||[]),wantMore:y.wantMore||[],wantSeen:hp.want||[],spotted,after:window.Viz?Viz.forReps():[],typed:!!(y.types||[]).filter(Boolean).length};
 }
 function repsNow(){ const st=repsState(), m=RepSheet.build(repsSource()), ch=RepSheet.changes(st.last&&st.last.snap,m); return {st,m,ch,due:RepSheet.due(st.last&&st.last.at,st.rhythm,ch)}; }
-function repsEmails(){ return ((spottedData().me||{}).reps||[]).map(r=>r.email).filter(Boolean); }
+function repsEmails(){ const e=[]; try{ if(window.Contacts) Contacts.myReps().forEach(p=>{ if(p.email&&e.indexOf(p.email)<0) e.push(p.email); }); }catch(x){} ((spottedData().me||{}).reps||[]).forEach(r=>{ if(r.email&&e.indexOf(r.email)<0) e.push(r.email); }); return e; }
+/* YOUR REPS (Col, Oct 26: Contacts is gone; your agent and manager live here, next to the sheet that goes to them).
+   Kept in the same place Spotted, Press and the résumé read them from (shared/contacts.js). */
+let REPADD=false;
+function repsMine(){ const C=window.Contacts; if(!C) return ''; const L=C.myReps();
+ let h=`<div class="panel" id="myreps"><h2>Your reps</h2><small class="note">Your agent and your manager. FOR MY REPS, Spotted, Press and the résumé send to them.</small><div style="padding:4px 13px 12px">`;
+ h+=L.length?L.map(p=>`<div class="row" style="justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--line)"><span><b>${esc(p.name)}</b><small class="note" style="display:block;margin:0;padding:0">${esc([C.roleName(p.role).toLowerCase(),p.rep&&p.rep.kind?C.kindName(p.rep.kind).toLowerCase():'',p.company,p.email,p.phone].filter(Boolean).join(' · '))}</small></span><button class="ghost act sm" onclick="repDrop('${esc(p.id)}')" aria-label="Take ${esc(p.name)} off">REMOVE</button></div>`).join(''):'<small class="note" style="margin:0;padding:0">No agent or manager here yet.</small>';
+ h+=REPADD?`<div class="form" style="padding:10px 0 0"><label for="rp_name">Name</label><input id="rp_name"><label for="rp_co">Agency or company</label><input id="rp_co"><label for="rp_role">Agent or manager</label><select id="rp_role"><option value="agent">Agent</option><option value="manager">Manager</option></select><label for="rp_kind">For</label><select id="rp_kind">${C.REPKINDS.map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select><label for="rp_email">Email</label><input id="rp_email" inputmode="email"><label for="rp_phone">Phone</label><input id="rp_phone" inputmode="tel"><div class="row" style="padding:10px 0 0;gap:8px"><button class="act" onclick="repAdd()">ADD</button><button class="ghost act" onclick="REPADD=false;render()">CANCEL</button></div></div>`
+  :`<div class="row" style="padding:10px 0 0"><button class="act sm" id="addrep" onclick="REPADD=true;render();setTimeout(()=>{const e=document.getElementById('rp_name');if(e)e.focus();},50)">+ ADD YOUR REP</button></div>`;
+ return h+'</div></div>'; }
+function repAdd(){ const C=window.Contacts, v=id=>(document.getElementById(id)||{}).value||''; const nm=v('rp_name').trim(); if(!C||!nm){ const e=document.getElementById('rp_name'); if(e) e.focus(); return; }
+ const p=C.add({name:nm,role:v('rp_role')||'agent',company:v('rp_co').trim(),email:v('rp_email').trim(),phone:v('rp_phone').trim()}); if(p) C.setRep(p.id,{step:'signed',kind:v('rp_kind')||'theatrical'});
+ REPADD=false; toast(nm+' added. The sheet goes to them.'); render(); }
+function repDrop(id){ const C=window.Contacts; if(!C) return; const p=C.get(id); if(!p||!confirm('Take '+p.name+' off your reps?')) return; C.remove(id); render(); }
 function repsRhythm(k){ repsState().rhythm=k; saveProfile(); render(); }
 function repsList(k,v){ if(!window.You) return; You.setList(k,String(v||'').split(/\s*,\s*/)); render(); }
 function repsCopy(){ const {m,ch}=repsNow(); const e=RepSheet.email(m,ch); copyText(e.full); toast('Copied: the note and the whole sheet'); }
@@ -1995,12 +2009,12 @@ function repsSent(){ const {st,m}=repsNow(); st.last={at:Date.now(),snap:RepShee
 function repsView(){
  if(!window.RepSheet){ $('view').innerHTML='<div class="panel"><h2>For my reps</h2><small class="note">This needs a newer copy of the page. Reload.</small></div>'; return; }
  const {st,m,ch,due}=repsNow(), y=window.You?You.get():{}, hp=headshotPlan(), to=repsEmails(), when=st.last?new Date(st.last.at).toLocaleDateString(undefined,{month:'short',day:'numeric'}):'';
- let h=`<div class="panel"><h2>For my reps</h2><small class="note">One sheet for your agent and your manager. It does their homework: your work, where you stand with every office, who's on your radar, what you're right for and want more of, and what's casting that fits. After the first one, it only says what's new. Nothing sends itself.</small></div>`;
+ let h=repsMine()+`<div class="panel"><h2>For my reps</h2><small class="note">One sheet for your agent and your manager. It does their homework: your work, where you stand with every office, who's on your radar, what you're right for and want more of, and what's casting that fits. After the first one, it only says what's new. Nothing sends itself.</small></div>`;
  h+=`<div class="panel" style="border-color:${due.due?'var(--tung)':'var(--line)'}"><h2 style="color:${due.due?'var(--tung)':'var(--ink)'}">${st.last?'Last sent '+esc(when):'Not sent yet'}</h2><small class="note">${esc(due.why)}</small>
   <div class="row" style="padding:4px 13px 12px;gap:6px;flex-wrap:wrap"><span class="note" style="margin:0;align-self:center">Send it:</span>${RepSheet.RHYTHMS.map(([k,l])=>`<button class="${st.rhythm===k?'act':'ghost act'} sm" onclick="repsRhythm('${k}')">${l}</button>`).join('')}</div></div>`;
  h+=`<div class="panel"><h2>${ch.first?'The first one':'What\'s new since '+esc(when)}</h2><div style="padding:6px 13px 12px">`+(ch.first?`<small class="note" style="margin:0">The whole sheet goes the first time. After that, only what changed.</small>`:ch.lines.length?`<ul style="margin:0;padding-left:18px">${ch.lines.map(x=>'<li>'+esc(x)+'</li>').join('')}</ul>`:`<small class="note" style="margin:0">Nothing new yet.</small>`)+`</div>
   <div class="row" style="padding:0 13px 13px;gap:9px;flex-wrap:wrap"><button class="act" onclick="repsMail()">Email my reps</button><button class="ghost act" onclick="repsSave()">Save the sheet</button><button class="ghost act" onclick="repsCopy()">Copy it</button><button class="ghost act" onclick="repsSent()">I sent it</button></div>
-  <small class="note" style="display:block;padding:0 13px 12px">${to.length?'Email opens your mail app to '+esc(to.join(', '))+' with the short note. Attach the saved sheet.':'Add your reps\' emails in <a href="../spotted/">Spotted</a>, on YOU, and Email goes straight to them.'} Tap I SENT IT after, so next time only the new things show.</small></div>`;
+  <small class="note" style="display:block;padding:0 13px 12px">${to.length?'Email opens your mail app to '+esc(to.join(', '))+' with the short note. Attach the saved sheet.':'Add your reps above, with their emails, and Email goes straight to them.'} Tap I SENT IT after, so next time only the new things show.</small></div>`;
  h+=`<div class="panel"><h2>In your words</h2><div class="form">
   <label>What I'm right for, with commas</label><input value="${esc((y.types||[]).join(', '))}" placeholder="cop, dad, rancher, small town" onchange="repsList('types',this.value)">
   <label style="margin-top:10px">What I want more of</label><input value="${esc((y.wantMore||[]).join(', '))}" placeholder="westerns, dark drama, guest stars on procedurals" onchange="repsList('wantMore',this.value)">
@@ -2238,10 +2252,8 @@ function officesPanel(){
  const idx=officeIndex();
  if(!idx.length)return `<div class="panel"><h2>Casting offices</h2>
    <small class="note">Nothing here yet. Import your Actors Access history and every office you have read for shows up.</small>
-   <small class="note">Everyone in your work, not just casting, is in <a href="../contacts/">CONTACTS</a>.</small>
    <div class="row"><button class="act sm" onclick="jumpTo('qs-block')">Import from Actors Access</button></div></div>`;
  return `<div class="panel"><h2>Casting offices <span style="color:var(--mut);font-weight:400">&middot; ${idx.length}</span>
-   <a class="act sm" style="float:right;margin-top:-3px;margin-left:6px;text-decoration:none" href="../contacts/">Contacts</a>
    <button class="act sm" style="float:right;margin-top:-3px" onclick="offNew()">+ Want to reach</button>
    <button class="ghost act sm" style="float:right;margin:-3px 8px 0 0" onclick="go('reps')">For my reps</button>
    <a class="ghost act sm" style="float:right;margin:-3px 8px 0 0;text-decoration:none" href="../spotted/">Spotted</a>

@@ -32,7 +32,7 @@
     if (g.Viz && src.plugs) g.Viz.airing(day, src.plugs).forEach(p => {
       L.push({ date: p.date, kind: 'plug', href: 'picture/?plug=' + encodeURIComponent(p.id), line: (p.title || 'Your plug') + ' airs ' + (g.Viz.when(p.date, p.time, day) || W.when(p.date, day)) + (p.where ? ' on ' + p.where : '') + '. Your plug is ready when you are.' }); });
     (src.contacts || []).forEach(p => { const d = p.rep && p.rep.next; if (!d || d > day) return;
-      L.push({ date: d, kind: 'follow', href: 'contacts/?tab=reps', line: 'Follow up with ' + p.name + (d < day ? ' (it was ' + W.when(d, day) + ')' : '') + '.' }); });
+      L.push({ date: d, kind: 'follow', href: 'hub/?tab=reps', line: 'Follow up with ' + p.name + (d < day ? ' (it was ' + W.when(d, day) + ')' : '') + '.' }); });
     (src.footage || []).forEach(f => L.push({ date: '', kind: 'footage', href: 'footage/', line: f.line }));
     (src.press || []).forEach(c => {
       const d = c.date, n = d ? diff(day, d) : null;

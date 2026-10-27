@@ -22,7 +22,6 @@ want('with yours: the section shows, Footage a plain link, no Expenses', await p
 const by=k=>t1.find(x=>x.k===k)||{};
 want('Notes: no tile, a plain link', !t1.some(x=>x.k==='notes')&&/Notes/.test(await p.innerText('#yours .yrow')));
 want('Spotted: the last thing you spotted, where it came from', by('spotted').tag==='YOURS'&&/Dry Creek/.test(by('spotted').t)&&/EXAMPLE\.COM/.test(by('spotted').t), by('spotted'));
-want('Contacts: your people first, each its own link to that person', by('contacts').tag==='YOURS'&&/Morgan Lee/.test(by('contacts').t)&&(await p.getAttribute('#yours .ypeople a','href'))==='contacts/?who=Morgan%20Lee', by('contacts'));
 want('Picture It: your wall', by('picture').tag==='YOURS'&&/HARBOR LIGHTS|Harbor Lights/i.test(by('picture').t)&&/WANT IT/.test(by('picture').t), by('picture'));
 want('Press: your last plug, in your words', by('press').tag==='YOURS'&&/Tune in/.test(by('press').t), by('press'));
 want('The Plan: your days', by('plan').tag==='YOURS'&&/Ferro/.test(by('plan').t), by('plan'));

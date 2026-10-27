@@ -81,13 +81,13 @@ function homeView(){
 function repsHtml(R){
  const y=you();
  let h='<p class="kicker">Your reps</p><div class="card" id="repsbox">';
- h+=R.length?R.map(r=>'<p class="rep"><b>'+esc(r.name||r.email)+'</b><small>'+esc((r.role||'rep')+(r.from==='contacts'?' · from Contacts':'')+(r.email?'':' · no email yet'))+'</small></p>').join(''):'<p class="dim small" style="margin:0 0 6px">Add your agent or manager and the note goes straight to them.</p>';
+ h+=R.length?R.map(r=>'<p class="rep"><b>'+esc(r.name||r.email)+'</b><small>'+esc((r.role||'rep')+(r.from==='contacts'?' · from Your page':'')+(r.email?'':' · no email yet'))+'</small></p>').join(''):'<p class="dim small" style="margin:0 0 6px">Add your agent or manager and the note goes straight to them.</p>';
  const rows=D.me.reps.length?D.me.reps:[{name:'',email:''}];
  h+='<details class="sub" id="repsfold"'+(R.length&&!REPSOPEN?'':' open')+'><summary>'+(R.length?'ADD OR CHANGE':'ADD A REP')+'</summary>'
   +rows.map((r,i)=>'<div class="pair"><input class="field" data-rep="'+i+'|name" value="'+esc(r.name)+'" placeholder="Name" aria-label="Name"><input class="field" data-rep="'+i+'|email" value="'+esc(r.email)+'" placeholder="Email" inputmode="email" aria-label="Email"><button class="lnk faint" data-rmrep="'+i+'" aria-label="Remove">✕</button></div>').join('')
   +'<button class="btn sm" id="addrep" style="margin-top:6px">ADD A REP</button>'
   +'<label class="lab" for="yname">Your name, for the sign-off</label><input class="field" id="yname" value="'+esc(y.name||'')+'" placeholder="Your name">'
-  +'<p class="small" style="margin:10px 0 0"><a href="../contacts/?tab=reps">Everyone in your work is in Contacts</a></p></details></div>';
+  +'<p class="small" style="margin:10px 0 0"><a href="../hub/?tab=reps">Your agent and manager are on Your page</a></p></details></div>';
  return h;
 }
 /* a story or a list with several projects in it: pick which to keep */

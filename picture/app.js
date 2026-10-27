@@ -84,7 +84,7 @@
     /* requests, casting, news, reps */
     if (isWork(w)) {
       h += '<h2>IN YOUR REQUESTS</h2>' + (reqs.length ? '<ul class="news">' + reqs.map(r => '<li><a href="../actor-os/">' + esc([r.data.title, r.data.role].filter(Boolean).join(', ')) + '</a>' + (r.data.due ? ' <span class="mut">· due ' + esc(day(String(r.data.due).slice(0, 10))) + '</span>' : '') + '</li>').join('') + '</ul>' : '<p class="mut small">When an audition request for it comes in, it shows here and in THIS WEEK.</p>');
-      h += '<h2>WHO CASTS IT</h2>' + (cast ? '<p><a href="../contacts/?who=' + encodeURIComponent(cast.name) + '">' + esc(cast.name) + '</a> <button class="btn quiet" type="button" id="c_x">NOT THEM</button></p>' :
+      h += '<h2>WHO CASTS IT</h2>' + (cast ? '<p><b>' + esc(cast.name) + '</b> <button class="btn quiet" type="button" id="c_x">NOT THEM</button></p>' :
         '<div class="row">' + (castings.length ? '<select class="field" id="c_pick" style="flex:1;min-width:180px"><option value="">Pick from your contacts</option>' + castings.map(p => '<option value="' + esc(p.id) + '">' + esc(p.name) + '</option>').join('') + '</select>' : '') +
         '<input class="field" id="c_new" placeholder="Or type the casting office" style="flex:1;min-width:180px"><button class="btn ghost" type="button" id="c_go">LINK IT</button></div><p class="mut small">It goes in CONTACTS as casting, so the office and the show sit together.</p>');
     }
@@ -269,7 +269,7 @@
             (no ? '<span class="warn">' + esc(PC.SAYS[say] || PC.SAYS.noemail) + '</span>' : '') + (sent[p.id] ? '<span class="mut small">You wrote one ' + esc(shortDay(sent[p.id])) + '</span>' : '') + '</span>' +
             '<span class="row"><button type="button" class="btn' + (no ? ' quiet' : ' ghost') + '" data-write="' + esc(p.id) + '">WRITE IT</button>' +
             (say === 'none' ? '' : '<button type="button" class="chip' + (say === 'noemail' ? ' on' : '') + '" data-noemail="' + esc(p.id) + '" aria-pressed="' + (say === 'noemail') + '">THEY SAY NO EMAIL</button>') + '</span></li>'; }).join('') + '</ul>'
-          : '<p class="mut small">No one in Contacts has an email yet. Add one in <a href="../contacts/">Contacts</a>.</p>') +
+          : '<p class="mut small">No one with an email yet. Say who casts each one on your wall.</p>') +
         '<div class="row"><button type="button" class="btn quiet" data-write="">WRITE ONE TO SOMEONE ELSE</button><button type="button" class="btn quiet" id="c_copycard">COPY THE CARD</button></div>';
     } else {
       const people = window.Contacts ? PC.mailable(Contacts.mine()).sort((a, b) => a.name.localeCompare(b.name)) : [], to = c.to || [];
@@ -280,7 +280,7 @@
           return '<li><span class="wn"><label class="row ck" style="margin:0"><input type="checkbox" data-to="' + esc(p.id) + '"' + (on ? ' checked' : '') + '> <b>' + esc(p.name) + '</b></label>' + (no ? '<span class="warn">' + esc(PC.SAYS[say] || PC.SAYS.nomail) + '</span>' : '') +
             (on ? '<label class="lab" for="c_ad_' + esc(p.id) + '">THEIR MAILING ADDRESS</label><textarea class="field" id="c_ad_' + esc(p.id) + '" data-addr="' + esc(p.id) + '" rows="3" placeholder="Street&#10;City, State ZIP">' + esc((p.mail || []).join('\n')) + '</textarea>' : '') + '</span>' +
             (say === 'none' ? '' : '<button type="button" class="chip' + (say === 'nomail' ? ' on' : '') + '" data-nomail="' + esc(p.id) + '" aria-pressed="' + (say === 'nomail') + '">THEY SAY NO MAIL</button>') + '</li>'; }).join('') + '</ul>'
-          : '<p class="mut small">No one in Contacts yet. Add the offices in <a href="../contacts/">Contacts</a>, or print a blank back.</p>')) +
+          : '<p class="mut small">No offices yet. Say who casts each one on your wall, or print a blank back.</p>')) +
         '<label class="lab">PRINT IT</label><div class="row"><button type="button" class="btn" id="c_shop">FILE FOR A PRINT SHOP</button><button type="button" class="btn ghost" id="c_home">PRINT AT HOME</button></div>' +
         '<p class="mut small">PRINT SHOP: 4 × 6 at 300 dpi, front and back, ⅛ in bleed. Pick Save as PDF in the print window and take the file in. HOME: letter paper, two cards a sheet, cut on the dashed lines. Print the fronts, put the sheet back in, print the backs. Heavy card stock works best.</p>';
     }

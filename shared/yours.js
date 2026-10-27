@@ -30,7 +30,7 @@
     return '<span class="yclip"><span class="ys">' + esc((src || 'SPOTTED').toUpperCase()) + ' · ' + esc(new Date(it.at || Date.now()).toLocaleDateString()) + '</span><span class="yh">' + esc(c.project || '(no title)') + '</span><span class="yb">' + esc([c.role, c.where, (c.casting || []).length ? c.casting.join(' & ') + ' casting' : ''].filter(Boolean).join('. ')) + '</span></span>'; };
   Y.contacts = function (everyone, roleName) { const L = (everyone || []).slice().sort((a, b) => (b.kept ? 1 : 0) - (a.kept ? 1 : 0)).slice(0, 3); if (!L.length) return '';
     /* each one its own link: straight to that person in Contacts */
-    return '<span class="ypeople">' + L.map((x, i) => '<a href="contacts/?who=' + encodeURIComponent(x.name) + '"><i style="background:' + COLORS[i % COLORS.length] + '">' + esc(initials(x.name)) + '</i>' + esc(x.name) + '<em>' + esc(clean((x.from && x.from[0]) || (roleName ? roleName(x.role) : x.role) || '').replace(/^Worked with: /, '').replace(/, from (TMDb|your résumé|your site)$/, '').slice(0, 48)) + '</em></a>').join('') + '</span>'; };
+    return '<span class="ypeople">' + L.map((x, i) => '<a href="hub/?tab=offices"><i style="background:' + COLORS[i % COLORS.length] + '">' + esc(initials(x.name)) + '</i>' + esc(x.name) + '<em>' + esc(clean((x.from && x.from[0]) || (roleName ? roleName(x.role) : x.role) || '').replace(/^Worked with: /, '').replace(/, from (TMDb|your résumé|your site)$/, '').slice(0, 48)) + '</em></a>').join('') + '</span>'; };
   Y.plan = function (plans, day) { day = day || new Date().toISOString().slice(0, 10);
     const p = (plans || []).filter(x => x && x.plan && (x.plan.steps || []).length).find(x => !x.heard.due || x.heard.due >= day) || (plans || [])[0]; if (!p || !p.plan) return '';
     /* one box a day: the day's first step, ticked when the day is done */
@@ -49,7 +49,6 @@
     if (!$('#yours')) return; let mine = 0; const k = (key, html) => { if (html) { set(key, html); mine++; } };
     try { if (g.Offices) { const h = await g.Offices.load(); if (h) k('hub', Y.hub(h.projects, Date.now(), g.WorkedWith)); } } catch (e) { }
     try { const sp = JSON.parse(localStorage.getItem('theactorpage_spotted_v1') || 'null'); if (sp) k('spotted', Y.spotted(sp.items)); } catch (e) { }
-    try { if (g.Contacts) k('contacts', Y.contacts(g.Contacts.everyone(await g.Contacts.sources()), g.Contacts.roleName)); } catch (e) { }
     try { if (g.Plan) k('plan', Y.plan(g.Plan.all())); } catch (e) { }
     try { if (g.Viz) { const V = g.Viz, W = V.wanted().concat(V.gotten()).slice(0, 2).map(w => Object.assign({}, w, { got: V.got(w), stamp: (V.at(w) || {}).label })), U = {};
       for (const w of W) { if (w.pic) { const b = await V.picBlob(w.pic); if (b) U[w.id] = URL.createObjectURL(b); } }

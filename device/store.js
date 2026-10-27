@@ -32,7 +32,7 @@ D.TOOLS=[
  {id:'setlist', name:'Set List', href:'../setlist/', ls:[/^setlist_/], db:[/^setlist_media$/]},
  {id:'filmhub', name:'Film Hub', href:'../filmhub/', ls:[/^filmhub_/], db:[/^filmhub$/]},
  {id:'backlot', name:'Backlot', href:'../backlot/', ls:[/^backlot_/], db:[]},
- {id:'contacts', name:'Contacts', href:'../contacts/', ls:[/^theactorpage_contacts/,/^contacts_ui/,/^theactorpage_workedwith_v1$/], db:[]},
+ {id:'contacts', name:'Your reps and who you worked with', href:'../hub/?tab=reps', ls:[/^theactorpage_contacts/,/^contacts_ui/,/^theactorpage_workedwith_v1$/], db:[]},
  {id:'footage', name:'Footage', href:'../footage/', ls:[/^theactorpage_footage/,/^theactorpage_copycheck/], db:[]},
  {id:'press', name:'Press', href:'../press/', ls:[/^theactorpage_press/], db:[]},
  {id:'expenses', name:'Expenses (no longer a tool)', href:'../expenses/', ls:[/^theactorpage_expenses/], db:[/^theactorpage_receipts$/]},

@@ -22,5 +22,5 @@ C.setRep(r.id,{step:'signed'});
 want('signed: one of your reps, out of looking, no follow-up nag', C.myReps().length===1&&C.looking().length===0&&C.due('2026-10-21').length===0);
 C.set(a.id,{dnc:true}); want('do not contact is kept on the person', C.get(a.id).dnc===true);
 C.remove(a.id); want('remove: gone from your list', !C.get(a.id)&&C.mine().length===1);
-want('no em dashes', !/—/.test(require('fs').readFileSync(__dirname+'/contacts.js','utf8')+require('fs').readFileSync(__dirname+'/../contacts/app.js','utf8')));
+want('no em dashes', !/—/.test(require('fs').readFileSync(__dirname+'/contacts.js','utf8')));
 console.log(ok?'ALL PASS':'SOME FAILED'); process.exit(ok?0:1);

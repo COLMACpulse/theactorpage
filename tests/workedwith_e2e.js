@@ -32,11 +32,6 @@ await p.evaluate(()=>{ const a=projects.find(x=>x.title==='Salt Flats'); wwPitch
 const sheet=await p.evaluate(()=>RepSheet.text(repsNow().m,null));
 want('FOR MY REPS: one line on the reps sheet, in plain words', /SOMEONE I'VE WORKED WITH IS ON IT\n- Kit Moreno \(DP on Harbor Lights\) is on Salt Flats\./.test(sheet), sheet.slice(0,500));
 want('the card says it is on your reps sheet now', /on your reps sheet/.test(await p.evaluate(()=>wwLine(projects.find(x=>x.title==='Salt Flats')))));
-/* Contacts */
-await p.goto('http://localhost:8811/contacts/'); await p.waitForTimeout(800);
-const ct=await p.innerText('main');
-want('Contacts: the people you worked with, each with the credit and where it came from', /Kit Moreno/.test(ct)&&/Jen Holt/.test(ct)&&/Dana Wolfe/.test(ct), ct.slice(0,400));
-want('…with the credit and where it came from', await p.evaluate(()=>{ const x=Contacts.everyone({worked:Object.values(JSON.parse(localStorage.getItem('theactorpage_workedwith_v1')).people)}).find(y=>y.name==='Kit Moreno'); return x&&x.from.some(f=>f==='Worked with: DP on Harbor Lights, from TMDb')&&x.role==='crew'; }));
 /* Spotted */
 await p.goto('http://localhost:8811/spotted/'); await p.waitForTimeout(600);
 await p.click('#wwords'); await p.fill('#raw','NOW CASTING: DRY CREEK\nDirector: Ana Bell\nCasting: Pell Casting\nSeries regular, shoots in Austin.'); await p.click('#read'); await p.waitForTimeout(300); await p.click('#later'); await p.waitForTimeout(300); await p.click('[data-open]'); await p.waitForTimeout(400);

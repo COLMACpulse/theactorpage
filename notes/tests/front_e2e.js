@@ -1,6 +1,6 @@
 /* NOTES front: what they told you. Made-up people. Server on :8811.
    Empty: one way in and how it works, no camera tiles. A room: who, then WHAT DID THEY SAY? first, KEEP IT; taping folded.
-   The front after a few rooms: MORE THAN ONE OF THEM SAID IT, LATELY, THE PEOPLE YOU'VE MET (and if they're in Contacts).
+   The front after a few rooms: MORE THAN ONE OF THEM SAID IT, LATELY, THE PEOPLE YOU'VE MET.
    NODE_PATH=$(npm root -g) node notes/tests/front_e2e.js [shots-dir] */
 const {chromium}=require('playwright'); const SHOTS=process.argv[2]||'';
 (async()=>{ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
@@ -28,11 +28,11 @@ const run=async(vw,vh,scheme,tag)=>{
  const m=await p.innerText('#main');
  want(tag+' MORE THAN ONE OF THEM SAID IT: "slow down", said by 2', /MORE THAN ONE OF THEM SAID IT/.test(m)&&/"slow down"/i.test(m)&&/said by 2/.test(m), m.slice(0,500));
  want(tag+' LATELY: the notes, with who said them', /LATELY/.test(m)&&/You rush\. Slow down\./.test(m)&&/Sam Ortiz/.test(m));
- want(tag+' THE PEOPLE YOU\'VE MET: both, Dana in Contacts', /Dana Pell/.test(await p.innerText('.hr'))&&/Sam Ortiz/.test(await p.innerText('.hr'))&&(await p.$$('.hr .tag')).length===1);
+ want(tag+' THE PEOPLE YOU\'VE MET: both', /Dana Pell/.test(await p.innerText('.hr'))&&/Sam Ortiz/.test(await p.innerText('.hr')));
  want(tag+' no scores', !/\bscores?\b|%/i.test(m.replace(/scored/g,'')));
  await shot('front');
  await p.click('[data-t="people"]'); await p.waitForTimeout(200);
- want(tag+' EVERYONE: each person and what they told you', /Everyone/i.test(await p.innerText('#main'))&&/in Contacts/.test(await p.innerText('#main')));
+ want(tag+' EVERYONE: each person and what they told you', /Everyone/i.test(await p.innerText('#main')));
  await p.click('.backbar [data-t="home"]'); await p.click('[data-t="notes"]'); await p.waitForTimeout(200);
  want(tag+' ALL YOUR NOTES', (await p.$$('.note')).length===3);
  await p.click('.backbar [data-t="home"]'); await p.waitForTimeout(200);
