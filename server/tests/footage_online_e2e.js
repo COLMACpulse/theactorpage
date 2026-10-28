@@ -78,6 +78,44 @@ z=zipfile.ZipFile(d+'/notes.zip','w'); z.write(w+'/readme.txt','readme.txt'); z.
     const pv = await p.evaluate(() => { const v = document.getElementById('pv'); return v ? { src: v.src, d: v.duration } : null; });
     want('open one: it plays from online, with a link only you get', pv && /localhost:8787\/v\/sam-actor-test\//.test(pv.src) && pv.d > 0.5, pv);
     want('it says where it is: online, the original, only you', /Online, the original · .* Only you can see it, on any phone or computer/.test(await p.innerText('#view')));
+    /* SEND A LINK, and turning it off */
+    await p.click('#sh_link'); await p.waitForTimeout(500);
+    const shareUrl = await p.inputValue('#sh_url').catch(() => '');
+    want('SEND A LINK: a link anyone can watch for 7 days, and how to stop it', /localhost:8787\/v\/sam-actor-test\//.test(shareUrl) && /Anyone with this link can watch it for 7 days\. TURN OFF ITS LINKS stops it sooner/.test(await p.innerText('#sharebox')), shareUrl);
+    want('the link works', (await p.evaluate(async u => (await fetch(u)).status, shareUrl)) === 200);
+    await p.click('#sh_off'); await p.waitForTimeout(400);
+    want('TURN OFF ITS LINKS: the link you sent stops working, it still plays here', (await p.evaluate(async u => (await fetch(u)).status, shareUrl)) === 403 && /Every link you sent to it has stopped working/.test(await p.innerText('#view')));
+    /* SEND THE FILE: the whole original, with how far along */
+    const dl = p.waitForEvent('download', { timeout: 20000 }).catch(() => null); await p.click('#sh_file'); const d = await dl;
+    const dlf = d ? await d.path() : null;
+    want('SEND THE FILE: the original, byte for byte (saved here; a phone opens the share sheet)', d && /SALT_ROAD_sc12\.webm$/.test(d.suggestedFilename()) && fs.statSync(dlf).size === salt.length, d && d.suggestedFilename());
+    /* TRIM A MOMENT from the link: no download first */
+    await p.waitForTimeout(400); await p.click('#trimit'); await p.waitForTimeout(600);
+    const tsrc = await p.evaluate(() => { const v = document.getElementById('tr_vid'); return v ? v.src : ''; });
+    want('TRIM A MOMENT plays straight from online, nothing downloaded first', /localhost:8787\/v\/sam-actor-test\//.test(tsrc), tsrc);
+    await p.waitForFunction(() => { const v = document.getElementById('tr_vid'); return v && v.readyState >= 1; }, null, { timeout: 15000 }).catch(() => { });
+    await p.click('#tr_make'); await p.waitForFunction(() => document.getElementById('tr_done'), null, { timeout: 30000 }).catch(() => { });
+    want('the moment is made, from the online original', /MADE[\s\S]*Salt_Road_clip\.webm/i.test(await p.innerText('#view')) && (await p.evaluate(() => Takes.all().length)) === 1, (await p.innerText('#view')).slice(0, 400));
+    await p.click('#tr_close').catch(() => { }); await p.waitForTimeout(300);
+    /* PUT IT ON MY PAGE, under a credit */
+    const kB = await p.evaluate(() => FOOTAGE.pieces().find(x => x.kind === 'cloud' && x.name === 'big_dock_scene.webm').key);
+    await p.evaluate(k => FOOTAGE.go('piece', { key: k }), kB); await p.waitForTimeout(500);
+    want('YOUR PAGE: only you see it until you put it on', /Only you can see it until you put it on your page/.test(await p.innerText('#pagebox')));
+    await p.click('#pg_open'); await p.selectOption('#pg_where', 'Salt Road'); await p.click('#pg_on'); await p.waitForTimeout(300);
+    const op = await p.evaluate(() => FOOTAGE.onPage());
+    want('PUT IT ON MY PAGE: under Salt Road; goes up next time you put your page online', op.length === 1 && op[0].credit === 'Salt Road' && op[0].name === 'big_dock_scene.webm' && /On your page, under Salt Road\. It goes up the next time you put your page online/.test(await p.innerText('#pagebox')), op);
+    /* the Hub: SEE IT has it from online; PUT IT ONLINE copies it on the host */
+    await p.goto('http://localhost:8811/hub/?tab=package'); await p.waitForTimeout(2500);
+    want('Your page lists it: From Footage, online', /From Footage, online/.test(await p.innerText('#onit')));
+    const see = await p.evaluate(async () => { const d = await pkgDoc({ see: true }); return /localhost:8787\/v\/sam-actor-test\//.test(d); });
+    want('SEE IT: it plays on your page, from online', see);
+    const ents = await p.evaluate(async () => (await siteEntries('https://sam-actor-test.theactorpage.com')).filter(e => e.copyFrom).map(e => e.name + ':' + e.size));
+    want('put online: it goes as a copy on the host, not sent again', ents.length === 1 && /^media\/online_.+\.webm:\d+$/.test(ents[0]), ents);
+    await p.evaluate(() => goOnline()); await p.waitForFunction(() => !ON.busy, null, { timeout: 30000 }).catch(() => { });
+    const pub = await (async (n) => { const h = await (await fetch('http://localhost:8787/s/' + n + '/')).text(); const m = h.match(/media\/online_[^"]+\.webm/); if (!m) return { h: h.length, why: await p.evaluate(() => ON.err) }; const r = await fetch('http://localhost:8787/s/' + n + '/' + m[0], { headers: { range: 'bytes=0-9' } }); return { m: m[0], s: r.status }; })('sam-actor-test');
+    want('on your public page, it plays', pub.s === 206, pub);
+    await p.goto('http://localhost:8811/footage/'); await p.waitForTimeout(800);
+    await p.evaluate(k => FOOTAGE.go('piece', { key: k }), key); await p.waitForTimeout(500);
     await p.click('#rm1'); await p.waitForTimeout(200);
     want('REMOVE IT FROM ONLINE: gone from every device, your original stays', /off theactorpage\.com\? It.s gone from online, on every phone and computer\. Your original stays/.test(await p.innerText('#rmone')));
     await p.click('#rm1_yes'); await p.waitForTimeout(600);

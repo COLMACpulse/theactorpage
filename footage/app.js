@@ -12,7 +12,7 @@
   'use strict';
   const M = window.FootMap, Lb = window.FootLib, $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const S = { view: 'lib', key: '', place: '', set: '', trim: null, naming: false, renaming: false, q: '', msg: '', titles: [], roles: {}, adding: false, open: {}, busy: '', prog: 0, here: false, withOpen: false, sel: null, rmAsk: false, rmOne: false, scan: null, up: null, acctForm: '' };
+  const S = { view: 'lib', key: '', place: '', set: '', trim: null, naming: false, renaming: false, q: '', msg: '', titles: [], roles: {}, adding: false, open: {}, busy: '', prog: 0, here: false, withOpen: false, sel: null, rmAsk: false, rmOne: false, scan: null, up: null, acctForm: '', credits: [], pageOpen: false, share: null, dl: null };
   const today = () => new Date().toISOString().slice(0, 10);
   const nice = iso => { if (!iso) return ''; const d = new Date(iso + 'T12:00:00'); return isNaN(d) ? iso : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' }); };
   const n = (x, w) => x + ' ' + w + (x === 1 ? '' : 's');
@@ -63,12 +63,17 @@
   /* REMOVE (Col, Oct 28: "i need to be able to erase/remove content"). The small copy comes off this device. A clip you
      added is gone from here (your original is where it was on your computer); a file on a drive or a take from another
      tool is only taken out of Footage, and can come back from REMOVED. */
+  /* PUT IT ON MY PAGE (Oct 28): a list the Hub reads when it builds your page */
+  const OP = 'footage_onpage_v1';
+  const onPage = () => { try { const L = JSON.parse(localStorage.getItem(OP) || '[]'); return Array.isArray(L) ? L : []; } catch (e) { return []; } };
+  const onPageOf = id => onPage().find(x => x.id === id) || null;
+  function onPageSet(p, credit) { const L = onPage().filter(x => x.id !== p.id); if (credit !== null) L.push({ id: p.id, name: p.name, size: p.s, type: (p.audio ? 'audio/mp4' : (/\.webm$/i.test(p.name) ? 'video/webm' : /\.mov$/i.test(p.name) ? 'video/quicktime' : 'video/mp4')), secs: p.secs || 0, label: p.label || '', credit: credit || '', at: new Date().toISOString() }); try { localStorage.setItem(OP, JSON.stringify(L)); } catch (e) { } }
   async function removePieces(keys) {
     const P = pieces(true); let gone = 0, hid = 0;
     for (const k of keys) { const p = P.find(x => x.key === k); if (!p) continue;
       try { await Lb.proxy.del(k); await Lb.thumb.del(k); } catch (e) { }
       M.sets().forEach(x => { if (x.items.indexOf(k) >= 0) M.toggleIn(x.id, k); });
-      if (p.kind === 'cloud') { await FootCloud.remove(p.id); M.dropMeta(k); gone++; continue; }
+      if (p.kind === 'cloud') { await FootCloud.remove(p.id); onPageSet(p, null); M.dropMeta(k); gone++; continue; }
       if (p.kind === 'file' && p.place && p.place.device) { const d = M.read(), pl = d.places.find(y => y.id === p.place.id); if (pl) { pl.files = (pl.files || []).filter(f => f.p !== p.path); pl.bytes = (pl.files || []).reduce((a, f) => a + (f.s || 0), 0); } delete d.meta[k]; localStorage.setItem(M.KEY, JSON.stringify(d)); gone++; }
       else { M.setMeta(k, { hidden: true, proxy: false, psize: 0 }); hid++; } }
     return { gone, hid, n: gone + hid };
@@ -141,7 +146,18 @@
     h += '</div>';
     if (p.kind === 'file' && !plays(p) && S.busy !== p.key) h += '<div class="row" style="margin-top:10px">' + (FSA() && p.place && p.place.handle ? '<button class="btn pri" id="mk_go" data-ic="footage">MAKE IT PLAYABLE</button><button class="btn" id="og_play">PLAY THE ORIGINAL</button>' : '<label class="btn pri" data-ic="footage">MAKE IT PLAYABLE<input type="file" id="mk_file" accept="video/*,audio/*,.mov,.mxf,.mts" hidden></label>') + '</div>'
       + (FSA() && p.place && p.place.handle ? '' : '<p class="faint small" style="margin:6px 2px 0">Pick ' + esc(p.name) + ' from ' + esc(p.place.name) + ' (it has to be plugged in).</p>');
-    h += '<div class="row" style="margin-top:10px"><button class="btn" id="trimit"' + (plays(p) ? '' : ' disabled') + '>TRIM A MOMENT</button><button class="btn" id="withit">PUT IT WITH</button><button class="btn" id="stillit"' + (plays(p) && !p.audio ? '' : ' disabled') + '>KEEP A STILL</button><button class="btn" id="sendit"' + (plays(p) ? '' : ' disabled') + '>SEND IT</button><a class="btn ghost" href="../archbook/" style="text-decoration:none">REEL ROOM</a></div>';
+    h += '<div class="row" style="margin-top:10px"><button class="btn" id="trimit"' + (plays(p) ? '' : ' disabled') + '>TRIM A MOMENT</button><button class="btn" id="withit">PUT IT WITH</button><button class="btn" id="stillit"' + (plays(p) && !p.audio ? '' : ' disabled') + '>KEEP A STILL</button>' + (p.kind === 'cloud' ? '' : '<button class="btn" id="sendit"' + (plays(p) ? '' : ' disabled') + '>SEND IT</button>') + '<a class="btn ghost" href="../archbook/" style="text-decoration:none">REEL ROOM</a></div>';
+    if (p.kind === 'cloud') {
+      const op = onPageOf(p.id), cr = S.credits.length ? S.credits : S.titles;
+      h += '<div class="card pagebox" id="pagebox" style="margin-top:12px"><p class="kicker" style="color:var(--tung)">YOUR PAGE</p>';
+      if (op) h += '<p class="small" style="margin:0 0 10px"><b>On your page</b>, ' + (op.credit ? 'under ' + esc(op.credit) : 'under Selected work') + '. It goes up the next time you put your page online (Your page \u203a PUT IT ONLINE), copied from here, nothing sent again.</p><div class="row"><a class="btn" href="../hub/?tab=package#online">OPEN YOUR PAGE</a><button class="btn ghost" id="pg_off">TAKE IT OFF MY PAGE</button></div>';
+      else if (S.pageOpen) h += '<p class="small" style="margin:0 0 8px">Where does it go?</p><select class="field" id="pg_where"><option value="">On its own, under Selected work</option>' + cr.map(t => '<option' + (M.norm(t) === M.norm(p.title) ? ' selected' : '') + '>' + esc(t) + '</option>').join('') + '</select><div class="row" style="margin-top:10px"><button class="btn pri" id="pg_on">PUT IT ON</button><button class="btn ghost" id="pg_cancel">NOT NOW</button></div>';
+      else h += '<p class="small dim" style="margin:0 0 10px">Only you can see it until you put it on your page.</p><button class="btn pri" id="pg_open">PUT IT ON MY PAGE</button>';
+      h += '</div><div class="card" id="sharebox" style="margin-top:12px"><p class="kicker">SEND IT</p>'
+        + (S.share && S.share.key === p.key ? '<p class="small" style="margin:0 0 8px">' + esc(S.share.word) + '</p><input class="field" id="sh_url" readonly value="' + esc(S.share.url) + '" aria-label="The link">' : '<p class="small dim" style="margin:0 0 10px">A link anyone can watch for 7 days, or the file itself.</p>')
+        + '<div class="row" style="margin-top:10px"><button class="btn" id="sh_link">SEND A LINK</button><button class="btn" id="sh_file">SEND THE FILE</button><button class="btn ghost" id="sh_off">TURN OFF ITS LINKS</button></div>'
+        + (S.dl && S.dl.key === p.key ? '<div class="prog" style="margin-top:10px"><i id="dl_bar" style="width:' + Math.round(S.dl.got / (S.dl.total || 1) * 100) + '%"></i></div><p class="small dim" id="dl_txt" style="margin:6px 0 0">Getting the file: ' + M.size(S.dl.got) + ' of ' + M.size(S.dl.total) + '</p>' : '') + '</div>';
+    }
     if (S.withOpen) h += '<div class="card" id="withbox" style="margin-top:12px"><p class="kicker">Put it with</p>' + all.map(x => '<label class="chk"><input type="checkbox" data-with="' + x.id + '"' + (x.items.indexOf(p.key) >= 0 ? ' checked' : '') + '> ' + esc(x.name) + ' <span class="faint small">' + n(x.items.length, 'piece') + '</span></label>').join('')
       + '<div class="row" style="margin-top:8px"><input class="field" id="newset" placeholder="Something new: Salt Road, start to air" style="flex:1"><button class="btn" id="newsetok">START IT</button></div></div>';
     h += '</div><div class="colB"><div class="card" data-stick>'
@@ -398,7 +414,7 @@
     const t = S.trim; let h = '<div class="backbar"><button class="btn sm ghost" id="tr_close">\u2039 BACK</button><span class="kicker" style="margin:0">Trim your moment</span></div>';
     if (S.msg) h += '<p class="msg" id="msg">' + esc(S.msg) + '</p>';
     const x = M.trim(TR.inS, TR.outS, TR.dur);
-    h += '<div class="grid"><div class="colA"><video class="vid" id="tr_vid" src="' + TR.url + '" controls playsinline preload="metadata"></video>'
+    h += '<div class="grid"><div class="colA"><video class="vid" id="tr_vid" src="' + esc(TR.url) + '"' + (/^https?:/.test(TR.url) ? ' crossorigin="anonymous"' : '') + ' controls playsinline preload="metadata"></video>'
       + '<div class="row" style="margin-top:10px"><button class="btn" id="tr_in" style="flex:1">START HERE · <span id="tr_inv">' + M.time(TR.inS) + '</span></button><button class="btn" id="tr_out" style="flex:1">END HERE · <span id="tr_outv">' + M.time(TR.outS) + '</span></button><button class="btn" id="tr_play" style="flex:1">PLAY YOUR MOMENT</button></div></div>';
     h += '<div class="colB"><div class="card ask"><p class="kicker" style="color:var(--tung-text)">Your clip</p><p class="small" id="tr_len" style="margin:0 0 8px">Clip: ' + x.secs + ' seconds.</p>'
       + '<button class="btn pri block" id="tr_make"' + (TR.busy ? ' disabled' : '') + '>' + (TR.busy ? 'MAKING IT\u2026' : 'MAKE THE CLIP') + '</button><div class="prog" id="tr_prog"' + (TR.busy ? '' : ' hidden') + '><i id="tr_bar"></i></div>'
@@ -504,13 +520,23 @@
       on('withit', () => { S.withOpen = !S.withOpen; render(); });
       V.querySelectorAll('[data-with]').forEach(c => c.onchange = () => { M.toggleIn(c.dataset.with, p.key); });
       on('newsetok', () => { const v = $('newset').value.trim(); if (!v) { $('newset').focus(); return; } M.addSet(v, [p.key]); S.withOpen = false; S.msg = 'Started: ' + v + '.'; render(); });
-      on('trimit', async () => { let b = STAGED && STAGED.key === p.key ? STAGED.blob : null; if (!b && p.kind === 'cloud') { S.msg = 'Getting it from online\u2026'; const m = $('msg'); b = await pieceBlob(p).catch(() => null); if (b) STAGED.blob = b; } if (!b) return; if (TR.url) URL.revokeObjectURL(TR.url); TR = { file: b, url: URL.createObjectURL(b), dur: 0, inS: 0, outS: 0, busy: false, made: null, stills: [] }; S.trim = { key: p.key, title: p.title, from: STAGED.from }; render(); window.scrollTo(0, 0); });
+      on('trimit', async () => { let b = STAGED && STAGED.key === p.key ? STAGED.blob : null; if (!b && p.kind === 'cloud' && STAGED && STAGED.url) { const u = STAGED.url; if (TR.url) try { URL.revokeObjectURL(TR.url); } catch (e) { } TR = { file: u, url: u, dur: 0, inS: 0, outS: 0, busy: false, made: null, stills: [] }; S.trim = { key: p.key, title: p.title, from: 'online' }; render(); window.scrollTo(0, 0); return; } if (!b) return; if (TR.url) URL.revokeObjectURL(TR.url); TR = { file: b, url: URL.createObjectURL(b), dur: 0, inS: 0, outS: 0, busy: false, made: null, stills: [] }; S.trim = { key: p.key, title: p.title, from: STAGED.from }; render(); window.scrollTo(0, 0); });
       on('stillit', async () => { const v = $('pv'); if (!v || !v.videoWidth) { S.msg = 'Play it to a frame first.'; render(); return; } try { v.pause(); } catch (e) { }
         const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight; c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
         const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.92)); if (!blob) return; const at = M.time(v.currentTime), name = M.clipName(p.title, S.roles[M.norm(p.title)] || '', 'jpg').replace(/_clip\.jpg$/, '_still_' + at.replace(/[:.]/g, '-') + '.jpg');
         let kept = false; try { if (window.You) { const r = await You.addPhoto(new File([blob], name, { type: 'image/jpeg' }), { kind: 'still', from: { title: p.title, t: Math.round(v.currentTime * 10) / 10 } }); kept = !!(r && r.photo); } } catch (e) { }
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; if (!kept) { document.body.appendChild(a); a.click(); a.remove(); }
         S.msg = kept ? 'Still kept with your photos (' + at + ').' : 'Still saved (' + at + ').'; render(); });
+      on('pg_open', () => { S.pageOpen = true; render(); }); on('pg_cancel', () => { S.pageOpen = false; render(); });
+      on('pg_on', () => { onPageSet(p, $('pg_where').value || ''); S.pageOpen = false; S.msg = 'On your page. Put your page online to send it up.'; render(); });
+      on('pg_off', () => { onPageSet(p, null); S.msg = 'Off your page. It\u2019s still online, only for you.'; render(); });
+      on('sh_link', async () => { try { const u = await FootCloud.shareLink(p.id, 7); let word = 'Anyone with this link can watch it for 7 days. TURN OFF ITS LINKS stops it sooner.';
+          if (navigator.share) { try { await navigator.share({ title: p.label || p.name, url: u }); word = 'Sent from your share sheet. ' + word; } catch (e) { } } else { try { await navigator.clipboard.writeText(u); word = 'Copied. ' + word; } catch (e) { } }
+          S.share = { key: p.key, url: u, word }; render(); } catch (e) { S.msg = e.message; render(); } });
+      on('sh_off', async () => { try { await FootCloud.unshare(p.id); S.share = null; S.msg = 'Every link you sent to it has stopped working. It still plays here.'; render(); } catch (e) { S.msg = e.message; render(); } });
+      on('sh_file', async () => { if (S.dl) return; S.dl = { key: p.key, got: 0, total: p.s || 0 }; render();
+        try { const blob = await FootCloud.fetchFile(p.id, (g, t) => { S.dl.got = g; S.dl.total = t || S.dl.total; const b = $('dl_bar'); if (b) b.style.width = Math.round(g / (S.dl.total || 1) * 100) + '%'; const x = $('dl_txt'); if (x) x.textContent = 'Getting the file: ' + M.size(g) + ' of ' + M.size(S.dl.total); });
+          S.dl = null; const r = await sendFile(blob, fileName(p.label || p.name, blob)); S.msg = sendWord(r); render(); } catch (e) { S.dl = null; S.msg = e.message; render(); } });
       on('dropcopy', async () => { await Lb.proxy.del(p.key); await Lb.thumb.del(p.key); M.setMeta(p.key, { proxy: false, psize: 0 }); S.msg = 'The small copy is off this device. The original is where it was.'; render(); });
     }
     /* put together */
@@ -560,6 +586,6 @@
   }
   gather(); render();
   (async () => { try { if (window.FootCloud && FootCloud.acct()) { await FootCloud.list(); if (S.view === 'lib') render(); } } catch (e) { } })();
-  (async () => { try { if (window.Offices) { const hb = await Offices.load(); if (hb && hb.credits) { hb.credits.forEach(c => { const x = String(c.title || '').trim(); if (x && !S.titles.some(t => M.norm(t) === M.norm(x))) S.titles.push(x); if (x && (c.role || c.character) && !S.roles[M.norm(x)]) S.roles[M.norm(x)] = c.role || c.character; }); render(); } } } catch (e) { } })();
-  window.FOOTAGE = { render, state: S, pieces, makePlayable, byKey, go, one: () => ONE, batch: () => BATCH, startScan, scan: () => S.scan, up: () => S.up };
+  (async () => { try { if (window.Offices) { const hb = await Offices.load(); if (hb && hb.credits) { S.credits = hb.credits.map(c => String(c.title || '').trim()).filter(Boolean); hb.credits.forEach(c => { const x = String(c.title || '').trim(); if (x && !S.titles.some(t => M.norm(t) === M.norm(x))) S.titles.push(x); if (x && (c.role || c.character) && !S.roles[M.norm(x)]) S.roles[M.norm(x)] = c.role || c.character; }); render(); } } } catch (e) { } })();
+  window.FOOTAGE = { render, state: S, pieces, makePlayable, byKey, go, one: () => ONE, batch: () => BATCH, startScan, scan: () => S.scan, up: () => S.up, onPage };
 })();

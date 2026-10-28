@@ -30,6 +30,12 @@
   C.list = async () => { const b = await call(L(), { headers: auth() }); const c = { items: b.items || [], bytes: b.bytes || 0, cap: b.cap || 0, part: b.part || 0, at: Date.now() }; ls.set(CACHE, c); return c; };
   const LINKS = {};
   C.link = async id => { const k = LINKS[id]; if (k && k.until - Date.now() / 1000 > 600) return k.url; const b = await call(L() + '/' + id + '/link', { headers: auth() }); LINKS[id] = b; return b.url; };
+  /* SEND A LINK: anyone with it can watch, for up to 7 days; unshare stops every link to it so far */
+  C.shareLink = async (id, days) => (await call(L() + '/' + id + '/link?days=' + (days || 7), { headers: auth() })).url;
+  C.unshare = async id => { await call(L() + '/' + id + '/unshare', { method: 'POST', headers: auth({ 'content-type': 'application/json' }), body: '{}' }); delete LINKS[id]; };
+  /* the whole file, with how far along (SEND THE FILE) */
+  C.fetchFile = async (id, onP) => { const r = await fetch(await C.link(id)); if (!r.ok || !r.body) throw new Error('Couldn\u2019t get it from online.'); const total = +r.headers.get('content-length') || 0, rd = r.body.getReader(), parts = []; let got = 0;
+    for (;;) { const x = await rd.read(); if (x.done) break; parts.push(x.value); got += x.value.length; if (onP) onP(got, total); } return new Blob(parts, { type: r.headers.get('content-type') || 'video/mp4' }); };
   C.remove = async id => { const b = await call(L() + '/' + id, { method: 'DELETE', headers: auth() }); const c = C.cached(); c.items = c.items.filter(x => x.id !== id); if (typeof b.bytes === 'number') c.bytes = b.bytes; ls.set(CACHE, c); return b; };
   const wait = ms => new Promise(r => setTimeout(r, ms));
   /* ctl: {paused, stop} set from outside; onP(fraction of this file, bytes sent) */

@@ -31,7 +31,9 @@
      PUT    /api/lib/<name>/part/<id>?p=<n>        one part (n from 1)                  (key)
      POST   /api/lib/<name>/finish/<id>            all parts in: it's in the library   (key)
      DELETE /api/lib/<name>/<id>                   gone                                 (key)
-     GET    /api/lib/<name>/<id>/link              -> {url} a play link for 6 hours     (key)
+     GET    /api/lib/<name>/<id>/link[?days=1..7]  -> {url} a play link: 6 hours, or up to 7 days to SEND A LINK (key)
+     POST   /api/lib/<name>/<id>/unshare           every link to it so far stops working (key)
+     POST   /api/sites/<name>/copy {ver,path,from} a clip from your library onto your page, copied here, not re-sent (key)
      GET    /v/<name>/<id>?e=<expires>&s=<sig>     the file, with byte ranges */
 
 const TYPES = { html: 'text/html; charset=utf-8', htm: 'text/html; charset=utf-8', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif',
@@ -157,8 +159,11 @@ async function api(req, env, url, H) {
     }
     if (M === 'GET' && (q = rest.match(/^\/([\w-]+)\/link$/))) {
       const it = X.items[q[1]]; if (!it || !it.done) return no('No clip by that id.', 404, H);
-      const e = Math.floor(Date.now() / 1000) + 6 * 3600, sig = await sign(env, n + '/' + q[1] + '/' + e);
+      const days = Math.max(0, Math.min(7, +url.searchParams.get('days') || 0)), e = Math.floor(Date.now() / 1000) + (days ? days * 86400 : 6 * 3600), sig = await sign(env, n + '/' + q[1] + '/' + e + '/' + (it.gen || 0));
       return j({ ok: true, url: url.origin + '/v/' + n + '/' + q[1] + '?e=' + e + '&s=' + sig, until: e }, 200, H);
+    }
+    if (M === 'POST' && (q = rest.match(/^\/([\w-]+)\/unshare$/))) {
+      const it = X.items[q[1]]; if (!it) return no('No clip by that id.', 404, H); it.gen = (it.gen || 0) + 1; await libPut(env, n, X); return j({ ok: true }, 200, H);
     }
     if (M === 'DELETE' && (q = rest.match(/^\/([\w-]+)$/))) {
       const it = X.items[q[1]]; if (!it) return j({ ok: true, gone: true }, 200, H);
@@ -183,6 +188,15 @@ async function api(req, env, url, H) {
       const body = await req.arrayBuffer(); if (body.byteLength > L.file) return no('That file is over ' + (L.file / MB) + ' MB. Put long video on YouTube or Vimeo and link it.', 413, H);
       await env.SITES.put(k, body, meta0);
       return j({ ok: true, path, size: body.byteLength }, 200, H);
+    }
+    if (M === 'POST' && rest === '/copy') {
+      const b = await req.json().catch(() => ({})), ver = String(b.ver || ''), path = String(b.path || ''), from = String(b.from || ''), why = pathWhy(path);
+      if (why) return no(why, 400, H); if (!/^[a-z0-9_-]{6,40}$/i.test(ver)) return no('bad version', 400, H);
+      const X = await libIdx(env, n), it = X.items[from]; if (!it || !it.done) return no('That clip isn\'t in your library any more.', 404, H);
+      if (it.size > L.site) return no('That clip is ' + Math.ceil(it.size / MB) + ' MB; a page holds ' + (L.site / MB) + ' MB.', 413, H);
+      const o = await env.SITES.get('lib/' + n + '/f/' + from); if (!o) return no('That clip isn\'t in your library any more.', 404, H);
+      await env.SITES.put('sites/' + n + '/v/' + ver + '/' + path, o.body, { httpMetadata: { contentType: typeOf(path) } });
+      return j({ ok: true, path, size: it.size }, 200, H);
     }
     if (M === 'POST' && rest === '/commit') {
       const b = await req.json().catch(() => ({})), ver = String(b.ver || ''), files = Array.isArray(b.files) ? b.files : [];
@@ -209,8 +223,8 @@ function siteUrl(env, n, url) { return env.ZONE ? 'https://' + n + '.' + env.ZON
 async function play(req, env, url, name, id, H) {
   if (req.method !== 'GET' && req.method !== 'HEAD') return new Response('', { status: 405 });
   const e = +url.searchParams.get('e') || 0, s = url.searchParams.get('s') || '';
-  if (!e || e < Date.now() / 1000 || !same(s, await sign(env, name + '/' + id + '/' + e))) return new Response('This link has run out. Open the clip again.', { status: 403, headers: Object.assign({ 'content-type': 'text/plain; charset=utf-8' }, H) });
   const X = await libIdx(env, name), it = X.items[id]; if (!it || !it.done) return new Response('Not found', { status: 404, headers: H });
+  if (!e || e < Date.now() / 1000 || !same(s, await sign(env, name + '/' + id + '/' + e + '/' + (it.gen || 0)))) return new Response('This link has run out. Open the clip again.', { status: 403, headers: Object.assign({ 'content-type': 'text/plain; charset=utf-8' }, H) });
   const size = it.size, rh = req.headers.get('range'); let range = null, status = 200;
   if (rh) { const r = rh.match(/^bytes=(\d*)-(\d*)$/); if (r && (r[1] || r[2])) { let a = r[1] ? +r[1] : Math.max(0, size - +r[2]), b = r[1] && r[2] ? Math.min(+r[2], size - 1) : size - 1;
     if (a > b || a >= size) return new Response('', { status: 416, headers: { 'content-range': 'bytes */' + size } }); range = { offset: a, length: b - a + 1 }; status = 206; } }

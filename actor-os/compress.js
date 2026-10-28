@@ -41,7 +41,8 @@ A.mime=function(){
 A.process=async function(blob,opts){
  const o=Object.assign({h:1080,mbps:8,trimStart:0,trimEnd:0,onProgress:null},opts||{});
  const v=document.createElement('video');
- v.src=URL.createObjectURL(blob); v.muted=false; v.playsInline=true; v.preload='auto';
+ /* a link instead of a file (an online clip in Footage): it plays only the part it needs, byte ranges, no download */
+ if(typeof blob==='string'){ v.crossOrigin='anonymous'; v.src=blob; } else v.src=URL.createObjectURL(blob); v.muted=false; v.playsInline=true; v.preload='auto';
  await new Promise((res,rej)=>{ v.onloadedmetadata=res; v.onerror=()=>rej(new Error('cannot read that take')); });
  const SW=v.videoWidth, SH=v.videoHeight, dur=v.duration;
  if(!SW||!isFinite(dur)) throw new Error('that take has no usable video');

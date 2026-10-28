@@ -3166,7 +3166,7 @@ async function publishSite(){
    KB and loads instantly. Same HTML generator, different media handling. */
 function safeName(x){return String(x||'file').replace(/[^\w.-]+/g,'_').slice(0,60);}
 /* the website's files: index.html, share.jpg, media/. Used by the zip and by PUT IT ONLINE */
-async function siteEntries(site){
+async function siteEntries(site,o){
   pkgInit(); const entries=[]; const enc=new TextEncoder();
   const uniq=nm=>{ if(!entries.some(e=>e.name===nm)) return nm; const m=nm.match(/^(.*?)(\.[^.\/]+)?$/); for(let i=2;;i++){ const t=m[1]+'_'+i+(m[2]||''); if(!entries.some(e=>e.name===t)) return t; } };
   const asData=async id=>{const a=ARTS.find(x=>x.id===id);if(!a||!a.blob)return null;
@@ -3191,7 +3191,8 @@ async function siteEntries(site){
    const cc=[]; for(const a of ARTS.filter(a=>String(a.scope)==='credit:'+cid&&a.category==='clip'&&(a.type||'').startsWith('video/'))){ const g=await asFile(a.id,'media'); if(g) cc.push(g); }
    cr.push({title:c.title,role:c.role,net:c.net,character:c.character||'',director:c.director||'',
             charNote:c.charNote||'',poster:po?await asData(po.id):null,clips:cc});}
-  const doc=packageHTML(Object.assign(await pkgExtras('file',entries),{profile,note:pkgSel.note,contact:pkgSel.contact,head,res,reel,about,
+  const ex=await pkgExtras('file',entries), ox=online().key&&!(o&&o.noOnline)?await onlineInto(cr,'file',entries):[]; ex.xclips=(ex.xclips||[]).concat(ox);
+  const doc=packageHTML(Object.assign(ex,{profile,note:pkgSel.note,contact:pkgSel.contact,head,res,reel,about,
     clips,auds,monos,credits:cr,site:site,ogfile:'share.jpg',
     showLane:!!pkgSel.showLane,showSkills:!!pkgSel.showSkills,layout:pkgLayout()}));
   entries.unshift({name:'index.html',data:enc.encode(doc)});
@@ -3205,7 +3206,7 @@ async function buildSiteZip(){
  if(!site)return toast('Add your site address first');
  pkgBaking=true;render();
  try{
-  const entries=await siteEntries(site), enc=new TextEncoder();
+  const entries=await siteEntries(site,{noOnline:true}), enc=new TextEncoder();
   entries.push({name:'README.txt',data:enc.encode(
     'Upload everything in this folder to the root of '+site+'\n\n'
    +'  index.html   the page\n  share.jpg    the preview image for links\n  media/       video\n\n'
@@ -3241,8 +3242,9 @@ async function goOnline(){
   const cur=online(), url=cur.url||('https://'+name+'.theactorpage.com/');
   const entries=await siteEntries(url), auth={authorization:'Bearer '+key};
   const v=(await call('/api/sites/'+name+'/begin',{method:'POST',headers:auth})).ver;
-  const total=entries.reduce((a,e)=>a+e.data.length,0); let sent=0;
+  const total=entries.reduce((a,e)=>a+(e.data?e.data.length:0),0); let sent=0;
   for(let i=0;i<entries.length;i++){ const e=entries[i]; ON.step='Sending '+(i+1)+' of '+entries.length+' ('+mb(sent)+' of '+mb(total)+')'; const st=$('onstep'); if(st) st.textContent=ON.step;
+   if(e.copyFrom){ await call('/api/sites/'+name+'/copy',{method:'POST',headers:Object.assign({'content-type':'application/json'},auth),body:JSON.stringify({ver:v,path:e.name,from:e.copyFrom})}); continue; }
    await call('/api/sites/'+name+'/files/'+e.name.split('/').map(encodeURIComponent).join('/')+'?v='+v,{method:'PUT',headers:auth,body:e.data}); sent+=e.data.length; }
   const done=await call('/api/sites/'+name+'/commit',{method:'POST',headers:Object.assign({'content-type':'application/json'},auth),body:JSON.stringify({ver:v,files:entries.map(e=>e.name)})});
   setOnline(Object.assign(online(),{url:done.url,updated:done.updated,bytes:done.bytes,live:true}));
@@ -3411,6 +3413,21 @@ function packageView(){
 var PKGOPEN=false;
 function pkgHead(){ return pkgSel.headOff?'':pkgSel.headshot; }
 function pkgItems(cat){ const cl=Array.isArray(cat)?cat:[cat]; return ARTS.filter(a=>cl.includes(a.category)&&(a.type||'').startsWith('video/')); }
+/* ONLINE CLIPS from Footage (Col, Oct 28: PUT IT ON MY PAGE). Footage keeps the list (footage_onpage_v1): which of
+   your online clips, and under which credit. Put online, each is copied from your library on the host, never sent again.
+   SEE IT plays them from a link; a saved file leaves them out (they're the originals, too big to carry). */
+function onPageClips(){ try{ const L=JSON.parse(localStorage.getItem('footage_onpage_v1')||'[]'); return Array.isArray(L)?L.filter(x=>x&&x.id):[]; }catch(e){ return []; } }
+async function onlineInto(cr,mode,entries){
+ const out=[]; if(pageOff().indexOf('online')>=0) return out;
+ for(const o of onPageClips()){
+  let m=null; const ext=((String(o.name).match(/\.([a-z0-9]+)$/i)||[])[1]||'mp4').toLowerCase();
+  if(mode==='file'){ const path='media/online_'+o.id+'.'+ext; entries.push({name:path,copyFrom:o.id,size:o.size||0}); m={u:path,t:o.type||'video/mp4',n:o.label||o.name}; }
+  else if(mode==='see'){ try{ const b=await call('/api/lib/'+online().name+'/'+o.id+'/link',{headers:{authorization:'Bearer '+online().key}}); m={u:b.url,t:o.type||'video/mp4',n:o.label||o.name}; }catch(e){ m=null; } }
+  if(!m) continue;
+  const c=o.credit&&cr.find(x=>normTitle(x.title)===normTitle(o.credit)); if(c) c.clips=(c.clips||[]).concat([m]); else out.push(m);
+ }
+ return out;
+}
 function pkgRows(hs,rs,rl,cr){
  const off=new Set(pageOff()), R=[];
  const add=(k,label,n,on,from,jump)=>R.push({k,label,n,on,from,jump});
@@ -3418,6 +3435,7 @@ function pkgRows(hs,rs,rl,cr){
  if(rl.length) add('reel','Your reel','',!!pkgSel.reel,'from REEL ROOM','Reel');
  if(cr.length) add('credits','Credits',(pkgSel.credits||[]).length+' of '+cr.length,(pkgSel.credits||[]).length>0,'your résumé and IMDb','Credits');
  const ab=pkgItems('about_me'); if(ab.length) add('about','About Me','',!!pkgSel.about,'your material','About Me');
+ const oc=onPageClips(); if(oc.length) add('online','From Footage, online',oc.length+'',!off.has('online'),'clips you put on your page in FOOTAGE','');
  const cl=pkgItems('clip'); if(cl.length) add('clips','Clips',(pkgSel.clips||[]).length+' of '+cl.length,(pkgSel.clips||[]).length>0,'from FOOTAGE and your material','Performance clips');
  const au=pkgItems('audition_vid'); if(au.length) add('auditions','Auditions',(pkgSel.auditions||[]).length+' of '+au.length,(pkgSel.auditions||[]).length>0,'tapes you kept','Auditions');
  const mo=pkgItems(['monologue','standup_vid']); if(mo.length) add('monologues','Monologues and stand-up',(pkgSel.monologues||[]).length+' of '+mo.length,(pkgSel.monologues||[]).length>0,'your material','Monologues');
@@ -3442,7 +3460,7 @@ function pkgFlip(k){
  else if(k==='credits') pkgSel.credits=(pkgSel.credits||[]).length?[]:cr.map(c=>c.cid);
  else if(k==='clips') all('clips','clip'); else if(k==='auditions') all('auditions','audition_vid'); else if(k==='monologues') all('monologues',['monologue','standup_vid']);
  else if(k==='contact') pkgSel.contact=!pkgSel.contact;
- else if(['voice','looks','press'].includes(k)){ madeToggle(k); return; }
+ else if(['voice','looks','press','online'].includes(k)){ madeToggle(k); return; }
  else if(k==='made'){ const L=pageOff(), mids=(MADE?[].concat(MADE.films||[],MADE.writing||[]):[]).concat((profile.madeHub&&[].concat(profile.madeHub.films||[],profile.madeHub.writing||[]))||[]).map(x=>x.id).filter(Boolean), anyOn=mids.some(id=>L.indexOf(id)<0);
   mids.forEach(id=>{ const i=L.indexOf(id); if(anyOn&&i<0) L.push(id); if(!anyOn&&i>=0) L.splice(i,1); }); saveProfile(); }
  render();
@@ -3463,7 +3481,8 @@ async function pkgDoc(opts){
   const po=c.posterId?await grab(c.posterId):null;
   const cc=[]; if(opts.see||pkgSel.preset==='full') for(const a of ARTS.filter(a=>String(a.scope)==='credit:'+cid&&a.category==='clip'&&(a.type||'').startsWith('video/'))){ const g=opts.see?ref(a.id):await grab(a.id); if(g) cc.push(g); }
   cr.push({title:c.title,role:c.role,net:c.net,medium:c.medium,character:c.character||'',charNote:c.charNote||'',director:c.director||'',poster:po,clips:cc});}
- return packageHTML(Object.assign({profile,note:pkgSel.note,contact:pkgSel.contact,head,res,reel,about,clips,auds,monos,credits:cr,layout:pkgLayout()},await pkgExtras()));
+ const ex=await pkgExtras(), ox=opts.see?await onlineInto(cr,'see'):[]; ex.xclips=(ex.xclips||[]).concat(ox);
+ return packageHTML(Object.assign({profile,note:pkgSel.note,contact:pkgSel.contact,head,res,reel,about,clips,auds,monos,credits:cr,layout:pkgLayout()},ex));
 }
 /* SEE IT: your page as they'll see it, in a new tab. The tab opens on the tap; the page fills in a moment later. */
 async function seePage(){ const w=window.open('','_blank'); try{ const doc=await pkgDoc({see:true}), u=URL.createObjectURL(new Blob([doc],{type:'text/html'})); window.__lastPage=doc.length; if(w) w.location=u; else location.href=u; }catch(e){ if(w) w.close(); toast('Couldn’t build it: '+e.message); } }
