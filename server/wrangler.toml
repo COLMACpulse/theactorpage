@@ -2,7 +2,7 @@
 name = "theactorpage-host"
 main = "worker.js"
 compatibility_date = "2024-09-23"
-workers_dev = true
+workers_dev = false
 
 # api.theactorpage.com and every name.theactorpage.com. Needs the domain on this Cloudflare account,
 # a proxied DNS record for api and a proxied wildcard (*) record.
