@@ -3223,8 +3223,8 @@ async function buildSiteZip(){
 const ONLINE_KEY='hub_online_v1';
 function apiBase(){ try{ return (window.TAP_API||localStorage.getItem('tap_api')||'https://api.theactorpage.com').replace(/\/$/,''); }catch(e){ return 'https://api.theactorpage.com'; } }
 function online(){ try{ return JSON.parse(localStorage.getItem(ONLINE_KEY)||'null')||{}; }catch(e){ return {}; } }
-/* hosting isn't switched on yet. Flip HOSTING_LIVE when api.theactorpage.com is up; a test host (tap_api) turns it on for that browser. */
-const HOSTING_LIVE=false;
+/* hosting is on (Oct 28): api.theactorpage.com and every name.theactorpage.com. A test host (tap_api) still points a browser elsewhere. */
+const HOSTING_LIVE=true;
 function hostingOn(){ try{ return HOSTING_LIVE||!!window.TAP_API||!!localStorage.getItem('tap_api'); }catch(e){ return HOSTING_LIVE; } }
 function setOnline(o){ try{ localStorage.setItem(ONLINE_KEY,JSON.stringify(o)); }catch(e){} }
 let ON={busy:false,step:'',name:'',check:null,checkT:0,err:'',showBackup:false,recover:false};
@@ -3277,7 +3277,7 @@ function onlinePanel(){
     <small class="note" id="onwhy" style="margin:0"></small>
     <div class="row" style="padding:0;gap:9px;flex-wrap:wrap"><button class="act" id="onpub" onclick="goOnline()" ${ON.busy?'disabled':''}>${ON.busy?'Publishing…':'Publish'}</button><button class="ghost act sm" onclick="ON.recover=true;render()">I already have a page</button></div>
     ${step}${err}
-    <small class="note" style="margin:0">Long video? Add it as a YouTube or Vimeo link above. A page can hold about 100 MB here.</small>
+    <small class="note" style="margin:0">Long video? Add it as a YouTube or Vimeo link above. A page can hold up to 250 MB here, 95 MB a file.</small>
    </div></div>`;
  }
  const when=o.updated?new Date(o.updated).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'';

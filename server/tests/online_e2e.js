@@ -29,7 +29,7 @@ const FX = path.join(__dirname, '..', '..', 'shared', 'fixtures');
   want('PUBLISH: LIVE, with the address and when', /LIVE/.test(t) && /updated/.test(t) && o.url === 'http://localhost:8787/s/riley-hart/', t.slice(0, 300));
   want('the backup code shows, to save off this phone', /Save it somewhere that isn't this phone/.test(t) && o.backup && t.includes(o.backup));
   const q = await c.newPage(); await q.goto(o.url); await q.waitForTimeout(800);
-  want('the page, from the host: name, headshot, the clip', /RILEY HART/.test(await q.innerText('body')) && (await q.$eval('img.hs', i => i.naturalWidth)) > 100 && (await q.$$eval('video', v => v.length)) >= 1);
+  want('the page, from the host: name, headshot, the clip', /RILEY HART/.test(await q.innerText('body')) && (await q.$eval('.hstrip img, img.hs', i => i.naturalWidth)) > 100 && (await q.$$eval('video', v => v.length)) >= 1);
   const vsrc = await q.$eval('video', v => v.currentSrc || v.src); const vr = await (async u => { const r = await fetch(u, { headers: { range: 'bytes=0-99' } }); return [r.status, (await r.arrayBuffer()).byteLength]; })(vsrc);
   want('its video streams from the host (byte ranges)', vr[0] === 206 && vr[1] === 100, vr);
   const csp = (await fetch(o.url)).headers.get('content-security-policy'); want('served locked down (no scripts)', /default-src 'none'/.test(csp || ''));
