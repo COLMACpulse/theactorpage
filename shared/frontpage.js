@@ -63,7 +63,7 @@
         : '<label class="mephoto none"><input type="file" id="meShot" accept="image/*" hidden><span>ADD A HEADSHOT</span></label>')
       + '<div class="metx"><b class="mename">' + esc(y.name || 'Your name') + '</b>' + (facts ? '<span class="mefacts">' + esc(facts) + '</span>' : '')
       + '<span class="melinks"><a href="hub/">Your page ›</a><a href="headshots/">Headshots' + (sh.length ? ' · ' + sh.length : '') + ' ›</a>' + (y.resume ? '' : '<a href="hub/?tab=intake">Add your résumé ›</a>') + '</span></div></section>';
-    return me + '<div class="shead"><h1>Your studio</h1><p>Set up here, at a desk. Audition day happens on your phone, in Actor OS.</p></div>'
+    return me + '<div class="shead"><h1>Your studio</h1></div>'
       + '<div class="sgrid"><div class="rooms">'
       + room('act', 'SHOWCASE', 'What casting sees of you',
         d('hub', 'Your page', 'hub/', 'résumé, credits, press') + d('head', 'Headshots', 'headshots/', c.shots ? 'and your looks · ' + c.shots : 'and your looks')
