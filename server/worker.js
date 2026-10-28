@@ -18,7 +18,21 @@
      POST   /api/sites/<name>/commit {ver, files}  goes live, old files go     (key)
      DELETE /api/sites/<name>                      takes it down (name kept)    (key)
      POST   /api/recover      {name, backup}       -> {key} a new key; the old one stops working
-   Pages: <name>.<zone>/<path>, or /s/<name>/<path> on any host (for testing). */
+   Pages: <name>.<zone>/<path>, or /s/<name>/<path> on any host (for testing).
+
+   FOOTAGE ONLINE (Oct 28): an actor's own clips, the originals, private. Same key as the page. Only they can list them or
+   get a link to play one; a link lasts 6 hours. LIB_MB each (5 GB to start). Big files go up in 25 MB parts, one after
+   another, so a dropped connection picks up at the part it was on.
+     lib/<name>/index.json     {items: {id: {name, size, type, secs, at, done, up, parts:[etag]}}, bytes}
+     lib/<name>/f/<id>         the file
+     lib/_sign                 the secret that signs play links
+     GET    /api/lib/<name>                         {items, bytes, cap, part}            (key)
+     POST   /api/lib/<name>/start {name,size,type,secs,fp} -> {id, part, have}       (key)  same fp = pick up where it stopped
+     PUT    /api/lib/<name>/part/<id>?p=<n>        one part (n from 1)                  (key)
+     POST   /api/lib/<name>/finish/<id>            all parts in: it's in the library   (key)
+     DELETE /api/lib/<name>/<id>                   gone                                 (key)
+     GET    /api/lib/<name>/<id>/link              -> {url} a play link for 6 hours     (key)
+     GET    /v/<name>/<id>?e=<expires>&s=<sig>     the file, with byte ranges */
 
 const TYPES = { html: 'text/html; charset=utf-8', htm: 'text/html; charset=utf-8', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif',
   mp4: 'video/mp4', m4v: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', pdf: 'application/pdf', txt: 'text/plain; charset=utf-8' };
@@ -54,7 +68,15 @@ export const pathWhy = function (p) {
   return '';
 };
 const typeOf = p => TYPES[(p.match(/\.([a-z0-9]+)$/i) || [])[1].toLowerCase()];
-const lim = env => ({ file: (+env.MAX_FILE_MB || 95) * MB, site: (+env.MAX_SITE_MB || 100) * MB });
+const lim = env => ({ file: (+env.MAX_FILE_MB || 95) * MB, site: (+env.MAX_SITE_MB || 100) * MB, lib: (+env.LIB_MB || 5120) * MB, part: (+env.PART_MB || 25) * MB });
+const VID = { mp4: 'video/mp4', m4v: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', mp3: 'audio/mpeg', m4a: 'audio/mp4', wav: 'audio/wav' };
+const LIBX = (env, n) => 'lib/' + n + '/index.json';
+async function libIdx(env, n) { const o = await env.SITES.get(LIBX(env, n)); return o ? o.json() : { items: {}, bytes: 0 }; }
+const libPut = (env, n, x) => env.SITES.put(LIBX(env, n), JSON.stringify(x), { httpMetadata: { contentType: 'application/json' } });
+async function signKey(env) { let o = await env.SITES.get('lib/_sign'); let k = o ? await o.text() : ''; if (!k) { k = secret(32); await env.SITES.put('lib/_sign', k); }
+  return crypto.subtle.importKey('raw', enc.encode(k), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); }
+async function sign(env, msg) { return b64u(new Uint8Array(await crypto.subtle.sign('HMAC', await signKey(env), enc.encode(msg)))); }
+const libItem = (id, it) => ({ id, name: it.name, size: it.size, type: it.type, secs: it.secs || 0, at: it.at, done: !!it.done, have: it.done ? undefined : (it.parts || []).length });
 
 async function meta(env, name) { const o = await env.SITES.get('sites/' + name + '/meta.json'); return o ? o.json() : null; }
 const putMeta = (env, m) => env.SITES.put('sites/' + m.name + '/meta.json', JSON.stringify(m), { httpMetadata: { contentType: 'application/json' } });
@@ -96,6 +118,56 @@ async function api(req, env, url, H) {
     const key = secret(32); mm.key = await hash(key); mm.updated = new Date().toISOString(); await putMeta(env, mm);
     return j({ ok: true, name: n, key, url: siteUrl(env, n, url) }, 200, H);
   }
+  if ((m = p.match(/^\/lib\/([a-z0-9-]+)(\/.*)?$/))) {
+    const n = m[1], rest = m[2] || '', a = await authed(req, env, n); if (a.err) { Object.entries(H).forEach(([k, v]) => a.err.headers.set(k, v)); return a.err; }
+    const L = lim(env), X = await libIdx(env, n), fk = id => 'lib/' + n + '/f/' + id;
+    if (M === 'GET' && rest === '') return j({ ok: true, items: Object.entries(X.items).map(([id, it]) => libItem(id, it)), bytes: X.bytes || 0, cap: L.lib, part: L.part }, 200, H);
+    if (M === 'POST' && rest === '/start') {
+      const b = await req.json().catch(() => ({})), name = String(b.name || '').replace(/[\u0000-\u001f]/g, '').slice(0, 200), size = Math.floor(+b.size || 0), fp = String(b.fp || '').slice(0, 300);
+      const ext = ((name.match(/\.([a-z0-9]+)$/i) || [])[1] || '').toLowerCase();
+      if (!name || !VID[ext]) return no('Only video and audio files: MP4, MOV, M4V, WebM, MP3, M4A, WAV.', 400, H);
+      if (!(size > 0)) return no('That file is empty.', 400, H);
+      const was = fp && Object.entries(X.items).find(([, it]) => !it.done && it.fp === fp && it.size === size);
+      if (was) return j({ ok: true, id: was[0], part: L.part, have: (was[1].parts || []).length }, 200, H);
+      const pending = Object.values(X.items).filter(it => !it.done).reduce((t, it) => t + it.size, 0);
+      if ((X.bytes || 0) + pending + size > L.lib) return no('That would go over your ' + Math.round(L.lib / MB / 1024 * 10) / 10 + ' GB. Remove something first.', 413, H);
+      const id = Date.now().toString(36) + secret(6), up = await env.SITES.createMultipartUpload(fk(id), { httpMetadata: { contentType: VID[ext] } });
+      X.items[id] = { name, size, type: VID[ext], secs: Math.round((+b.secs || 0) * 10) / 10, fp, at: new Date().toISOString(), done: false, up: up.uploadId, parts: [] };
+      await libPut(env, n, X); return j({ ok: true, id, part: L.part, have: 0 }, 200, H);
+    }
+    let q;
+    if (M === 'PUT' && (q = rest.match(/^\/part\/([\w-]+)$/))) {
+      const it = X.items[q[1]], pn = +url.searchParams.get('p'); if (!it || it.done) return no('No upload by that id.', 404, H);
+      const want = Math.ceil(it.size / L.part); if (!(pn >= 1 && pn <= want)) return no('bad part', 400, H);
+      const len = +req.headers.get('content-length') || 0, should = pn < want ? L.part : it.size - L.part * (want - 1);
+      if (len && len !== should) return no('That part is the wrong size.', 400, H);
+      if ((it.parts || []).length >= pn) return j({ ok: true, have: it.parts.length }, 200, H);
+      if ((it.parts || []).length !== pn - 1) return no('Parts go in order. Send part ' + ((it.parts || []).length + 1) + '.', 409, H);
+      /* a known size streams straight in (browsers send it); otherwise read it and check */
+      let body = req.body; if (!len) { body = await req.arrayBuffer(); if (body.byteLength !== should) return no('That part is the wrong size.', 400, H); }
+      const up = env.SITES.resumeMultipartUpload(fk(q[1]), it.up), part = await up.uploadPart(pn, body);
+      it.parts.push(part.etag); await libPut(env, n, X); return j({ ok: true, have: it.parts.length }, 200, H);
+    }
+    if (M === 'POST' && (q = rest.match(/^\/finish\/([\w-]+)$/))) {
+      const it = X.items[q[1]]; if (!it) return no('No upload by that id.', 404, H); if (it.done) return j({ ok: true, item: libItem(q[1], it) }, 200, H);
+      if (it.parts.length !== Math.ceil(it.size / L.part)) return no('Not every part is in yet.', 409, H);
+      const up = env.SITES.resumeMultipartUpload(fk(q[1]), it.up); await up.complete(it.parts.map((etag, i) => ({ partNumber: i + 1, etag })));
+      it.done = true; delete it.up; delete it.parts; X.bytes = (X.bytes || 0) + it.size; await libPut(env, n, X);
+      return j({ ok: true, item: libItem(q[1], it), bytes: X.bytes }, 200, H);
+    }
+    if (M === 'GET' && (q = rest.match(/^\/([\w-]+)\/link$/))) {
+      const it = X.items[q[1]]; if (!it || !it.done) return no('No clip by that id.', 404, H);
+      const e = Math.floor(Date.now() / 1000) + 6 * 3600, sig = await sign(env, n + '/' + q[1] + '/' + e);
+      return j({ ok: true, url: url.origin + '/v/' + n + '/' + q[1] + '?e=' + e + '&s=' + sig, until: e }, 200, H);
+    }
+    if (M === 'DELETE' && (q = rest.match(/^\/([\w-]+)$/))) {
+      const it = X.items[q[1]]; if (!it) return j({ ok: true, gone: true }, 200, H);
+      if (!it.done && it.up) { try { await env.SITES.resumeMultipartUpload(fk(q[1]), it.up).abort(); } catch (e) { } } else await env.SITES.delete(fk(q[1]));
+      if (it.done) X.bytes = Math.max(0, (X.bytes || 0) - it.size); delete X.items[q[1]]; await libPut(env, n, X);
+      return j({ ok: true, gone: true, bytes: X.bytes }, 200, H);
+    }
+    return no('Not here.', 404, H);
+  }
   if ((m = p.match(/^\/sites\/([a-z0-9-]+)(\/.*)?$/))) {
     const n = m[1], rest = m[2] || '', a = await authed(req, env, n); if (a.err) { a.err.headers && Object.entries(H).forEach(([k, v]) => a.err.headers.set(k, v)); return a.err; }
     const mm = a.m, L = lim(env);
@@ -133,6 +205,22 @@ async function api(req, env, url, H) {
 
 function siteUrl(env, n, url) { return env.ZONE ? 'https://' + n + '.' + env.ZONE + '/' : url.origin + '/s/' + n + '/'; }
 
+/* a private clip, from a play link: only while the link lasts, with byte ranges so a video can skip */
+async function play(req, env, url, name, id, H) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return new Response('', { status: 405 });
+  const e = +url.searchParams.get('e') || 0, s = url.searchParams.get('s') || '';
+  if (!e || e < Date.now() / 1000 || !same(s, await sign(env, name + '/' + id + '/' + e))) return new Response('This link has run out. Open the clip again.', { status: 403, headers: Object.assign({ 'content-type': 'text/plain; charset=utf-8' }, H) });
+  const X = await libIdx(env, name), it = X.items[id]; if (!it || !it.done) return new Response('Not found', { status: 404, headers: H });
+  const size = it.size, rh = req.headers.get('range'); let range = null, status = 200;
+  if (rh) { const r = rh.match(/^bytes=(\d*)-(\d*)$/); if (r && (r[1] || r[2])) { let a = r[1] ? +r[1] : Math.max(0, size - +r[2]), b = r[1] && r[2] ? Math.min(+r[2], size - 1) : size - 1;
+    if (a > b || a >= size) return new Response('', { status: 416, headers: { 'content-range': 'bytes */' + size } }); range = { offset: a, length: b - a + 1 }; status = 206; } }
+  const o = await env.SITES.get('lib/' + name + '/f/' + id, range ? { range } : undefined); if (!o) return new Response('Not found', { status: 404, headers: H });
+  const h = new Headers(H); h.set('content-type', it.type); h.set('accept-ranges', 'bytes'); h.set('x-content-type-options', 'nosniff'); h.set('cache-control', 'private, max-age=3600');
+  h.set('content-security-policy', "default-src 'none'"); h.set('access-control-expose-headers', 'content-range, content-length');
+  if (range) { h.set('content-range', 'bytes ' + range.offset + '-' + (range.offset + range.length - 1) + '/' + size); h.set('content-length', String(range.length)); } else h.set('content-length', String(size));
+  return new Response(req.method === 'HEAD' ? null : o.body, { status, headers: h });
+}
+
 /* the page itself: the live version's file, with video byte ranges, and nothing that can run */
 const CSP = "default-src 'none'; img-src 'self' data:; media-src 'self' data:; style-src 'unsafe-inline'; font-src 'self' data:; frame-src https://www.youtube-nocookie.com https://player.vimeo.com; object-src 'self' data:; form-action 'none'; base-uri 'none'; frame-ancestors 'none'";
 async function serve(req, env, name, path) {
@@ -160,10 +248,12 @@ export default {
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: H });
     const host = url.hostname.toLowerCase(), zone = String(env.ZONE || '').toLowerCase();
     if (zone && host.endsWith('.' + zone)) { const sub = host.slice(0, -zone.length - 1);
-      if (sub === 'api') return url.pathname.startsWith('/api/') ? api(req, env, url, H) : no('Not here.', 404, H);
+      if (sub === 'api') { const v = url.pathname.match(/^\/v\/([a-z0-9-]+)\/([\w-]+)$/); if (v) return play(req, env, url, v[1], v[2], H);
+        return url.pathname.startsWith('/api/') ? api(req, env, url, H) : no('Not here.', 404, H); }
       if (sub === 'www') return Response.redirect(env.HOME_URL || ('https://' + zone + '/'), 301);
       if (!sub.includes('.')) return serve(req, env, sub, url.pathname); }
     if (url.pathname.startsWith('/api/')) return api(req, env, url, H);
+    const v = url.pathname.match(/^\/v\/([a-z0-9-]+)\/([\w-]+)$/); if (v) return play(req, env, url, v[1], v[2], H);
     const s = url.pathname.match(/^\/s\/([a-z0-9-]+)(\/.*)?$/); if (s) return serve(req, env, s[1], s[2] || '/');
     return new Response('THEACTORPAGE', { status: 404, headers: { 'content-type': 'text/plain' } });
   }

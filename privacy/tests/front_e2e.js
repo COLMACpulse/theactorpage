@@ -17,7 +17,7 @@ for(const [nm,vp,cs] of [['desk',{width:1280,height:900},'light'],['phone',{widt
  const facts=await p.$$eval('.fact b',x=>x.map(e=>e.textContent));
  want(nm+': the short version, four lines', facts.join('|')==='No account|Kept on this device|Nothing leaves on its own|You hold the backup', facts);
  const rows=await p.$$eval('.lv>summary b',x=>x.map(e=>e.textContent));
- want(nm+': each time something can leave', rows.length===9&&['Send it','Speak to a tool that types','Put your page online','Put a video on your page','Check the news','Search for your press','Ask a friend to read in','Look up a credit in the Hub','Open a link'].every(r=>rows.includes(r)), rows);
+ want(nm+': each time something can leave', rows.length===10&&['Send it','Speak to a tool that types','Put your page online','Upload your clips','Put a video on your page','Check the news','Search for your press','Ask a friend to read in','Look up a credit in the Hub','Open a link'].every(r=>rows.includes(r)), rows);
  want(nm+': the full wording is folded under each row', await p.$$eval('.lv',x=>x.every(d=>!d.open)));
  await p.click('.lv:has-text("Speak to a tool") summary'); await p.waitForTimeout(200);
  const sp=await p.innerText('.lv:has-text("Speak to a tool") .more');
@@ -25,6 +25,7 @@ for(const [nm,vp,cs] of [['desk',{width:1280,height:900},'light'],['phone',{widt
  await p.click('.lv:has-text("Check the news") summary'); await p.waitForTimeout(200);
  want(nm+': the news is Picture It now, nothing about you', /CHECK THE NEWS in Picture It/.test(await p.innerText('.lv:has-text("Check the news") .more'))&&!/postcard/i.test(await p.innerText('body')));
  want(nm+': your page online: on, says what goes and who sees it', !/Not switched on yet/i.test(await p.innerText('.lv:has-text("Put your page online")'))&&/That one page, with what you picked for it/.test(await p.innerText('.lv:has-text("Put your page online") summary'))&&/Anyone with the address/.test(await p.innerText('.lv:has-text("Put your page online") summary')));
+ want(nm+': uploading clips: what goes, only you, links run out, REMOVE IT FROM ONLINE', /The clips you tick in Footage, the originals/.test(await p.innerText('.lv:has-text("Upload your clips") summary'))&&/Only you/.test(await p.innerText('.lv:has-text("Upload your clips") summary'))&&/stops working after 6 hours/.test(await p.evaluate(()=>[...document.querySelectorAll('.lv')].find(d=>/Upload your clips/.test(d.textContent)).textContent))&&/REMOVE IT FROM ONLINE deletes it/.test(await p.evaluate(()=>[...document.querySelectorAll('.lv')].find(d=>/Upload your clips/.test(d.textContent)).textContent)));
  want(nm+': the rest folded', (await p.$$('details.fold')).length===5&&await p.$$eval('details.fold',x=>x.every(d=>!d.open)));
  const t=await p.evaluate(()=>document.body.textContent);
  want(nm+': no em dashes, never "thing"', !/—/.test(t)&&!/\bthings?\b/i.test(t));

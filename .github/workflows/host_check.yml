@@ -30,6 +30,16 @@ jobs:
           echo "$P" | grep -q 'Sam Actor' && ok "the page opens at https://$N.$ZONE/" || bad "page text"
           grep -qi "content-security-policy:.*default-src 'none'" h.txt && ok "the page can't run scripts (CSP)" || bad "CSP header"
           curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' "https://www.$ZONE/" | grep -q '^301' && ok "www goes to the home page" || bad "www redirect"
+          # FOOTAGE ONLINE: a made-up 1 MB clip up, played from its link, refused without it, removed
+          head -c 1048576 /dev/urandom > clip.mp4
+          ID=$(curl -fsS -X POST -H "authorization: Bearer $KEY" -H 'content-type: application/json' --data '{"name":"made_up_clip.mp4","size":1048576,"fp":"check"}' "$A/lib/$N/start" | jq -r .id)
+          curl -fsS -X PUT -H "authorization: Bearer $KEY" --data-binary @clip.mp4 "$A/lib/$N/part/$ID?p=1" | grep -q '"have":1' && ok "footage: a clip goes up" || bad "lib part"
+          curl -fsS -X POST -H "authorization: Bearer $KEY" -H 'content-type: application/json' --data '{}' "$A/lib/$N/finish/$ID" | grep -q '"done":true' && ok "footage: in the library" || bad "lib finish"
+          L=$(curl -fsS -H "authorization: Bearer $KEY" "$A/lib/$N/$ID/link" | jq -r .url)
+          [ "$(curl -fsS "$L" | cmp - clip.mp4 && echo same)" = same ] && ok "footage: its link plays it, byte for byte" || bad "lib play"
+          curl -sS -o /dev/null -w '%{http_code}' "${L%%&s=*}&s=madeup" | grep -q 403 && ok "footage: a changed link is refused" || bad "lib bad link"
+          curl -sS -o /dev/null -w '%{http_code}' "$A/lib/$N" | grep -q 403 && ok "footage: no key, no list" || bad "lib no key"
+          curl -fsS -X DELETE -H "authorization: Bearer $KEY" "$A/lib/$N/$ID" | grep -q '"gone":true' && ok "footage: removed" || bad "lib delete"
           curl -fsS -X DELETE -H "authorization: Bearer $KEY" "$A/sites/$N" | grep -q '"down":true' && ok "taken down" || bad "delete"
           sleep 2
           curl -sS -o /dev/null -w '%{http_code}' "https://$N.$ZONE/" | grep -q 404 && ok "gone after it's taken down" || bad "404 after delete"

@@ -16,9 +16,15 @@ for(const [nm,vp,cs] of [['computer',{width:1280,height:900},'light'],['phone',{
  await p.evaluate(async b64=>{ const u=Uint8Array.from(atob(b64),c=>c.charCodeAt(0)); await Takes.put(new Blob([u],{type:'video/webm'}),{kind:'video',mime:'video/webm',ext:'webm',name:'Salt Road self-tape',secs:1.5,for:{type:'selftape',title:'Salt Road'}}); },GOOD.toString('base64'));
  await p.reload(); await p.waitForTimeout(500);
  await p.setInputFiles('#addvids',[{name:'dock_scene.webm',mimeType:'video/webm',buffer:GOOD},{name:'the_car.webm',mimeType:'video/webm',buffer:GOOD},{name:'IMG_4471.MOV',mimeType:'video/quicktime',buffer:HEVC}]);
+ await p.waitForFunction(()=>FOOTAGE.scan()&&!FOOTAGE.scan().busy,null,{timeout:30000}).catch(()=>{}); await p.waitForTimeout(200);
+ want(nm+': the iPhone one is read as HEVC before anything is kept', /NEEDS WORK · 1/.test(await p.innerText('#view'))&&/IMG_4471\.MOV/.test(await p.innerText('#view'))&&/HEVC, what an iPhone records/.test(await p.innerText('#view')));
+ for(const nm2 of ['dock_scene.webm','the_car.webm']) await p.check('[aria-label="'+nm2+'"]');
+ await p.click('#sc_local');
  await p.waitForFunction(()=>FOOTAGE.state.view==='lib',null,{timeout:90000}).catch(()=>{}); await p.waitForTimeout(400);
  let v=await p.innerText('#view');
- want(nm+': brought in: 2 play, the iPhone one doesn\'t, it says to open it or remove it', /2 clips in your library; 1 a browser can.t play \(open one to see why, or PICK TO REMOVE\)/.test(v), v.slice(0,300));
+ want(nm+': brought in: the 2 that play', /2 clips in your library\./.test(v), v.slice(0,300));
+ /* a file on a drive a browser can't play, already on the map from before */
+ await p.evaluate(()=>{ const d=FootMap.read(), pl=d.places.find(x=>x.device); pl.files.push({p:'On this device/IMG_4471.MOV',s:4200,d:'2026-10-28'}); localStorage.setItem(FootMap.KEY,JSON.stringify(d)); FootMap.setMeta(FootMap.fkey(pl.id,'On this device/IMG_4471.MOV'),{cant:true,why:{c:'MOV',v:'HEVC'}}); FOOTAGE.go('lib'); }); await p.waitForTimeout(300);
  const keyOf=name=>p.evaluate(n=>FOOTAGE.pieces().find(x=>x.name===n).key,name);
  const kH=await keyOf('IMG_4471.MOV'), kD=await keyOf('dock_scene.webm'), kC=await keyOf('the_car.webm'), kT=await keyOf('Salt Road self-tape');
 

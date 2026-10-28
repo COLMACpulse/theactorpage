@@ -12,7 +12,7 @@
   'use strict';
   const M = window.FootMap, Lb = window.FootLib, $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const S = { view: 'lib', key: '', place: '', set: '', trim: null, naming: false, renaming: false, q: '', msg: '', titles: [], roles: {}, adding: false, open: {}, busy: '', prog: 0, here: false, withOpen: false, sel: null, rmAsk: false, rmOne: false };
+  const S = { view: 'lib', key: '', place: '', set: '', trim: null, naming: false, renaming: false, q: '', msg: '', titles: [], roles: {}, adding: false, open: {}, busy: '', prog: 0, here: false, withOpen: false, sel: null, rmAsk: false, rmOne: false, scan: null, up: null, acctForm: '' };
   const today = () => new Date().toISOString().slice(0, 10);
   const nice = iso => { if (!iso) return ''; const d = new Date(iso + 'T12:00:00'); return isNaN(d) ? iso : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' }); };
   const n = (x, w) => x + ' ' + w + (x === 1 ? '' : 's');
@@ -40,12 +40,15 @@
     d.places.forEach(p => { if (p.kind === 'named') return; (p.files || []).forEach(f => { const key = M.fkey(p.id, f.p), mt = d.meta[key] || {};
       if (mt.hidden && !all) return;
       out.push({ key, kind: 'file', name: f.p.split('/').pop(), path: f.p, place: p, s: f.s, d: f.d, title: M.what(d, p.id, f.p, S.titles), secs: mt.secs || 0, proxy: !!mt.proxy, cant: !!mt.cant, why: mt.why || null, hidden: !!mt.hidden, label: mt.label || '' }); }); });
+    /* online: your originals on theactorpage.com, private (Oct 28) */
+    if (window.FootCloud && FootCloud.acct()) FootCloud.cached().items.filter(x => x.done).forEach(x => { const key = 'c:' + x.id, mt = d.meta[key] || {};
+      out.push({ key, kind: 'cloud', id: x.id, audio: /^audio\//.test(x.type || ''), name: x.name, s: x.size, d: String(x.at || '').slice(0, 10), title: mt.title || '', secs: x.secs || mt.secs || 0, proxy: false, label: mt.label || '' }); });
     if (window.Takes) Takes.all().filter(x => x.kind === 'video' || x.kind === 'audio').forEach(x => { const key = 't:' + x.id, mt = d.meta[key] || {}; if (mt.hidden && !all) return;
       out.push({ hidden: !!mt.hidden, key, kind: 'take', audio: x.kind === 'audio', name: x.name || 'A take', take: x, s: x.size || 0, d: x.at ? new Date(x.at).toISOString().slice(0, 10) : '', title: (x.for && x.for.title) || '', secs: x.secs || mt.secs || 0, proxy: true, label: mt.label || whatTake(x) }); });
     return out;
   }
   const whatTake = x => { const t = x.for && x.for.type; return ({ clip: 'A clip', selftape: 'Self-tape', audition: 'Self-tape', vo: 'VO', reel: 'Reel', final: 'The finished film' })[t] || (x.kind === 'audio' ? 'Audio' : 'Video'); };
-  const plays = p => p.kind === 'take' || p.proxy;
+  const plays = p => p.kind === 'take' || p.kind === 'cloud' || p.proxy;
   const byKey = key => pieces().find(p => p.key === key) || null;
   /* why it won't play (Col, Oct 28: "why did i get this message"): read from the file's own bytes, not its name */
   async function whyNot(file) { try { const w = await ActorCompress.sniff(file); return { c: w.container || '', v: w.video || '' }; } catch (e) { return { c: '', v: '' }; } }
@@ -65,12 +68,14 @@
     for (const k of keys) { const p = P.find(x => x.key === k); if (!p) continue;
       try { await Lb.proxy.del(k); await Lb.thumb.del(k); } catch (e) { }
       M.sets().forEach(x => { if (x.items.indexOf(k) >= 0) M.toggleIn(x.id, k); });
+      if (p.kind === 'cloud') { await FootCloud.remove(p.id); M.dropMeta(k); gone++; continue; }
       if (p.kind === 'file' && p.place && p.place.device) { const d = M.read(), pl = d.places.find(y => y.id === p.place.id); if (pl) { pl.files = (pl.files || []).filter(f => f.p !== p.path); pl.bytes = (pl.files || []).reduce((a, f) => a + (f.s || 0), 0); } delete d.meta[k]; localStorage.setItem(M.KEY, JSON.stringify(d)); gone++; }
       else { M.setMeta(k, { hidden: true, proxy: false, psize: 0 }); hid++; } }
     return { gone, hid, n: gone + hid };
   }
   function bringBack(k) { M.setMeta(k, { hidden: false }); }
   function badge(p) {
+    if (p.kind === 'cloud') return '<span class="badge online">ONLINE \u00b7 ONLY YOU</span>';
     if (plays(p)) return '<span class="badge here">PLAYS HERE</span>';
     if (p.cant) return '<span class="badge cant">A BROWSER CAN\u2019T PLAY THIS ONE</span>';
     return '<span class="badge away">ORIGINAL ON ' + esc(p.place.name.toUpperCase()) + '</span>';
@@ -78,7 +83,7 @@
   function tile(p) {
     const picked = S.sel && S.sel.indexOf(p.key) >= 0;
     return '<button type="button" class="tile' + (S.sel ? ' picking' : '') + (picked ? ' picked' : '') + '" data-piece="' + esc(p.key) + '"' + (S.sel ? ' aria-pressed="' + picked + '"' : '') + '>' + (S.sel ? '<span class="tick" aria-hidden="true">' + (picked ? '&#10003;' : '') + '</span>' : '') + '<span class="th' + (p.audio ? ' au' : '') + '" data-thumb="' + esc(p.key) + '">' + (p.audio ? '<span class="wv" aria-hidden="true">' + '<b></b>'.repeat(18) + '</span>' : '<i class="pl" aria-hidden="true"></i>') + (p.secs ? '<span class="dur">' + len(p.secs) + '</span>' : '') + '</span>'
-      + '<span class="ti"><b>' + esc(p.label && p.kind === 'file' ? p.label : p.name) + '</b><small>' + esc(p.kind === 'take' ? (p.label + (p.d ? ' · ' + nice(p.d) : '')) : (p.place.name + (p.d ? ' · ' + nice(p.d) : ''))) + '</small>' + badge(p) + '</span></button>';
+      + '<span class="ti"><b>' + esc(p.label && p.kind === 'file' ? p.label : p.name) + '</b><small>' + esc(p.kind === 'take' ? (p.label + (p.d ? ' · ' + nice(p.d) : '')) : p.kind === 'cloud' ? ('Online · ' + M.size(p.s)) : (p.place.name + (p.d ? ' · ' + nice(p.d) : ''))) + '</small>' + badge(p) + '</span></button>';
   }
 
   /* ---------- the library ---------- */
@@ -94,8 +99,8 @@
           : '<div class="row" style="margin-top:8px"><button class="btn danger" id="rm_go"' + (k ? '' : ' disabled') + '>REMOVE' + (k ? ' ' + k : '') + '</button>' + (bad.length ? '<button class="btn" id="rm_bad">PICK THE ' + bad.length + ' THAT DON\u2019T PLAY</button>' : '') + '<button class="btn ghost" id="rm_none"' + (k ? '' : ' disabled') + '>CLEAR</button></div>') + '</div>'; }
     if (S.msg) h += '<p class="msg" id="msg">' + esc(S.msg) + '</p>';
     h += '<div class="grid lib"><div class="colA">';
-    if (!P.length) h += '<div class="card first" data-stick><p class="kicker">Nothing in your library yet</p><b class="fbig">Bring in your clips. Pick as many as you want.</b><p class="dim" style="margin:6px 0 14px">Your self-tapes, scenes from set, the short you made. Each one gets a small copy that plays here any time; the original stays where it is.</p>'
-      + '<label class="btn pri big" data-ic="plus">ADD YOUR CLIPS<input type="file" id="addvids0" accept="video/*,audio/*" multiple hidden></label><p class="faint small" style="margin:8px 0 0">Kept on this device. Nothing is uploaded anywhere. Takes you keep in Actor OS show up here on their own.</p>'
+    if (!P.length) h += '<div class="card first" data-stick><p class="kicker">Nothing in your library yet</p><b class="fbig">Bring in your clips. Pick as many as you want, or a whole folder.</b><p class="dim" style="margin:6px 0 14px">Your self-tapes, scenes from set, the short you made. First you see what plays and what needs work. Then upload the ones you want, the originals, private to you; or keep small copies on this device.</p>'
+      + '<div class="row"><label class="btn pri big" data-ic="plus">ADD YOUR CLIPS<input type="file" id="addvids0" accept="video/*,audio/*" multiple hidden></label>' + (FSA() ? '<button type="button" class="btn big" id="adddrive_fsa" data-ic="footage">ADD A FOLDER</button>' : '<label class="btn big" data-ic="footage">ADD A FOLDER<input type="file" id="adddrive" webkitdirectory directory multiple hidden></label>') + '</div><p class="faint small" style="margin:8px 0 0">Nothing goes up until you tap UPLOAD. Takes you keep in Actor OS show up here on their own.</p>'
       + '<p class="dim small" style="margin:14px 0 0"><b>Then:</b> watch it, trim a moment, put moments together, make it one file and send it.</p></div>';
     else if (!shown.length) h += '<p class="empty">Nothing by that.</p>';
     const groups = {}; shown.forEach(p => { const k = p.title ? M.norm(p.title) : '~'; (groups[k] = groups[k] || { title: p.title, list: [] }).list.push(p); });
@@ -111,7 +116,7 @@
     h += '<label class="btn pri block" data-ic="plus" style="margin-bottom:8px">ADD YOUR CLIPS<input type="file" id="addvids" accept="video/*,audio/*" multiple hidden></label>'
       + (FSA() ? '<button type="button" class="btn block" id="adddrive_fsa" data-ic="footage" style="margin-bottom:8px">ADD A DRIVE OR FOLDER</button>' : '<label class="btn block" data-ic="footage" style="margin-bottom:8px">ADD A DRIVE OR FOLDER<input type="file" id="adddrive" webkitdirectory directory multiple hidden></label>')
       + (S.naming ? namingForm() : '<button type="button" class="btn block" id="name" data-ic="contacts">NAME A PLACE</button>')
-      + '<p class="dim small" style="margin:10px 2px 0">A drive is read as a list of files: nothing is copied or uploaded, and the map keeps it when you unplug. Clips you add are kept here as small copies that play anywhere.</p>';
+      + '<p class="dim small" style="margin:10px 2px 0">Pick a drive or folder and you see what\u2019s in it: what plays, the same clip twice, what needs work. Then upload the ones you want (the originals, private to you), or keep small copies here. Nothing goes up until you tap UPLOAD.</p>';
     if (m.titles.length || true) h += S.adding ? '<div class="row" style="margin-top:12px"><input class="field" id="mine" placeholder="A project: a reel, a class, a short" style="flex:1"><button class="btn" id="mineok">ADD IT</button></div>' : '<button type="button" class="lnk" id="addmine" style="margin-top:8px">+ a project that isn\u2019t in your credits</button>';
     const hidden = pieces(true).filter(p => p.hidden);
     if (hidden.length) h += '<details class="fold" id="rmfold" style="margin-top:16px"><summary><span>REMOVED \u00b7 ' + hidden.length + '</span></summary><p class="dim small" style="margin:0 0 8px">Taken out of Footage; the files are where they were.</p>' + hidden.map(p => '<div class="rmrow"><span><b>' + esc(p.label && p.kind === 'file' ? p.label : p.name) + '</b><small>' + esc(p.kind === 'take' ? p.label : p.place.name) + '</small></span><button class="btn sm" data-back="' + esc(p.key) + '">BRING IT BACK</button></div>').join('') + '</details>';
@@ -142,18 +147,22 @@
     h += '</div><div class="colB"><div class="card" data-stick>'
       + '<div class="irow"><b>WHAT IT IS</b><span><input class="field" id="lab" value="' + esc(p.label || '') + '" placeholder="In your words: Sc. 12, the diner"></span></div>'
       + '<div class="irow"><b>PROJECT</b><span>' + (p.kind === 'file' ? '<select id="proj" class="field"><option value="">Not matched</option>' + S.titles.map(t => '<option' + (M.norm(t) === M.norm(p.title) ? ' selected' : '') + '>' + esc(t) + '</option>').join('') + '</select>' : esc(p.title || 'From ' + p.label)) + '</span></div>'
-      + '<div class="irow"><b>PLAYING</b><span>' + (p.kind === 'take' ? 'Kept on this device' + (p.s ? ', ' + M.size(p.s) : '') + '.' : p.proxy ? 'The small copy on this device (540p' + (M.meta(p.key).psize ? ', ' + M.size(M.meta(p.key).psize) : '') + ').' : 'Nothing here yet.') + '</span></div>'
+      + '<div class="irow"><b>PLAYING</b><span>' + (p.kind === 'cloud' ? 'Online, the original \u00b7 ' + M.size(p.s) + '. Only you can see it, on any phone or computer you open Footage on.' : p.kind === 'take' ? 'Kept on this device' + (p.s ? ', ' + M.size(p.s) : '') + '.' : p.proxy ? 'The small copy on this device (540p' + (M.meta(p.key).psize ? ', ' + M.size(M.meta(p.key).psize) : '') + ').' : 'Nothing here yet.') + '</span></div>'
       + (p.kind === 'file' ? '<div class="irow"><b>THE ORIGINAL</b><span>' + esc(p.place.name) + ' \u00b7 ' + esc(p.path.split('/').slice(1).join('/') || p.path) + '<br>' + M.size(p.s) + (p.secs ? ' \u00b7 ' + len(p.secs) : '') + (p.d ? ' \u00b7 ' + nice(p.d) : '') + '</span></div>' : '')
       + '<div class="irow"><b>PUT TOGETHER</b><span>' + (sets.length ? sets.map(x => '<button type="button" class="lnk" data-set="' + x.id + '">' + esc(x.name) + '</button>').join(' \u00b7 ') : 'Not yet.') + '</span></div></div>'
       + (p.proxy && p.kind === 'file' ? '<button class="lnk faint" id="dropcopy">Take the small copy off this device</button>' : '')
-      + (S.rmOne ? '<div class="card" id="rmone" style="margin-top:12px"><p class="small" style="margin:0 0 10px">' + (p.kind === 'file' && p.place && p.place.device ? 'Remove ' + esc(p.name) + ' from Footage? Its copy comes off this device. Your original stays where it is on your computer.' : 'Take ' + esc(p.name) + ' out of Footage? ' + (p.kind === 'take' ? 'The take stays in the tool it came from.' : 'The file stays on ' + esc(p.place.name) + '.') + ' It can come back from REMOVED.') + '</p><div class="row"><button class="btn danger" id="rm1_yes">REMOVE IT</button><button class="btn ghost" id="rm1_no">KEEP IT</button></div></div>'
-        : '<button class="btn ghost danger block" id="rm1" style="margin-top:12px">REMOVE FROM FOOTAGE</button>')
+      + (S.rmOne ? '<div class="card" id="rmone" style="margin-top:12px"><p class="small" style="margin:0 0 10px">' + (p.kind === 'cloud' ? 'Take ' + esc(p.name) + ' off theactorpage.com? It\u2019s gone from online, on every phone and computer. Your original stays where it is on your computer.' : p.kind === 'file' && p.place && p.place.device ? 'Remove ' + esc(p.name) + ' from Footage? Its copy comes off this device. Your original stays where it is on your computer.' : 'Take ' + esc(p.name) + ' out of Footage? ' + (p.kind === 'take' ? 'The take stays in the tool it came from.' : 'The file stays on ' + esc(p.place.name) + '.') + ' It can come back from REMOVED.') + '</p><div class="row"><button class="btn danger" id="rm1_yes">REMOVE IT</button><button class="btn ghost" id="rm1_no">KEEP IT</button></div></div>'
+        : '<button class="btn ghost danger block" id="rm1" style="margin-top:12px">' + (p.kind === 'cloud' ? 'REMOVE IT FROM ONLINE' : 'REMOVE FROM FOOTAGE') + '</button>')
       + '</div></div>';
     return h;
   }
   /* put the piece on the stage: its copy here, or the original from a kept folder */
   async function stage(p, ask) {
     const st = $('stage'); if (!st) return false; let b = null, from = '';
+    if (p.kind === 'cloud') { let u; try { u = await FootCloud.link(p.id); } catch (e) { st.innerHTML = '<div class="nostage"><p><b>Can\u2019t reach it right now.</b></p><p class="dim small">' + esc(e.message) + '</p></div>'; return false; }
+      const tag = p.audio ? 'audio' : 'video'; st.innerHTML = '<' + tag + ' class="vid" id="pv" src="' + esc(u) + '" controls playsinline preload="metadata" crossorigin="anonymous"></' + tag + '>';
+      const v = $('pv'); v.onloadedmetadata = () => { if (v.duration && isFinite(v.duration) && !p.secs) M.setMeta(p.key, { secs: Math.round(v.duration * 10) / 10 }); };
+      STAGED = { key: p.key, blob: null, url: u, from: 'online' }; return true; }
     if (p.kind === 'take') { b = await Takes.blob(p.take.id); from = 'take'; }
     else if (p.proxy) { b = await Lb.proxy.get(p.key); from = 'copy'; }
     else if (ask && p.place && p.place.handle) { b = await Lb.original(p.place.id, p.path, true); from = 'original'; }
@@ -204,6 +213,85 @@
     } catch (e) { return { error: e.message || 'that file' }; }
   }
 
+
+  /* ---------- A FOLDER: what's in it, pick, upload (Col, Oct 28: "i point it at a folder, the system recognizes what is
+     available, what will work/what needs work, and asks me which files i want to upload. then uploads them") ---------- */
+  const GB = x => x < 1020054733 ? M.size(x) : (Math.round(x / 1073741824 * 10) / 10) + ' GB';
+  async function walkAll(dir) { const out = []; const go = async (h, pre) => { for await (const [nm, e] of h.entries()) { if (out.length > 20000) return; if (e.kind === 'directory') { if (!/^\./.test(nm)) await go(e, pre + nm + '/'); } else out.push({ path: pre + nm, file: await e.getFile() }); } }; await go(dir, ''); return out; }
+  async function startScan(entries, root, label) {
+    S.scan = { label: label || '', root: root || 'this folder', busy: true, prog: 0, now: '', res: null, pick: [], title: '', open: {} }; go('scan');
+    let online = []; if (window.FootCloud && FootCloud.acct()) { try { online = (await FootCloud.list()).items; } catch (e) { online = FootCloud.cached().items; } }
+    const res = await FootScan.scan(entries, { probe: Lb.probe, sniff: f => ActorCompress.sniff(f), online, onP: (x, nm) => { S.scan.prog = x; S.scan.now = nm; const b = $('sc_bar'); if (b) b.style.width = Math.round(x * 100) + '%'; const t = $('sc_now'); if (t) t.textContent = nm; } });
+    const all = res.ready.concat(res.twice.flat()); all.forEach((v, i) => v.i = i);
+    S.scan.all = all; S.scan.res = res; S.scan.busy = false;
+    S.scan.pick = res.ready.map(v => v.i).concat(res.twice.map(gp => gp[0].i)); render();
+  }
+  const picked = () => (S.scan && S.scan.all || []).filter(v => S.scan.pick.indexOf(v.i) >= 0);
+  function row(v, on) { return '<label class="srow"><input type="checkbox" data-sp="' + v.i + '"' + (on ? ' checked' : '') + ' aria-label="' + esc(v.name) + '"><span class="sn"><b>' + esc(v.name) + '</b>' + (v.from ? ' <small>from ' + esc(v.from) + '</small>' : '') + '</span><span class="dim">' + (v.secs ? len(v.secs) : '') + '</span><span class="dim">' + M.size(v.size) + '</span></label>'; }
+  function scanView() {
+    const X = S.scan; let h = '<div class="backbar"><button class="btn sm ghost" id="back">‹ YOUR FOOTAGE</button><span class="kicker" style="margin:0">' + esc(X.label || 'What’s in ' + X.root) + '</span></div>';
+    if (S.msg) h += '<p class="msg" id="msg">' + esc(S.msg) + '</p>';
+    if (X.busy) return h + '<div class="card first" data-stick><p class="kicker">Reading ' + esc(X.label ? 'your clips' : X.root) + '</p><p class="dim small" style="margin:2px 0 10px">Opening each file, and the zips, to see what plays. Nothing leaves this computer.</p><div class="prog"><i id="sc_bar" style="width:' + Math.round(X.prog * 100) + '%"></i></div><p class="faint small" id="sc_now" style="margin:6px 0 0">' + esc(X.now) + '</p></div>';
+    const R = X.res, P = picked(), bytes = P.reduce((a, v) => a + v.size, 0), c = window.FootCloud ? FootCloud.cached() : { bytes: 0, cap: 0 }, cap = c.cap || 5368709120, used = c.bytes || 0, over = used + bytes > cap;
+    h += '<p class="small dim" style="margin:0 0 12px">' + n(R.files, 'file') + ' read' + (R.zips.length ? ', ' + n(R.zips.length, 'zip') + ' opened' : '') + '. Nothing has left this computer yet.</p>';
+    h += '<div class="grid lib"><div class="colA">';
+    const more = (k, list, f) => { const open = X.open[k] || list.length <= 8, L = open ? list : list.slice(0, 6); return L.map(f).join('') + (open ? '' : '<button type="button" class="lnk" data-sopen="' + k + '">+ ' + (list.length - 6) + ' more</button>'); };
+    if (R.ready.length) h += '<section class="card spile ok"><div class="sh"><span class="sk">READY · ' + R.ready.length + '</span><span class="dim small">plays as is, full quality</span><button type="button" class="btn sm ghost" id="sp_none">' + (R.ready.every(v => X.pick.indexOf(v.i) >= 0) ? 'NONE' : 'ALL') + '</button></div>' + more('ready', R.ready, v => row(v, X.pick.indexOf(v.i) >= 0)) + '</section>';
+    if (R.twice.length) h += '<section class="card spile tw"><div class="sh"><span class="sk">THE SAME CLIP TWICE · ' + R.twice.length + '</span><span class="dim small">same length, nearly the same size or name. The bigger one is ticked.</span></div>' + more('twice', R.twice, gp => '<div class="sgrp">' + gp.map(v => row(v, X.pick.indexOf(v.i) >= 0)).join('') + '</div>') + '</section>';
+    if (R.work.length) h += '<section class="card spile wk"><div class="sh"><span class="sk">NEEDS WORK · ' + R.work.length + '</span></div>' + more('work', R.work, v => '<div class="swk"><b>' + esc(v.name) + ' · ' + M.size(v.size) + '</b><span>' + esc(v.what) + ' ' + esc(v.fix) + '</span></div>') + '</section>';
+    if (R.notvid.length) h += '<section class="card spile nv"><div class="sh"><span class="sk">NOT A VIDEO · ' + R.notvid.length + '</span><span class="dim small">left alone</span></div>' + more('notvid', R.notvid, v => '<div class="swk"><b>' + esc(v.name) + '</b><span>' + esc(v.what) + (v.fix ? ' ' + esc(v.fix) : '') + '</span></div>') + '</section>';
+    if (R.online.length) h += '<p class="dim small">' + n(R.online.length, 'clip') + ' from here ' + (R.online.length === 1 ? 'is' : 'are') + ' already online, left out.</p>';
+    if (!R.ready.length && !R.twice.length) h += '<p class="empty">Nothing ' + (X.label ? 'you picked' : 'in ' + esc(X.root)) + ' plays as is.</p>';
+    h += '</div><aside class="colB">';
+    const A = window.FootCloud && FootCloud.acct();
+    h += '<div class="card upbox"><p class="kicker" style="color:var(--tung)">UPLOAD</p><b class="ubig">' + n(P.length, 'clip') + ' · ' + GB(bytes) + '</b><p class="small">The originals, full quality. Only you can see them until you put one on your page.</p>';
+    if (A) h += '<div class="prog" style="margin:6px 0 4px"><i style="width:' + Math.min(100, Math.round((used + bytes) / cap * 100)) + '%' + (over ? ';background:var(--bad)' : '') + '"></i></div><p class="small dim" style="margin:0 0 10px">' + GB(used + bytes) + ' of your ' + GB(cap) + (over ? '. That’s over: untick some, or remove clips that are already online.' : '') + '</p>'
+      + '<label class="lab" for="sc_title">WHAT ARE THEY FROM (OPTIONAL)</label><input class="field" id="sc_title" placeholder="A show, a class, a short" value="' + esc(X.title) + '" autocomplete="off">'
+      + '<button class="btn pri big block" id="up_go" style="margin-top:12px"' + (P.length && !over ? '' : ' disabled') + '>UPLOAD ' + (P.length ? n(P.length, 'CLIP').toUpperCase() : '') + '</button><p class="faint small" style="margin:8px 0 0">' + eta(bytes) + ' Keep this page open; if the Wi-Fi drops it picks up where it stopped. Online at ' + esc(A.name) + '.theactorpage.com, the same key as your page.</p>';
+    else h += acctBox();
+    h += '</div>' + (P.length ? '<button type="button" class="lnk" id="sc_local" style="margin-top:10px">Or keep small copies on this device only</button>' : '') + '</aside></div>';
+    return h;
+  }
+  const eta = b => { if (!b) return ''; const lo = Math.max(1, Math.round(b / 1048576 / 4 / 60)), hi = Math.max(2, Math.round(b / 1048576 / 1.5 / 60)); return 'About ' + lo + ' to ' + hi + ' minutes on home Wi-Fi.'; };
+  function acctBox() {
+    if (S.acctForm === 'have') return '<p class="small" style="margin:10px 0 8px">On a new phone or computer? Your page address and the backup code you saved.</p><input class="field" id="ac_name" placeholder="your-name" autocapitalize="off" spellcheck="false"><input class="field" id="ac_code" placeholder="Backup code" style="margin-top:8px"><div class="row" style="margin-top:10px"><button class="btn pri" id="ac_rec">USE IT</button><button class="btn ghost" id="ac_back">BACK</button></div><p class="small" id="ac_why" style="margin:6px 0 0;color:var(--bad)"></p>';
+    const nm = S.acctName != null ? S.acctName : FootCloud.slug(you().name || '');
+    return '<p class="small" style="margin:10px 0 8px"><b>First, your address.</b> Your clips go in your own private space, under the address your page uses. You get a backup code to keep.</p><div class="row" style="flex-wrap:nowrap;gap:6px;align-items:center"><input class="field" id="ac_name" value="' + esc(nm) + '" autocapitalize="off" spellcheck="false" style="flex:1;min-width:0" aria-label="Your address"><span class="small dim">.theactorpage.com</span></div><p class="small" id="ac_why" style="margin:6px 0 0"></p><button class="btn pri block" id="ac_claim" style="margin-top:10px">MAKE IT MINE</button><button type="button" class="lnk" id="ac_have" style="margin-top:8px">I already have a page</button>';
+  }
+  function upView() {
+    const U = S.up, done = U.rows.filter(r => r.state === 'done').length, sent = U.rows.reduce((a, r) => a + (r.sent || 0), 0), cur = U.rows.find(r => r.state === 'going');
+    const secs = (Date.now() - U.t0) / 1000, rate = sent > 0 && secs > 3 ? sent / secs : 0, left = rate ? (U.total - sent) / rate : 0;
+    let h = '<div class="backbar"><span class="kicker" style="margin:0">Uploading to theactorpage.com</span></div>';
+    if (S.msg) h += '<p class="msg" id="msg">' + esc(S.msg) + '</p>';
+    h += '<div class="card first" data-stick id="upcard"><p class="kicker" style="color:var(--tung)">' + (U.over ? 'DONE' : U.paused ? 'PAUSED' : 'UPLOADING') + ' · ' + done + ' OF ' + U.rows.length + '</p>' + (cur ? '<b class="ubig">' + esc(cur.v.name) + '</b>' : '')
+      + '<div class="prog"><i id="up_bar" style="width:' + Math.round(sent / (U.total || 1) * 100) + '%"></i></div><p class="small dim" id="up_txt" style="margin:6px 0 10px">' + GB(sent) + ' of ' + GB(U.total) + (left && !U.paused && !U.over ? ' · about ' + Math.max(1, Math.round(left / 60)) + ' minutes left' : '') + '. ' + (U.over ? '' : 'Keep this page open.') + (U.waiting ? ' The connection dropped; trying again.' : '') + '</p>'
+      + (U.over ? '<button class="btn pri" id="up_lib">SEE THEM IN YOUR LIBRARY</button>' : '<div class="row"><button class="btn" id="up_pause">' + (U.paused ? 'KEEP GOING' : 'PAUSE') + '</button><button class="btn ghost" id="up_stop">STOP AFTER THIS ONE</button></div>') + '</div>';
+    h += '<div class="card">' + U.rows.map(r => '<div class="brow ' + r.state + '"><b>' + esc(r.v.name) + '</b><small>' + (r.state === 'done' ? 'Online' : r.state === 'going' ? Math.round((r.p || 0) * 100) + '%' : r.state === 'bad' ? esc(r.err || 'Didn’t go up') : r.state === 'skipped' ? 'Not sent' : 'Next') + ' · ' + M.size(r.v.size) + '</small></div>').join('') + '</div>';
+    return h;
+  }
+  function paintUp() { if (S.view !== 'up') return; const U = S.up, sent = U.rows.reduce((a, r) => a + (r.sent || 0), 0), b = $('up_bar'); if (b) b.style.width = Math.round(sent / (U.total || 1) * 100) + '%';
+    const t = Date.now(); if (!U.last || t - U.last > 1500) { U.last = t; render(); } }
+  async function runUpload() {
+    const P = picked(); if (!P.length) return; const title = (S.scan.title || '').trim();
+    S.up = { rows: P.map(v => ({ v, state: 'next', p: 0, sent: 0 })), total: P.reduce((a, v) => a + v.size, 0), t0: Date.now(), ctl: { paused: false, stop: false }, paused: false };
+    const warn = e => { e.preventDefault(); e.returnValue = ''; }; addEventListener('beforeunload', warn);
+    go('up');
+    for (const r of S.up.rows) {
+      if (S.up.ctl.stop) { r.state = 'skipped'; continue; }
+      r.state = 'going'; render();
+      try {
+        const it = await FootCloud.upload(r.v.file, { secs: r.v.secs, ctl: S.up.ctl, onP: (x, b) => { r.p = x; r.sent = b; S.up.waiting = false; paintUp(); }, onWait: () => { S.up.waiting = true; paintUp(); } });
+        r.state = 'done'; r.sent = r.v.size; const key = 'c:' + it.id; M.setMeta(key, { title, secs: r.v.secs || 0 });
+        if (!r.v.audio) { try { const th = await Lb.grab(r.v.file, 1); if (th) await Lb.thumb.put(key, th); } catch (e) { } }
+        if (title && !S.titles.some(x => M.norm(x) === M.norm(title))) { M.addMine(title); S.titles.push(title); }
+      } catch (e) { r.state = e.stopped ? 'skipped' : 'bad'; r.err = e.message; if (e.status === 413) S.up.ctl.stop = true; }
+      render();
+    }
+    removeEventListener('beforeunload', warn); S.up.over = true;
+    const ok = S.up.rows.filter(r => r.state === 'done').length, bad = S.up.rows.filter(r => r.state === 'bad').length;
+    S.msg = n(ok, 'clip') + ' online.' + (bad ? ' ' + bad + ' didn’t go up; open ADD A DRIVE OR FOLDER again to try them.' : ''); render();
+  }
+
   /* ---------- SEND IT: your share sheet with the file, or saved to this computer (Oct 27) ---------- */
   const canShare = f => { try { return !!(navigator.canShare && navigator.share && navigator.canShare({ files: [f] })); } catch (e) { return false; } };
   async function sendFile(blob, name) {
@@ -213,7 +301,7 @@
   }
   function saveFile(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000); }
   const sendWord = r => r === 'sent' ? 'Sent from your share sheet.' : r === 'cancel' ? 'Not sent.' : 'Saved to this device. Attach it to an email or drop it in Messages.';
-  async function pieceBlob(p) { if (p.kind === 'take') return Takes.blob(p.take.id); if (p.proxy) return Lb.proxy.get(p.key); return null; }
+  async function pieceBlob(p) { if (p.kind === 'cloud') { const r = await fetch(await FootCloud.link(p.id)); return r.ok ? r.blob() : null; } if (p.kind === 'take') return Takes.blob(p.take.id); if (p.proxy) return Lb.proxy.get(p.key); return null; }
   const fileName = (base, blob) => String(base || 'Footage').replace(/[\\/:*?"<>|]+/g, '').replace(/\.(mp4|mov|webm|m4v|wav|mp3|m4a)$/i, '').slice(0, 60).trim() + (/webm/.test(blob.type) ? '.webm' : /audio\//.test(blob.type) ? (/mpeg/.test(blob.type) ? '.mp3' : '.m4a') : '.mp4');
 
   /* ---------- MAKE IT ONE FILE: a put-together, straight cuts, 540p or full from the originals ---------- */
@@ -324,7 +412,8 @@
     let p = null; if (S.view === 'piece') { p = byKey(S.key); if (!p) S.view = 'lib'; }
     const pl = S.view === 'place' ? M.place(S.place) : null; if (S.view === 'place' && !pl) S.view = 'lib';
     const st = S.view === 'set' ? M.set(S.set) : null; if (S.view === 'set' && !st) S.view = 'lib';
-    $('view').innerHTML = S.view === 'batch' && BATCH ? batchView() : S.trim ? trimView() : S.view === 'piece' ? pieceView(p) : S.view === 'place' ? placeView(pl) : S.view === 'set' ? setView(st) : libView();
+    if (S.view === 'scan' && !S.scan) S.view = 'lib'; if (S.view === 'up' && !S.up) S.view = 'lib';
+    $('view').innerHTML = S.view === 'scan' ? scanView() : S.view === 'up' ? upView() : S.view === 'batch' && BATCH ? batchView() : S.trim ? trimView() : S.view === 'piece' ? pieceView(p) : S.view === 'place' ? placeView(pl) : S.view === 'set' ? setView(st) : libView();
     S.msg = ''; wire(); thumbs(); if (S.view === 'piece' && p && !S.trim && plays(p) && S.busy !== p.key) stage(p);
   }
   async function thumbs() {
@@ -339,9 +428,12 @@
     const files = await Lb.walk(dir, M.VIDEO); const r = { root: dir.name, files };
     let p; if (placeId) { p = M.relook(placeId, r, today()); } else { p = M.addDrive(dir.name, r, today()); }
     await Lb.handle.put(p.id, dir); const d = M.read(), x = d.places.find(y => y.id === p.id); x.handle = true; localStorage.setItem(M.KEY, JSON.stringify(d));
+    if (!placeId) { S.msg = 'Reading ' + dir.name + '\u2026'; return startScan(await walkAll(dir), dir.name); }
     go('place', { place: p.id, msg: placeId ? 'Looked again: ' + n(files.length, 'video') + '. Your fixes are kept.' : p.name + ': ' + n(files.length, 'video') + ' on the map. Plug it in and its originals play here too.' });
   }
-  async function addVideos(files) {
+  /* clips you pick go the same way as a folder (Col, Oct 28): what plays, what needs work, then upload or keep copies here */
+  async function addVideos(files) { return startScan(files.map(f => ({ path: f.name, file: f })), '', 'The clips you picked'); }
+  async function addVideosHere(files) {
     if (files.length > 1) return addMany(files);
     let pl = M.places().find(p => p.kind === 'drive' && p.device); if (!pl) { pl = M.addDrive('On this device', { root: '', files: [] }, today()); const d = M.read(); d.places.find(y => y.id === pl.id).device = true; localStorage.setItem(M.KEY, JSON.stringify(d)); }
     for (const f of files) { const d = M.read(), x = d.places.find(y => y.id === pl.id); const path = 'On this device/' + f.name; if (!x.files.some(y => y.p === path)) { x.files.push({ p: path, s: f.size, d: new Date(f.lastModified || Date.now()).toISOString().slice(0, 10) }); x.bytes = x.files.reduce((a, y) => a + (y.s || 0), 0); x.looked = today(); localStorage.setItem(M.KEY, JSON.stringify(d)); }
@@ -364,10 +456,26 @@
     V.querySelectorAll('[data-place]').forEach(b => b.onclick = () => go('place', { place: b.dataset.place }));
     V.querySelectorAll('[data-set]').forEach(b => b.onclick = () => go('set', { set: b.dataset.set }));
     V.querySelectorAll('[data-more]').forEach(b => b.onclick = () => { S.open[b.dataset.more] = true; render(); });
-    on('back', () => { if (STAGED) STAGED = null; go('lib'); });
+    on('back', () => { if (STAGED) STAGED = null; if (S.view === 'scan') S.scan = null; go('lib'); });
     const fd = $('find'); if (fd) fd.oninput = () => { S.q = fd.value; const pos = fd.selectionStart; render(); const f2 = $('find'); if (f2) { f2.focus(); try { f2.setSelectionRange(pos, pos); } catch (e) { } } };
     on('here', () => { S.here = !S.here; render(); });
-    const ad = $('adddrive'); if (ad) ad.onchange = () => { const r = M.fromFiles([...(ad.files || [])]); ad.value = ''; if (!r.root && !r.files.length) return; const p = M.addDrive(r.root, r, today()); go('place', { place: p.id, msg: r.files.length ? p.name + ': ' + n(r.files.length, 'video') + ' on the map. Say what the folders are where the names don\u2019t.' + (r.capped ? ' (The first 50,000.)' : '') : 'No video files in ' + p.name + '.' }); };
+    if (S.view === 'scan' && S.scan && S.scan.res) { const X = S.scan;
+      V.querySelectorAll('[data-sp]').forEach(c => c.onchange = () => { const i = +c.dataset.sp, k = X.pick.indexOf(i); if (c.checked && k < 0) X.pick.push(i); if (!c.checked && k >= 0) X.pick.splice(k, 1); render(); });
+      V.querySelectorAll('[data-sopen]').forEach(b => b.onclick = () => { X.open[b.dataset.sopen] = true; render(); });
+      on('sp_none', () => { const all = X.res.ready.every(v => X.pick.indexOf(v.i) >= 0); X.res.ready.forEach(v => { const k = X.pick.indexOf(v.i); if (all && k >= 0) X.pick.splice(k, 1); if (!all && k < 0) X.pick.push(v.i); }); render(); });
+      const tt = $('sc_title'); if (tt) tt.oninput = () => { X.title = tt.value; };
+      on('up_go', () => runUpload());
+      on('sc_local', () => { const f = picked().map(v => v.file); S.scan = null; addVideosHere(f); });
+      const an = $('ac_name'); if (an && S.acctForm !== 'have') { let T = 0; an.oninput = () => { S.acctName = an.value; clearTimeout(T); const w = $('ac_why'); T = setTimeout(async () => { try { const b = await FootCloud.free(an.value); if (w) { w.textContent = b.free ? FootCloud.slug(an.value) + '.theactorpage.com is free.' : b.why; w.style.color = b.free ? 'var(--good)' : 'var(--bad)'; } } catch (e) { if (w) { w.textContent = e.message; w.style.color = 'var(--bad)'; } } }, 350); }; }
+      on('ac_claim', async () => { const w = $('ac_why'); try { const a = await FootCloud.claim($('ac_name').value); S.msg = 'It\u2019s yours: ' + a.name + '.theactorpage.com. Your backup code: ' + a.backup + '. Write it down; it opens your page and your clips on a new phone or computer.'; try { await FootCloud.list(); } catch (e) { } render(); } catch (e) { if (w) { w.textContent = e.message; w.style.color = 'var(--bad)'; } } });
+      on('ac_have', () => { S.acctForm = 'have'; render(); }); on('ac_back', () => { S.acctForm = ''; render(); });
+      on('ac_rec', async () => { const w = $('ac_why'); try { await FootCloud.recover($('ac_name').value, $('ac_code').value); S.acctForm = ''; try { await FootCloud.list(); } catch (e) { } S.msg = 'You\u2019re in. Your clips that are already online show in your library.'; render(); } catch (e) { if (w) w.textContent = e.message; } }); }
+    if (S.view === 'up' && S.up) { const U = S.up;
+      on('up_pause', () => { U.paused = U.ctl.paused = !U.paused; render(); });
+      on('up_stop', () => { U.ctl.stop = true; const b = $('up_stop'); if (b) { b.disabled = true; b.textContent = 'STOPPING AFTER THIS ONE'; } });
+      on('up_lib', () => { S.up = null; S.scan = null; go('lib'); }); }
+    const ad = $('adddrive'); if (ad) ad.onchange = () => { const all = [...(ad.files || [])], r = M.fromFiles(all); ad.value = ''; if (!all.length) return; if (r.root || r.files.length) M.addDrive(r.root, r, today());
+      return startScan(all.map(f => ({ path: (f.webkitRelativePath || f.name).split('/').slice(1).join('/') || f.name, file: f })), r.root || (all[0].webkitRelativePath || '').split('/')[0]); };
     on('adddrive_fsa', () => pickFolder(''));
     ['addvids', 'addvids0'].forEach(id => { const av = $(id); if (av) av.onchange = () => { const f = [...(av.files || [])]; av.value = ''; if (f.length) addVideos(f); }; });
     const bt = $('b_title'); if (bt) bt.oninput = () => { if (BATCH) BATCH.title = bt.value; };
@@ -396,7 +504,7 @@
       on('withit', () => { S.withOpen = !S.withOpen; render(); });
       V.querySelectorAll('[data-with]').forEach(c => c.onchange = () => { M.toggleIn(c.dataset.with, p.key); });
       on('newsetok', () => { const v = $('newset').value.trim(); if (!v) { $('newset').focus(); return; } M.addSet(v, [p.key]); S.withOpen = false; S.msg = 'Started: ' + v + '.'; render(); });
-      on('trimit', async () => { const b = STAGED && STAGED.key === p.key ? STAGED.blob : null; if (!b) return; if (TR.url) URL.revokeObjectURL(TR.url); TR = { file: b, url: URL.createObjectURL(b), dur: 0, inS: 0, outS: 0, busy: false, made: null, stills: [] }; S.trim = { key: p.key, title: p.title, from: STAGED.from }; render(); window.scrollTo(0, 0); });
+      on('trimit', async () => { let b = STAGED && STAGED.key === p.key ? STAGED.blob : null; if (!b && p.kind === 'cloud') { S.msg = 'Getting it from online\u2026'; const m = $('msg'); b = await pieceBlob(p).catch(() => null); if (b) STAGED.blob = b; } if (!b) return; if (TR.url) URL.revokeObjectURL(TR.url); TR = { file: b, url: URL.createObjectURL(b), dur: 0, inS: 0, outS: 0, busy: false, made: null, stills: [] }; S.trim = { key: p.key, title: p.title, from: STAGED.from }; render(); window.scrollTo(0, 0); });
       on('stillit', async () => { const v = $('pv'); if (!v || !v.videoWidth) { S.msg = 'Play it to a frame first.'; render(); return; } try { v.pause(); } catch (e) { }
         const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight; c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
         const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.92)); if (!blob) return; const at = M.time(v.currentTime), name = M.clipName(p.title, S.roles[M.norm(p.title)] || '', 'jpg').replace(/_clip\.jpg$/, '_still_' + at.replace(/[:.]/g, '-') + '.jpg');
@@ -451,6 +559,7 @@
     }
   }
   gather(); render();
+  (async () => { try { if (window.FootCloud && FootCloud.acct()) { await FootCloud.list(); if (S.view === 'lib') render(); } } catch (e) { } })();
   (async () => { try { if (window.Offices) { const hb = await Offices.load(); if (hb && hb.credits) { hb.credits.forEach(c => { const x = String(c.title || '').trim(); if (x && !S.titles.some(t => M.norm(t) === M.norm(x))) S.titles.push(x); if (x && (c.role || c.character) && !S.roles[M.norm(x)]) S.roles[M.norm(x)] = c.role || c.character; }); render(); } } } catch (e) { } })();
-  window.FOOTAGE = { render, state: S, pieces, makePlayable, byKey, go, one: () => ONE, batch: () => BATCH };
+  window.FOOTAGE = { render, state: S, pieces, makePlayable, byKey, go, one: () => ONE, batch: () => BATCH, startScan, scan: () => S.scan, up: () => S.up };
 })();
