@@ -22,7 +22,7 @@ await p.evaluate(async([face,barn,clip])=>{ const bl=(b64,t)=>{ const s=atob(b64
    t.objectStore('media').put(bl(clip,'video/mp4'),'p1'); t.objectStore('media').put(bl(clip,'video/mp4'),'p2');
    t.oncomplete=()=>{ q.result.close(); res(); }; }; }); },[B('made_up_face.jpg'),B('made_up_barn.jpg'),B('made_up_clip.mp4')]);
 await p.goto('http://localhost:8811/hub/?tab=package'); await p.waitForTimeout(2500);
-await p.evaluate(()=>{ PKGOPEN=true; render(); }).catch(()=>{});
+await p.evaluate(()=>{ profile.pageLayout='resume'; PKGOPEN=true; render(); }).catch(()=>{});
 await p.waitForFunction(()=>{ if(!PKGOPEN){ PKGOPEN=true; render(); } return true; }).catch(()=>{});
 await p.waitForFunction(()=>/From your other tools · \d/i.test(document.getElementById('view').innerText),null,{timeout:10000}).catch(()=>{});
 const v=await p.innerText('#view');

@@ -26,9 +26,9 @@ want('in the Hub: you, credits, clips on their credits, headshots, photos, reel,
 await p.click('#sigo').catch(()=>{});
 await p.setInputFiles('#sizip',Z); await p.waitForFunction(()=>window.__siteIn.plan,null,{timeout:10000}).catch(()=>{}); await p.click('#sigo'); await p.waitForFunction(()=>!window.__siteIn.busy&&window.__siteIn.report,null,{timeout:30000}).catch(()=>{});
 want('bring it in again: nothing doubled', /Brought in: 0 credits, 0 clips, 0 posters, 0 headshots, 0 photos, 0 films, 0 pieces of writing\. \d+ already here, left alone\./.test(await p.innerText('#siteImport'))&&await p.evaluate(()=>credits.length===3&&ARTS.filter(a=>a.category==='clip').length===2), await p.innerText('#siteImport'));
-/* the page */
+/* the page, RÉSUMÉ layout (the POSTER WALL has its own test: wall_e2e.js) */
 await p.goto('http://localhost:8811/hub/?tab=package'); await p.waitForTimeout(2000);
-const html=await p.evaluate(async()=>{ await loadMade(); pkgInit(); const e=await siteEntries('https://riley.example.com'); const dec=new TextDecoder(); return {html:dec.decode(e[0].data),files:e.map(x=>x.name)}; });
+const html=await p.evaluate(async()=>{ await loadMade(); profile.pageLayout='resume'; pkgInit(); const e=await siteEntries('https://riley.example.com'); const dec=new TextDecoder(); return {html:dec.decode(e[0].data),files:e.map(x=>x.name)}; });
 const h=html.html;
 want('the page: your name, IMDb in the header', /<h1 class="name">Riley Hart<\/h1>/.test(h)&&/<dt>IMDb<\/dt><dd><a href="https:\/\/www\.imdb\.com\/name\/nm0000000\/"/.test(h));
 want('credits with PLAY that opens the clip over the page', (h.match(/class="cplay" href="#v\d+"/g)||[]).length===2&&/<div class="lbx" id="v\d+" role="dialog" aria-label="Harbor Lights · DET\. MARA KEYS"><a class="lbclose" href="#close"/.test(h));
