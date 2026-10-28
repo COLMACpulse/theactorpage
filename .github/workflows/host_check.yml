@@ -1,0 +1,36 @@
+# THEACTORPAGE HOST, LIVE CHECK: run by hand (Actions > host check > Run workflow). Claims a made-up test name, puts up a
+# one-page made-up actor (Sam Actor), opens it at <name>.theactorpage.com, checks the locks, then takes it down again.
+# Nothing real is used. The test name stays claimed so no actor can get it.
+name: host check
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env: { ZONE: theactorpage.com }
+    steps:
+      - name: Round trip
+        run: |
+          set -u; fail=0
+          ok(){ echo "::notice::PASS $1"; }; bad(){ echo "::error::FAIL $1"; fail=1; }
+          A="https://api.$ZONE/api"; N="tapcheck-$GITHUB_RUN_ID"
+          curl -fsS "$A/names/$N" | grep -q '"free":true' && ok "the host answers; $N is free" || bad "api.$ZONE answers"
+          curl -fsS "$A/names/www" | grep -q '"free":false' && ok "reserved names are refused" || bad "www refused"
+          C=$(curl -fsS -X POST -H 'content-type: application/json' --data "{\"name\":\"$N\"}" "$A/claim") || bad "claim"
+          KEY=$(echo "$C" | jq -r .key); [ ${#KEY} -gt 20 ] && ok "claimed, a key and a backup code" || bad "claim gave a key"
+          V=$(curl -fsS -X POST -H "authorization: Bearer $KEY" "$A/sites/$N/begin" | jq -r .ver)
+          printf '<!doctype html><title>Sam Actor</title><h1>Sam Actor</h1><p>made-up test page</p><script>document.title="ran"</script>' > i.html
+          curl -fsS -X PUT -H "authorization: Bearer $KEY" --data-binary @i.html "$A/sites/$N/files/index.html?v=$V" >/dev/null && ok "file up" || bad "file up"
+          curl -sS -X PUT -H "authorization: Bearer x" --data-binary @i.html "$A/sites/$N/files/index.html?v=$V" -o /dev/null -w '%{http_code}' | grep -q 403 && ok "a wrong key can't change it" || bad "wrong key refused"
+          curl -sS -X PUT -H "authorization: Bearer $KEY" --data-binary 'x' "$A/sites/$N/files/run.js?v=$V" -o /dev/null -w '%{http_code}' | grep -q 400 && ok "script files are refused" || bad "js refused"
+          curl -fsS -X POST -H "authorization: Bearer $KEY" -H 'content-type: application/json' --data "{\"ver\":\"$V\",\"files\":[\"index.html\"]}" "$A/sites/$N/commit" | grep -q '"ok":true' && ok "live" || bad "commit"
+          sleep 2
+          P=$(curl -fsS -D h.txt "https://$N.$ZONE/") || bad "open https://$N.$ZONE/"
+          echo "$P" | grep -q 'Sam Actor' && ok "the page opens at https://$N.$ZONE/" || bad "page text"
+          grep -qi "content-security-policy:.*default-src 'none'" h.txt && ok "the page can't run scripts (CSP)" || bad "CSP header"
+          curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' "https://www.$ZONE/" | grep -q '^301' && ok "www goes to the home page" || bad "www redirect"
+          curl -fsS -X DELETE -H "authorization: Bearer $KEY" "$A/sites/$N" | grep -q '"down":true' && ok "taken down" || bad "delete"
+          sleep 2
+          curl -sS -o /dev/null -w '%{http_code}' "https://$N.$ZONE/" | grep -q 404 && ok "gone after it's taken down" || bad "404 after delete"
+          exit $fail
