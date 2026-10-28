@@ -22,7 +22,7 @@
   L.probe = function (file) {
     return new Promise(res => { const v = document.createElement('video'), u = URL.createObjectURL(file); let done = false; const fin = r => { if (done) return; done = true; URL.revokeObjectURL(u); res(r); };
       v.muted = true; v.preload = 'metadata'; v.src = u; v.onloadedmetadata = () => fin({ ok: !!(v.videoWidth || /audio/.test(file.type)) && isFinite(v.duration), secs: Math.round((v.duration || 0) * 10) / 10, w: v.videoWidth, h: v.videoHeight });
-      v.onerror = () => fin({ ok: false }); setTimeout(() => fin({ ok: false }), 8000); });
+      v.onerror = () => fin({ ok: false }); setTimeout(() => fin({ ok: false }), 20000); });
   };
   /* a folder you let it keep (Chrome): walk it for files -> [{p, s, d, file}] */
   L.walk = async function (dir, VIDEO, cap) {

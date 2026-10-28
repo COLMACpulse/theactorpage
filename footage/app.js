@@ -12,7 +12,7 @@
   'use strict';
   const M = window.FootMap, Lb = window.FootLib, $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const S = { view: 'lib', key: '', place: '', set: '', trim: null, naming: false, renaming: false, q: '', msg: '', titles: [], roles: {}, adding: false, open: {}, busy: '', prog: 0, here: false, withOpen: false };
+  const S = { view: 'lib', key: '', place: '', set: '', trim: null, naming: false, renaming: false, q: '', msg: '', titles: [], roles: {}, adding: false, open: {}, busy: '', prog: 0, here: false, withOpen: false, sel: null, rmAsk: false, rmOne: false };
   const today = () => new Date().toISOString().slice(0, 10);
   const nice = iso => { if (!iso) return ''; const d = new Date(iso + 'T12:00:00'); return isNaN(d) ? iso : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' }); };
   const n = (x, w) => x + ' ' + w + (x === 1 ? '' : 's');
@@ -35,24 +35,49 @@
   }
 
   /* ---------- every piece ---------- */
-  function pieces() {
+  function pieces(all) {
     const d = M.read(), out = [];
     d.places.forEach(p => { if (p.kind === 'named') return; (p.files || []).forEach(f => { const key = M.fkey(p.id, f.p), mt = d.meta[key] || {};
-      out.push({ key, kind: 'file', name: f.p.split('/').pop(), path: f.p, place: p, s: f.s, d: f.d, title: M.what(d, p.id, f.p, S.titles), secs: mt.secs || 0, proxy: !!mt.proxy, cant: !!mt.cant, label: mt.label || '' }); }); });
-    if (window.Takes) Takes.all().filter(x => x.kind === 'video' || x.kind === 'audio').forEach(x => { const key = 't:' + x.id, mt = d.meta[key] || {};
-      out.push({ key, kind: 'take', audio: x.kind === 'audio', name: x.name || 'A take', take: x, s: x.size || 0, d: x.at ? new Date(x.at).toISOString().slice(0, 10) : '', title: (x.for && x.for.title) || '', secs: x.secs || mt.secs || 0, proxy: true, label: mt.label || whatTake(x) }); });
+      if (mt.hidden && !all) return;
+      out.push({ key, kind: 'file', name: f.p.split('/').pop(), path: f.p, place: p, s: f.s, d: f.d, title: M.what(d, p.id, f.p, S.titles), secs: mt.secs || 0, proxy: !!mt.proxy, cant: !!mt.cant, why: mt.why || null, hidden: !!mt.hidden, label: mt.label || '' }); }); });
+    if (window.Takes) Takes.all().filter(x => x.kind === 'video' || x.kind === 'audio').forEach(x => { const key = 't:' + x.id, mt = d.meta[key] || {}; if (mt.hidden && !all) return;
+      out.push({ hidden: !!mt.hidden, key, kind: 'take', audio: x.kind === 'audio', name: x.name || 'A take', take: x, s: x.size || 0, d: x.at ? new Date(x.at).toISOString().slice(0, 10) : '', title: (x.for && x.for.title) || '', secs: x.secs || mt.secs || 0, proxy: true, label: mt.label || whatTake(x) }); });
     return out;
   }
   const whatTake = x => { const t = x.for && x.for.type; return ({ clip: 'A clip', selftape: 'Self-tape', audition: 'Self-tape', vo: 'VO', reel: 'Reel', final: 'The finished film' })[t] || (x.kind === 'audio' ? 'Audio' : 'Video'); };
   const plays = p => p.kind === 'take' || p.proxy;
   const byKey = key => pieces().find(p => p.key === key) || null;
+  /* why it won't play (Col, Oct 28: "why did i get this message"): read from the file's own bytes, not its name */
+  async function whyNot(file) { try { const w = await ActorCompress.sniff(file); return { c: w.container || '', v: w.video || '' }; } catch (e) { return { c: '', v: '' }; } }
+  function cantWords(w) {
+    w = w || {};
+    if (w.v === 'HEVC') return ['It\u2019s HEVC, what an iPhone records on its default "High Efficiency" setting. This browser can\u2019t open HEVC on this computer.',
+      'Easiest: open Footage on the iPhone it came from and add it there; Safari plays HEVC and makes the copy. Or open it in an editor (or QuickTime on a Mac) and export H.264, then add that. For clips from now on: iPhone Settings \u203a Camera \u203a Formats \u203a Most Compatible.'];
+    if (w.c === 'MOV' && !w.v) return ['It\u2019s a camera format like ProRes, which browsers don\u2019t play.', 'Export an H.264 copy from your editor and add that, or keep it on the map as is.'];
+    if (w.c === 'unknown' || !w.c) return ['Its format (often MXF or RAW straight off a camera) needs an editor.', 'Export an H.264 copy and add that, or keep it on the map as is.'];
+    return ['It\u2019s ' + [w.c, w.v].filter(Boolean).join(', ') + ', which should play, so the file may be damaged, still copying, or slow to open.', 'Try adding it again. If it still won\u2019t, export a fresh H.264 copy.'];
+  }
+  /* REMOVE (Col, Oct 28: "i need to be able to erase/remove content"). The small copy comes off this device. A clip you
+     added is gone from here (your original is where it was on your computer); a file on a drive or a take from another
+     tool is only taken out of Footage, and can come back from REMOVED. */
+  async function removePieces(keys) {
+    const P = pieces(true); let gone = 0, hid = 0;
+    for (const k of keys) { const p = P.find(x => x.key === k); if (!p) continue;
+      try { await Lb.proxy.del(k); await Lb.thumb.del(k); } catch (e) { }
+      M.sets().forEach(x => { if (x.items.indexOf(k) >= 0) M.toggleIn(x.id, k); });
+      if (p.kind === 'file' && p.place && p.place.device) { const d = M.read(), pl = d.places.find(y => y.id === p.place.id); if (pl) { pl.files = (pl.files || []).filter(f => f.p !== p.path); pl.bytes = (pl.files || []).reduce((a, f) => a + (f.s || 0), 0); } delete d.meta[k]; localStorage.setItem(M.KEY, JSON.stringify(d)); gone++; }
+      else { M.setMeta(k, { hidden: true, proxy: false, psize: 0 }); hid++; } }
+    return { gone, hid, n: gone + hid };
+  }
+  function bringBack(k) { M.setMeta(k, { hidden: false }); }
   function badge(p) {
     if (plays(p)) return '<span class="badge here">PLAYS HERE</span>';
     if (p.cant) return '<span class="badge cant">A BROWSER CAN\u2019T PLAY THIS ONE</span>';
     return '<span class="badge away">ORIGINAL ON ' + esc(p.place.name.toUpperCase()) + '</span>';
   }
   function tile(p) {
-    return '<button type="button" class="tile" data-piece="' + esc(p.key) + '"><span class="th' + (p.audio ? ' au' : '') + '" data-thumb="' + esc(p.key) + '">' + (p.audio ? '<span class="wv" aria-hidden="true">' + '<b></b>'.repeat(18) + '</span>' : '<i class="pl" aria-hidden="true"></i>') + (p.secs ? '<span class="dur">' + len(p.secs) + '</span>' : '') + '</span>'
+    const picked = S.sel && S.sel.indexOf(p.key) >= 0;
+    return '<button type="button" class="tile' + (S.sel ? ' picking' : '') + (picked ? ' picked' : '') + '" data-piece="' + esc(p.key) + '"' + (S.sel ? ' aria-pressed="' + picked + '"' : '') + '>' + (S.sel ? '<span class="tick" aria-hidden="true">' + (picked ? '&#10003;' : '') + '</span>' : '') + '<span class="th' + (p.audio ? ' au' : '') + '" data-thumb="' + esc(p.key) + '">' + (p.audio ? '<span class="wv" aria-hidden="true">' + '<b></b>'.repeat(18) + '</span>' : '<i class="pl" aria-hidden="true"></i>') + (p.secs ? '<span class="dur">' + len(p.secs) + '</span>' : '') + '</span>'
       + '<span class="ti"><b>' + esc(p.label && p.kind === 'file' ? p.label : p.name) + '</b><small>' + esc(p.kind === 'take' ? (p.label + (p.d ? ' · ' + nice(p.d) : '')) : (p.place.name + (p.d ? ' · ' + nice(p.d) : ''))) + '</small>' + badge(p) + '</span></button>';
   }
 
@@ -62,7 +87,11 @@
     const shown = P.filter(p => (!S.here || plays(p)) && (!q.length || q.every(w => (p.name + ' ' + (p.path || '') + ' ' + p.title + ' ' + p.label + ' ' + (p.place ? p.place.name : '') + ' ' + p.d).toLowerCase().indexOf(w) >= 0)));
     const total = P.reduce((a, p) => a + (p.secs || 0), 0), here = P.filter(plays).length, drives = M.places().filter(p => p.kind !== 'named').length;
     let h = '<p class="lsum">' + (P.length ? n(P.length, 'piece') + (total && P.every(x => x.secs) ? ' · ' + len(total) : '') + ' · ' + here + ' play here' + (drives ? ' · originals on ' + n(drives, 'drive') : '') : '') + '</p>';
-    h += '<div class="lbar"><input class="field find" id="find" placeholder="Find: a show, a scene, a name, a date" value="' + esc(S.q) + '" autocomplete="off" aria-label="Find a piece"><button type="button" class="chip' + (S.here ? ' on' : '') + '" id="here">ONLY WHAT PLAYS HERE</button></div>';
+    h += '<div class="lbar"><input class="field find" id="find" placeholder="Find: a show, a scene, a name, a date" value="' + esc(S.q) + '" autocomplete="off" aria-label="Find a piece"><button type="button" class="chip' + (S.here ? ' on' : '') + '" id="here">ONLY WHAT PLAYS HERE</button>' + (P.length ? '<button type="button" class="chip' + (S.sel ? ' on' : '') + '" id="pick">' + (S.sel ? 'DONE PICKING' : 'PICK TO REMOVE') + '</button>' : '') + '</div>';
+    if (S.sel) { const k = S.sel.length, bad = P.filter(p => p.cant && !plays(p));
+      h += '<div class="card selbar" id="selbar" data-stick><p style="margin:0"><b>' + (k ? n(k, 'piece') + ' picked' : 'Tap the pieces to remove') + '</b></p>'
+        + (S.rmAsk && k ? '<p class="small" style="margin:6px 0 10px">Remove ' + n(k, 'piece') + ' from Footage? Their small copies come off this device. Clips you added are gone from here; the originals stay where they are on your computer. A file on a drive or a take from another tool stays where it is, and can come back from REMOVED.</p><div class="row"><button class="btn danger" id="rm_yes">REMOVE ' + k + '</button><button class="btn ghost" id="rm_no">KEEP THEM</button></div>'
+          : '<div class="row" style="margin-top:8px"><button class="btn danger" id="rm_go"' + (k ? '' : ' disabled') + '>REMOVE' + (k ? ' ' + k : '') + '</button>' + (bad.length ? '<button class="btn" id="rm_bad">PICK THE ' + bad.length + ' THAT DON\u2019T PLAY</button>' : '') + '<button class="btn ghost" id="rm_none"' + (k ? '' : ' disabled') + '>CLEAR</button></div>') + '</div>'; }
     if (S.msg) h += '<p class="msg" id="msg">' + esc(S.msg) + '</p>';
     h += '<div class="grid lib"><div class="colA">';
     if (!P.length) h += '<div class="card first" data-stick><p class="kicker">Nothing in your library yet</p><b class="fbig">Bring in your clips. Pick as many as you want.</b><p class="dim" style="margin:6px 0 14px">Your self-tapes, scenes from set, the short you made. Each one gets a small copy that plays here any time; the original stays where it is.</p>'
@@ -84,6 +113,8 @@
       + (S.naming ? namingForm() : '<button type="button" class="btn block" id="name" data-ic="contacts">NAME A PLACE</button>')
       + '<p class="dim small" style="margin:10px 2px 0">A drive is read as a list of files: nothing is copied or uploaded, and the map keeps it when you unplug. Clips you add are kept here as small copies that play anywhere.</p>';
     if (m.titles.length || true) h += S.adding ? '<div class="row" style="margin-top:12px"><input class="field" id="mine" placeholder="A project: a reel, a class, a short" style="flex:1"><button class="btn" id="mineok">ADD IT</button></div>' : '<button type="button" class="lnk" id="addmine" style="margin-top:8px">+ a project that isn\u2019t in your credits</button>';
+    const hidden = pieces(true).filter(p => p.hidden);
+    if (hidden.length) h += '<details class="fold" id="rmfold" style="margin-top:16px"><summary><span>REMOVED \u00b7 ' + hidden.length + '</span></summary><p class="dim small" style="margin:0 0 8px">Taken out of Footage; the files are where they were.</p>' + hidden.map(p => '<div class="rmrow"><span><b>' + esc(p.label && p.kind === 'file' ? p.label : p.name) + '</b><small>' + esc(p.kind === 'take' ? p.label : p.place.name) + '</small></span><button class="btn sm" data-back="' + esc(p.key) + '">BRING IT BACK</button></div>').join('') + '</details>';
     h += '<details class="fold" id="checkfold" style="margin-top:16px"><summary data-icr="slate" data-icc="film" data-say="before you erase a card"><span data-icl>CHECK THE COPY</span></summary><p class="dim small" style="margin:0 0 10px">On your own shoot: every file on your copies has to match the card exactly before you erase it.</p><a class="btn" id="tocheck" href="check.html" style="text-decoration:none">OPEN CHECK THE COPY</a></details>';
     return h + '</aside></div>';
   }
@@ -101,7 +132,7 @@
     if (S.msg) h += '<p class="msg" id="msg">' + esc(S.msg) + '</p>';
     h += '<div class="grid"><div class="colA"><div class="stage" id="stage">';
     if (S.busy === p.key) h += '<div class="nostage"><p><b>Making a copy that plays anywhere.</b></p><p class="dim small">It plays the original through once, so it takes about as long as the piece. Keep this page open.</p><div class="prog"><i id="mk_bar" style="width:' + Math.round(S.prog * 100) + '%"></i></div></div>';
-    else h += '<div class="nostage" id="nostage">' + (p.cant ? '<p><b>A browser can\u2019t play this one.</b></p><p class="dim small">Its format (often ProRes, RAW or MXF straight off a camera) needs an editor. Export an H.264 copy and add that, or keep it on the map as is.</p>' : '<p><b>The original is on ' + esc(p.place ? p.place.name : 'a drive') + '.</b></p><p class="dim small">Make a small copy (540p) to watch it here, on any device, any time. The original stays where it is.</p>') + '</div>';
+    else h += '<div class="nostage" id="nostage">' + (p.cant ? (w => '<p><b>A browser can\u2019t play this one.</b></p><p class="small">' + esc(w[0]) + '</p><p class="dim small">' + esc(w[1]) + '</p>')(cantWords(p.why)) : '<p><b>The original is on ' + esc(p.place ? p.place.name : 'a drive') + '.</b></p><p class="dim small">Make a small copy (540p) to watch it here, on any device, any time. The original stays where it is.</p>') + '</div>';
     h += '</div>';
     if (p.kind === 'file' && !plays(p) && S.busy !== p.key) h += '<div class="row" style="margin-top:10px">' + (FSA() && p.place && p.place.handle ? '<button class="btn pri" id="mk_go" data-ic="footage">MAKE IT PLAYABLE</button><button class="btn" id="og_play">PLAY THE ORIGINAL</button>' : '<label class="btn pri" data-ic="footage">MAKE IT PLAYABLE<input type="file" id="mk_file" accept="video/*,audio/*,.mov,.mxf,.mts" hidden></label>') + '</div>'
       + (FSA() && p.place && p.place.handle ? '' : '<p class="faint small" style="margin:6px 2px 0">Pick ' + esc(p.name) + ' from ' + esc(p.place.name) + ' (it has to be plugged in).</p>');
@@ -115,6 +146,8 @@
       + (p.kind === 'file' ? '<div class="irow"><b>THE ORIGINAL</b><span>' + esc(p.place.name) + ' \u00b7 ' + esc(p.path.split('/').slice(1).join('/') || p.path) + '<br>' + M.size(p.s) + (p.secs ? ' \u00b7 ' + len(p.secs) : '') + (p.d ? ' \u00b7 ' + nice(p.d) : '') + '</span></div>' : '')
       + '<div class="irow"><b>PUT TOGETHER</b><span>' + (sets.length ? sets.map(x => '<button type="button" class="lnk" data-set="' + x.id + '">' + esc(x.name) + '</button>').join(' \u00b7 ') : 'Not yet.') + '</span></div></div>'
       + (p.proxy && p.kind === 'file' ? '<button class="lnk faint" id="dropcopy">Take the small copy off this device</button>' : '')
+      + (S.rmOne ? '<div class="card" id="rmone" style="margin-top:12px"><p class="small" style="margin:0 0 10px">' + (p.kind === 'file' && p.place && p.place.device ? 'Remove ' + esc(p.name) + ' from Footage? Its copy comes off this device. Your original stays where it is on your computer.' : 'Take ' + esc(p.name) + ' out of Footage? ' + (p.kind === 'take' ? 'The take stays in the tool it came from.' : 'The file stays on ' + esc(p.place.name) + '.') + ' It can come back from REMOVED.') + '</p><div class="row"><button class="btn danger" id="rm1_yes">REMOVE IT</button><button class="btn ghost" id="rm1_no">KEEP IT</button></div></div>'
+        : '<button class="btn ghost danger block" id="rm1" style="margin-top:12px">REMOVE FROM FOOTAGE</button>')
       + '</div></div>';
     return h;
   }
@@ -149,7 +182,7 @@
     }
     const t = (BATCH.title || '').trim(); if (t) { BATCH.rows.forEach(r => M.setFix(pl.id, 'On this device/' + r.f.name, t)); if (!S.titles.some(x => M.norm(x) === M.norm(t))) { M.addMine(t); S.titles.push(t); } }
     const ok = BATCH.rows.filter(r => r.state === 'done').length, bad = BATCH.rows.filter(r => r.state === 'cant').length; BATCH = null;
-    go('lib', { msg: n(ok, 'clip') + ' in your library' + (bad ? '; ' + bad + ' a browser can\u2019t play (export an H.264 copy and add that)' : '') + '.' });
+    go('lib', { msg: n(ok, 'clip') + ' in your library' + (bad ? '; ' + bad + ' a browser can\u2019t play (open one to see why, or PICK TO REMOVE)' : '') + '.' });
   }
   function batchView() {
     const B = BATCH; let h = '<div class="card" data-stick><p class="kicker">Bringing in ' + n(B.rows.length, 'clip') + '</p><p class="dim small" style="margin:2px 0 10px">Making a small copy of each so it plays here. Keep this page open; it takes about as long as the clips run.</p><div id="batchrows">' + batchRows() + '</div>'
@@ -162,7 +195,7 @@
   /* the small copy, no screen of its own: {ok, secs} or {error} */
   async function makeCopy(key, file, onP) {
     if (!window.ActorCompress) return { error: 'this browser can\u2019t make copies' };
-    const pr = await Lb.probe(file); if (!pr.ok) { M.setMeta(key, { cant: true }); return { error: 'a browser can\u2019t play this format' }; }
+    const pr = await Lb.probe(file); if (!pr.ok) { const w = await whyNot(file); M.setMeta(key, { cant: true, why: w }); return { error: w.v === 'HEVC' ? 'HEVC (iPhone High Efficiency): open it for what to do' : 'a browser can\u2019t play this format: open it for what to do' }; }
     try {
       let out; if (/^audio\//.test(file.type)) out = file; else out = await ActorCompress.process(file, { h: 540, mbps: 1.1, onProgress: x => onP && onP(x || 0) });
       const blob = out && out.blob ? out.blob : out; await Lb.proxy.put(key, blob);
@@ -219,7 +252,7 @@
 
   async function makePlayable(p, file) {
     if (!window.ActorCompress) { S.msg = 'This browser can\u2019t make copies.'; render(); return; }
-    const pr = await Lb.probe(file); if (!pr.ok) { M.setMeta(p.key, { cant: true }); S.msg = 'A browser can\u2019t play ' + file.name + '. Export an H.264 copy and add that.'; render(); return; }
+    const pr = await Lb.probe(file); if (!pr.ok) { M.setMeta(p.key, { cant: true, why: await whyNot(file) }); S.msg = 'A browser can\u2019t play ' + file.name + '. What to do is under the picture.'; render(); return; }
     S.busy = p.key; S.prog = 0; render();
     try {
       let out; if (/^audio\//.test(file.type)) out = file; else out = await ActorCompress.process(file, { h: 540, mbps: 1.1, onProgress: x => { S.prog = x || 0; const bar = $('mk_bar'); if (bar) bar.style.width = Math.round(S.prog * 100) + '%'; } });
@@ -299,7 +332,7 @@
       if (!b && /^t:/.test(k) && window.Takes) { const it = Takes.get(k.slice(2)); if (it && it.kind === 'video') { const src = await Takes.blob(it.id); if (src) { b = await Lb.grab(src, 1); if (b) await Lb.thumb.put(k, b); } } }
       if (b && el.isConnected) { el.style.backgroundImage = 'url(' + url('th' + k, b) + ')'; el.classList.add('img'); } } catch (e) { } }
   }
-  function go(v, extra) { Object.assign(S, { view: v, renaming: false, withOpen: false }, extra || {}); render(); window.scrollTo(0, 0); }
+  function go(v, extra) { Object.assign(S, { view: v, renaming: false, withOpen: false, rmOne: false, sel: v === 'lib' ? S.sel : null, rmAsk: false }, extra || {}); render(); window.scrollTo(0, 0); }
   async function pickFolder(placeId) {
     let dir; try { dir = await window.showDirectoryPicker({ mode: 'read' }); } catch (e) { return; }
     S.msg = 'Reading ' + dir.name + '\u2026'; render();
@@ -317,7 +350,17 @@
 
   function wire() {
     const V = $('view'), on = (id, f) => { const e = $(id); if (e) e.onclick = f; };
-    V.querySelectorAll('[data-piece]').forEach(b => b.onclick = () => go('piece', { key: b.dataset.piece }));
+    V.querySelectorAll('[data-piece]').forEach(b => b.onclick = () => { if (S.sel && S.view === 'lib') { const k = b.dataset.piece, i = S.sel.indexOf(k); if (i >= 0) S.sel.splice(i, 1); else S.sel.push(k); S.rmAsk = false; render(); return; } go('piece', { key: b.dataset.piece, rmOne: false }); });
+    V.querySelectorAll('[data-back]').forEach(b => b.onclick = () => { bringBack(b.dataset.back); S.msg = 'Back in your library.'; render(); });
+    on('pick', () => { S.sel = S.sel ? null : []; S.rmAsk = false; render(); });
+    on('rm_go', () => { S.rmAsk = true; render(); });
+    on('rm_no', () => { S.rmAsk = false; render(); });
+    on('rm_none', () => { S.sel = []; S.rmAsk = false; render(); });
+    on('rm_bad', () => { pieces().filter(p => p.cant && !plays(p)).forEach(p => { if (S.sel.indexOf(p.key) < 0) S.sel.push(p.key); }); render(); });
+    on('rm_yes', async () => { const r = await removePieces(S.sel.slice()); S.sel = null; S.rmAsk = false; S.msg = 'Removed ' + n(r.n, 'piece') + ' from Footage.' + (r.hid ? ' ' + r.hid + ' can come back from REMOVED.' : ''); render(); });
+    on('rm1', () => { S.rmOne = true; render(); });
+    on('rm1_no', () => { S.rmOne = false; render(); });
+    on('rm1_yes', async () => { const k = S.key; STAGED = null; const r = await removePieces([k]); go('lib', { rmOne: false, msg: 'Removed from Footage.' + (r.hid ? ' It can come back from REMOVED.' : '') }); });
     V.querySelectorAll('[data-place]').forEach(b => b.onclick = () => go('place', { place: b.dataset.place }));
     V.querySelectorAll('[data-set]').forEach(b => b.onclick = () => go('set', { set: b.dataset.set }));
     V.querySelectorAll('[data-more]').forEach(b => b.onclick = () => { S.open[b.dataset.more] = true; render(); });
