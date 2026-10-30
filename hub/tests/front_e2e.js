@@ -63,7 +63,7 @@ const [pop]=await Promise.all([c.waitForEvent('page'),p.click('#seeit')]); await
 const html=await pop.content().catch(()=>'');
 want('SEE IT: your page in a new tab, your name and the credit on it', /Riley Hart/.test(html)&&/Harbor Lights/.test(html), html.slice(0,200));
 await pop.close();
-want('put it online: switched on: your address at .theactorpage.com, Publish, up to 250 MB', !/isn.t switched on yet/.test(await p.innerText('#online'))&&!!(await p.$('#onpub'))&&/\.theactorpage\.com/.test(await p.innerText('#online'))&&/up to 250 MB here, 95 MB a file/.test(await p.innerText('#online')));
+want('put it online: switched on: your address at .theactorpage.com, Publish, up to 400 MB', !/isn.t switched on yet/.test(await p.innerText('#online'))&&!!(await p.$('#onpub'))&&/\.theactorpage\.com/.test(await p.innerText('#online'))&&/up to 400 MB here, 95 MB a file/.test(await p.innerText('#online')));
 await p.screenshot({path:SHOTS+'/hub_desk_page.png'});
 // your material: only what you have; masters in Reel Room
 await p.evaluate(()=>go('profile')); await p.waitForTimeout(500);

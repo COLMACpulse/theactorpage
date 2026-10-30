@@ -3292,7 +3292,7 @@ function onlinePanel(){
     <small class="note" id="onwhy" style="margin:0"></small>
     <div class="row" style="padding:0;gap:9px;flex-wrap:wrap"><button class="act" id="onpub" onclick="goOnline()" ${ON.busy?'disabled':''}>${ON.busy?'Publishing…':'Publish'}</button><button class="ghost act sm" onclick="ON.recover=true;render()">I already have a page</button></div>
     ${step}${err}
-    <small class="note" style="margin:0">Long video? Add it as a YouTube or Vimeo link above. A page can hold up to 250 MB here, 95 MB a file.</small>
+    <small class="note" style="margin:0">Long video? Add it as a YouTube or Vimeo link above. A page can hold up to 400 MB here, 95 MB a file.</small>
    </div></div>`;
  }
  const when=o.updated?new Date(o.updated).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'';

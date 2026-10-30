@@ -20,7 +20,7 @@ ZONE = "theactorpage.com"
 # who may call the API from a browser: the site on GitHub Pages now, theactorpage.com later
 ORIGINS = "https://colmacpulse.github.io,https://theactorpage.com,https://www.theactorpage.com"
 MAX_FILE_MB = "95"
-MAX_SITE_MB = "250"
+MAX_SITE_MB = "400"
 # Footage online: each actor's own clips, private (Col, Oct 28: a free amount each). 5 GB; big files go up in 25 MB parts.
 LIB_MB = "5120"
 PART_MB = "25"
