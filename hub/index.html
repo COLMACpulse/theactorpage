@@ -1666,7 +1666,7 @@ async function siteImportGo(){
    profile.madeHub.writing.push({id:'h:'+newCid(),from:'Your site',title:w.title,logline:w.logline,genre:w.genre,kind:w.kind,status:w.status,links:w.links,posterId:pid}); n.writing++; }
   if(pkgSel.credits) credits.filter(c=>c.from==='site'&&!pkgSel.credits.includes(c.cid)).forEach(c=>pkgSel.credits.push(c.cid));
   saveProfile(); saveCredits();
-  S.report='Brought in: '+[n.credits+' credits',n.clips+' clips',n.posters+' posters',n.headshots+' headshots',n.photos+' photos',n.reel?'your reel':'',n.films+' films',n.writing+' pieces of writing'].filter(Boolean).join(', ')+'.'+(n.skipped?' '+n.skipped+' already here, left alone.':'')+' Open SEND and build your page to see it.';
+  S.report='Brought in: '+[n.credits+' credits',n.clips+' clips',n.posters+' posters',n.headshots+' headshots',n.photos+' photos',n.reel?'your reel':'',n.films+' films',n.writing+' pieces of writing'].filter(Boolean).join(', ')+'.'+(n.skipped?' '+n.skipped+' already here, left alone.':'')+' Open the Your page tab to see it.';
   S.plan=null; S.src=null;
  }catch(e){ S.report='Stopped partway: '+(e&&e.message||'this device ran out of room')+'. What came in is kept; run it again to bring in the rest.'; saveProfile(); saveCredits(); }
  S.busy=false; render();
