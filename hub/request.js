@@ -150,8 +150,10 @@
     const fmt = (d, tz) => { try { return d.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: tz }); } catch (e) { return d.toUTCString(); } };
     if (due.utc) {
       const d = new Date(due.utc), theirs = { PST: 'America/Los_Angeles', PDT: 'America/Los_Angeles', MST: 'America/Denver', MDT: 'America/Denver', CST: 'America/Chicago', CDT: 'America/Chicago', EST: 'America/New_York', EDT: 'America/New_York', HST: 'Pacific/Honolulu', AKST: 'America/Anchorage', AKDT: 'America/Anchorage', UTC: 'UTC', GMT: 'UTC' }[due.zone];
-      const a = fmt(d, theirs) + ' ' + due.zone, mine = fmt(d, tzName);
-      return mine === fmt(d, theirs) ? a : a + ' = ' + mine + ' your time';
+      /* their time as they wrote it (5:00 PM PDT stays 5:00 PM PDT, even written in November), then yours */
+      const as = (due.hh != null && due.y != null) ? fmt(new Date(Date.UTC(due.y, due.mo, due.d, due.hh, due.mm || 0)), 'UTC') : fmt(d, theirs);
+      const a = as + ' ' + due.zone, mine = fmt(d, tzName);
+      return mine === as ? a : a + ' = ' + mine + ' your time';
     }
     if (due.local) return fmt(new Date(due.local), tzName) + ' (no time zone written; read as your own clock)';
     return new Date(due.y, due.mo, due.d).toDateString() + ' (no time given; ask your rep)';

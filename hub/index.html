@@ -3491,7 +3491,7 @@ async function seePage(){ const w=window.open('','_blank'); try{ const doc=await
 function pkgLayout(){ return profile.pageLayout==='resume'?'resume':'wall'; }
 function pkgLayoutSet(k){ profile.pageLayout=k==='resume'?'resume':'wall'; saveProfile(); render(); }
 function pkgTop(hs,rs,rl,cr){
- const R=pkgRows(hs,rs,rl,cr), prim=ARTS.find(a=>a.id===pkgSel.headshot), o=online(), host=o.url?o.url.replace(/^https?:\/\//,'').replace(/\/$/,''):'';
+ const R=pkgRows(hs,rs,rl,cr), prim=ARTS.find(a=>a.id===pkgSel.headshot), o=online(), host=o.url&&o.live?o.url.replace(/^https?:\/\//,'').replace(/\/$/,''):'';
  let h='<div class="hg" id="pagetop"><div><p class="hk">Your page</p><div class="hcard"><div class="ppc"><span class="ph">'+(prim?'<img src="'+artURL(prim)+'" alt="">':'')+'</span><span><b>'+esc(profile.name||'Your name')+'</b><small>'+esc([profile.union,profile.rep].filter(Boolean).join(' · ')||'Add your union and rep in Your material.')+'</small>'+(host?'<small>Online at '+esc(host)+'</small>':'')+'</span></div>'
   +'<div class="hrow2" style="margin-top:12px"><button class="hbtn pri" id="seeit" onclick="seePage()">SEE IT</button><button class="hbtn" onclick="buildPackage()">SAVE THE FILE</button><button class="hbtn" onclick="const e=document.getElementById(\'online\');if(e)e.scrollIntoView({block:\'start\',behavior:\'smooth\'})">'+(host?'UPDATE IT ONLINE':'PUT IT ONLINE')+'</button></div>'
   +'<p class="hnote">SAVE THE FILE makes one .html you can attach to an email. SEE IT opens it here first.</p>'
