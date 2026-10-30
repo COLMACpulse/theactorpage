@@ -58,6 +58,9 @@
     w = w || {}; const x = ext(n);
     if (CAMERA[x]) return { what: CAMERA[x] + '.', fix: 'Browsers don’t play it. Export an H.264 MP4 from your editor and add that.' };
     if (w.video === 'HEVC') return { what: 'HEVC, what an iPhone records on its default "High Efficiency" setting.', fix: 'Add it from Footage on the iPhone it came from (Safari plays it), or export H.264. For next time: iPhone Settings › Camera › Formats › Most Compatible.' };
+    if (w.video === 'MPEG-4 Part 2') return { what: 'An older kind of MP4 (MPEG-4 Part 2, common from editors before about 2017). Browsers don\u2019t play it.', fix: 'Export it again as H.264 MP4 from your editor and add that. If you have a newer copy of the same scene, skip this one.' };
+    if (w.video === 'ProRes') return { what: 'ProRes, an editor\u2019s master format. Browsers don\u2019t play it.', fix: 'Export an H.264 MP4 from your editor and add that.' };
+    if ((w.container === 'MP4' || w.container === 'MOV') && !w.video) return { what: 'A video format inside the file this browser can\u2019t read (often an older or editor format).', fix: 'Export it again as H.264 MP4 from your editor and add that. If you have a newer copy of the same scene, skip this one.' };
     if (w.container === 'MOV' && !w.video) return { what: 'A camera or editor format like ProRes.', fix: 'Export an H.264 copy from your editor and add that.' };
     if (!w.container || w.container === 'unknown') return { what: 'A format this browser can’t read.', fix: 'Export an H.264 MP4 from your editor and add that.' };
     return { what: [w.container, w.video].filter(Boolean).join(', ') + ', which should play, so the file may be damaged or still copying.', fix: 'Copy it again, or export a fresh H.264 copy.' };

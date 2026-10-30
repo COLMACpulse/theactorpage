@@ -56,6 +56,8 @@
     w = w || {};
     if (w.v === 'HEVC') return ['It\u2019s HEVC, what an iPhone records on its default "High Efficiency" setting. This browser can\u2019t open HEVC on this computer.',
       'Easiest: open Footage on the iPhone it came from and add it there; Safari plays HEVC and makes the copy. Or open it in an editor (or QuickTime on a Mac) and export H.264, then add that. For clips from now on: iPhone Settings \u203a Camera \u203a Formats \u203a Most Compatible.'];
+    if (w.v === 'MPEG-4 Part 2') return ['An older kind of MP4 (MPEG-4 Part 2, common from editors before about 2017). Browsers don\u2019t play it.', 'Export it again as H.264 MP4 from your editor and add that. If you have a newer copy of the same scene, skip this one.'];
+    if ((w.c === 'MP4' || w.c === 'MOV') && (!w.v || w.v === 'ProRes')) return [w.v === 'ProRes' ? 'ProRes, an editor\u2019s master format. Browsers don\u2019t play it.' : 'A video format inside the file this browser can\u2019t read (often an older or editor format).', 'Export it again as H.264 MP4 from your editor and add that. If you have a newer copy of the same scene, skip this one.'];
     if (w.c === 'MOV' && !w.v) return ['It\u2019s a camera format like ProRes, which browsers don\u2019t play.', 'Export an H.264 copy from your editor and add that, or keep it on the map as is.'];
     if (w.c === 'unknown' || !w.c) return ['Its format (often MXF or RAW straight off a camera) needs an editor.', 'Export an H.264 copy and add that, or keep it on the map as is.'];
     return ['It\u2019s ' + [w.c, w.v].filter(Boolean).join(', ') + ', which should play, so the file may be damaged, still copying, or slow to open.', 'Try adding it again. If it still won\u2019t, export a fresh H.264 copy.'];

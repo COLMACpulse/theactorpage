@@ -375,7 +375,7 @@ A.sniff=async function(blob){
   const brand=String.fromCharCode(head[8],head[9],head[10],head[11]);
   out.container=brand==='qt  '?'MOV':'MP4';
   // moov can be at the end of the file (phones often put it there)
-  out.video=any('avc1')||any('avc3')?'H.264':(any('hvc1')||any('hev1'))?'HEVC':any('vp09')?'VP9':any('av01')?'AV1':'';
+  out.video=any('avc1')||any('avc3')?'H.264':(any('hvc1')||any('hev1'))?'HEVC':any('vp09')?'VP9':any('av01')?'AV1':any('mp4v')?'MPEG-4 Part 2':(any('apch')||any('apcn')||any('apcs')||any('apco')||any('ap4h'))?'ProRes':'';
   out.audio=any('mp4a')?'AAC':any('Opus')?'Opus':any('ac-3')?'AC-3':'';
   // length and picture size straight from the boxes, for when this browser can't open the video
   const box=(u8,name)=>{ const n=name.length; for(let i=4;i+n<=u8.length;i++){ let k=0; while(k<n&&u8[i+k]===name.charCodeAt(k))k++; if(k===n) return i; } return -1; };
