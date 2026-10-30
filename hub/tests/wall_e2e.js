@@ -16,8 +16,11 @@ let ok=true; const want=(n,x,y)=>{ console.log((x?'PASS ':'FAIL ')+n+(x||y===und
 for(const [nm,vp,cs] of [['computer',{width:1280,height:900},'light'],['phone',{width:390,height:844},'dark']]){
  const c=await b.newContext({viewport:vp,colorScheme:cs}); const p=await c.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
  await p.goto('http://localhost:8811/hub/?tab=intake'); await p.evaluate(()=>{ localStorage.clear(); indexedDB.deleteDatabase('colmac_hub'); }); await p.reload(); await p.waitForTimeout(1500);
+ /* already in the Hub from a résumé, the same project under another character: it should end up one credit */
+ await p.evaluate(()=>{ credits.push({cid:'old1',title:'Harbor Lights',character:'Mara',role:'Guest Star',kind:'credit',state:'archived',from:'resume'}); saveCredits(); });
  await p.setInputFiles('#sizip',Z); await p.waitForFunction(()=>window.__siteIn.plan,null,{timeout:10000}).catch(()=>{});
  await p.click('#sigo'); await p.waitForFunction(()=>!window.__siteIn.busy&&window.__siteIn.report,null,{timeout:30000}).catch(()=>{});
+ want(nm+': a credit already in the Hub under the same project: one credit, and it says so', await p.evaluate(()=>credits.filter(c=>normTitle(c.title)===normTitle('Harbor Lights')).length)===1&&/1 credit was already in your Hub under the same project/.test(await p.innerText('#siteImport')), await p.innerText('#siteImport'));
  await p.evaluate(()=>{ profile.email='riley@example.com'; saveProfile(); });
  await p.goto('http://localhost:8811/hub/?tab=package'); await p.waitForTimeout(2000);
 
@@ -51,6 +54,7 @@ for(const [nm,vp,cs] of [['computer',{width:1280,height:900},'light'],['phone',{
  want(nm+': tap a poster: the clip opens big over the page', lb&&lb.vid&&lb.vis&&/Harbor Lights/.test(lb.cap), lb);
  await q.goto('file://'+path.join(site,'index.html')); await q.waitForTimeout(500);
  want(nm+': nothing sideways', await q.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+ want(nm+': photographs whole, not cropped', await q.evaluate(()=>{ const i=document.querySelector('.pgrid img'); return !!i&&getComputedStyle(i).objectFit==='contain'&&Math.abs(i.getBoundingClientRect().width/i.getBoundingClientRect().height-i.naturalWidth/i.naturalHeight)<0.05; }));
  await q.screenshot({path:SP+'/wall_'+nm+'.png',fullPage:true});
  want(nm+': the page has no errors', !qerr.length, qerr);
 

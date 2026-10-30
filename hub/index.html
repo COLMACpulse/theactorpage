@@ -1664,9 +1664,17 @@ async function siteImportGo(){
    profile.madeHub.films.push({id:'h:'+newCid(),from:'Your site',title:f.title,credit:f.credit,links:f.links,posterId:pid}); n.films++; }
   for(const w of P.writing){ if(profile.madeHub.writing.some(x=>normTitle(x.title)===normTitle(w.title))) continue; let pid=''; if(w.poster){ const r=await put(w.poster,{scope:'made',category:'poster',label:w.title+' poster'}); tick(); if(r) pid=r.id; }
    profile.madeHub.writing.push({id:'h:'+newCid(),from:'Your site',title:w.title,logline:w.logline,genre:w.genre,kind:w.kind,status:w.status,links:w.links,posterId:pid}); n.writing++; }
+  /* the same project already in your Hub under another character or role (from your résumé or IMDb): one credit, not two.
+     The site's one stays; blanks fill from the old one; its poster and clips move over (Col, Oct 30: "black duplicates") */
+  const siteBy=new Map(credits.filter(c=>c.from==='site').map(c=>[normTitle(c.title),c])); let merged=0;
+  for(const c of credits.slice()){ if(c.from==='site') continue; const s2=siteBy.get(normTitle(c.title)); if(!s2||s2===c) continue;
+   for(const a of ARTS.filter(a=>String(a.scope)==='credit:'+c.cid)){ if(a.category==='poster'&&ARTS.some(b=>String(b.scope)==='credit:'+s2.cid&&b.category==='poster')) continue; a.scope='credit:'+s2.cid; try{ await DB.put(a); }catch(e){} }
+   ['role','net','medium','character','director','charNote','billing'].forEach(k=>{ if(!s2[k]&&c[k]) s2[k]=c[k]; });
+   credits.splice(credits.indexOf(c),1); if(pkgSel.credits){ const i=pkgSel.credits.indexOf(c.cid); if(i>=0) pkgSel.credits.splice(i,1); } merged++; }
+  n.merged=merged;
   if(pkgSel.credits) credits.filter(c=>c.from==='site'&&!pkgSel.credits.includes(c.cid)).forEach(c=>pkgSel.credits.push(c.cid));
   saveProfile(); saveCredits();
-  S.report='Brought in: '+[n.credits+' credits',n.clips+' clips',n.posters+' posters',n.headshots+' headshots',n.photos+' photos',n.reel?'your reel':'',n.films+' films',n.writing+' pieces of writing'].filter(Boolean).join(', ')+'.'+(n.skipped?' '+n.skipped+' already here, left alone.':'')+' Open the Your page tab to see it.';
+  S.report='Brought in: '+[n.credits+' credits',n.clips+' clips',n.posters+' posters',n.headshots+' headshots',n.photos+' photos',n.reel?'your reel':'',n.films+' films',n.writing+' pieces of writing'].filter(Boolean).join(', ')+'.'+(n.skipped?' '+n.skipped+' already here, left alone.':'')+(n.merged?' '+n.merged+' credit'+(n.merged===1?' was':'s were')+' already in your Hub under the same project; each is one credit now.':'')+' Open the Your page tab to see it.';
   S.plan=null; S.src=null;
  }catch(e){ S.report='Stopped partway: '+(e&&e.message||'this device ran out of room')+'. What came in is kept; run it again to bring in the rest.'; saveProfile(); saveCredits(); }
  S.busy=false; render();
@@ -3552,7 +3560,7 @@ function packageHTML(d){
     next, then your work as big posters; tap one and the clip opens over the page. A credit with no clip sits on the
     wall the same size, with no play mark. Same files as the résumé layout, only the order and the look change. */
  const W=d.layout==='wall';
- const strip=W?[d.head].concat(heads).filter(has).slice(0,6):[];
+ const strip=W?[d.head].concat(heads).filter(has):[];  /* every headshot up top; it wraps to a second row (Col, Oct 30) */
  const restHeads=W?heads.filter(h=>strip.indexOf(h)<0):heads;
  const reelSec=(has(d.reel)||reelL.length)?`<section>${rule('Reel')}${has(d.reel)?vid(d.reel,'solo'):''}${reelL.map(emb).join('')}</section>`:'';
  const wallSec=(W&&credits.length)?`<section class="wall">${rule('Work',credits.length)}${credits.some(c=>(c.clips||[]).length)?'<p class="wallhint">Tap a poster to play the clip</p>':''}
@@ -3667,7 +3675,7 @@ section:last-of-type{border-bottom:0}
 a.wpo .wlen{position:absolute;right:8px;top:8px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:#F2F0EA;background:rgba(0,0,0,.62);padding:4px 7px}a.wpo:hover img{transform:scale(1.03)}a.wpo img{transition:transform .25s}a.wpo:focus-visible{outline:2px solid var(--salmon);outline-offset:3px}
 @media(max-width:900px){.wgrid{grid-template-columns:repeat(3,minmax(0,1fr))}.hstrip{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:560px){.wgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 12px}.wallhd .dl{text-align:left}}
-.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}.pgrid a{display:block}.pgrid img{width:100%;aspect-ratio:3/2;object-fit:cover;display:block;background:var(--black)}
+/* photographs whole, never cropped: a row at one height, each at its own shape (Col, Oct 30: cutting off images) */.pgrid{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}.pgrid a{display:block;flex:0 1 auto;max-width:100%}.pgrid img{height:260px;width:auto;max-width:100%;object-fit:contain;display:block;background:var(--black)}@media(max-width:560px){.pgrid a{flex:1 1 100%}.pgrid img{height:auto;width:100%}}
 .lbx{display:none;position:fixed;inset:0;z-index:60;background:rgb(10,10,10);padding:56px 4vw 4vh;flex-direction:column;align-items:center;justify-content:center;gap:12px;overflow:auto}
 .lbx:target{display:flex}.lbx video,.lbx img{width:min(1100px,100%);max-height:80vh;background:#000;object-fit:contain}
 .lbclose{position:absolute;top:10px;right:18px;color:#fff;font-size:38px;line-height:1;text-decoration:none}
