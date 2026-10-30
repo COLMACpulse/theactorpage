@@ -238,7 +238,7 @@
   async function walkAll(dir) { const out = []; const go = async (h, pre) => { for await (const [nm, e] of h.entries()) { if (out.length > 20000) return; if (e.kind === 'directory') { if (!/^\./.test(nm)) await go(e, pre + nm + '/'); } else out.push({ path: pre + nm, file: await e.getFile() }); } }; await go(dir, ''); return out; }
   async function startScan(entries, root, label) {
     S.scan = { label: label || '', root: root || 'this folder', busy: true, prog: 0, now: '', res: null, pick: [], title: '', open: {} }; go('scan');
-    let online = []; if (window.FootCloud && FootCloud.acct()) { try { online = (await FootCloud.list()).items; } catch (e) { online = FootCloud.cached().items; } }
+    let online = []; if (window.FootCloud && FootCloud.acct()) { try { online = (await FootCloud.list()).items; } catch (e) { online = FootCloud.cached().items; } online = online.filter(x => x.done); }
     const res = await FootScan.scan(entries, { probe: Lb.probe, sniff: f => ActorCompress.sniff(f), online, onP: (x, nm) => { S.scan.prog = x; S.scan.now = nm; const b = $('sc_bar'); if (b) b.style.width = Math.round(x * 100) + '%'; const t = $('sc_now'); if (t) t.textContent = nm; } });
     const all = res.ready.concat(res.twice.flat()); all.forEach((v, i) => v.i = i);
     S.scan.all = all; S.scan.res = res; S.scan.busy = false;
@@ -295,6 +295,9 @@
     const P = picked(); if (!P.length) return; const title = (S.scan.title || '').trim();
     S.up = { rows: P.map(v => ({ v, state: 'next', p: 0, sent: 0 })), total: P.reduce((a, v) => a + v.size, 0), t0: Date.now(), ctl: { paused: false, stop: false }, paused: false };
     const warn = e => { e.preventDefault(); e.returnValue = ''; }; addEventListener('beforeunload', warn);
+    /* keep the screen awake while it runs, so the computer doesn't sleep partway (Col, Oct 30: no fiddling with settings) */
+    let lock = null; const wake = async () => { try { if (navigator.wakeLock && document.visibilityState === 'visible' && !S.up.over) lock = await navigator.wakeLock.request('screen'); } catch (e) { } };
+    const vis = () => { if (document.visibilityState === 'visible') wake(); }; document.addEventListener('visibilitychange', vis); wake();
     go('up');
     for (const r of S.up.rows) {
       if (S.up.ctl.stop) { r.state = 'skipped'; continue; }
@@ -307,7 +310,7 @@
       } catch (e) { r.state = e.stopped ? 'skipped' : 'bad'; r.err = e.message; if (e.status === 413) S.up.ctl.stop = true; }
       render();
     }
-    removeEventListener('beforeunload', warn); S.up.over = true;
+    removeEventListener('beforeunload', warn); S.up.over = true; document.removeEventListener('visibilitychange', vis); try { if (lock) lock.release(); } catch (e) { }
     const ok = S.up.rows.filter(r => r.state === 'done').length, bad = S.up.rows.filter(r => r.state === 'bad').length;
     S.msg = n(ok, 'clip') + ' online.' + (bad ? ' ' + bad + ' didn’t go up; open ADD A DRIVE OR FOLDER again to try them.' : ''); render();
   }

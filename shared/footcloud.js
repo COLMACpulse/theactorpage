@@ -50,8 +50,11 @@
       const n = have + 1, body = file.slice((n - 1) * part, Math.min(file.size, n * part)); let tries = 0;
       for (;;) {
         try { const b = await call(L() + '/part/' + st.id + '?p=' + n, { method: 'PUT', headers: auth(), body }); have = b.have; break; }
-        catch (e) { if (!e.net && !(e.status >= 500)) throw e; tries++; if (tries > 8) throw new Error('The connection keeps dropping. Your upload is saved up to here; tap UPLOAD again to pick it up.');
-          if (o.onWait) o.onWait(tries); await wait(Math.min(30000, 1000 * Math.pow(2, tries - 1))); }
+        catch (e) { if (!e.net && !(e.status >= 500)) throw e; tries++; if (tries > 40) throw new Error('The connection keeps dropping. Your upload is saved up to here; tap UPLOAD again to pick it up.');
+          if (o.onWait) o.onWait(tries);
+          /* offline (Wi-Fi off, the computer asleep): wait until it's back, however long, then carry on */
+          if (typeof navigator !== 'undefined' && navigator.onLine === false) { await new Promise(r => { const f = () => { removeEventListener('online', f); r(); }; addEventListener('online', f); }); tries = Math.min(tries, 3); }
+          else await wait(Math.min(30000, 1000 * Math.pow(2, Math.min(tries, 6) - 1))); }
       }
       onP(have / parts, Math.min(file.size, have * part));
     }
