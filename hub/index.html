@@ -3927,7 +3927,7 @@ function homeView(){
  const clips=ARTS.filter(a=>a.category==='clip'&&(a.type||'').startsWith('video/'));
  const rdoc=ARTS.some(a=>a.scope==='library'&&a.category==='resume');
  const on=[prim?'headshot':'',reels.length?'reel':'',credits.length?credits.length+' credit'+(credits.length===1?'':'s'):'',clips.length?clips.length+' clip'+(clips.length===1?'':'s'):'',rdoc?'résumé':''].filter(Boolean);
- const o=online(), host=o.url?o.url.replace(/^https?:\/\//,'').replace(/\/$/,''):'';
+ const o=online(), host=o.url&&o.live?o.url.replace(/^https?:\/\//,'').replace(/\/$/,''):'';
  const mat=ARTS.filter(a=>a.scope==='library'&&['about','clip','audition','monologue','standup','slate','reel'].includes(a.category)).length;
  const offN=(()=>{ try{ return officeIndex().length; }catch(e){ return 0; } })();
  let h=demoBanner()+(!profile.name&&!hs.length&&!isDemo()?'<div class="hcard hot" id="firststep"><p style="margin:0 0 10px"><b>Start with your name and a headshot.</b> They go at the top of your page. Or bring in your résumé and your credits in Setup.</p><div class="hrow2"><button class="hbtn pri" data-ic="head" onclick="go(\'profile\')">ADD THEM</button><button class="hbtn" data-ic="dev" onclick="go(\'intake\')">SETUP</button></div></div>':'')+'<div class="hg"><div>';
