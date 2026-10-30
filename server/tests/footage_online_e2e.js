@@ -126,6 +126,7 @@ z=zipfile.ZipFile(d+'/notes.zip','w'); z.write(w+'/readme.txt','readme.txt'); z.
     /* the same folder again */
     await scanIt(p);
     const R1 = await p.evaluate(() => { const r = FOOTAGE.scan().res; return { online: r.online.length, ready: r.ready.map(v => v.name) }; });
+    want('the same folder again: still one place on the map, not two', (await p.evaluate(() => FootMap.places().filter(x => x.kind === 'drive' && !x.device).length)) === 1);
     want('the same folder again: what\'s online is left out, the one you removed is back', R1.online === 4 && JSON.stringify(R1.ready) === JSON.stringify(['SALT_ROAD_sc12.webm']) && /4 clips from here are already online, left out/.test(await p.innerText('#view')), R1);
     await p.screenshot({ path: SP + '/fol_scan_computer.png', fullPage: true });
     want('computer: nothing sideways, plain words, no pop-ups, no errors', await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1) && !/—/.test(await p.innerText('body')) && !errs.length, errs);

@@ -400,6 +400,7 @@
     h += '<div class="card" data-stick><div class="place" style="padding:0"><i class="pdot" style="background:' + dot(p.id) + '"></i><span class="pt">' + (S.renaming ? '<input class="field" id="rn" value="' + esc(p.name) + '">' : '<b class="pname">' + esc(p.name) + '</b>')
       + '<small>' + esc(p.kind === 'named' ? (p.note || 'Not on this computer') : n((p.files || []).length, 'video') + ' · ' + M.size(p.bytes) + (p.looked ? ' · looked ' + nice(p.looked) : '')) + '</small></span></div>';
     if (p.kind !== 'named') h += '<p class="dim small" style="margin:10px 0 0">If it isn\u2019t plugged in, this is what was on it' + (p.looked ? ' on ' + nice(p.looked) : '') + '. Plug it in and LOOK AGAIN to bring the list up to date.</p>';
+    if (p.kind !== 'named' && !p.device) h += '<div class="row" style="margin-top:12px">' + (FSA() && p.handle ? '<button class="btn pri" id="up_here" data-ic="footage">PICK WHAT TO UPLOAD</button>' : '<label class="btn pri" data-ic="footage">PICK WHAT TO UPLOAD<input type="file" id="up_here_in" webkitdirectory directory multiple hidden></label>') + '</div><p class="dim small" style="margin:6px 2px 0">Reads it again, shows what plays and what needs work, then you pick.</p>';
     h += '<div class="row" style="margin-top:12px">' + (p.kind !== 'named' ? (FSA() && p.handle ? '<button class="btn" id="relook_fsa" data-ic="footage">LOOK AGAIN</button>' : '<label class="btn" data-ic="footage">LOOK AGAIN<input type="file" id="relook" webkitdirectory directory multiple hidden></label>') : '')
       + (S.renaming ? '<button class="btn pri" id="rnok">KEEP THE NAME</button>' : '<button class="btn" id="rename">RENAME</button>') + '<button class="btn ghost" id="forget">FORGET IT</button></div></div>';
     if (p.kind === 'named') return h + '<div class="card"><p class="kicker">What\u2019s there</p><label class="lab" for="nn">IN YOUR WORDS</label><input class="field" id="nn" value="' + esc(p.note || '') + '">'
@@ -442,13 +443,14 @@
       if (b && el.isConnected) { el.style.backgroundImage = 'url(' + url('th' + k, b) + ')'; el.classList.add('img'); } } catch (e) { } }
   }
   function go(v, extra) { Object.assign(S, { view: v, renaming: false, withOpen: false, rmOne: false, sel: v === 'lib' ? S.sel : null, rmAsk: false }, extra || {}); render(); window.scrollTo(0, 0); }
-  async function pickFolder(placeId) {
+  async function pickFolder(placeId, scanAfter) {
     let dir; try { dir = await window.showDirectoryPicker({ mode: 'read' }); } catch (e) { return; }
     S.msg = 'Reading ' + dir.name + '\u2026'; render();
     const files = await Lb.walk(dir, M.VIDEO); const r = { root: dir.name, files };
+    if (!placeId) { const ex = M.places().find(x => x.kind === 'drive' && !x.device && x.name === dir.name); if (ex) placeId = ex.id; }  /* the same folder again: look again, never a second one (Oct 30) */
     let p; if (placeId) { p = M.relook(placeId, r, today()); } else { p = M.addDrive(dir.name, r, today()); }
     await Lb.handle.put(p.id, dir); const d = M.read(), x = d.places.find(y => y.id === p.id); x.handle = true; localStorage.setItem(M.KEY, JSON.stringify(d));
-    if (!placeId) { S.msg = 'Reading ' + dir.name + '\u2026'; return startScan(await walkAll(dir), dir.name); }
+    if (!placeId || scanAfter) { S.msg = 'Reading ' + dir.name + '\u2026'; return startScan(await walkAll(dir), dir.name); }
     go('place', { place: p.id, msg: placeId ? 'Looked again: ' + n(files.length, 'video') + '. Your fixes are kept.' : p.name + ': ' + n(files.length, 'video') + ' on the map. Plug it in and its originals play here too.' });
   }
   /* clips you pick go the same way as a folder (Col, Oct 28): what plays, what needs work, then upload or keep copies here */
@@ -495,9 +497,9 @@
       on('up_pause', () => { U.paused = U.ctl.paused = !U.paused; render(); });
       on('up_stop', () => { U.ctl.stop = true; const b = $('up_stop'); if (b) { b.disabled = true; b.textContent = 'STOPPING AFTER THIS ONE'; } });
       on('up_lib', () => { S.up = null; S.scan = null; go('lib'); }); }
-    const ad = $('adddrive'); if (ad) ad.onchange = () => { const all = [...(ad.files || [])], r = M.fromFiles(all); ad.value = ''; if (!all.length) return; if (r.root || r.files.length) M.addDrive(r.root, r, today());
+    const ad = $('adddrive'); if (ad) ad.onchange = () => { const all = [...(ad.files || [])], r = M.fromFiles(all); ad.value = ''; if (!all.length) return; if (r.root || r.files.length) { const ex = M.places().find(x => x.kind === 'drive' && !x.device && x.name === r.root); if (ex) M.relook(ex.id, r, today()); else M.addDrive(r.root, r, today()); }
       return startScan(all.map(f => ({ path: (f.webkitRelativePath || f.name).split('/').slice(1).join('/') || f.name, file: f })), r.root || (all[0].webkitRelativePath || '').split('/')[0]); };
-    on('adddrive_fsa', () => pickFolder(''));
+    on('adddrive_fsa', () => pickFolder('', true));
     ['addvids', 'addvids0'].forEach(id => { const av = $(id); if (av) av.onchange = () => { const f = [...(av.files || [])]; av.value = ''; if (f.length) addVideos(f); }; });
     const bt = $('b_title'); if (bt) bt.oninput = () => { if (BATCH) BATCH.title = bt.value; };
     on('b_stop', () => { if (BATCH) { BATCH.stop = true; const b = $('b_stop'); if (b) { b.disabled = true; b.textContent = 'STOPPING AFTER THIS ONE'; } } });
@@ -559,6 +561,8 @@
     if (pl) {
       const rl = $('relook'); if (rl) rl.onchange = () => { const r = M.fromFiles([...(rl.files || [])]); rl.value = ''; M.relook(pl.id, r, today()); S.msg = 'Looked again: ' + n(r.files.length, 'video') + '. Your fixes are kept.'; render(); };
       on('relook_fsa', () => pickFolder(pl.id));
+      on('up_here', async () => { const h = await Lb.handle.get(pl.id); if (!h) return pickFolder(pl.id, true); try { let st = await h.queryPermission({ mode: 'read' }); if (st !== 'granted') st = await h.requestPermission({ mode: 'read' }); if (st !== 'granted') { S.msg = 'It needs your OK to read ' + pl.name + '.'; render(); return; } } catch (e) { return pickFolder(pl.id, true); } S.msg = 'Reading ' + pl.name + '\u2026'; render(); startScan(await walkAll(h), pl.name); });
+      const uhi = $('up_here_in'); if (uhi) uhi.onchange = () => { const all = [...(uhi.files || [])]; uhi.value = ''; if (!all.length) return; M.relook(pl.id, M.fromFiles(all), today()); startScan(all.map(f => ({ path: (f.webkitRelativePath || f.name).split('/').slice(1).join('/') || f.name, file: f })), pl.name); };
       on('rename', () => { S.renaming = true; render(); const e = $('rn'); if (e) { e.focus(); e.select(); } });
       on('rnok', () => { M.setPlace(pl.id, { name: $('rn').value }); S.renaming = false; render(); });
       on('forget', async () => { if (!confirm('Take ' + pl.name + ' off the map? Your files stay where they are.')) return; for (const f of pl.files || []) { const k = M.fkey(pl.id, f.p); await Lb.proxy.del(k); await Lb.thumb.del(k); } await Lb.handle.del(pl.id); M.forget(pl.id); go('lib', { msg: pl.name + ' is off the map. Nothing on it was touched.' }); });
