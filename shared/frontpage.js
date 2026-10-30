@@ -71,11 +71,9 @@
       + room('act', 'THE WORK', 'Before the room',
         d('mem', 'Memorizer', 'memorizer/', 'learn your lines at your desk') + d('vo', 'VO Booth', 'booth/', 'a VO audition from your desk')
         + d('chars', 'Characters', 'characters/', 'every role, played or read') + d('viz', 'Picture It', 'picture/', 'what you want'))
-      /* WRITE and FILM (Col, Oct 30: "they are secondary, but should still be on the page"): a smaller row under the acting rooms */
-      + room('write own2', 'WRITE', 'Make your own',
+      /* WRITE and FILM (Col, Oct 30: FILM dropped again, WRITE stays): a smaller row under the acting rooms */
+      + room('write own own2', 'WRITE', 'Make your own',
         d('wb', 'THEACTORPAGES', 'write/writers-blockage.html', 'a monologue, a scene, a short; every draft kept'))
-      + room('film own2', 'FILM', 'Shoot your own',
-        d('ss', 'Story Studio', 'film/', c.films ? 'plan it, shoot it, your films · ' + c.films : 'plan it, shoot it, your films'))
       + '</div><aside class="side">'
       + '<div class="aos" id="aosCard"><span class="sticks" aria-hidden="true"></span><div class="ain"><span class="k">' + I('actor', 'sm') + 'ACTOR OS · HERE OR ON YOUR PHONE</span><b>Audition day: read it, learn it, shoot it, send it.</b>'
       + '<div class="fsteps4" aria-hidden="true"><span>READ</span><span>LEARN</span><span>SHOOT</span><span>SEND</span></div>'
@@ -103,7 +101,6 @@
       + '<div class="ib act"><span class="k">SHOWCASE</span>Your page, headshots, reels, everything you\'ve shot</div>'
       + '<div class="ib act"><span class="k">THE WORK</span>Learn your lines, a VO booth, every role you\'ve played, Picture It</div>'
       + '<div class="ib write"><span class="k">WRITE</span>A monologue, a scene or a short, every draft kept</div>'
-      + '<div class="ib film"><span class="k">FILM</span>Plan a shoot and run the day, for the work you make yourself</div>'
       + '<div class="ib aosb"><span class="k">ACTOR OS · HERE OR ON YOUR PHONE</span>Read it, learn it, shoot it, send it, on this computer or your phone. Plus a VO booth for the closet.</div>'
       + '</aside></div>';
   }
