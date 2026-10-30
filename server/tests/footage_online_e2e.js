@@ -51,7 +51,10 @@ z=zipfile.ZipFile(d+'/notes.zip','w'); z.write(w+'/readme.txt','readme.txt'); z.
     await p.fill('#ac_name', 'sam-actor-test'); await p.waitForTimeout(900);
     want('the address: free, in plain words', /sam-actor-test\.theactorpage\.com is free/.test(await p.innerText('#ac_why')));
     await p.click('#ac_claim'); await p.waitForTimeout(800);
-    v = await p.innerText('#view'); BACKUP = (v.match(/Your backup code: (\S+)\./) || [])[1] || '';
+    v = await p.innerText('#view'); BACKUP = (await p.innerText('#bk_code').catch(() => '')).trim();
+    await p.uncheck('[aria-label="low_tide_scene.webm"]'); await p.check('[aria-label="low_tide_scene.webm"]'); await p.waitForTimeout(150);
+    want('the backup code stays on screen after another click, until you say it\'s written down', (await p.innerText('#bk_code').catch(() => '')).trim() === BACKUP && /Without it, there.s no way back in/.test(await p.innerText('#codebox')));
+    await p.click('#bk_kept'); await p.waitForTimeout(150); want('I WROTE IT DOWN: it goes', !(await p.$('#codebox')));
     want('MAKE IT MINE: yours, and the backup code to write down', /It.s yours: sam-actor-test\.theactorpage\.com/.test(v) && BACKUP.length > 10 && !!(await p.$('#up_go')), v.slice(0, 300));
     want('how much of your 5 GB it uses, and about how long', /of your 5 GB/.test(v) && /About \d+ to \d+ minutes on home Wi-Fi/.test(v));
     await p.uncheck('[aria-label="low_tide_scene.webm"]'); await p.waitForTimeout(200);
