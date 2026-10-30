@@ -25,7 +25,7 @@ for(const [nm,cs] of [['desk',"light"],['deskdark','dark']]){
  } else { await p.click('#stSkip'); await p.waitForTimeout(400); want(nm+': skip it: the studio', await p.evaluate(()=>document.body.dataset.view)==='studio'); }
  m=await p.innerText('#main');
  const doors=await p.$$eval('.room',R=>R.map(r=>r.querySelector('.k').textContent+':'+[...r.querySelectorAll('a')].map(a=>a.getAttribute('href')).join(',')));
- want(nm+': SHOWCASE, THE WORK, MAKE YOUR OWN: plain doors, no FILM', doors.join('|')==='SHOWCASE:hub/,headshots/,archbook/,footage/|THE WORK:memorizer/,booth/,characters/,picture/|MAKE YOUR OWN:write/writers-blockage.html', doors);
+ want(nm+': SHOWCASE, THE WORK, WRITE and FILM: plain doors, WRITE and FILM smaller underneath', doors.join('|')==='SHOWCASE:hub/,headshots/,archbook/,footage/|THE WORK:memorizer/,booth/,characters/,picture/|WRITE:write/writers-blockage.html|FILM:film/', doors);
  want(nm+': Actor OS for your phone, with a code to point the camera at', !!(await p.$('#aosCard .code svg'))&&/Point your phone's camera here/.test(m)&&!!(await p.$('#aosCard a[href="actor-os/"]')));
  want(nm+': your backup, and the pitch on its own page', !!(await p.$('.yours a[href="device/"]'))&&!!(await p.$('.foot a[href="how.html"]'))&&!!(await p.$('.foot a[href="how.html#cost"]')));
  await p.screenshot({path:SHOTS+'/studio_'+nm+'.png',fullPage:true});
