@@ -446,7 +446,9 @@ h1{font-size:18px;letter-spacing:.11em;margin:0}
   </div>
  </div>
 </div>
-<section id="home" class="panel on"><div id="aosHome"></div></section>
+<section id="home" class="panel on"><div id="aosHome"></div><p id="aosVer" style="text-align:center;font-size:11px;letter-spacing:.08em;color:var(--mut,#8a857c);margin:22px 0 8px"></p></section>
+<script>/* which Actor OS this is, read from its own offline file, so you can tell the current one at a glance (Col, Oct 30) */
+(function(){ fetch('sw.js',{cache:'no-store'}).then(r=>r.text()).then(t=>{ const m=t.match(/CACHE='actor-os-pwa-v(\d+)_(\d+)_(\d+)'/); const e=document.getElementById('aosVer'); if(m&&e) e.textContent='ACTOR OS '+m[1]+'.'+m[2]+'.'+m[3]+' \u00b7 THEACTORPAGE'; }).catch(()=>{}); })();</script>
 <section id="prep" class="panel on">
 <div id="aosKit"></div>
 <div class="am">Everything here is optional. PREP supports the work; it does not gate RECORD.</div>
