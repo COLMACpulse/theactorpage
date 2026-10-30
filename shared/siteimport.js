@@ -48,7 +48,7 @@
     const head = file(site.headshot), headshots = []; [site.headshot].concat(site.photos || []).forEach(p => { const f = file(p && (p.src || p)); if (f && !headshots.includes(f)) headshots.push(f); });
     const stills = []; (site.stills || []).forEach(p => { const f = file(p && (p.src || p)); if (f && !stills.includes(f) && !headshots.includes(f)) stills.push(f); });
     const films = (site.films || []).filter(f => f && clean(f.t)).map(f => ({ title: clean(f.t), credit: clean(f.s), links: isUrl(f.u) ? [{ url: clean(f.u), label: /youtu/i.test(f.u) ? 'Watch on YouTube' : /vimeo/i.test(f.u) ? 'Watch on Vimeo' : 'Watch' }] : [], poster: file(f.p) }));
-    const writing = (site.writing || []).filter(w => w && clean(w.t)).map(w => ({ title: clean(w.t), logline: clean(w.s), genre: clean(w.genre), kind: clean(w.format), status: clean(w.status), poster: file(w.p), links: isUrl(w.u) ? [{ url: clean(w.u), label: 'Read more' }] : [] }));
+    const writing = (site.writing || []).filter(w => w && clean(w.t)).map(w => ({ title: clean(w.t), logline: clean(w.s), genre: clean(w.genre), kind: clean(w.format), format: clean(w.format), comps: clean(w.comps), material: clean(w.material), note: clean(w.note), status: clean(w.status), poster: file(w.p), links: isUrl(w.u) ? [{ url: clean(w.u), label: 'Read more' }] : [] }));
     const reel = file(site.reel);
     const clipN = credits.reduce((n, c) => n + c.clips.length, 0);
     return { profile, credits, primary: head, headshots, stills, reel, films, writing, missing, moved,

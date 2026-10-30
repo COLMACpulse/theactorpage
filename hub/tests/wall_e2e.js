@@ -31,13 +31,15 @@ for(const [nm,vp,cs] of [['computer',{width:1280,height:900},'light'],['phone',{
  /* the wall, as it goes online */
  const H=await p.evaluate(async()=>{ await loadMade(); const e=await siteEntries('https://riley.example.com'); return new TextDecoder().decode(e[0].data); });
  const iHead=H.indexOf('class="slate wallhd"'), iReel=H.indexOf('<span class="lbl">Reel</span>'), iWork=H.indexOf('<span class="lbl">Work</span>'), iPh=H.indexOf('<span class="lbl">Photographs</span>');
- want(nm+': in order: your name and headshots, the reel, your work, then photographs', iHead>0&&iHead<iReel&&iReel<iWork&&iWork<iPh, [iHead,iReel,iWork,iPh]);
- want(nm+': the headshot strip: both headshots, each opens big; no More headshots under it', (H.match(/<div class="hstrip">([\s\S]*?)<\/div>/)||['',''])[1].split('<a href="#p').length-1===2&&!/More headshots/.test(H));
+ want(nm+': in order: your name and pictures, the reel, your work; the one photograph is up top, so no Photographs section', iHead>0&&iHead<iReel&&iReel<iWork&&iPh<0, [iHead,iReel,iWork,iPh]);
+ const strip=(H.match(/<div class="hstrip">([\s\S]*?)<\/div>/)||['',''])[1];
+ want(nm+': under your name, like your site: your headshot, the photograph, then the other headshot; each opens big; nothing left over', strip.split('<a href="#p').length-1===3&&/media\/photo_still-dock/.test(strip)&&strip.indexOf('photo_still')<strip.lastIndexOf('headshot_')&&!/More headshots|>Headshots</.test(H), strip.slice(0,300));
  want(nm+': union, rep, IMDb and email up top', /wallhd[\s\S]*<dt>Rep<\/dt><dd>Northgate Talent[\s\S]*<dt>IMDb<\/dt>[\s\S]*<dt>Email<\/dt><dd><a href="mailto:riley@example\.com">/.test(H.slice(iHead,iReel)));
  want(nm+': WORK: all 3 credits as posters, says to tap one', /<span class="lbl">Work<\/span><span class="ct">3/.test(H)&&(H.match(/<article class="wcard">/g)||[]).length===3&&/Tap a poster to play the clip/.test(H));
  want(nm+': a poster with a clip opens it over the page', /<a class="wpo" href="#v\d+" aria-label="Play Harbor Lights · DET\. MARA KEYS"><img src="data:image/.test(H)&&/<div class="lbx" id="v\d+" role="dialog" aria-label="Harbor Lights · DET\. MARA KEYS">/.test(H));
  const noClip=(H.match(/<article class="wcard"><div class="wpo">/g)||[]).length;
  want(nm+': the credit with no clip: same poster, no play mark', noClip===1&&(H.match(/<a class="wpo"/g)||[]).length===2, noClip);
+ want(nm+': writing on the wall: a poster, tap it for the story and where it stands', /<a class="wpcard" href="#w\d+" aria-label="The Night Ferry">/.test(H)&&/<div class="lbx" id="w\d+" role="dialog" aria-label="The Night Ferry">[\s\S]*?A ferry captain has one crossing left[\s\S]*?<dt>Genre<\/dt><dd>Thriller<\/dd>/.test(H)&&!/class="wlist"/.test(H));
  want(nm+': no credits list on the wall', !/<span class="lbl">Credits<\/span>/.test(H)&&!/class="credlist">\s*<article class="crow" id="c-harbor/.test(H));
  want(nm+': plain words', !/—/.test(H.slice(iHead,iPh)));
 
@@ -54,7 +56,7 @@ for(const [nm,vp,cs] of [['computer',{width:1280,height:900},'light'],['phone',{
  want(nm+': tap a poster: the clip opens big over the page', lb&&lb.vid&&lb.vis&&/Harbor Lights/.test(lb.cap), lb);
  await q.goto('file://'+path.join(site,'index.html')); await q.waitForTimeout(500);
  want(nm+': nothing sideways', await q.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
- want(nm+': photographs whole, not cropped', await q.evaluate(()=>{ const i=document.querySelector('.pgrid img'); return !!i&&getComputedStyle(i).objectFit==='contain'&&Math.abs(i.getBoundingClientRect().width/i.getBoundingClientRect().height-i.naturalWidth/i.naturalHeight)<0.05; }));
+ want(nm+': photographs whole, not cropped (résumé layout)', await q.evaluate(()=>{ if(!document.querySelector('.pgrid img')) return true; const i=document.querySelector('.pgrid img'); return !!i&&getComputedStyle(i).objectFit==='contain'&&Math.abs(i.getBoundingClientRect().width/i.getBoundingClientRect().height-i.naturalWidth/i.naturalHeight)<0.05; }));
  await q.screenshot({path:SP+'/wall_'+nm+'.png',fullPage:true});
  want(nm+': the page has no errors', !qerr.length, qerr);
 
@@ -64,6 +66,11 @@ for(const [nm,vp,cs] of [['computer',{width:1280,height:900},'light'],['phone',{
  want(nm+': SEE IT plays each credit\'s clip from the files here', see.see, see);
  want(nm+': the saved file: posters only (a rep submission stays small), clips with EVERYTHING', see.sub&&see.full, see);
 
+ /* leave one credit off: it stays off after a reload */
+ await p.evaluate(()=>{ const c=credits.find(x=>x.title==='Dry Creek'); pkgToggleCredit(c.cid); }); await p.waitForTimeout(800); await p.reload(); await p.waitForTimeout(1800);
+ const offH=await p.evaluate(async()=>{ pkgInit(); return new TextDecoder().decode((await siteEntries('https://riley.example.com'))[0].data); });
+ want(nm+': a credit you leave off stays off after a reload', !/<b>Dry Creek<\/b>/.test(offH)&&/<b>Harbor Lights<\/b>/.test(offH));
+ await p.evaluate(()=>{ const c=credits.find(x=>x.title==='Dry Creek'); pkgToggleCredit(c.cid); });
  /* RÉSUMÉ */
  await p.click('#lay_resume'); await p.waitForTimeout(300);
  const R=await p.evaluate(async()=>({k:profile.pageLayout,on:!!document.querySelector('#lay_resume.on'),h:new TextDecoder().decode((await siteEntries('https://riley.example.com'))[0].data)}));
