@@ -44,8 +44,8 @@ const FX = path.join(__dirname, '..', '..', 'shared', 'fixtures');
   want('a new phone, wrong code: says so', /doesn't match/.test(await p2.innerText('#online')));
   await p2.fill('#reccode', o.backup); await p2.click('#online button:has-text("Use it")'); await p2.waitForTimeout(900);
   want('the backup code: this phone can update the page now', /LIVE/.test(await p2.innerText('#online')) && !!(await p2.evaluate(() => JSON.parse(localStorage.getItem('hub_online_v1')).key)));
-  await p.evaluate(() => { ON.err = ''; render(); }); await p.$eval('#online', e => e.scrollIntoView()); await p.click('#online button.act'); await p.waitForTimeout(1500);
-  want('and the first phone\'s key stops working, in plain words', /doesn't open this page/.test(await p.innerText('#online')), await p.innerText('#online'));
+  await p.evaluate(() => { ON.err = ''; render(); }); await p.$eval('#online', e => e.scrollIntoView()); await p.click('#online button.act'); await p.waitForTimeout(500); await p.waitForFunction(() => !ON.busy, null, { timeout: 30000 }).catch(() => { });
+  want('and the first phone keeps working too: each computer signed in has its own key (Oct 31)', /LIVE/.test(await p.innerText('#online')) && !/doesn't open this page/.test(await p.innerText('#online')), await p.innerText('#online'));
   // take it down from the new phone
   await p2.click('#online button:has-text("Take it down")'); await p2.waitForTimeout(1200);
   want('TAKE IT DOWN: not up, the address still yours', /Not up right now/.test(await p2.innerText('#online')));

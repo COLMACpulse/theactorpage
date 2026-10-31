@@ -17,7 +17,8 @@ for(const [nm,vp,cs] of [['desk',{width:1280,height:900},'light'],['phone',{widt
  const facts=await p.$$eval('.fact b',x=>x.map(e=>e.textContent));
  want(nm+': the short version, four lines', facts.join('|')==='No account|Kept on this device|Nothing leaves on its own|You hold the backup', facts);
  const rows=await p.$$eval('.lv>summary b',x=>x.map(e=>e.textContent));
- want(nm+': each time something can leave', rows.length===10&&['Send it','Speak to a tool that types','Put your page online','Upload your clips','Put a video on your page','Check the news','Search for your press','Ask a friend to read in','Look up a credit in the Hub','Open a link'].every(r=>rows.includes(r)), rows);
+ want(nm+': each time something can leave', rows.length===11&&['Send it','Speak to a tool that types','Put your page online','Upload your clips','Keep your studio online','Put a video on your page','Check the news','Search for your press','Ask a friend to read in','Look up a credit in the Hub','Open a link'].every(r=>rows.includes(r)), rows);
+ want(nm+': keeping your studio online: off until you turn it on, only you, the key never goes', /Off until you turn it on/.test(await p.innerText('.lv:has-text("Keep your studio online") summary'))&&/Only you/.test(await p.innerText('.lv:has-text("Keep your studio online") summary'))&&/never go up/.test(await p.$eval('.lv:has-text("Keep your studio online") .more',x=>x.textContent)));
  want(nm+': the full wording is folded under each row', await p.$$eval('.lv',x=>x.every(d=>!d.open)));
  await p.click('.lv:has-text("Speak to a tool") summary'); await p.waitForTimeout(200);
  const sp=await p.innerText('.lv:has-text("Speak to a tool") .more');

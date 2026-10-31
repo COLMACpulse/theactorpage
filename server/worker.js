@@ -17,7 +17,7 @@
      PUT    /api/sites/<name>/files/<path>?v=ver   the bytes                    (key)
      POST   /api/sites/<name>/commit {ver, files}  goes live, old files go     (key)
      DELETE /api/sites/<name>                      takes it down (name kept)    (key)
-     POST   /api/recover      {name, backup}       -> {key} a new key; the old one stops working
+     POST   /api/recover      {name, backup}       -> {key} a key for this computer; the others keep working (Oct 31)
    Pages: <name>.<zone>/<path>, or /s/<name>/<path> on any host (for testing).
 
    FOOTAGE ONLINE (Oct 28): an actor's own clips, the originals, private. Same key as the page. Only they can list them or
@@ -89,7 +89,7 @@ async function wipe(env, prefix, keep) {
 async function authed(req, env, name) {
   const m = await meta(env, name); if (!m) return { err: no('No page by that name.', 404) };
   const k = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
-  if (!k || !same(await hash(k), m.key)) return { err: no('That key doesn\'t open this page.', 403) };
+  const kh = k ? await hash(k) : ''; if (!k || !(same(kh, m.key) || (m.keys || []).some(x => same(kh, x)))) return { err: no('That key doesn\'t open this page.', 403) };
   return { m };
 }
 
@@ -117,8 +117,80 @@ async function api(req, env, url, H) {
   if (M === 'POST' && p === '/recover') {
     const b = await req.json().catch(() => ({})), n = String(b.name || '').toLowerCase(), mm = await meta(env, n);
     if (!mm || !same(await hash(String(b.backup || '').trim()), mm.backup)) return no('That backup code doesn\'t match this page.', 403, H);
-    const key = secret(32); mm.key = await hash(key); mm.updated = new Date().toISOString(); await putMeta(env, mm);
+    /* SIGN IN on another computer (Oct 31): a key for this one too; the others keep working (up to 10, oldest drops) */
+    const key = secret(32), kh = await hash(key); mm.keys = [].concat(mm.keys || [], mm.key ? [mm.key] : []).filter((x, i, A) => x && A.indexOf(x) === i).slice(-9); mm.key = kh;
+    mm.updated = new Date().toISOString(); await putMeta(env, mm);
     return j({ ok: true, name: n, key, url: siteUrl(env, n, url) }, 200, H);
+  }
+  /* YOUR STUDIO, KEPT ONLINE (Oct 31: SIGN IN brings everything back). Everything your tools keep on this computer, so
+     another computer can sign in and have it. A small list of it all (the manifest) plus each photo, take or file once,
+     named by its fingerprint (SHA-256), so only what's new goes up. Private: only your key reads it. Counts toward the
+     same free amount as your clips.
+       studio/<name>/index.json   {have: {sha: size}, bytes, at, msize}     studio/<name>/manifest.json     studio/<name>/m/<sha>
+       GET  /api/studio/<name>                         {have:[sha], bytes, at, cap, part}           (key)
+       GET  /api/studio/<name>/manifest                the list                                      (key)
+       PUT  /api/studio/<name>/manifest                the list (up to 20 MB)                        (key)
+       PUT  /api/studio/<name>/m/<sha>                 one file up to PART_MB                         (key)
+       POST /api/studio/<name>/m/<sha>/start {size}  then PUT .../part?p=n, POST .../finish       (key)  bigger files
+       GET  /api/studio/<name>/m/<sha>                 the file                                      (key)
+       POST /api/studio/<name>/prune {keep:[sha]}      files the list no longer names go             (key) */
+  if ((m = p.match(/^\/studio\/([a-z0-9-]+)(\/.*)?$/))) {
+    const n = m[1], rest = m[2] || '', a = await authed(req, env, n); if (a.err) { Object.entries(H).forEach(([k, v]) => a.err.headers.set(k, v)); return a.err; }
+    const L = lim(env), SX = 'studio/' + n + '/index.json', S = await (async () => { const o = await env.SITES.get(SX); return o ? o.json() : { have: {}, bytes: 0, up: {} }; })();
+    const save = () => env.SITES.put(SX, JSON.stringify(S), { httpMetadata: { contentType: 'application/json' } }), mk = sha => 'studio/' + n + '/m/' + sha;
+    const room = async more => { const X = await libIdx(env, n); return (X.bytes || 0) + (S.bytes || 0) + (S.msize || 0) + more <= L.lib; };
+    const over = () => no('Your studio would go over your ' + Math.round(L.lib / MB / 1024 * 10) / 10 + ' GB. Remove some clips from Footage first.', 413, H);
+    if (M === 'GET' && rest === '') return j({ ok: true, have: Object.keys(S.have || {}), bytes: S.bytes || 0, at: S.at || '', cap: L.lib, part: L.part }, 200, H);
+    if (rest === '/manifest') {
+      if (M === 'GET') { const o = await env.SITES.get('studio/' + n + '/manifest.json'); if (!o) return no('Nothing kept online yet.', 404, H); return new Response(o.body, { headers: Object.assign({ 'content-type': 'application/json', 'cache-control': 'no-store' }, H) }); }
+      if (M === 'PUT') {
+        const body = await req.arrayBuffer(); if (body.byteLength > 20 * MB) return no('That list is too big.', 413, H); if (!body.byteLength) return no('That list is empty.', 400, H);
+        if (!(await room(body.byteLength - (S.msize || 0)))) return over();
+        await env.SITES.put('studio/' + n + '/manifest.json', body, { httpMetadata: { contentType: 'application/json' } });
+        S.msize = body.byteLength; S.at = new Date().toISOString(); await save(); return j({ ok: true, at: S.at }, 200, H);
+      }
+    }
+    let q;
+    if ((q = rest.match(/^\/m\/([0-9a-f]{64})(\/start|\/part|\/finish)?$/))) {
+      const sha = q[1], step = q[2] || '';
+      if (M === 'GET' && !step) { const o = await env.SITES.get(mk(sha)); if (!o) return no('Not here.', 404, H); return new Response(o.body, { headers: Object.assign({ 'content-type': 'application/octet-stream', 'content-length': String(o.size), 'cache-control': 'no-store' }, H) }); }
+      if (M === 'PUT' && !step) {
+        if (S.have[sha]) return j({ ok: true, have: true }, 200, H);
+        const len = +req.headers.get('content-length') || 0, body = len ? req.body : await req.arrayBuffer(), size = len || body.byteLength;
+        if (size > L.part) return no('Too big for one go. Send it in parts.', 413, H); if (!(await room(size))) return over();
+        await env.SITES.put(mk(sha), body, { httpMetadata: { contentType: 'application/octet-stream' } });
+        S.have[sha] = size; S.bytes = (S.bytes || 0) + size; await save(); return j({ ok: true, have: true }, 200, H);
+      }
+      if (M === 'POST' && step === '/start') {
+        if (S.have[sha]) return j({ ok: true, have: true }, 200, H);
+        const b = await req.json().catch(() => ({})), size = Math.floor(+b.size || 0); if (!(size > 0)) return no('That file is empty.', 400, H);
+        S.up = S.up || {}; const was = S.up[sha]; if (was && was.size === size) return j({ ok: true, part: L.part, have: was.parts.length }, 200, H);
+        if (!(await room(size))) return over();
+        const up = await env.SITES.createMultipartUpload(mk(sha)); S.up[sha] = { size, id: up.uploadId, parts: [] }; await save(); return j({ ok: true, part: L.part, have: 0 }, 200, H);
+      }
+      const u = (S.up || {})[sha];
+      if (M === 'PUT' && step === '/part') {
+        if (!u) return no('Start it first.', 404, H); const pn = +url.searchParams.get('p'), want = Math.ceil(u.size / L.part); if (!(pn >= 1 && pn <= want)) return no('bad part', 400, H);
+        if (u.parts.length >= pn) return j({ ok: true, have: u.parts.length }, 200, H); if (u.parts.length !== pn - 1) return no('Parts go in order. Send part ' + (u.parts.length + 1) + '.', 409, H);
+        const len = +req.headers.get('content-length') || 0, should = pn < want ? L.part : u.size - L.part * (want - 1); let body = req.body;
+        if (len && len !== should) return no('That part is the wrong size.', 400, H); if (!len) { body = await req.arrayBuffer(); if (body.byteLength !== should) return no('That part is the wrong size.', 400, H); }
+        const part = await env.SITES.resumeMultipartUpload(mk(sha), u.id).uploadPart(pn, body); u.parts.push(part.etag); await save(); return j({ ok: true, have: u.parts.length }, 200, H);
+      }
+      if (M === 'POST' && step === '/finish') {
+        if (S.have[sha]) return j({ ok: true, have: true }, 200, H); if (!u) return no('Start it first.', 404, H);
+        if (u.parts.length !== Math.ceil(u.size / L.part)) return no('Not every part is in yet.', 409, H);
+        await env.SITES.resumeMultipartUpload(mk(sha), u.id).complete(u.parts.map((etag, i) => ({ partNumber: i + 1, etag })));
+        S.have[sha] = u.size; S.bytes = (S.bytes || 0) + u.size; delete S.up[sha]; await save(); return j({ ok: true, have: true }, 200, H);
+      }
+    }
+    if (M === 'POST' && rest === '/prune') {
+      const b = await req.json().catch(() => ({})), keep = new Set((b.keep || []).filter(x => /^[0-9a-f]{64}$/.test(x))), gone = Object.keys(S.have).filter(sha => !keep.has(sha));
+      for (let i = 0; i < gone.length; i += 500) await env.SITES.delete(gone.slice(i, i + 500).map(mk));
+      gone.forEach(sha => { S.bytes = Math.max(0, (S.bytes || 0) - S.have[sha]); delete S.have[sha]; });
+      for (const [sha, x] of Object.entries(S.up || {})) if (!keep.has(sha)) { try { await env.SITES.resumeMultipartUpload(mk(sha), x.id).abort(); } catch (e) { } delete S.up[sha]; }
+      await save(); return j({ ok: true, gone: gone.length, bytes: S.bytes }, 200, H);
+    }
+    return no('Not here.', 404, H);
   }
   if ((m = p.match(/^\/lib\/([a-z0-9-]+)(\/.*)?$/))) {
     const n = m[1], rest = m[2] || '', a = await authed(req, env, n); if (a.err) { Object.entries(H).forEach(([k, v]) => a.err.headers.set(k, v)); return a.err; }
@@ -132,7 +204,7 @@ async function api(req, env, url, H) {
       const was = fp && Object.entries(X.items).find(([, it]) => !it.done && it.fp === fp && it.size === size);
       if (was) return j({ ok: true, id: was[0], part: L.part, have: (was[1].parts || []).length }, 200, H);
       const pending = Object.values(X.items).filter(it => !it.done).reduce((t, it) => t + it.size, 0);
-      if ((X.bytes || 0) + pending + size > L.lib) return no('That would go over your ' + Math.round(L.lib / MB / 1024 * 10) / 10 + ' GB. Remove something first.', 413, H);
+      const SO = await env.SITES.get('studio/' + n + '/index.json'), SB = SO ? await SO.json() : {}; if ((X.bytes || 0) + (SB.bytes || 0) + (SB.msize || 0) + pending + size > L.lib) return no('That would go over your ' + Math.round(L.lib / MB / 1024 * 10) / 10 + ' GB. Remove something first.', 413, H);
       const id = Date.now().toString(36) + secret(6), up = await env.SITES.createMultipartUpload(fk(id), { httpMetadata: { contentType: VID[ext] } });
       X.items[id] = { name, size, type: VID[ext], secs: Math.round((+b.secs || 0) * 10) / 10, fp, at: new Date().toISOString(), done: false, up: up.uploadId, parts: [] };
       await libPut(env, n, X); return j({ ok: true, id, part: L.part, have: 0 }, 200, H);

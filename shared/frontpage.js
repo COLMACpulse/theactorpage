@@ -48,6 +48,7 @@
     const y = you();
     let h = '<a href="how.html" class="hide-s">How it works</a><a href="how.html#cost" class="hide-s">What it costs</a><a href="privacy/">Privacy</a>';
     if (v === 'studio') h = '<a href="device/">On This Device</a>' + h + '<a class="who" href="hub/" aria-label="Your page">' + '<span>Your page</span></a>';
+    else h += '<a class="who" href="signin/" id="topSignIn"><span>Sign in</span></a>';
     $('tlinks').innerHTML = h;
   }
 
@@ -83,6 +84,28 @@
   }
 
   const I = (id, cls) => window.Icons ? Icons.ring(id, cls) : '';
+  /* YOUR STUDIO, KEPT ONLINE (Col, Oct 31): off until you turn it on; then any computer can SIGN IN and have it all */
+  const ago = t => { const s = Math.round((Date.now() - Date.parse(t)) / 1000); return !t || isNaN(s) ? '' : s < 60 ? 'just now' : s < 3600 ? Math.round(s / 60) + ' min ago' : s < 86400 ? Math.round(s / 3600) + ' hr ago' : new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); };
+  function keepBox() {
+    const K = window.StudioSync, st = K ? K.state() : { acct: false };
+    if (!st.acct) return I('dev') + '<div><span class="k">YOURS</span>Everything stays on this computer. Back it up, or move it to your phone, from <a href="device/">On This Device</a>.</div>';
+    if (!st.on) return I('dev') + '<div><span class="k">SIGN IN ON ANY COMPUTER</span>Keep your studio online and any computer can sign in and have it all: your page, headshots, clips, notes. Private: only you. It uses your free space.'
+      + '<button type="button" class="keepgo" id="keepOn">KEEP MY STUDIO ONLINE</button></div>';
+    const line = st.busy ? 'Keeping it online… ' + st.pct + '%' : st.err ? 'Couldn’t keep it online just now: ' + esc(st.err) : st.at ? 'Kept online ' + ago(st.at) + '.' : 'Turned on.';
+    return I('dev') + '<div><span class="k">YOUR STUDIO IS KEPT ONLINE</span><span id="keepLine">' + line + '</span>' + (st.busy ? '<span class="keepbar" aria-hidden="true"><i style="width:' + st.pct + '%"></i></span>' : '')
+      + '<span class="keepsay">On another computer: theactorpage.com › Sign in, with your address and backup code.</span>'
+      + '<span class="keeprow"><button type="button" class="keepgo sm" id="keepNow"' + (st.busy ? ' disabled' : '') + '>KEEP IT NOW</button><button type="button" class="lnk" id="keepOff">Turn it off</button></span></div>';
+  }
+  function keepWire() {
+    const K = window.StudioSync; if (!K) return;
+    const on = $('keepOn'); if (on) on.onclick = () => { K.turnOn().catch(() => { }); keepPaint(); };
+    const now = $('keepNow'); if (now) now.onclick = () => { K.backup().catch(() => { }); };
+    const off = $('keepOff'); if (off) off.onclick = () => { if (confirm('Stop keeping your studio online? What’s online stays until you turn it on again; signing in on another computer won’t have your newest changes.')) { K.turnOff(); keepPaint(); } };
+  }
+  function keepPaint() { const c = $('keepCard'); if (c) { c.innerHTML = keepBox(); keepWire(); } }
+  if (window.StudioSync) StudioSync.onChange(keepPaint);
+
+
   const B = id => window.Icons ? Icons.bare(id) : '';
   function studio() {
     const c = counts(), d = (ic, l, href, say) => '<a href="' + href + '">' + I(ic) + '<span><b>' + esc(l) + '</b><i>' + esc(say) + '</i></span></a>';
@@ -115,7 +138,7 @@
       + '<p class="aossay">Paste the casting email or drop the sides. It reads your role, runs your lines with you, tapes you with this camera and sends it the way they asked. VO Booth, Read In and Spotted are in there too.</p>'
       + '<span class="aosor">OR ON YOUR PHONE</span>'
       + '<div class="qr"><div class="code" aria-label="A code for your phone\'s camera: it opens Actor OS">' + qr(aosUrl()) + '</div><small>Point your phone\'s camera here, then Share › Add to Home Screen.</small></div></div></div>'
-      + '<div class="yours">' + I('dev') + '<div><span class="k">YOURS</span>Everything stays on this computer. Back it up, or move it to your phone, from <a href="device/">On This Device</a>.</div></div>'
+      + '<div class="yours" id="keepCard">' + keepBox() + '</div>'
       + '</aside></div>'
       + '<p class="foot"><a href="how.html">How it works</a><a href="how.html#act">Every tool</a><a href="how.html#cost">What it costs</a><a href="privacy/">Privacy</a></p>';
   }
@@ -130,7 +153,7 @@
       + row('1 · Your résumé', 'PDF, Word or text. It fills in your credits, training and rep for every tool.', hasRes ? esc(y.resume.name) : '', '<label class="btn pri">ADD YOUR RÉSUMÉ<input type="file" id="stRes" accept=".pdf,.docx,.txt,.text,.rtf,.md"></label>')
       + row('2 · One headshot', 'It goes on your page, your slate and your postcard.', hasShot ? 'added' : '', '<label class="btn">ADD A HEADSHOT<input type="file" id="stShot" accept="image/*"></label>')
       + '<span class="note">The rest fills in as you go. Sides come one audition at a time, on your phone.</span></div></div>'
-      + '<div class="alt"><a href="demo/?try">Or try it with a sample scene first ›</a><button type="button" class="lnk" id="stSkip" style="background:none;border:0;padding:0;color:var(--dim);font-size:14px">Skip, show me the studio ›</button></div></div>'
+      + '<div class="alt"><a href="demo/?try">Or try it with a sample scene first ›</a><a href="signin/" id="toSignIn">Already set up on another computer? Sign in ›</a><button type="button" class="lnk" id="stSkip" style="background:none;border:0;padding:0;color:var(--dim);font-size:14px">Skip, show me the studio ›</button></div></div>'
       + '<aside class="inside"><span class="k">WHAT\'S IN THE STUDIO</span>'
       + '<div class="ib act"><span class="k">SHOWCASE</span>Your page, headshots, reels, everything you\'ve shot</div>'
       + '<div class="ib act"><span class="k">THE WORK</span>Learn your lines, a VO booth, every role you\'ve played, Picture It</div>'
@@ -187,6 +210,7 @@
     const ms = $('meShot'); if (ms) ms.onchange = () => addShot(ms.files[0]);
     const k = $('stSkip'); if (k) k.onclick = () => { ss('tap_skip', '1'); render(); };
     const sh = $('setupHide'); if (sh) sh.onclick = () => { setupSet({ hidden: new Date().toISOString() }); render(); };
+    keepWire(); if (v === 'studio' && window.StudioSync) StudioSync.auto();
     const ps = $('pStudio'); if (ps) ps.onclick = () => { ss('tap_studio', '1'); render(); scrollTo(0, 0); };
     /* both done on a first visit: on to the studio */
     if (v === 'first' && you().resume && shots().length) setTimeout(() => { ss('in_first', ''); ss('tap_skip', '1'); render(); }, 1600);

@@ -10,31 +10,8 @@ let tt; function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add(
 function own(){ try{ return JSON.parse(localStorage.getItem(D.OWN_KEY)||'{}')||{}; }catch(e){ return {}; } }
 function setOwn(o){ try{ localStorage.setItem(D.OWN_KEY,JSON.stringify(Object.assign(own(),o))); }catch(e){} }
 
-/* ---------- reading this device ---------- */
-const req=r=>new Promise((res,rej)=>{ r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
-async function dbNames(){
- try{ if(indexedDB.databases){ const l=await indexedDB.databases(); return l.map(d=>d.name).filter(n=>n&&D.toolOfDb(n)); } }catch(e){}
- return D.KNOWN_DBS.slice();
-}
-/* open a database only if it is already here; never make an empty one */
-function peek(name){ return new Promise(res=>{ try{ const r=indexedDB.open(name); r.onupgradeneeded=()=>{ try{ r.transaction.abort(); }catch(e){} }; r.onsuccess=()=>res(r.result); r.onerror=()=>res(null); r.onblocked=()=>res(null); }catch(e){ res(null); } }); }
-async function scan(){
- const out={ls:[],dbs:[]};
- try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i), t=D.toolOfKey(k); if(t) out.ls.push({k:k,v:localStorage.getItem(k),tool:t.id}); } }catch(e){ out.lsBlocked=true; }
- for(const name of await dbNames()){
-  const db=await peek(name); if(!db) continue;
-  const tool=D.toolOfDb(name), d={name:name,version:db.version,tool:tool.id,stores:[]};
-  for(const sn of [...db.objectStoreNames]){
-   if(D.skipStore(name,sn)){ d.skipped=(d.skipped||[]).concat([sn]); continue; }
-   const tx=db.transaction(sn,'readonly'), st=tx.objectStore(sn);
-   const ix=[...st.indexNames].map(n=>{ const x=st.index(n); return {name:n,keyPath:x.keyPath,unique:x.unique,multiEntry:x.multiEntry}; });
-   const [keys,vals]=await Promise.all([req(st.getAllKeys()),req(st.getAll())]);
-   d.stores.push({name:sn,keyPath:st.keyPath,autoIncrement:st.autoIncrement,indexes:ix,records:keys.map((k,i)=>({k:k,v:vals[i]}))});
-  }
-  db.close(); out.dbs.push(d);
- }
- return out;
-}
+/* ---------- reading this device: in store.js now, shared with SIGN IN (Oct 31) ---------- */
+const scan=D.scan;
 function inventory(s){
  const T={}; D.TOOLS.forEach(t=>T[t.id]={tool:t,items:0,size:0,media:0});
  s.ls.forEach(x=>{ const r=T[x.tool]; r.items++; r.size+=x.k.length+String(x.v).length; });
@@ -74,56 +51,13 @@ async function readBackup(file){
  if(m.kind!=='device-backup') throw new Error('not a THEACTORPAGE backup');
  return {m:m,file:file.name,media:i=>files['media/'+i],size:i=>(files['media/'+i]||{size:0}).size};
 }
-async function plan(bk){
- const s=await scan(), P={}; D.TOOLS.forEach(t=>P[t.id]={tool:t,add:[],differ:[],same:0,cant:[]});
- Object.keys(bk.m.ls).forEach(k=>{ const t=D.toolOfKey(k); if(!t) return; const v=bk.m.ls[k];
-  let cur=null; try{ cur=localStorage.getItem(k); }catch(e){}
-  const it={type:'ls',k:k,v:v};
-  if(cur==null) P[t.id].add.push(it); else if(cur===v) P[t.id].same++; else P[t.id].differ.push(it); });
- bk.m.idb.forEach(d=>{ const t=D.toolOfDb(d.name); if(!t) return;
-  const here=s.dbs.find(x=>x.name===d.name);
-  d.stores.forEach(st=>{
-   const hs=here&&here.stores.find(x=>x.name===st.name);
-   if(here&&!hs){ if(st.records.length) P[t.id].cant.push(st.records.length+' saved item'+(st.records.length===1?'':'s')+' ('+st.name+'): open '+t.name+' once, then restore again'); return; }
-   const H=new Map(); (hs?hs.records:[]).forEach(x=>H.set(D.sig(x.k),x.v));
-   st.records.forEach(x=>{ const key=D.sig(x.k,bk.size), it={type:'idb',db:d,st:st,rec:x};
-    if(!H.has(key)) P[t.id].add.push(it); else if(D.sig(H.get(key))===D.sig(x.v,bk.size)) P[t.id].same++; else P[t.id].differ.push(it); });
-  });
- });
- return P;
-}
-function openForRestore(d){ return new Promise((res,rej)=>{
- const r=indexedDB.open(d.name);
- r.onupgradeneeded=()=>{ const db=r.result;   // it wasn't here: build it the way the tool had it
-  try{ r.transaction.abort(); }catch(e){} };
- r.onsuccess=()=>res(r.result); r.onerror=()=>{
-  const r2=indexedDB.open(d.name,d.version);
-  r2.onupgradeneeded=()=>{ const db=r2.result; d.stores.forEach(st=>{ if(db.objectStoreNames.contains(st.name)) return;
-   const o=db.createObjectStore(st.name,Object.assign(st.keyPath!=null?{keyPath:st.keyPath}:{},st.autoIncrement?{autoIncrement:true}:{}));
-   (st.indexes||[]).forEach(ix=>o.createIndex(ix.name,ix.keyPath,{unique:!!ix.unique,multiEntry:!!ix.multiEntry})); }); };
-  r2.onsuccess=()=>res(r2.result); r2.onerror=()=>rej(r2.error); };
-}); }
+async function plan(bk){ return D.plan(bk); }
 async function apply(P,replace){
- const chosen=[]; let replacing=0;
- Object.values(P).forEach(p=>{ chosen.push(...p.add); if(replace.has(p.tool.id)){ chosen.push(...p.differ); replacing+=p.differ.length; } });
+ let replacing=0; Object.values(P).forEach(p=>{ if(replace.has(p.tool.id)) replacing+=p.differ.length; });
  let safety=null;
  if(replacing) safety=await makeBackup('before-restore');
- let n=0;
- chosen.filter(x=>x.type==='ls').forEach(x=>{ try{ localStorage.setItem(x.k,x.v); n++; }catch(e){} });
- const byDb=new Map(); chosen.filter(x=>x.type==='idb').forEach(x=>{ if(!byDb.has(x.db)) byDb.set(x.db,new Map()); const m=byDb.get(x.db); if(!m.has(x.st)) m.set(x.st,[]); m.get(x.st).push(x.rec); });
- for(const [d,stores] of byDb){
-  const db=await openForRestore(d);
-  for(const [st,recs] of stores){
-   if(!db.objectStoreNames.contains(st.name)) continue;
-   const ready=[]; for(const r of recs) ready.push({k:await D.decode(r.k,BK.media),v:await D.decode(r.v,BK.media)});   // decode before the write: a write can't wait
-   await new Promise((res,rej)=>{ const tx=db.transaction(st.name,'readwrite'), o=tx.objectStore(st.name);
-    ready.forEach(r=>{ if(o.keyPath!=null) o.put(r.v); else o.put(r.v,r.k); });
-    tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); tx.onabort=()=>rej(tx.error); });
-   n+=ready.length;
-  }
-  db.close();
- }
- return {n:n,replaced:replacing,safety:safety};
+ const r=await D.apply(P,replace,BK);
+ return {n:r.n,replaced:replacing,safety:safety};
 }
 
 /* ---------- the page ---------- */

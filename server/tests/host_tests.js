@@ -66,7 +66,7 @@ const { Miniflare } = require('miniflare'); const fs = require('fs'), path = req
   // recovery
   r = await post(A + '/api/recover', { name: 'riley-hart', backup: 'nope' }); want('a wrong backup code: refused', r.s === 403);
   r = await post(A + '/api/recover', { name: 'riley-hart', backup }); const key2 = r.b && r.b.key; want('the backup code: a new key', r.s === 200 && key2 && key2 !== key);
-  r = await post(A + '/api/sites/riley-hart/begin', {}, key); want('the old key stops working', r.s === 403);
+  r = await post(A + '/api/sites/riley-hart/begin', {}, key); want('the old key keeps working: it is another computer signed in (Oct 31)', r.s === 200);
   // CORS
   let o = await F(A + '/api/claim', { method: 'OPTIONS', headers: { origin: 'https://colmacpulse.github.io', 'access-control-request-method': 'POST' } });
   want('the site may call the API from a browser', o.status === 204 && o.headers.get('access-control-allow-origin') === 'https://colmacpulse.github.io');

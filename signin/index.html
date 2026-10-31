@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sign in · THEACTORPAGE</title>
+<meta name="description" content="Sign in on this computer with your address and backup code. Your studio, your page and your clips come back here.">
+<link rel="icon" type="image/png" href="../img/sigil-film-64.png">
+<meta name="theme-color" content="#121110">
+<style>
+@font-face{font-family:Jost;font-weight:400;font-display:swap;src:url(../fonts/jost-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:Jost;font-weight:500;font-display:swap;src:url(../fonts/jost-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:Jost;font-weight:600;font-display:swap;src:url(../fonts/jost-latin-600-normal.woff2) format('woff2')}
+/* SIGN IN (Col, Oct 31: "Everything"): your address and backup code; your studio, your page and your clips come back here. */
+:root{--bg:#ece7dc;--panel:#f6f2ea;--ink:#1d1a15;--dim:#5f584b;--line:#d3cab8;--field:#fff;--act:#8a5a08;--gold:#e0a23c;--gold-ink:#1a1206;--good:#1f6b47;--bad:#a3341f;--sans:Jost,system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:light}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){--bg:#121110;--panel:#1b1916;--ink:#ece7dc;--dim:#a39c8e;--line:#2f2b26;--field:#121110;--act:#e9b25a;--good:#6fc79a;--bad:#f08a72;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121110;--panel:#1b1916;--ink:#ece7dc;--dim:#a39c8e;--line:#2f2b26;--field:#121110;--act:#e9b25a;--good:#6fc79a;--bad:#f08a72;color-scheme:dark}
+*{box-sizing:border-box}html,body{margin:0}[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--sans);-webkit-text-size-adjust:100%}
+a{color:var(--act)}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:calc(env(safe-area-inset-top) + 14px) 16px 14px}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--ink)}.brand img{width:36px;height:36px}.brand b{font-size:17px;letter-spacing:.24em;font-weight:500}
+.top a.back{color:var(--dim);text-decoration:none;font-size:15px}
+.bar{height:14px}
+main{display:flex;justify-content:center;padding:40px 16px 60px}
+.card{width:100%;max-width:480px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px 28px 22px;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-size:30px;font-weight:600}
+.say{margin:0;color:var(--dim)}
+label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;letter-spacing:.12em;color:var(--dim)}
+.addr{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--field);overflow:hidden}
+.addr input{flex:1;min-width:0;border:0;background:transparent}.addr span{padding:0 12px;font-size:15px;font-weight:400;letter-spacing:0;color:var(--dim);white-space:nowrap}
+input{height:48px;padding:0 12px;font:500 17px var(--sans);color:var(--ink);border:1px solid var(--line);border-radius:10px;background:var(--field);letter-spacing:.02em}
+.addr input:focus{outline:none}.addr:focus-within{outline:2px solid var(--gold);outline-offset:1px}
+.go{min-height:52px;border:0;border-radius:12px;background:var(--gold);color:var(--gold-ink);font:600 15px var(--sans);letter-spacing:.08em;cursor:pointer}
+.go:disabled{opacity:.6;cursor:default}
+.ghost{min-height:46px;border:1px solid var(--line);border-radius:12px;background:transparent;color:var(--ink);font:600 14px var(--sans);letter-spacing:.06em;cursor:pointer;padding:0 16px}
+.why{min-height:1.2em;margin:0;font-size:14px}.why.bad{color:var(--bad)}.why.good{color:var(--good)}
+.prog{height:8px;background:var(--line);border-radius:4px;overflow:hidden}.prog i{display:block;height:100%;width:0;background:var(--gold);transition:width .3s}
+.foot{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:8px;font-size:14px;color:var(--dim)}
+.ask{border:1px solid var(--gold);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}.ask .row{display:flex;gap:8px;flex-wrap:wrap}.ask .row>*{flex:1}
+.done{display:flex;flex-direction:column;gap:12px}.done a.go{display:flex;align-items:center;justify-content:center;text-decoration:none}
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="../" aria-label="THEACTORPAGE"><img src="../img/sigil-film-180.png" alt="" width="36" height="36"><b>THEACTORPAGE</b></a>
+  <a class="back" href="../">‹ Back</a>
+</header>
+<span class="sticks bar" aria-hidden="true"></span>
+<main>
+  <form class="card" id="form" novalidate>
+    <h1>Sign in</h1>
+    <p class="say">Your studio, your page and your clips, on this computer.</p>
+    <label for="nm">YOUR ADDRESS
+      <span class="addr"><input id="nm" name="nm" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="yourname" required><span>.theactorpage.com</span></span>
+    </label>
+    <label for="code">YOUR BACKUP CODE
+      <input id="code" name="code" autocomplete="current-password" autocapitalize="none" spellcheck="false" placeholder="The code you wrote down" required>
+    </label>
+    <button class="go" id="go" type="submit">SIGN IN</button>
+    <div id="busy" hidden><div class="prog" aria-hidden="true"><i id="bar"></i></div></div>
+    <div id="ask" class="ask" hidden></div>
+    <p class="why" id="why" role="status" aria-live="polite"></p>
+    <div class="foot">
+      <span>Lost your code? It's the one you wrote down when you picked your address. Without it, this computer can't open your studio.</span>
+      <span>New here? <a href="../">Start here ›</a></span>
+    </div>
+  </form>
+</main>
+<script src="../shared/icons.js"></script>
+<script src="../device/store.js"></script>
+<script src="../shared/footcloud.js"></script>
+<script src="../shared/studiosync.js"></script>
+<script>
+(function(){
+const $=id=>document.getElementById(id), why=(t,k)=>{ const w=$('why'); w.textContent=t||''; w.className='why'+(k?' '+k:''); };
+const q=new URLSearchParams(location.search); if(q.get('name')) $('nm').value=q.get('name');
+const STEP={sign:'Checking your code…',files:'Bringing your photos, takes and files here…',write:'Putting it all in place…',done:''};
+/* this computer has its own versions of some of it: ask which to keep */
+function ask(differ,add){ return new Promise(res=>{ const a=$('ask'); a.hidden=false;
+  a.innerHTML='<b>This computer already has some of your studio.</b><span>'+differ+' saved item'+(differ===1?' is':'s are')+' different here from your online studio'+(add?', and '+add+' more will be added either way':'')+'.</span>'
+   +'<div class="row"><button type="button" class="go" id="useOnline">USE MY ONLINE STUDIO</button><button type="button" class="ghost" id="keepHere">KEEP THIS COMPUTER’S</button></div>';
+  $('useOnline').onclick=()=>{ a.hidden=true; res(true); }; $('keepHere').onclick=()=>{ a.hidden=true; res(false); }; }); }
+$('form').onsubmit=async e=>{
+  e.preventDefault();
+  const name=FootCloud.slug($('nm').value), code=$('code').value.trim();
+  if(!name){ why('Type your address, the part before .theactorpage.com.','bad'); $('nm').focus(); return; }
+  if(!code){ why('Type your backup code.','bad'); $('code').focus(); return; }
+  $('go').disabled=true; $('busy').hidden=false; why(STEP.sign);
+  try{
+    const r=await StudioSync.restore(name,code,{ask,onP:(step,pct)=>{ $('bar').style.width=pct+'%'; if(STEP[step]!=null&&STEP[step]) why(STEP[step]+(pct&&step!=='sign'?' '+pct+'%':'')); }});
+    $('busy').hidden=true;
+    const f=$('form'); f.innerHTML='<h1>You’re in</h1>'
+     +(r.nothing?'<p class="say">Signed in as <b>'+name+'.theactorpage.com</b>. Your studio isn\u2019t kept online yet. On the computer you set up on, turn on <b>Keep my studio online</b> in your studio, then sign in here again.</p>'
+       :'<p class="say">Your studio is on this computer now, signed in as <b>'+name+'.theactorpage.com</b>.'+(r.differ&&!r.replaced?' Where this computer had its own version, it kept it.':'')+' Changes you make here are kept online too.</p>')
+     +'<div class="done"><a class="go" id="toStudio" href="../">OPEN MY STUDIO</a></div>';
+  }catch(err){
+    $('busy').hidden=true; $('go').disabled=false;
+    why(/backup code doesn/.test(err.message)?'That address and backup code don’t match. Check both and try again.':/No page by that name|404/.test(err.message)?'There’s no address by that name.':err.message,'bad');
+  }
+};
+})();
+</script>
+</body>
+</html>

@@ -27,7 +27,7 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Test the host
         working-directory: server
-        run: node tests/host_tests.js && node tests/lib_tests.js
+        run: node tests/host_tests.js && node tests/lib_tests.js && node tests/studio_tests.js
       - name: Storage (made once)
         if: env.HAS_TOKEN == 'true'
         working-directory: server
