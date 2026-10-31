@@ -40,6 +40,8 @@ for(const [nm,vp,cs] of [['computer',{width:1280,height:900},'light'],['phone',{
  const noClip=(H.match(/<article class="wcard"><div class="wpo">/g)||[]).length;
  want(nm+': the credit with no clip: same poster, no play mark', noClip===1&&(H.match(/<a class="wpo"/g)||[]).length===2, noClip);
  want(nm+': writing on the wall: a poster, tap it for the story and where it stands', /<a class="wpcard" href="#w\d+" aria-label="The Night Ferry">/.test(H)&&/<div class="lbx" id="w\d+" role="dialog" aria-label="The Night Ferry">[\s\S]*?A ferry captain has one crossing left[\s\S]*?<dt>Genre<\/dt><dd>Thriller<\/dd>/.test(H)&&!/class="wlist"/.test(H));
+ want(nm+': no "Made by me"; FILMS and WRITING each have their own heading', !/Made by me/.test(H)&&/<span class="lbl">Films<\/span>/.test(H)&&/<span class="lbl">Writing<\/span>/.test(H));
+ want(nm+': no title under a writing poster (the poster has it)', /<a class="wpcard"[^>]*><img[^>]*><\/a>/.test(H)&&!/<a class="wpcard"[\s\S]{0,400}?<b>The Night Ferry<\/b>/.test(H));
  want(nm+': no credits list on the wall', !/<span class="lbl">Credits<\/span>/.test(H)&&!/class="credlist">\s*<article class="crow" id="c-harbor/.test(H));
  want(nm+': plain words', !/—/.test(H.slice(iHead,iPh)));
 
@@ -57,6 +59,7 @@ for(const [nm,vp,cs] of [['computer',{width:1280,height:900},'light'],['phone',{
  await q.goto('file://'+path.join(site,'index.html')); await q.waitForTimeout(500);
  want(nm+': nothing sideways', await q.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
  want(nm+': photographs whole, not cropped (résumé layout)', await q.evaluate(()=>{ if(!document.querySelector('.pgrid img')) return true; const i=document.querySelector('.pgrid img'); return !!i&&getComputedStyle(i).objectFit==='contain'&&Math.abs(i.getBoundingClientRect().width/i.getBoundingClientRect().height-i.naturalWidth/i.naturalHeight)<0.05; }));
+ want(nm+': a film picture whole, at its own shape, not zoomed in', await q.evaluate(()=>{ const i=document.querySelector('.made .cart img'); if(!i) return false; const r=i.getBoundingClientRect(); return getComputedStyle(i).objectFit==='contain'&&Math.abs(r.width/r.height-i.naturalWidth/i.naturalHeight)<0.05; }));
  await q.screenshot({path:SP+'/wall_'+nm+'.png',fullPage:true});
  want(nm+': the page has no errors', !qerr.length, qerr);
 

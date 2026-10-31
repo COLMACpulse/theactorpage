@@ -3741,6 +3741,7 @@ td.t{color:var(--ink)}
 td.c{color:var(--blue)}
 td.n{color:var(--grey);white-space:nowrap}
 tr:last-child td{border-bottom:0}
+/* films: the picture whole, at its own shape, not zoomed in (Col, Oct 30) */.made>.rule~.rule{margin-top:40px}.made .crow{grid-template-columns:170px 1fr}.made .cart{width:170px;aspect-ratio:auto;overflow:visible;box-shadow:none;background:none}.made .cart img{height:auto;max-height:260px;object-fit:contain;box-shadow:0 1px 5px rgba(20,18,14,.22)}.made .cart .noart{aspect-ratio:2/3}@media(max-width:560px){.made .crow{grid-template-columns:120px 1fr}.made .cart{width:120px}}
 .credlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px 26px}.crow{display:grid;grid-template-columns:74px 1fr;gap:14px;align-items:start}.cart{width:74px;aspect-ratio:2/3;background:var(--black);overflow:hidden;box-shadow:0 1px 5px rgba(20,18,14,.22)}.cart img{width:100%;height:100%;object-fit:cover;display:block}.cart .noart{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:15px;color:#5a5a62;letter-spacing:.05em}.cmeta b{display:block;font-size:15px;line-height:1.25;color:var(--ink)}.cmeta .cn{font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);margin-top:3px}.cmeta .cbits{font-family:var(--mono);font-size:11px;color:var(--grey);margin-top:5px;line-height:1.6}.cbrk{margin:9px 0 0;font-size:13.5px;line-height:1.5;color:var(--ink);border-left:2px solid var(--salmon);padding-left:11px}
 .arts img{width:78px;aspect-ratio:2/3;object-fit:cover;background:var(--black);box-shadow:0 1px 5px rgba(20,18,14,.2)}
 
@@ -3830,7 +3831,8 @@ ${(!W&&credits.length)?`<section>${rule('Credits',credits.length)}
 </section>`:''}
 
 ${(d.press||[]).length?`<section class="press">${rule('In the press',d.press.length)}<ul class="plist">${d.press.map(x=>`<li><span class="po">${E([x.o,x.d].filter(Boolean).join(' · '))}</span>${x.u?`<a href="${E(x.u)}" target="_blank" rel="noopener">${E(x.t||x.o||x.u)}</a>`:`<b>${E(x.t)}</b>`}${x.l?`<q>${E(x.l)}</q>`:''}</li>`).join('')}</ul></section>`:''}
-${(mFilms.length||mWrite.length)?`<section class="made">${rule('Made by me',mFilms.length+mWrite.length)}
+${(mFilms.length||mWrite.length)?`<section class="made">
+ ${(mFilms.length||mVids.length)?rule('Films'):''}
  ${mFilms.length?`<div class="credlist">${mFilms.map(f=>`<article class="crow">
    <div class="cart">${f.poster&&f.poster.u?`<img src="${f.poster.u}" alt="${E(f.title)}" loading="lazy">`:`<span class="noart">${E((f.title||'').slice(0,2).toUpperCase())}</span>`}</div>
    <div class="cmeta"><b>${E(f.title)}</b>
@@ -3840,7 +3842,8 @@ ${(mFilms.length||mWrite.length)?`<section class="made">${rule('Made by me',mFil
      ${(f.links||[]).length?`<div class="mlinks">${f.links.map(l=>`<a href="${E(l.url)}" target="_blank" rel="noopener">${E(l.label||'Watch')} &rarr;</a>`).join('')}</div>`:''}
    </div></article>`).join('')}</div>`:''}
  ${mVids.length?`<div class="grid mvids">${mVids.map(v=>vid(v)).join('')}</div>`:''}
- ${(W&&mWrite.length)?`<div class="wposters">${mWrite.map(w=>`<a class="wpcard" href="#${wPop(w)}" aria-label="${E(w.title)}">${w.poster&&w.poster.u?`<img src="${w.poster.u}" alt="" loading="lazy">`:`<span class="noart">${E(w.title)}</span>`}<b>${E(w.title)}</b></a>`).join('')}</div>`:''}
+ ${mWrite.length?rule('Writing'):''}
+ ${(W&&mWrite.length)?`<div class="wposters">${mWrite.map(w=>`<a class="wpcard" href="#${wPop(w)}" aria-label="${E(w.title)}">${w.poster&&w.poster.u?`<img src="${w.poster.u}" alt="" loading="lazy">`:`<span class="noart">${E(w.title)}</span>`}</a>`).join('')}</div>`:''}
  ${(!W&&mWrite.length)?`<div class="wlist">${mWrite.map(w=>`<article class="wrow${w.poster&&w.poster.u?' wposter':''}">${w.poster&&w.poster.u?`<img class="wart" src="${w.poster.u}" alt="${E(w.title)}" loading="lazy">`:''}<div><b>${E(w.title)}</b><div class="cbits">${[w.kind||'Script',w.genre,w.status].filter(Boolean).map(E).join(' &middot; ')}</div>${w.logline?`<p class="cbrk">${E(w.logline)}</p>`:''}${(w.links||[]).length?`<div class="mlinks">${w.links.map(l=>`<a href="${E(l.url)}" target="_blank" rel="noopener">${E(l.label||'Read more')} &rarr;</a>`).join('')}</div>`:''}</div></article>`).join('')}</div>`:''}
 </section>`:''}
 
