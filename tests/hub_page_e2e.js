@@ -41,7 +41,7 @@ if(process.env.SHOTS){ await q.screenshot({path:process.env.SHOTS+'/page_made_de
 const hs=await q.$eval('img.hs',i=>i.getBoundingClientRect().width);
 want('the headshot shows full size, not as a dot ('+Math.round(hs)+' px)', hs>150);
 const t=await q.evaluate(()=>document.body.innerText);
-want('MADE BY ME on the page: the film you added, with its poster, logline and link', /MADE BY ME/i.test(t)&&/Dry Creek/.test(t)&&/Two brothers, one well/.test(t)&&(await q.$$eval('.made .cart img',x=>x.length))===1&&/vimeo\.com\/76979871/.test(html));
+want('FILMS on the page (no Made by me heading): the film you added, with its poster, logline and link', /FILMS/i.test(t)&&!/MADE BY ME/i.test(t)&&/Dry Creek/.test(t)&&/Two brothers, one well/.test(t)&&(await q.$$eval('.made .cart img',x=>x.length))===1&&/vimeo\.com\/76979871/.test(html));
 want('the script, with its logline', /Low Water/.test(t)&&/Feature · Western/.test(t)&&/sheriff has to choose/.test(t));
 want('the one you left off is not there', !/Salt Road/.test(t));
 want('the YouTube link plays in place (no-cookie player), in Selected work', (await q.$$eval('.well iframe',x=>x.map(f=>f.src))).some(s=>/youtube-nocookie\.com\/embed\/dQw4w9WgXcQ/.test(s))&&/Cold open, full length/.test(t));

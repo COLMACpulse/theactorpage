@@ -43,7 +43,7 @@ D.TOOLS=[
  {id:'readin', name:'Read In', href:'../read/', ls:[/^theactorpage_readin/], db:[/^theactorpage_readin$/]},
  {id:'characters', name:'Characters', href:'../characters/', ls:[/^theactorpage_characters_v1$/], db:[]},
  {id:'pdfmarks', name:'Marks on your PDFs', href:'../actor-os/', ls:[/^theactorpage_pdfmarks_v1$/], db:[]},
- {id:'settings', name:'Your settings', href:'../', ls:[/^theactorpage_lang$/,/^theactorpage_view$/,/^theactorpage_ios_note$/], db:[]}
+ {id:'settings', name:'Your settings', href:'../', ls:[/^theactorpage_lang$/,/^theactorpage_view$/,/^theactorpage_ios_note$/,/^theactorpage_setup_v1$/], db:[]}
 ];
 D.OWN_KEY='theactorpage_device_v1';
 /* passing notes between tools (gone in minutes) and things that can't go in a file */

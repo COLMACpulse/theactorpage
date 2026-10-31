@@ -3517,6 +3517,7 @@ function pkgLive(o,host){
   +'<div class="hrow2"><button class="hbtn pri" id="gopub" onclick="'+toOnline+'">PUT IT ONLINE</button></div></div>';
 }
 function pkgTop(hs,rs,rl,cr){
+ try{ const k='theactorpage_setup_v1', st=JSON.parse(localStorage.getItem(k)||'{}')||{}; if(!st.page){ st.page=new Date().toISOString(); localStorage.setItem(k,JSON.stringify(st)); } }catch(e){}   /* SET UP step 4: you've been to Your page */
  const R=pkgRows(hs,rs,rl,cr), prim=ARTS.find(a=>a.id===pkgSel.headshot), o=online(), host=o.url&&o.live?o.url.replace(/^https?:\/\//,'').replace(/\/$/,''):'';
  let h='<div class="hg" id="pagetop"><div><p class="hk">Your page</p><div class="hcard"><div class="ppc"><span class="ph">'+(prim?'<img src="'+artURL(prim)+'" alt="">':'')+'</span><span><b>'+esc(profile.name||'Your name')+'</b><small>'+esc([profile.union,profile.rep].filter(Boolean).join(' · ')||'Add your union and rep in Your material.')+'</small>'+'</span></div>'
   +pkgLive(o,host)

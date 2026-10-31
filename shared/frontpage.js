@@ -51,6 +51,37 @@
     $('tlinks').innerHTML = h;
   }
 
+  /* SET UP, 5 steps (Col, Oct 31: "how are we going to teach users how to navigate the site?"). A checklist at the top of
+     the studio that ticks itself off from what's really there and is gone for good once all five are done (or hidden). */
+  const SETUP = 'theactorpage_setup_v1';
+  const setupGet = () => { try { return JSON.parse(localStorage.getItem(SETUP) || '{}') || {}; } catch (e) { return {}; } };
+  const setupSet = o => { try { localStorage.setItem(SETUP, JSON.stringify(Object.assign(setupGet(), o))); } catch (e) { } };
+  function setupSteps() {
+    const y = you(), st = setupGet(), J2 = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
+    const on = J2('hub_online_v1') || {}, fc = J2('footcloud_v1') || {}, nClips = (fc.items || []).filter(x => x && x.done !== false).length, nShots = shots().length;
+    const r = [
+      { k: 'resume', t: 'Your résumé', say: 'It fills in your credits, training and rep for every tool.', done: !!y.resume, did: y.resume && y.resume.name ? y.resume.name : 'on file', href: 'hub/?tab=intake' },
+      { k: 'head', t: 'A headshot', say: 'The first one leads your page.', done: nShots > 0, did: nShots + ' headshot' + (nShots === 1 ? '' : 's'), href: 'headshots/' },
+      { k: 'clips', t: 'Your clips, up', say: 'Point Footage at a folder; it sorts what plays and asks what to upload.', done: nClips > 0, did: nClips + ' clip' + (nClips === 1 ? '' : 's') + ' online · only you can see them', href: 'footage/' },
+      { k: 'page', t: 'Your page: pick how it looks', say: 'Poster wall or résumé. Leave off anything you don\'t want on it.', done: !!(st.page || on.live), did: 'picked', href: 'hub/?tab=package' },
+      { k: 'online', t: 'Put it online', say: 'Your own address, yourname.theactorpage.com. Free.', done: !!on.live, did: on.url ? on.url.replace(/^https?:\/\//, '').replace(/\/$/, '') : 'live', href: 'hub/?tab=package' }
+    ];
+    return r;
+  }
+  function setupBox() {
+    const st = setupGet(); if (st.hidden || st.done) return '';
+    const r = setupSteps(), n = r.filter(x => x.done).length;
+    if (n === r.length) { setupSet({ done: new Date().toISOString() }); return ''; }
+    const next = r.findIndex(x => !x.done);
+    return '<section class="setup" id="setup" aria-label="Set up your studio"><div class="suhd"><span class="suk">SET UP · ' + n + ' OF ' + r.length + '</span><span class="susay">Do them in any order. This goes away when all five are done.</span>'
+      + '<button type="button" class="suhide" id="setupHide">Hide this</button></div>'
+      + '<div class="subar" aria-hidden="true"><i style="width:' + Math.round(100 * n / r.length) + '%"></i></div><ol class="sulist">'
+      + r.map((x, i) => '<li class="' + (x.done ? 'done' : i === next ? 'next' : '') + '" data-step="' + x.k + '"><span class="sun" aria-hidden="true">' + (x.done ? '✓' : (i + 1)) + '</span>'
+        + '<span class="sut"><b>' + esc(x.t) + '</b><small>' + esc(x.done ? x.did : x.say) + '</small></span>'
+        + (x.done ? '<span class="sudone">DONE</span>' : '<a class="sugo" href="' + x.href + '" aria-label="' + esc(x.t) + ': do it">DO IT</a>') + '</li>').join('')
+      + '</ol></section>';
+  }
+
   const I = (id, cls) => window.Icons ? Icons.ring(id, cls) : '';
   const B = id => window.Icons ? Icons.bare(id) : '';
   function studio() {
@@ -66,7 +97,7 @@
       + '<div class="metx"><b class="mename">' + esc(y.name || 'Your name') + '</b>' + (facts ? '<span class="mefacts">' + esc(facts) + '</span>' : '')
       + (live ? '<a class="melive" id="meLive" href="' + esc(live.url) + '" target="_blank" rel="noopener"><b>YOUR PAGE IS LIVE ↗</b><small>' + esc(live.url.replace(/^https?:\/\//, '').replace(/\/$/, '')) + '</small></a>' : '')
       + '<span class="melinks"><a href="hub/?tab=package">Your page ›</a><a href="headshots/">Headshots' + (sh.length ? ' · ' + sh.length : '') + ' ›</a>' + (y.resume ? '' : '<a href="hub/?tab=intake">Add your résumé ›</a>') + '</span></div></section>';
-    return me + '<div class="shead"><h1>Your studio</h1></div>'
+    return me + setupBox() + '<div class="shead"><h1>Your studio</h1></div>'
       + '<div class="sgrid"><div class="rooms">'
       + room('act', 'SHOWCASE', 'What casting sees of you',
         d('hub', 'Your page', 'hub/', 'résumé, credits, press') + d('head', 'Headshots', 'headshots/', c.shots ? 'and your looks · ' + c.shots : 'and your looks')
@@ -155,12 +186,13 @@
     const s = $('stShot'); if (s) s.onchange = () => addShot(s.files[0]);
     const ms = $('meShot'); if (ms) ms.onchange = () => addShot(ms.files[0]);
     const k = $('stSkip'); if (k) k.onclick = () => { ss('tap_skip', '1'); render(); };
+    const sh = $('setupHide'); if (sh) sh.onclick = () => { setupSet({ hidden: new Date().toISOString() }); render(); };
     const ps = $('pStudio'); if (ps) ps.onclick = () => { ss('tap_studio', '1'); render(); scrollTo(0, 0); };
     /* both done on a first visit: on to the studio */
     if (v === 'first' && you().resume && shots().length) setTimeout(() => { ss('in_first', ''); ss('tap_skip', '1'); render(); }, 1600);
     photos();
   }
-  window.FrontPage = { render, which, addResume, addShot };
+  window.FrontPage = { render, which, addResume, addShot, setupSteps };
   render();
-  addEventListener('storage', e => { if (e.key && /you|paper_trail|film/.test(e.key)) render(); });
+  addEventListener('storage', e => { if (e.key && /you|paper_trail|film|hub_online|footcloud|setup/.test(e.key)) render(); });
 })();
