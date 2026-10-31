@@ -24,6 +24,8 @@ for(const [nm,vp,cs] of [['computer',{width:1280,height:900},'light'],['phone',{
  await p.evaluate(()=>{ profile.email='riley@example.com'; saveProfile(); });
  await p.goto('http://localhost:8811/hub/?tab=package'); await p.waitForTimeout(2000);
 
+ const rows=await p.innerText('#onit');
+ want(nm+': What\'s on it: Credits says its clips play from the posters; no Clips row counting them again', /with \d+ clips?, each plays from its poster/.test(rows)&&!/^Clips/m.test(rows), rows.slice(0,300));
  /* the picker */
  const pk=await p.evaluate(()=>({wall:!!document.querySelector('#lay_wall.on[aria-checked="true"]'),res:!!document.querySelector('#lay_resume[aria-checked="false"]'),t:(document.querySelector('.layrow')||{}).innerText||''}));
  want(nm+': HOW IT LOOKS: a new page starts on POSTER WALL, RÉSUMÉ one tap away, says what each is', pk.wall&&pk.res&&/Reel first, then your work as big posters/.test(pk.t)&&/your credits as a list/.test(pk.t), pk);

@@ -3447,10 +3447,13 @@ function pkgRows(hs,rs,rl,cr){
  const add=(k,label,n,on,from,jump)=>R.push({k,label,n,on,from,jump});
  if(hs.length) add('head','Your headshot','',!!pkgSel.headshot&&!pkgSel.headOff,'from HEADSHOTS','Headshot');
  if(rl.length) add('reel','Your reel','',!!pkgSel.reel,'from REEL ROOM','Reel');
- if(cr.length) add('credits','Credits',(pkgSel.credits||[]).length+' of '+cr.length,(pkgSel.credits||[]).length>0,'your résumé and IMDb','Credits');
+ if(cr.length){ const ccl=ARTS.filter(a=>a.category==='clip'&&(a.type||'').startsWith('video/')&&/^credit:/.test(String(a.scope||''))).length;
+  add('credits','Credits',(pkgSel.credits||[]).length+' of '+cr.length,(pkgSel.credits||[]).length>0,ccl?'with '+ccl+' clip'+(ccl===1?'':'s')+', each plays from its poster':'your résumé and IMDb','Credits'); }
  const ab=pkgItems('about_me'); if(ab.length) add('about','About Me','',!!pkgSel.about,'your material','About Me');
  const oc=onPageClips(); if(oc.length) add('online','From Footage, online',oc.length+'',!off.has('online'),'clips you put on your page in FOOTAGE','');
- const cl=pkgItems('clip'); if(cl.length) add('clips','Clips',(pkgSel.clips||[]).length+' of '+cl.length,(pkgSel.clips||[]).length>0,'from FOOTAGE and your material','Performance clips');
+ /* Clips: only the ones not under a credit; a credit's clips play from its poster (Col, Oct 30: "'clips' isnt checked. shouldnt it be?") */
+ const cl=pkgItems('clip').filter(x=>!/^credit:/.test(String(x.scope||''))), cs=new Set(cl.map(x=>x.id)), cn=(pkgSel.clips||[]).filter(id=>cs.has(id)).length;
+ if(cl.length) add('clips','Other clips',cn+' of '+cl.length,cn>0,'clips that aren\u2019t under a credit, in their own section','Performance clips');
  const au=pkgItems('audition_vid'); if(au.length) add('auditions','Auditions',(pkgSel.auditions||[]).length+' of '+au.length,(pkgSel.auditions||[]).length>0,'tapes you kept','Auditions');
  const mo=pkgItems(['monologue','standup_vid']); if(mo.length) add('monologues','Monologues and stand-up',(pkgSel.monologues||[]).length+' of '+mo.length,(pkgSel.monologues||[]).length>0,'your material','Monologues');
  if(rs.length) add('resume','Résumé','',!!pkgSel.resume,'from VIRTUAL RÉSUMÉ or your file','Resume');
