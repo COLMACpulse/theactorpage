@@ -3502,6 +3502,10 @@ async function pkgDoc(opts){
  const ex=await pkgExtras(), ox=opts.see?await onlineInto(cr,'see'):[]; ex.xclips=(ex.xclips||[]).concat(ox);
  return packageHTML(Object.assign({profile,note:pkgSel.note,contact:pkgSel.contact,head,res,reel,about,clips,auds,monos,credits:cr,layout:pkgLayout()},ex));
 }
+/* the one script a page carries: CLIP 1, CLIP 2 ... and a clip stops when its window closes. The host lets exactly this
+   script run on a live page (its fingerprint is in server/worker.js); change one character here and change it there too
+   (server/tests/pagejs_tests.js checks they match). Col, Oct 31: "the individual clips dont function, just the first one" */
+const PAGE_JS="addEventListener('hashchange',function(){document.querySelectorAll('.lbx video').forEach(function(v){if(!v.closest(':target'))v.pause();});});document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('.lbt');if(!b)return;var x=b.closest('.lbx'),i=b.getAttribute('data-i');x.querySelectorAll('.lbv').forEach(function(v){var on=v.getAttribute('data-i')===i;if(!on)v.pause();v.classList.toggle('on',on);if(on)v.preload='metadata';});x.querySelectorAll('.lbt').forEach(function(t){var on=t===b;t.classList.toggle('on',on);t.setAttribute('aria-pressed',on);});});";
 /* SEE IT: your page as they'll see it, in a new tab. The tab opens on the tap; the page fills in a moment later. */
 async function seePage(){ const w=window.open('','_blank'); try{ const doc=await pkgDoc({see:true}), u=URL.createObjectURL(new Blob([doc],{type:'text/html'})); window.__lastPage=doc.length; if(w) w.location=u; else location.href=u; }catch(e){ if(w) w.close(); toast('Couldn’t build it: '+e.message); } }
 /* how your page looks: POSTER WALL (new pages start here) or RÉSUMÉ. Kept with your profile. */
@@ -3879,7 +3883,7 @@ ${(d.contact&&(p.email||p.phone))?`<section class="reach">${rule('Get in touch')
  <span class="sp"></span>
  <span style="opacity:.55">theactorpage.com</span>
 </footer>
-</main>${LB.join('')}<script>addEventListener('hashchange',function(){document.querySelectorAll('.lbx video').forEach(function(v){if(!v.closest(':target'))v.pause();});});document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('.lbt');if(!b)return;var x=b.closest('.lbx'),i=b.getAttribute('data-i');x.querySelectorAll('.lbv').forEach(function(v){var on=v.getAttribute('data-i')===i;if(!on)v.pause();v.classList.toggle('on',on);if(on)v.preload='metadata';});x.querySelectorAll('.lbt').forEach(function(t){var on=t===b;t.classList.toggle('on',on);t.setAttribute('aria-pressed',on);});});<\/script></body></html>`;
+</main>${LB.join('')}<script>${PAGE_JS}<\/script></body></html>`;
 }
 /* ===== DEMO DATA =====
    A hub with nothing in it teaches nobody what 27 panels are for, so a first run

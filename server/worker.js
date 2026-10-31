@@ -4,7 +4,7 @@
    Who can change a page: whoever holds its key. Claiming a name hands back a key (kept on the phone that published)
    and a backup code (for a new phone). Only hashes of both are stored here. No email, no password.
 
-   Pages are showcases, not apps: served pages can't run scripts, send forms or call out (a strict CSP), and only
+   Pages are showcases, not apps: served pages run no scripts but one (the clip player, allowed by its fingerprint), send no forms, call nowhere (a strict CSP), and only
    page, image, video, PDF and text files are taken. That keeps a page from being turned into a phishing page.
 
    R2 layout:
@@ -308,7 +308,9 @@ async function play(req, env, url, name, id, H) {
 }
 
 /* the page itself: the live version's file, with video byte ranges, and nothing that can run */
-const CSP = "default-src 'none'; img-src 'self' data:; media-src 'self' data:; style-src 'unsafe-inline'; font-src 'self' data:; frame-src https://www.youtube-nocookie.com https://player.vimeo.com; object-src 'self' data:; form-action 'none'; base-uri 'none'; frame-ancestors 'none'";
+/* the page's one script (hub/index.html PAGE_JS: switching clips, stopping a clip when it closes), allowed by its fingerprint only */
+const PAGE_JS_SHA = 'sha256-v6LnJDgjvH3FrWhdx2radomBI+4osJNaehRjYDY28Oo=';
+const CSP = "default-src 'none'; script-src '" + PAGE_JS_SHA + "'; img-src 'self' data:; media-src 'self' data:; style-src 'unsafe-inline'; font-src 'self' data:; frame-src https://www.youtube-nocookie.com https://player.vimeo.com; object-src 'self' data:; form-action 'none'; base-uri 'none'; frame-ancestors 'none'";
 async function serve(req, env, name, path) {
   if (req.method !== 'GET' && req.method !== 'HEAD') return new Response('', { status: 405 });
   const mm = nameWhy(name) ? null : await meta(env, name);

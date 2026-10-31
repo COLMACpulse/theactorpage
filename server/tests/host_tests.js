@@ -38,7 +38,7 @@ const { Miniflare } = require('miniflare'); const fs = require('fs'), path = req
   pg = await F(site('riley-hart') + '/');
   const csp = pg.headers.get('content-security-policy') || '';
   want('the page is up', pg.status === 200 && /RILEY HART/.test(await pg.text()) && /text\/html/.test(pg.headers.get('content-type')));
-  want('and it can\'t run scripts, send forms, or be framed', /default-src 'none'/.test(csp) && !/script-src/.test(csp) && /form-action 'none'/.test(csp) && /frame-ancestors 'none'/.test(csp) && pg.headers.get('x-content-type-options') === 'nosniff');
+  want('and it runs no script but the clip player (by its fingerprint), sends no forms, can\'t be framed', /default-src 'none'/.test(csp) && /script-src 'sha256-[A-Za-z0-9+\/=]+';/.test(csp) && !/unsafe/.test(csp.split('style-src')[0]) && /form-action 'none'/.test(csp) && /frame-ancestors 'none'/.test(csp) && pg.headers.get('x-content-type-options') === 'nosniff');
   want('YouTube and Vimeo players are allowed in', /youtube-nocookie\.com/.test(csp) && /player\.vimeo\.com/.test(csp));
   pg = await F(site('riley-hart') + '/media/reel.mp4', { headers: { range: 'bytes=1000-1999' } }); const part = new Uint8Array(await pg.arrayBuffer());
   want('video plays from the middle: byte ranges', pg.status === 206 && part.length === 1000 && part[0] === 1000 % 251 && pg.headers.get('content-range') === 'bytes 1000-1999/300000');
