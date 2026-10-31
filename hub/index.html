@@ -228,6 +228,7 @@ div.ppc{cursor:default}
 <input id="bkin" type="file" accept=".zip,application/zip" class="hide"><input id="jsonin" type="file" accept=".json,application/json" class="hide"><input id="sidesin" type="file" accept=".txt,.fountain,.fdx,.fdr,.xml,text/plain" class="hide">
 <div class="toast" id="toast"></div>
 <script src="../shared/icons.js"></script>
+<script src="../shared/savecode.js"></script>
 <script src="../shared/delivery.js"></script>
 <script src="request.js"></script>
 <script src="../shared/inbox.js"></script>
@@ -3284,7 +3285,7 @@ function onlinePanel(){
  if(!o.key&&!hostingOn()) return h+`<small class="note">Hosting at yourname.theactorpage.com isn't switched on yet. Until it is, SAVE THE FILE makes your page as one file you can send, and below you can download it for a site you run yourself.</small></div>`;
  if(!o.key){
   if(ON.recover) return h+`<small class="note">On a new phone? Your page name and the backup code you saved when you first published.</small>
-   <div style="padding:11px 13px;display:grid;gap:8px;max-width:520px"><input id="recname" placeholder="your-name" value="${esc(ON.name||'')}"><input id="reccode" placeholder="Backup code"><div class="row" style="padding:0;gap:9px"><button class="act" onclick="recoverOnline()" ${ON.busy?'disabled':''}>Use it</button><button class="ghost act sm" onclick="ON.recover=false;render()">Back</button></div>${err}</div></div>`;
+   <div style="padding:11px 13px;display:grid;gap:8px;max-width:520px"><input id="recname" name="username" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="your-name" value="${esc(ON.name||'')}"><input id="reccode" name="password" type="password" autocomplete="current-password" placeholder="Backup code"><div class="row" style="padding:0;gap:9px"><button class="act" onclick="recoverOnline()" ${ON.busy?'disabled':''}>Use it</button><button class="ghost act sm" onclick="ON.recover=false;render()">Back</button></div>${err}</div></div>`;
   if(!ON.name) ON.name=nameSlug(profile.name||'');
   return h+`<small class="note">Your page, live on the internet at its own address, hosted for you. Anyone with the link can see it. Only what's on this page goes up, and only when you tap. Everything else stays on this phone.</small>
    <div style="padding:11px 13px;display:grid;gap:8px;max-width:520px">
@@ -3306,7 +3307,7 @@ function onlinePanel(){
     ${o.live?`<button class="ghost act sm" onclick="navigator.clipboard&&navigator.clipboard.writeText('${esc(o.url)}').then(()=>toast('Link copied'))">Copy link</button><button class="ghost act sm" onclick="takeDown()" ${ON.busy?'disabled':''}>Take it down</button>`:''}
     <button class="ghost act sm" onclick="ON.showBackup=!ON.showBackup;render()">${ON.showBackup?'Hide':'Show'} backup code</button>
    </div>${step}${err}
-   ${ON.showBackup&&o.backup?`<div style="border:1px dashed var(--tung);padding:10px 12px;border-radius:8px"><small class="note" style="margin:0 0 6px;display:block">Your backup code. Save it somewhere that isn't this phone (a note, an email to yourself). With it, a new phone can update your page.</small><code style="font-size:15px;letter-spacing:.06em;user-select:all">${esc(o.backup)}</code></div>`:''}
+   ${ON.showBackup&&o.backup?`<div style="border:1px dashed var(--tung);padding:10px 12px;border-radius:8px"><small class="note" style="margin:0 0 6px;display:block">Your backup code. Save it somewhere that isn't this phone (a note, an email to yourself). With it, a new phone can update your page.</small><code style="font-size:15px;letter-spacing:.06em;user-select:all">${esc(o.backup)}</code>${window.SaveCode?SaveCode.html(o.name,o.backup):''}</div>`:''}
   </div></div>`;
  return h;
 }

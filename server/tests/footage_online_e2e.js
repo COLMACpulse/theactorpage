@@ -54,6 +54,7 @@ z=zipfile.ZipFile(d+'/notes.zip','w'); z.write(w+'/readme.txt','readme.txt'); z.
     v = await p.innerText('#view'); BACKUP = (await p.innerText('#bk_code').catch(() => '')).trim();
     await p.uncheck('[aria-label="low_tide_scene.webm"]'); await p.check('[aria-label="low_tide_scene.webm"]'); await p.waitForTimeout(150);
     want('the backup code stays on screen after another click, until you say it\'s written down', (await p.innerText('#bk_code').catch(() => '')).trim() === BACKUP && /Without it, there.s no way back in/.test(await p.innerText('#codebox')));
+    want('and SAVE IT IN MY PASSWORDS is right there, with the address and code in a sign-in form', await p.evaluate(B => { const f = document.querySelector('#codebox form.savecode'); return !!f && f.username.value === 'sam-actor-test' && f.password.value === B && f.password.type === 'password'; }, BACKUP));
     await p.click('#bk_kept'); await p.waitForTimeout(150); want('I WROTE IT DOWN: it goes', !(await p.$('#codebox')));
     want('MAKE IT MINE: yours, and the backup code to write down', /It.s yours: sam-actor-test\.theactorpage\.com/.test(v) && BACKUP.length > 10 && !!(await p.$('#up_go')), v.slice(0, 300));
     want('how much of your 5 GB it uses, and about how long', /of your 5 GB/.test(v) && /About \d+ to \d+ minutes on home Wi-Fi/.test(v));

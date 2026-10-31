@@ -31,6 +31,7 @@ label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;
 .addr{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--field);overflow:hidden}
 .addr input{flex:1;min-width:0;border:0;background:transparent}.addr span{padding:0 12px;font-size:15px;font-weight:400;letter-spacing:0;color:var(--dim);white-space:nowrap}
 input{height:48px;padding:0 12px;font:500 17px var(--sans);color:var(--ink);border:1px solid var(--line);border-radius:10px;background:var(--field);letter-spacing:.02em}
+.pw{position:relative;display:block}.pw input{width:100%;padding-right:76px}.show{position:absolute;right:6px;top:6px;height:36px;min-width:60px;border:0;border-radius:8px;background:transparent;color:var(--dim);font:600 12px var(--sans);letter-spacing:.1em;cursor:pointer}
 .addr input:focus{outline:none}.addr:focus-within{outline:2px solid var(--gold);outline-offset:1px}
 .go{min-height:52px;border:0;border-radius:12px;background:var(--gold);color:var(--gold-ink);font:600 15px var(--sans);letter-spacing:.08em;cursor:pointer}
 .go:disabled{opacity:.6;cursor:default}
@@ -53,17 +54,17 @@ input{height:48px;padding:0 12px;font:500 17px var(--sans);color:var(--ink);bord
     <h1>Sign in</h1>
     <p class="say">Your studio, your page and your clips, on this computer.</p>
     <label for="nm">YOUR ADDRESS
-      <span class="addr"><input id="nm" name="nm" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="yourname" required><span>.theactorpage.com</span></span>
+      <span class="addr"><input id="nm" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="yourname" required><span>.theactorpage.com</span></span>
     </label>
     <label for="code">YOUR BACKUP CODE
-      <input id="code" name="code" autocomplete="current-password" autocapitalize="none" spellcheck="false" placeholder="The code you wrote down" required>
+      <span class="pw"><input id="code" name="code" type="password" autocomplete="current-password" autocapitalize="none" spellcheck="false" placeholder="The code you wrote down" required><button type="button" class="show" id="showCode" aria-pressed="false">SHOW</button></span>
     </label>
     <button class="go" id="go" type="submit">SIGN IN</button>
     <div id="busy" hidden><div class="prog" aria-hidden="true"><i id="bar"></i></div></div>
     <div id="ask" class="ask" hidden></div>
     <p class="why" id="why" role="status" aria-live="polite"></p>
     <div class="foot">
-      <span>Lost your code? It's the one you wrote down when you picked your address. Without it, this computer can't open your studio.</span>
+      <span>Lost your code? It's the one you wrote down, or saved in your passwords, when you picked your address. Without it, this computer can't open your studio.</span>
       <span>New here? <a href="../">Start here ›</a></span>
     </div>
   </form>
@@ -82,6 +83,9 @@ function ask(differ,add){ return new Promise(res=>{ const a=$('ask'); a.hidden=f
   a.innerHTML='<b>This computer already has some of your studio.</b><span>'+differ+' saved item'+(differ===1?' is':'s are')+' different here from your online studio'+(add?', and '+add+' more will be added either way':'')+'.</span>'
    +'<div class="row"><button type="button" class="go" id="useOnline">USE MY ONLINE STUDIO</button><button type="button" class="ghost" id="keepHere">KEEP THIS COMPUTER’S</button></div>';
   $('useOnline').onclick=()=>{ a.hidden=true; res(true); }; $('keepHere').onclick=()=>{ a.hidden=true; res(false); }; }); }
+$('showCode').onclick=()=>{ const c=$('code'), on=c.type==='password'; c.type=on?'text':'password'; $('showCode').textContent=on?'HIDE':'SHOW'; $('showCode').setAttribute('aria-pressed',on); };
+/* a saved address with its code fills in by itself; the address may come over as the full web address */
+$('nm').addEventListener('change',()=>{ const v=$('nm').value; if(/\./.test(v)) $('nm').value=FootCloud.slug(v.replace(/^https?:\/\//,'').split('.')[0]); });
 $('form').onsubmit=async e=>{
   e.preventDefault();
   const name=FootCloud.slug($('nm').value), code=$('code').value.trim();
