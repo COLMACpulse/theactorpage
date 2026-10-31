@@ -58,11 +58,14 @@
     const room = (k, name, sub, doors) => '<section class="room ' + k + '" aria-label="' + name + '"><span class="sticks" aria-hidden="true"></span><div class="rin"><span class="k">' + name + '</span><span class="rsub">' + sub + '</span>' + doors + '</div></section>';
     /* you, first (Col, Oct 26): your headshot, big, under the bar and above Your studio */
     const y = you(), sh = shots(), ph = sh.find(x => x.id === y.primary) || sh[0];
+    /* your live page, one tap (Col, Oct 30) */
+    const live = (() => { try { const o = JSON.parse(localStorage.getItem('hub_online_v1') || 'null'); return o && o.live && /^https:\/\//.test(o.url || '') ? o : null; } catch (e) { return null; } })();
     const facts = [y.union, y.locations, y.rep ? 'rep: ' + y.rep : ''].filter(Boolean).join(' · ');
     const me = '<section class="me" aria-label="You">' + (ph ? '<a class="mephoto" href="headshots/" aria-label="Your headshots"><img data-photo="' + esc(ph.id) + '" alt="Your headshot"></a>'
         : '<label class="mephoto none"><input type="file" id="meShot" accept="image/*" hidden><span>ADD A HEADSHOT</span></label>')
       + '<div class="metx"><b class="mename">' + esc(y.name || 'Your name') + '</b>' + (facts ? '<span class="mefacts">' + esc(facts) + '</span>' : '')
-      + '<span class="melinks"><a href="hub/">Your page ›</a><a href="headshots/">Headshots' + (sh.length ? ' · ' + sh.length : '') + ' ›</a>' + (y.resume ? '' : '<a href="hub/?tab=intake">Add your résumé ›</a>') + '</span></div></section>';
+      + (live ? '<a class="melive" id="meLive" href="' + esc(live.url) + '" target="_blank" rel="noopener"><b>YOUR PAGE IS LIVE ↗</b><small>' + esc(live.url.replace(/^https?:\/\//, '').replace(/\/$/, '')) + '</small></a>' : '')
+      + '<span class="melinks"><a href="hub/?tab=package">Your page ›</a><a href="headshots/">Headshots' + (sh.length ? ' · ' + sh.length : '') + ' ›</a>' + (y.resume ? '' : '<a href="hub/?tab=intake">Add your résumé ›</a>') + '</span></div></section>';
     return me + '<div class="shead"><h1>Your studio</h1></div>'
       + '<div class="sgrid"><div class="rooms">'
       + room('act', 'SHOWCASE', 'What casting sees of you',

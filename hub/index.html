@@ -187,6 +187,7 @@ header.bhead{display:flex!important;text-align:left!important}
 .hrowlink small{margin-left:auto}.hrowlink:after{margin-left:10px}
 .hbtn.sm{min-height:40px;padding:0 12px;font-size:11.5px;border-radius:10px}
 .hrow2{display:flex;gap:8px;flex-wrap:wrap}.hrow2>.hbtn{flex:1}
+.livebox{margin-top:12px;padding:12px 14px;border:1px solid var(--line2);border-radius:12px;background:var(--p2)}.livebox.on{border-color:#e0a23c}.livebox .lk{display:block;font:700 12px var(--sans);letter-spacing:.2em;color:var(--dim)}.livebox.on .lk{color:#e0a23c}.lurl{display:block;font-weight:600;font-size:17px;color:var(--ink);margin:2px 0 10px;word-break:break-all}#homeurl{font-size:14px;margin:8px 0 0}
 .duel{display:flex;gap:10px;align-items:center;padding:12px 0;border-top:1px solid var(--line);flex-wrap:wrap}.duel:first-child{border-top:0}
 .duel .t{flex:1 1 240px;min-width:0;background:none;border:0;padding:0;text-align:left;color:var(--ink);cursor:pointer}
 .duel .t b{display:block;font:600 15.5px var(--sans)}.duel .t small{display:block;font-size:12.5px;color:var(--mut)}
@@ -3502,11 +3503,22 @@ async function seePage(){ const w=window.open('','_blank'); try{ const doc=await
 /* how your page looks: POSTER WALL (new pages start here) or RÉSUMÉ. Kept with your profile. */
 function pkgLayout(){ return profile.pageLayout==='resume'?'resume':'wall'; }
 function pkgLayoutSet(k){ profile.pageLayout=k==='resume'?'resume':'wall'; saveProfile(); render(); }
+/* the top of Your page (Col, Oct 30: "where is the link to their actual page?"): live, your address and OPEN MY PAGE up
+   front; not yet, NOT ONLINE YET and a button straight to Publish */
+const toOnline="const e=document.getElementById('online');if(e)e.scrollIntoView({block:'start',behavior:'smooth'})";
+function pkgLive(o,host){
+ if(host) return '<div class="livebox on" id="livebox"><span class="lk">LIVE</span><a class="lurl" href="'+esc(o.url)+'" target="_blank" rel="noopener">'+esc(host)+'</a>'
+  +'<div class="hrow2"><a class="hbtn pri" id="openpage" href="'+esc(o.url)+'" target="_blank" rel="noopener">OPEN MY PAGE</a><button class="hbtn" id="copypage" onclick="navigator.clipboard&&navigator.clipboard.writeText(\''+esc(o.url)+'\').then(()=>toast(\'Link copied\'))">COPY LINK</button><button class="hbtn" onclick="'+toOnline+'">UPDATE IT ONLINE</button></div>'
+  +'<p class="hnote">This is the page anyone with the link sees. Changed something here? UPDATE IT ONLINE and the live page matches.</p></div>';
+ return '<div class="livebox" id="livebox"><span class="lk">NOT ONLINE YET</span><p class="hnote" style="margin:4px 0 8px">Put it online and it gets its own address, yourname.theactorpage.com, free.</p>'
+  +'<div class="hrow2"><button class="hbtn pri" id="gopub" onclick="'+toOnline+'">PUT IT ONLINE</button></div></div>';
+}
 function pkgTop(hs,rs,rl,cr){
  const R=pkgRows(hs,rs,rl,cr), prim=ARTS.find(a=>a.id===pkgSel.headshot), o=online(), host=o.url&&o.live?o.url.replace(/^https?:\/\//,'').replace(/\/$/,''):'';
- let h='<div class="hg" id="pagetop"><div><p class="hk">Your page</p><div class="hcard"><div class="ppc"><span class="ph">'+(prim?'<img src="'+artURL(prim)+'" alt="">':'')+'</span><span><b>'+esc(profile.name||'Your name')+'</b><small>'+esc([profile.union,profile.rep].filter(Boolean).join(' · ')||'Add your union and rep in Your material.')+'</small>'+(host?'<small>Online at '+esc(host)+'</small>':'')+'</span></div>'
-  +'<div class="hrow2" style="margin-top:12px"><button class="hbtn pri" id="seeit" onclick="seePage()">SEE IT</button><button class="hbtn" onclick="buildPackage()">SAVE THE FILE</button><button class="hbtn" onclick="const e=document.getElementById(\'online\');if(e)e.scrollIntoView({block:\'start\',behavior:\'smooth\'})">'+(host?'UPDATE IT ONLINE':'PUT IT ONLINE')+'</button></div>'
-  +'<p class="hnote">SAVE THE FILE makes one .html you can attach to an email. SEE IT opens it here first.</p>'
+ let h='<div class="hg" id="pagetop"><div><p class="hk">Your page</p><div class="hcard"><div class="ppc"><span class="ph">'+(prim?'<img src="'+artURL(prim)+'" alt="">':'')+'</span><span><b>'+esc(profile.name||'Your name')+'</b><small>'+esc([profile.union,profile.rep].filter(Boolean).join(' · ')||'Add your union and rep in Your material.')+'</small>'+'</span></div>'
+  +pkgLive(o,host)
+  +'<div class="hrow2" style="margin-top:8px"><button class="hbtn" id="seeit" onclick="seePage()">PREVIEW</button><button class="hbtn" onclick="buildPackage()">SAVE THE FILE</button></div>'
+  +'<p class="hnote">PREVIEW shows this page from the files on this computer, with your changes, before you put them online. SAVE THE FILE makes one .html you can attach to an email.</p>'
   +'<p class="hk" style="margin-top:14px">How it looks</p><div class="layrow" role="radiogroup" aria-label="How your page looks">'
   +[['wall','POSTER WALL','Reel first, then your work as big posters. Tap one to play it.'],['resume','RÉSUMÉ','Headshot first, then your credits as a list.']]
     .map(([k,t,w])=>'<button type="button" role="radio" id="lay_'+k+'" class="laycard'+(pkgLayout()===k?' on':'')+'" aria-checked="'+(pkgLayout()===k)+'" onclick="pkgLayoutSet(\''+k+'\')"><b>'+t+'</b><small>'+w+'</small></button>').join('')
@@ -3966,8 +3978,10 @@ function homeView(){
   :'<div class="hcard" data-icbig="plan"><p class="hnote" style="margin:0">Nothing due. When a request comes in, paste it above.</p></div>';
  h+=rl('road','send','What you’ve sent','every tape, and what came of it',past);
  h+='</div><div>';
- h+='<p class="hk">Your page</p><div class="hcard" data-stick><button class="ppc" onclick="go(\'package\')"><span class="ph">'+(prim?'<img src="'+artURL(prim)+'" alt="">':'')+'</span><span><b>'+esc(profile.name||'Your name')+'</b><small>'+esc(on.join(' · ')||'Nothing on it yet. Add a headshot to start.')+'</small>'+(host?'<small>Online at '+esc(host)+'</small>':'')+'</span></button>'
-  +'<div class="hrow2" style="margin-top:12px"><button class="hbtn pri" data-ic="hub" onclick="go(\'package\')">SEE IT</button><button class="hbtn" data-ic="send" onclick="go(\'package\');setTimeout(()=>{const e=document.getElementById(\'online\');if(e)e.scrollIntoView({block:\'start\'});},300)">'+(host?'UPDATE IT ONLINE':'PUT IT ONLINE')+'</button></div></div>';
+ h+='<p class="hk">Your page</p><div class="hcard" data-stick><button class="ppc" onclick="go(\'package\')"><span class="ph">'+(prim?'<img src="'+artURL(prim)+'" alt="">':'')+'</span><span><b>'+esc(profile.name||'Your name')+'</b><small>'+esc(on.join(' · ')||'Nothing on it yet. Add a headshot to start.')+'</small>'+'</span></button>'
+  +(host?'<a class="lurl" id="homeurl" href="'+esc(online().url)+'" target="_blank" rel="noopener">LIVE · '+esc(host)+'</a>':'<p class="hnote" style="margin:8px 0 0">Not online yet.</p>')
+  +'<div class="hrow2" style="margin-top:12px">'+(host?'<a class="hbtn pri" data-ic="hub" href="'+esc(online().url)+'" target="_blank" rel="noopener">OPEN MY PAGE</a><button class="hbtn" data-ic="send" onclick="go(\'package\')">CHANGE IT</button>'
+   :'<button class="hbtn pri" data-ic="hub" onclick="go(\'package\')">MAKE IT</button><button class="hbtn" data-ic="send" onclick="go(\'package\');setTimeout(()=>{const e=document.getElementById(\'online\');if(e)e.scrollIntoView({block:\'start\'});},300)">PUT IT ONLINE</button>')+'</div></div>';
  h+=rl('resume','res','Your résumé','what you can play, in print',rdoc?'on file':'');
  h+=rl('press','press','Press','written about you','');
  h+=rl('offices','contacts','Offices to go in for','who casts what you play',offN||'');
